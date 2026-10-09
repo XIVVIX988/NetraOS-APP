@@ -3880,6 +3880,102 @@ body.auth-view {
   }
 }
 
+/* Readability pass: keep supporting copy comfortable at normal viewing size. */
+body {
+  font-size: 15px;
+  --muted: #5d665f;
+}
+
+body small {
+  font-size: max(12px, 0.84em) !important;
+  line-height: 1.45;
+}
+
+.app-shell :is(.section-kicker, .eyebrow, .inventory-label, .metric-foot, .metric-caption,
+  .metric-trailing, .muted, .nav-shortcut, .nav-count, .chart-legend, .x-labels, .y-labels,
+  .inventory-note, .inventory-row small, .power-row-name small, .power-row-amount small,
+  .quest-detail, .stats-caption, .page-footer) {
+  font-size: max(12px, 0.84em) !important;
+  color: #59635c;
+}
+
+.app-shell :is(input, select, textarea, button) {
+  font-size: max(14px, 0.92em);
+}
+
+#public-shell .public-nav a,
+#public-shell .public-nav button {
+  font-size: 13px;
+}
+
+#public-shell .landing-eyebrow,
+#public-shell .landing-copy-v2 > p,
+#public-shell .landing-text-link,
+#public-shell .landing-assurance-v2 small,
+#public-shell .landing-feature-strip small,
+#public-shell .landing-deep-copy > p,
+#public-shell .landing-deep-copy li,
+#public-shell .public-footer {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+#public-shell .landing-feature-strip strong {
+  font-size: 14px !important;
+}
+
+#public-shell .mockup-metrics article > span {
+  font-size: 10px !important;
+  line-height: 1.4;
+}
+
+#public-shell .landing-header .public-brand small {
+  font-size: 10px !important;
+  color: #56635b;
+}
+
+#public-shell .landing-copy-v2 .landing-manifesto {
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0 3px 12px;
+  border: 0;
+  border-left: 2px solid #15936a;
+  border-radius: 0;
+  background: transparent;
+  color: #263b30;
+  font: 650 13px/1.4 var(--display);
+  letter-spacing: -.015em;
+}
+
+#public-shell .landing-manifesto b {
+  color: #c09335;
+  font: 600 15px/1 var(--sans);
+}
+
+#public-shell .landing-manifesto strong {
+  margin-left: 2px;
+  padding: 5px 8px;
+  border-radius: 4px 10px 4px 10px;
+  background: #e4f2e9;
+  color: #14734f;
+  font: 700 10px/1.2 var(--mono);
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 560px) {
+  #public-shell .landing-header .public-nav a,
+  #public-shell .landing-feature-strip small {
+    font-size: 12px;
+  }
+
+  #public-shell .landing-feature-strip strong {
+    font-size: 13px !important;
+  }
+}
+
 /* Landing page inspired by a light, editorial fintech product site */
 body.public-view {
   background: linear-gradient(180deg, #fbfdfb 0%, #f2faf5 65%, #eff9f3 100%);
@@ -3941,7 +4037,16 @@ body.public-view {
   color: #fff;
   font: 700 22px/1 var(--sans);
   cursor: pointer;
-  transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px);
+  transition: opacity .25s ease, transform .25s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.landing-back-top.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .landing-back-top:hover {
@@ -3953,6 +4058,27 @@ body.public-view {
 .landing-back-top:focus-visible {
   outline: 3px solid #94d6b6;
   outline-offset: 3px;
+}
+
+.landing-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity .65s ease, transform .65s cubic-bezier(.2, .7, .2, 1);
+  will-change: opacity, transform;
+}
+
+.landing-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-reveal,
+  .landing-reveal.is-visible,
+  .landing-back-top {
+    transform: none;
+    transition: none;
+  }
 }
 
 .landing-hero-v2 {
@@ -4442,6 +4568,7 @@ body.public-view {
 .landing-feature-strip {
   position: relative;
   z-index: 2;
+  scroll-margin-top: 24px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: -7px 0 46px;
@@ -4843,5 +4970,160 @@ body.public-view {
   .landing-bottom-cta {
     margin-bottom: 25px;
     padding: 20px;
+  }
+}
+
+/* Give the full dashboard menu room before it reaches the compact layout. */
+.app-shell .top-nav {
+  flex: 0 1 auto;
+  gap: 1px;
+}
+
+.app-shell .top-nav .top-nav-item {
+  padding: 8px 9px;
+  font-size: 12px !important;
+}
+
+@media (max-width: 1240px) {
+  .app-shell .topbar {
+    gap: 10px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .app-shell .top-brand {
+    min-width: 128px;
+    flex: 0 1 150px;
+  }
+
+  .app-shell .top-nav {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .app-shell .top-nav .top-nav-item {
+    padding-right: 6px;
+    padding-left: 6px;
+    font-size: 11px !important;
+  }
+
+  .app-shell .topbar-actions {
+    gap: 7px;
+  }
+
+  .app-shell .sync-status,
+  .app-shell .top-divider {
+    display: none;
+  }
+}
+
+.landing-faq {
+  display: grid;
+  grid-template-columns: minmax(220px, .72fr) minmax(0, 1.28fr);
+  gap: clamp(32px, 7vw, 96px);
+  margin: 0 0 48px;
+  padding: clamp(28px, 5vw, 60px) clamp(20px, 5vw, 62px);
+  border-top: 1px solid #d9e7dd;
+  border-bottom: 1px solid #d9e7dd;
+  background: linear-gradient(105deg, #f5faf6, #eef7f1 58%, #f8fbf8);
+}
+
+.landing-faq-intro {
+  align-self: start;
+  position: sticky;
+  top: 30px;
+}
+
+.landing-faq-index {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: #187653;
+  font: 600 11px/1.4 var(--mono);
+  letter-spacing: .1em;
+}
+
+.landing-faq-intro h2 {
+  margin: 0 0 14px;
+  color: #17251d;
+  font: 600 clamp(30px, 3.7vw, 44px)/1.08 var(--display);
+  letter-spacing: -.055em;
+}
+
+.landing-faq-intro p {
+  max-width: 300px;
+  margin: 0;
+  color: #536158;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.landing-faq-list details {
+  border-bottom: 1px solid #d8e4dc;
+}
+
+.landing-faq-list details:first-child {
+  border-top: 1px solid #d8e4dc;
+}
+
+.landing-faq-list summary {
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 2px;
+  color: #24352b;
+  font: 600 16px/1.45 var(--display);
+  cursor: pointer;
+  list-style: none;
+}
+
+.landing-faq-list summary::-webkit-details-marker {
+  display: none;
+}
+
+.landing-faq-list summary span {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cddfd2;
+  border-radius: 50%;
+  color: #167a54;
+  font: 500 20px/1 var(--sans);
+  transition: transform .2s ease, background .2s ease;
+}
+
+.landing-faq-list details[open] summary span {
+  transform: rotate(45deg);
+  background: #e2f0e6;
+}
+
+.landing-faq-list details p {
+  max-width: 650px;
+  margin: -2px 42px 20px 2px;
+  color: #536158;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+@media (max-width: 720px) {
+  .landing-faq {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 32px 18px;
+  }
+
+  .landing-faq-intro {
+    position: static;
+  }
+
+  .landing-faq-intro h2 br {
+    display: none;
+  }
+
+  .landing-faq-list summary {
+    font-size: 14px;
   }
 }

@@ -47,6 +47,38 @@ const sessionStorageKey = "netraos-local-session-v1";
 const settingsStorageKey = "netraos-settings-v1";
 let toastTimer;
 let profilePreviewUrl = "";
+let landingScrollEffectsBound = false;
+let landingRevealObserver = null;
+
+function setupLandingScrollEffects() {
+  const revealItems = document.querySelectorAll(
+    ".landing-hero-v2 .landing-copy-v2, .landing-hero-v2 .landing-visual, .landing-feature-strip, .landing-deep-copy, .insight-collage, .landing-faq, .landing-bottom-cta"
+  );
+  const backToTop = document.querySelector(".landing-back-top");
+
+  if ("IntersectionObserver" in window) {
+    landingRevealObserver?.disconnect();
+    landingRevealObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        entry.target.classList.toggle("is-visible", entry.isIntersecting);
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+    revealItems.forEach(item => {
+      item.classList.add("landing-reveal");
+      landingRevealObserver.observe(item);
+    });
+  }
+
+  if (!landingScrollEffectsBound) {
+    window.addEventListener("scroll", () => {
+      const button = document.querySelector(".landing-back-top");
+      if (button) button.classList.toggle("is-visible", window.scrollY > 320);
+    }, { passive: true });
+    landingScrollEffectsBound = true;
+  }
+
+  if (backToTop) backToTop.classList.toggle("is-visible", window.scrollY > 320);
+}
 
 const welcomeName = document.querySelector("#welcome-name");
 const initialProfile = getStoredProfile();
@@ -221,12 +253,12 @@ function showPublicPage(page = "landing") {
       <div class="public-page">
         <header class="public-header landing-header">
           <a class="public-brand" href="#home" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a>
-          <nav class="public-nav" aria-label="Public navigation"><div class="landing-nav-links"><a class="landing-nav-current" href="#home">Home</a><a href="#features">Features</a><a href="#about">About</a></div><button type="button" data-public-action="login">Log in</button><button class="public-nav-cta" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></nav>
+          <nav class="public-nav" aria-label="Public navigation"><div class="landing-nav-links"><a class="landing-nav-current" href="#home">Home</a><a href="#features">Features</a><a href="#about">About</a><a href="#faq">FAQ</a></div><button type="button" data-public-action="login">Log in</button><button class="public-nav-cta" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></nav>
         </header>
         <main>
           <section class="landing-hero landing-hero-v2">
             <div class="landing-copy landing-copy-v2">
-              <div class="landing-eyebrow"><i></i> YOUR FINANCES, WORKING AS ONE</div>
+              <div class="landing-eyebrow landing-manifesto" aria-label="Income. Spending. Goals. In one view."><span>Income</span><b>·</b><span>Spending</span><b>·</b><span>Goals</span><strong>In one view</strong></div>
               <h1>See your money<br>with <em>new clarity.</em></h1>
               <p>NetraOS turns scattered balances and plans into one clear picture—so your next financial move feels easier to make.</p>
               <div class="landing-actions"><button class="public-primary" type="button" data-public-action="signup">Get started <span>↗</span></button><a class="landing-text-link" href="#features">Explore the system <span>↓</span></a></div>
@@ -247,11 +279,13 @@ function showPublicPage(page = "landing") {
           </section>
           <section class="landing-feature-strip" id="features" aria-label="NetraOS features"><article><span>◉</span><div><strong>Inventory</strong><small>Assets, liabilities, net worth</small></div></article><article><span>↗</span><div><strong>Power-Up</strong><small>Income, budgets, spending</small></div></article><article><span>◎</span><div><strong>Quests</strong><small>Goals with visible progress</small></div></article><article><span>▥</span><div><strong>Stats</strong><small>Patterns that guide your plan</small></div></article></section>
           <section class="landing-deep-dive" id="about"><div class="landing-deep-copy"><div class="landing-eyebrow"><i></i> A BETTER VIEW, STEP BY STEP</div><h2>From the big picture<br>to your next move.</h2><p>Bring your financial basics together, then build from there. NetraOS keeps the essentials close without making money management feel like another job.</p><ul><li><i>✓</i> Understand what you own and owe</li><li><i>✓</i> Give monthly income a clear plan</li><li><i>✓</i> Track goals without losing sight of today</li></ul><button class="public-primary" type="button" data-public-action="signup">Build your financial picture <span>↗</span></button></div><div class="insight-collage"><article class="insight-card insight-progress"><div class="insight-card-head"><span><small>QUEST PROGRESS</small><strong>Emergency fund</strong></span><i>◈</i></div><div class="insight-progress-line"><span></span></div><div class="insight-card-foot"><small>One goal at a time</small><strong>0%</strong></div></article><article class="insight-card insight-rate"><small>SAVINGS RATE</small><strong>0<span>%</span></strong><div class="insight-sparkline"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>Calculated from your monthly plan</small></article><article class="insight-card insight-budget"><i>▤</i><small>MONTHLY BUDGET</small><strong>KSh 0</strong><span>Set your first budget line</span></article><article class="insight-card insight-note"><span>✳</span><p>Your plan should work for your life—not the other way around.</p></article></div></section>
+          <section class="landing-faq" id="faq" aria-labelledby="landing-faq-title"><div class="landing-faq-intro"><span class="landing-faq-index">NETRAOS / FAQ</span><h2 id="landing-faq-title">A few useful<br>answers.</h2><p>Quick details about how the system works and where your information stays.</p></div><div class="landing-faq-list"><details><summary>What can I track in NetraOS?<span aria-hidden="true">+</span></summary><p>Record assets and liabilities, plan income and monthly budgets, track spending, and follow your savings goals and financial progress.</p></details><details><summary>Does NetraOS connect to my bank?<span aria-hidden="true">+</span></summary><p>No. This version does not connect to bank accounts. You add and update your information yourself.</p></details><details><summary>Where is my financial information stored?<span aria-hidden="true">+</span></summary><p>Your entries are saved in this browser on this device. They are not sent to a NetraOS account or synced to another device.</p></details><details><summary>Can I export my dashboard?<span aria-hidden="true">+</span></summary><p>Yes. Use the dashboard download controls to export a PDF or spreadsheet copy of your financial summary.</p></details></div></section>
           <section class="landing-bottom-cta"><div><small>START WHERE YOU ARE</small><h2>Make your next money move with clarity.</h2></div><button class="public-primary" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></section>
         </main>
         <button class="landing-back-top" type="button" aria-label="Back to top" title="Back to top">↑</button>
         <footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><span>Kenyan shillings · KSh</span></footer>
       </div>`;
+    setupLandingScrollEffects();
   } else {
     const isSignup = page === "signup";
     publicShell.innerHTML = `
@@ -1724,8 +1758,20 @@ document.addEventListener("submit", async event => {
 
 document.addEventListener("click", event => {
   const target = event.target;
+  const exploreLink = target.closest(".landing-text-link[href='#features']");
+  if (exploreLink) {
+    const features = document.querySelector("#features");
+    if (features) {
+      event.preventDefault();
+      window.history.replaceState(null, "", "#features");
+      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+      features.scrollIntoView({ behavior, block: "start" });
+    }
+    return;
+  }
   if (target.closest(".landing-back-top")) {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) window.scrollTo(0, 0);
+    else window.scrollTo({ top: 0, behavior: "smooth" });
     return;
   }
   const menuItem = target.closest("[data-menu-choice]");
