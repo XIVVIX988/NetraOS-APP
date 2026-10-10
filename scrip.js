@@ -52,7 +52,7 @@ let landingRevealObserver = null;
 
 function setupLandingScrollEffects() {
   const revealItems = document.querySelectorAll(
-    ".landing-hero-v2 .landing-copy-v2, .landing-hero-v2 .landing-visual, .landing-feature-strip, .landing-deep-copy, .insight-collage, .landing-faq, .landing-bottom-cta"
+    ".landing-hero-v2 .landing-copy-v2, .landing-hero-v2 .landing-visual, .landing-feature-strip, .landing-deep-copy, .insight-collage, .landing-faq, .landing-contact, .landing-bottom-cta"
   );
   const backToTop = document.querySelector(".landing-back-top");
 
@@ -253,7 +253,7 @@ function showPublicPage(page = "landing") {
       <div class="public-page">
         <header class="public-header landing-header">
           <a class="public-brand" href="#home" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a>
-          <nav class="public-nav" aria-label="Public navigation"><div class="landing-nav-links"><a class="landing-nav-current" href="#home">Home</a><a href="#features">Features</a><a href="#about">About</a><a href="#faq">FAQ</a></div><button type="button" data-public-action="login">Log in</button><button class="public-nav-cta" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></nav>
+          <nav class="public-nav" aria-label="Public navigation"><div class="landing-nav-links"><a class="landing-nav-current" href="#home">Home</a><a href="#features">Features</a><a href="#about">About</a><a href="#faq">FAQ</a><a href="#contact">Contact</a></div><button type="button" data-public-action="login">Log in</button><button class="public-nav-cta" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></nav>
         </header>
         <main>
           <section class="landing-hero landing-hero-v2">
@@ -280,6 +280,19 @@ function showPublicPage(page = "landing") {
           <section class="landing-feature-strip" id="features" aria-label="NetraOS features"><article><span>◉</span><div><strong>Inventory</strong><small>Assets, liabilities, net worth</small></div></article><article><span>↗</span><div><strong>Power-Up</strong><small>Income, budgets, spending</small></div></article><article><span>◎</span><div><strong>Quests</strong><small>Goals with visible progress</small></div></article><article><span>▥</span><div><strong>Stats</strong><small>Patterns that guide your plan</small></div></article></section>
           <section class="landing-deep-dive" id="about"><div class="landing-deep-copy"><div class="landing-eyebrow"><i></i> A BETTER VIEW, STEP BY STEP</div><h2>From the big picture<br>to your next move.</h2><p>Bring your financial basics together, then build from there. NetraOS keeps the essentials close without making money management feel like another job.</p><ul><li><i>✓</i> Understand what you own and owe</li><li><i>✓</i> Give monthly income a clear plan</li><li><i>✓</i> Track goals without losing sight of today</li></ul><button class="public-primary" type="button" data-public-action="signup">Build your financial picture <span>↗</span></button></div><div class="insight-collage"><article class="insight-card insight-progress"><div class="insight-card-head"><span><small>QUEST PROGRESS</small><strong>Emergency fund</strong></span><i>◈</i></div><div class="insight-progress-line"><span></span></div><div class="insight-card-foot"><small>One goal at a time</small><strong>0%</strong></div></article><article class="insight-card insight-rate"><small>SAVINGS RATE</small><strong>0<span>%</span></strong><div class="insight-sparkline"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>Calculated from your monthly plan</small></article><article class="insight-card insight-budget"><i>▤</i><small>MONTHLY BUDGET</small><strong>KSh 0</strong><span>Set your first budget line</span></article><article class="insight-card insight-note"><span>✳</span><p>Your plan should work for your life—not the other way around.</p></article></div></section>
           <section class="landing-faq" id="faq" aria-labelledby="landing-faq-title"><div class="landing-faq-intro"><span class="landing-faq-index">NETRAOS / FAQ</span><h2 id="landing-faq-title">A few useful<br>answers.</h2><p>Quick details about how the system works and where your information stays.</p></div><div class="landing-faq-list"><details><summary>What can I track in NetraOS?<span aria-hidden="true">+</span></summary><p>Record assets and liabilities, plan income and monthly budgets, track spending, and follow your savings goals and financial progress.</p></details><details><summary>Does NetraOS connect to my bank?<span aria-hidden="true">+</span></summary><p>No. This version does not connect to bank accounts. You add and update your information yourself.</p></details><details><summary>Where is my financial information stored?<span aria-hidden="true">+</span></summary><p>Your entries are saved in this browser on this device. They are not sent to a NetraOS account or synced to another device.</p></details><details><summary>Can I export my dashboard?<span aria-hidden="true">+</span></summary><p>Yes. Use the dashboard download controls to export a PDF or spreadsheet copy of your financial summary.</p></details></div></section>
+          <section class="landing-contact" id="contact" aria-labelledby="landing-contact-title">
+            <div class="landing-contact-intro">
+              <span class="landing-faq-index">NETRAOS / CONTACT</span>
+              <h2 id="landing-contact-title">Talk to a<br>real person.</h2>
+              <p>Questions about NetraOS, partnerships or press? Reach us through any channel below.</p>
+            </div>
+            <div class="landing-contact-grid">
+              <article class="landing-contact-card"><span class="landing-contact-icon" aria-hidden="true">⌖</span><div><small>ADDRESS</small><address><strong>NetraOS Technologies Lab</strong>The Mirage Towers, 8th Floor, Tower 2<br>Chiromo Road, Westlands<br>Nairobi, Kenya</address></div></article>
+              <a class="landing-contact-card" href="tel:+254700000988"><span class="landing-contact-icon" aria-hidden="true">☎</span><div><small>CALL</small><strong>+254 (0) 700 000 988</strong><em>Primary Operations Desk</em></div></a>
+              <a class="landing-contact-card" href="https://wa.me/254799000988" target="_blank" rel="noopener"><span class="landing-contact-icon" aria-hidden="true">✉</span><div><small>WHATSAPP</small><strong>+254 (0) 799 000 988</strong><em>WhatsApp only</em></div></a>
+              <article class="landing-contact-card"><span class="landing-contact-icon" aria-hidden="true">@</span><div><small>EMAIL</small><a href="mailto:support@netraos.io"><strong>support@netraos.io</strong></a><em>Support</em><a href="mailto:press@netraos.io"><strong>press@netraos.io</strong></a><em>Press</em></div></article>
+            </div>
+          </section>
           <section class="landing-bottom-cta"><div><small>START WHERE YOU ARE</small><h2>Make your next money move with clarity.</h2></div><button class="public-primary" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></section>
         </main>
         <button class="landing-back-top" type="button" aria-label="Back to top" title="Back to top">↑</button>
@@ -1235,6 +1248,7 @@ function showPage(page) {
     updateDashboardInventorySummary();
     updateDashboardPowerUpSummary();
     updateDashboardQuests();
+    updateDashboardTaxCard();
     return;
   }
   if (page === "Inventory") {
@@ -1260,6 +1274,11 @@ function showPage(page) {
   if (page === "Achievements") {
     window.location.hash = "achievements";
     content.innerHTML = renderAchievementsPage();
+    return;
+  }
+  if (page === "Contact") {
+    window.location.hash = "contact";
+    content.innerHTML = renderContactPage();
     return;
   }
   if (page === "Profile") {
@@ -1372,6 +1391,8 @@ function renderPowerUpPage() {
         </article>
       </section>
 
+      ${renderTaxWidget()}
+
       <section class="inventory-columns power-columns" aria-label="Income and monthly budget">
         <article class="panel power-list-panel">
           <div class="panel-heading">
@@ -1406,6 +1427,490 @@ function renderPowerUpPage() {
       <span>Private by design <i>✳</i></span>
     </footer>`;
 }
+
+// Kenya gross-to-net calculator (monthly): PAYE, NSSF, SHIF and Affordable Housing Levy
+const taxStorageKey = "netraos-tax-v1";
+const KE_TAX = {
+  nssfRate: 0.06,
+  nssfUpperLimit: 108000,
+  shifRate: 0.0275,
+  shifMinimum: 300,
+  ahlRate: 0.015,
+  personalRelief: 2400,
+  ringScale: 35,
+  sliderMax: 1000000,
+  bands: [
+    { upTo: 24000, rate: 0.10 },
+    { upTo: 32333, rate: 0.25 },
+    { upTo: 500000, rate: 0.30 },
+    { upTo: 800000, rate: 0.325 },
+    { upTo: Infinity, rate: 0.35 }
+  ]
+};
+const taxColors = { net: "#13875f", paye: "#d8b451", nssf: "#2f6f8f", shif: "#c0584a", ahl: "#7a6bb0" };
+
+function computeKenyaPayroll(grossInput) {
+  const gross = Math.max(0, Math.round(Number(grossInput) || 0));
+  const nssf = Math.round(Math.min(gross, KE_TAX.nssfUpperLimit) * KE_TAX.nssfRate);
+  const ahl = Math.round(gross * KE_TAX.ahlRate);
+  const shifRaw = gross > 0 ? Math.max(KE_TAX.shifMinimum, gross * KE_TAX.shifRate) : 0;
+  const shif = Math.round(Math.min(shifRaw, Math.max(0, gross - nssf - ahl)));
+  // NSSF, SHIF and the housing levy are all deducted before PAYE is worked out.
+  const taxable = Math.max(0, gross - nssf - shif - ahl);
+  let remaining = taxable;
+  let lower = 0;
+  let taxBeforeRelief = 0;
+  for (const band of KE_TAX.bands) {
+    if (remaining <= 0) break;
+    const slice = Math.min(remaining, band.upTo - lower);
+    taxBeforeRelief += slice * band.rate;
+    remaining -= slice;
+    lower = band.upTo;
+  }
+  const relief = Math.min(KE_TAX.personalRelief, taxBeforeRelief);
+  const paye = Math.round(taxBeforeRelief - relief);
+  const deductions = paye + nssf + shif + ahl;
+  const net = Math.max(0, gross - deductions);
+  return {
+    gross, nssf, shif, ahl, taxable, paye, deductions, net,
+    taxBeforeRelief: Math.round(taxBeforeRelief),
+    relief: Math.round(relief),
+    shifAtMinimum: gross > 0 && shifRaw === KE_TAX.shifMinimum && gross * KE_TAX.shifRate < KE_TAX.shifMinimum
+  };
+}
+
+function solveGrossFromNet(targetNet) {
+  const target = Math.max(0, Math.round(Number(targetNet) || 0));
+  if (target === 0) return 0;
+  let low = 0;
+  let high = Math.max(target * 3, 1000);
+  while (computeKenyaPayroll(high).net < target && high < 1e9) high *= 2;
+  while (high - low > 0.5) {
+    const mid = (low + high) / 2;
+    if (computeKenyaPayroll(mid).net >= target) high = mid;
+    else low = mid;
+  }
+  return Math.round(high);
+}
+
+function getTaxState() {
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem(taxStorageKey) || "null"); } catch { stored = null; }
+  if (stored && Number.isFinite(Number(stored.value)) && Number(stored.value) >= 0) {
+    return { mode: stored.mode === "net" ? "net" : "gross", value: Math.round(Number(stored.value)) };
+  }
+  return { mode: "gross", value: Math.round(getPowerUpTotals().income) || 100000 };
+}
+
+function saveTaxState(state) {
+  try { localStorage.setItem(taxStorageKey, JSON.stringify(state)); } catch { /* storage unavailable */ }
+}
+
+function taxScenario(state) {
+  return computeKenyaPayroll(state.mode === "net" ? solveGrossFromNet(state.value) : state.value);
+}
+
+function taxRing(fraction, radius, stroke, color) {
+  const circumference = 2 * Math.PI * radius;
+  const filled = Math.max(0, Math.min(1, fraction)) * circumference;
+  const size = (radius + stroke) * 2;
+  return `<svg viewBox="0 0 ${size} ${size}" aria-hidden="true" focusable="false">
+    <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" fill="none" stroke="#e8ece9" stroke-width="${stroke}"></circle>
+    <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${filled.toFixed(2)} ${circumference.toFixed(2)}" transform="rotate(-90 ${size / 2} ${size / 2})"></circle>
+  </svg>`;
+}
+
+function renderTaxResults(p) {
+  const pct = value => (p.gross > 0 ? (value / p.gross) * 100 : 0);
+  const fmtPct = value => (Math.round(value * 10) / 10).toFixed(1) + "%";
+  const items = [
+    { key: "paye", label: "PAYE", amount: p.paye, note: p.relief > 0 ? `After ${formatKsh(p.relief)} personal relief` : "Income tax" },
+    { key: "nssf", label: "NSSF", amount: p.nssf, note: p.gross >= KE_TAX.nssfUpperLimit ? `6% · capped at ${formatKsh(KE_TAX.nssfUpperLimit * KE_TAX.nssfRate)}` : `6% of pay up to ${formatKsh(KE_TAX.nssfUpperLimit)}` },
+    { key: "shif", label: "SHIF", amount: p.shif, note: p.shifAtMinimum ? `Minimum ${formatKsh(KE_TAX.shifMinimum)}` : "2.75% of gross" },
+    { key: "ahl", label: "Housing Levy", amount: p.ahl, note: "1.5% of gross" }
+  ];
+  const takeHomePct = pct(p.net);
+  const bar = p.gross > 0
+    ? [{ key: "net", label: "Take-home", amount: p.net }, ...items].map(item =>
+        `<span style="flex:${Math.max(item.amount, 0)} 1 0;background:${taxColors[item.key]}" title="${item.label}: ${formatKsh(item.amount)}"></span>`).join("")
+    : "";
+  return `
+    <div class="tax-hero">
+      <div class="tax-hero-ring" role="img" aria-label="Take-home is ${fmtPct(takeHomePct)} of gross pay">
+        ${taxRing(takeHomePct / 100, 52, 11, taxColors.net)}
+        <div class="tax-hero-center"><strong>${p.gross > 0 ? Math.round(takeHomePct) : 0}%</strong><span>TAKE-HOME</span></div>
+      </div>
+      <div class="tax-hero-figures" role="status">
+        <div><span>GROSS PAY</span><strong>${formatKsh(p.gross)}</strong></div>
+        <div class="tax-net"><span>NET PAY</span><strong>${formatKsh(p.net)}</strong></div>
+        <div><span>TOTAL DEDUCTIONS</span><strong>${formatKsh(p.deductions)}</strong></div>
+        <small>${formatKsh(p.net * 12)} take-home over 12 months</small>
+      </div>
+    </div>
+    <div class="tax-bar" aria-hidden="true">${bar}</div>
+    <div class="tax-rings">
+      ${items.map(item => `
+        <div class="tax-ring-card">
+          <div class="tax-mini-ring">
+            ${taxRing(pct(item.amount) / KE_TAX.ringScale, 22, 6, taxColors[item.key])}
+            <b>${fmtPct(pct(item.amount))}</b>
+          </div>
+          <span class="tax-ring-label">${item.label}</span>
+          <strong>${formatKsh(item.amount)}</strong>
+        </div>`).join("")}
+    </div>
+    <div class="tax-table" role="table" aria-label="Deduction breakdown">
+      ${items.map(item => `
+        <div class="tax-row" role="row">
+          <i style="background:${taxColors[item.key]}"></i>
+          <span class="tax-row-name" role="cell"><strong>${item.label}</strong><small>${item.note}</small></span>
+          <span class="tax-row-pct" role="cell">${fmtPct(pct(item.amount))}</span>
+          <strong class="tax-row-amount" role="cell">−${formatKsh(item.amount)}</strong>
+        </div>`).join("")}
+      <div class="tax-row tax-row-net" role="row">
+        <i style="background:${taxColors.net}"></i>
+        <span class="tax-row-name" role="cell"><strong>Take-home pay</strong><small>Taxable pay was ${formatKsh(p.taxable)}</small></span>
+        <span class="tax-row-pct" role="cell">${fmtPct(takeHomePct)}</span>
+        <strong class="tax-row-amount" role="cell">${formatKsh(p.net)}</strong>
+      </div>
+    </div>
+    <p class="tax-employer">Your employer also pays a matching ${formatKsh(p.nssf)} NSSF and ${formatKsh(p.ahl)} Housing Levy on top of your gross pay.</p>`;
+}
+
+function taxFieldLabel(mode) {
+  return mode === "net" ? "Monthly take-home (net) pay" : "Monthly gross salary";
+}
+
+function renderTaxWidget(compact = false) {
+  const state = getTaxState();
+  const p = taxScenario(state);
+  const sliderValue = Math.min(state.value, KE_TAX.sliderMax);
+  const inputId = compact ? "tax-amount-compact" : "tax-amount";
+  return `
+    <article class="panel tax-panel${compact ? " tax-compact tax-collapsed" : ""}" data-tax-mode="${state.mode}" aria-label="Gross to net calculator">
+      <div class="panel-heading">
+        <div>
+          <div class="section-kicker">${compact ? "KENYA · TAKE-HOME PAY" : "KENYA · PAYE, NSSF, SHIF &amp; HOUSING LEVY"}</div>
+          <h2>${compact ? "Take-home calculator" : "Gross-to-net take-home"}</h2>
+        </div>
+        ${compact ? `<button type="button" class="tax-expand" data-tax-toggle aria-expanded="false" aria-controls="tax-body-compact"><span>Show calculator</span><span class="tax-expand-icon" aria-hidden="true">⌄</span></button>` : `<div class="tax-toggle" role="group" aria-label="Calculate from">
+          <button type="button" class="${state.mode === "gross" ? "active" : ""}" data-tax-mode-btn="gross" aria-pressed="${state.mode === "gross"}">Gross → Net</button>
+          <button type="button" class="${state.mode === "net" ? "active" : ""}" data-tax-mode-btn="net" aria-pressed="${state.mode === "net"}">Net → Gross</button>
+        </div>`}
+      </div>
+      <div class="tax-body"${compact ? ` id="tax-body-compact"` : ""}>
+        ${compact ? `<div class="tax-toggle" role="group" aria-label="Calculate from">
+          <button type="button" class="${state.mode === "gross" ? "active" : ""}" data-tax-mode-btn="gross" aria-pressed="${state.mode === "gross"}">Gross → Net</button>
+          <button type="button" class="${state.mode === "net" ? "active" : ""}" data-tax-mode-btn="net" aria-pressed="${state.mode === "net"}">Net → Gross</button>
+        </div>` : ""}
+        <div class="tax-controls">
+          <label class="tax-field" for="${inputId}">
+            <span class="tax-field-label">${taxFieldLabel(state.mode)}</span>
+          </label>
+          <div class="tax-input-wrap">
+            <span>KSh</span>
+            <input id="${inputId}" class="tax-input" type="text" inputmode="numeric" autocomplete="off" value="${state.value.toLocaleString("en-KE")}">
+          </div>
+          <input class="tax-slider" type="range" min="0" max="${KE_TAX.sliderMax}" step="1000" value="${sliderValue}" aria-label="Adjust monthly amount" style="--fill:${(sliderValue / KE_TAX.sliderMax) * 100}%">
+          <div class="tax-slider-scale" aria-hidden="true"><span>0</span><span>250K</span><span>500K</span><span>750K</span><span>1M</span></div>
+          ${compact
+            ? `<button type="button" class="tax-use-income" data-jump="Power-Up">Full breakdown <span aria-hidden="true">↗</span></button>`
+            : `<button type="button" class="tax-use-income" data-tax-use-income>Use my logged income</button>
+          <p class="tax-footnote">Monthly estimate using 2026 statutory rates. NSSF, SHIF and the Housing Levy are deducted before PAYE. It excludes insurance relief, pension top-ups and mortgage interest, so check your payslip or KRA for exact figures. Rings are scaled so a full ring is ${KE_TAX.ringScale}% of gross.</p>`}
+        </div>
+        <div class="tax-results">${compact ? renderTaxCompactResults(p) : renderTaxResults(p)}</div>
+      </div>
+    </article>`;
+}
+
+function syncTaxPanel(panel, state, source) {
+  const p = taxScenario(state);
+  const input = panel.querySelector(".tax-input");
+  const slider = panel.querySelector(".tax-slider");
+  const formatted = state.value.toLocaleString("en-KE");
+  if (source === input) {
+    const caret = input.selectionStart ?? input.value.length;
+    const digitsBefore = input.value.slice(0, caret).replace(/\D/g, "").length;
+    input.value = formatted;
+    let pos = 0;
+    let seen = 0;
+    while (pos < formatted.length && seen < digitsBefore) {
+      if (/\d/.test(formatted[pos])) seen += 1;
+      pos += 1;
+    }
+    input.setSelectionRange(pos, pos);
+  } else {
+    input.value = formatted;
+  }
+  const sliderValue = Math.min(state.value, KE_TAX.sliderMax);
+  if (source !== slider) slider.value = sliderValue;
+  slider.style.setProperty("--fill", `${(sliderValue / KE_TAX.sliderMax) * 100}%`);
+  panel.querySelector(".tax-field-label").textContent = taxFieldLabel(state.mode);
+  panel.querySelector(".tax-results").innerHTML = panel.classList.contains("tax-compact") ? renderTaxCompactResults(p) : renderTaxResults(p);
+}
+
+document.addEventListener("input", event => {
+  const el = event.target;
+  if (!(el instanceof HTMLInputElement) || !el.matches(".tax-input, .tax-slider")) return;
+  const panel = el.closest(".tax-panel");
+  if (!panel) return;
+  const digits = el.classList.contains("tax-slider") ? el.value : el.value.replace(/\D/g, "");
+  const state = { mode: panel.dataset.taxMode === "net" ? "net" : "gross", value: Math.min(Number(digits) || 0, 99999999) };
+  saveTaxState(state);
+  syncTaxPanel(panel, state, el);
+});
+
+document.addEventListener("click", event => {
+  const taxToggle = event.target.closest("[data-tax-toggle]");
+  const modeButton = event.target.closest("[data-tax-mode-btn]");
+  const useIncome = event.target.closest("[data-tax-use-income]");
+  if (!taxToggle && !modeButton && !useIncome) return;
+  const panel = event.target.closest(".tax-panel");
+  if (!panel) return;
+  if (taxToggle) {
+    const expanded = panel.classList.toggle("tax-collapsed") === false;
+    taxToggle.setAttribute("aria-expanded", String(expanded));
+    taxToggle.querySelector("span").textContent = expanded ? "Hide calculator" : "Show calculator";
+    return;
+  }
+  const current = { mode: panel.dataset.taxMode === "net" ? "net" : "gross", value: Number(panel.querySelector(".tax-input").value.replace(/\D/g, "")) || 0 };
+
+  if (modeButton) {
+    const mode = modeButton.dataset.taxModeBtn === "net" ? "net" : "gross";
+    if (mode === current.mode) return;
+    const p = taxScenario(current);
+    const state = { mode, value: mode === "net" ? p.net : p.gross };
+    panel.dataset.taxMode = mode;
+    panel.querySelectorAll("[data-tax-mode-btn]").forEach(button => {
+      const active = button === modeButton;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    saveTaxState(state);
+    syncTaxPanel(panel, state, null);
+    return;
+  }
+
+  const logged = Math.round(getPowerUpTotals().income);
+  if (!logged) {
+    showToast("Add an income source first, then use it here.");
+    return;
+  }
+  const state = { mode: current.mode, value: logged };
+  saveTaxState(state);
+  syncTaxPanel(panel, state, null);
+});
+
+// Dashboard take-home card (compact version of the Power-Up calculator)
+function updateDashboardTaxCard() {
+  const slot = document.querySelector("#dashboard-tax-slot");
+  if (slot) slot.innerHTML = renderTaxWidget(true);
+}
+
+function renderTaxCompactResults(p) {
+  const pct = value => (p.gross > 0 ? (value / p.gross) * 100 : 0);
+  const takeHomePct = pct(p.net);
+  const items = [
+    { key: "paye", label: "PAYE", amount: p.paye },
+    { key: "nssf", label: "NSSF", amount: p.nssf },
+    { key: "shif", label: "SHIF", amount: p.shif },
+    { key: "ahl", label: "Housing Levy", amount: p.ahl }
+  ];
+  const bar = p.gross > 0
+    ? [{ key: "net", label: "Take-home", amount: p.net }, ...items].map(item =>
+        `<span style="flex:${Math.max(item.amount, 0)} 1 0;background:${taxColors[item.key]}" title="${item.label}: ${formatKsh(item.amount)}"></span>`).join("")
+    : "";
+  return `
+    <div class="tax-hero">
+      <div class="tax-hero-ring" role="img" aria-label="Take-home is ${Math.round(takeHomePct)}% of gross pay">
+        ${taxRing(takeHomePct / 100, 52, 11, taxColors.net)}
+        <div class="tax-hero-center"><strong>${p.gross > 0 ? Math.round(takeHomePct) : 0}%</strong><span>TAKE-HOME</span></div>
+      </div>
+      <div class="tax-hero-figures" role="status">
+        <div class="tax-net"><span>NET PAY</span><strong>${formatKsh(p.net)}</strong></div>
+        <div><span>GROSS · DEDUCTIONS</span><strong>${formatKsh(p.gross)} · −${formatKsh(p.deductions)}</strong></div>
+      </div>
+    </div>
+    <div class="tax-bar" aria-hidden="true">${bar}</div>
+    <div class="tax-legend">
+      ${items.map(item => `<span><i style="background:${taxColors[item.key]}"></i>${item.label}<strong>${formatKsh(item.amount)}</strong></span>`).join("")}
+    </div>`;
+}
+
+// Contact page
+const supportChannels = [
+  { dept: "Core Systems & Support", email: "support@netraos.io", hours: "Mon – Fri: 08:00 – 18:00", sla: "< 2 hours", window: { start: 8, end: 18 } },
+  { dept: "Security & Privacy Desk", email: "security@netraos.io", hours: "24 / 7 / 365 (Automated)", sla: "< 30 mins", window: null },
+  { dept: "Partnerships & Banking APIs", email: "integrations@netraos.io", hours: "Mon – Fri: 09:00 – 17:00", sla: "24 Hours", window: { start: 9, end: 17 } },
+  { dept: "Media & Relations", email: "press@netraos.io", hours: "Mon – Fri: 09:00 – 17:00", sla: "48 Hours", window: { start: 9, end: 17 } }
+];
+
+const contactDestinations = {
+  support: { label: "Tech Support", to: "support@netraos.io", tag: "SUPPORT" },
+  bug: { label: "Bug Report", to: "support@netraos.io", tag: "BUG REPORT" },
+  security: { label: "Security", to: "security@netraos.io", tag: "SECURITY" }
+};
+
+function nairobiNow() {
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Nairobi", weekday: "short", hour: "numeric", minute: "numeric", hour12: false }).formatToParts(new Date());
+    const get = type => parts.find(part => part.type === type)?.value;
+    const day = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[get("weekday")];
+    return { day, hour: (Number(get("hour")) % 24) + Number(get("minute")) / 60 };
+  } catch {
+    return null;
+  }
+}
+
+function channelStatus(channel) {
+  if (!channel.window) return { label: "ALWAYS ON", open: true };
+  const now = nairobiNow();
+  if (!now) return { label: "", open: false };
+  const open = now.day >= 1 && now.day <= 5 && now.hour >= channel.window.start && now.hour < channel.window.end;
+  return { label: open ? "OPEN NOW" : "CLOSED", open };
+}
+
+function renderSystemPill() {
+  const online = typeof navigator === "undefined" || navigator.onLine !== false;
+  return online
+    ? `<span class="system-pill" data-system-pill role="status"><i></i>All Nodes Operational <small>Latency: 14ms · Nairobi Server Hub</small></span>`
+    : `<span class="system-pill warn" data-system-pill role="status"><i></i>Sync Delay <small>You're offline · changes are saved locally</small></span>`;
+}
+
+function refreshSystemPills() {
+  document.querySelectorAll("[data-system-pill]").forEach(pill => {
+    pill.outerHTML = renderSystemPill();
+  });
+}
+
+window.addEventListener("online", refreshSystemPills);
+window.addEventListener("offline", refreshSystemPills);
+
+function renderContactPage() {
+  const channelRows = supportChannels.map(channel => {
+    const status = channelStatus(channel);
+    return `
+      <div class="contact-row" role="row">
+        <span class="contact-dept" role="cell"><strong>${channel.dept}</strong>${status.label ? `<small class="${status.open ? "open" : "closed"}"><i></i>${status.label}</small>` : ""}</span>
+        <a class="contact-email" role="cell" href="mailto:${channel.email}">${channel.email}</a>
+        <span class="contact-hours" role="cell">${channel.hours}</span>
+        <span class="contact-sla" role="cell">${channel.sla}</span>
+      </div>`;
+  }).join("");
+
+  return `
+    <section class="contact-page">
+      <header class="inventory-heading">
+        <div>
+          <div class="eyebrow"><span class="eyebrow-line"></span> SUPPORT NODE</div>
+          <h1>Talk to the<br><em>NetraOS team.</em></h1>
+          <p class="welcome-sub">Pick a channel, check who is online, or open the terminal to send a message. All times are East Africa Time (EAT).</p>
+        </div>
+        ${renderSystemPill()}
+      </header>
+
+      <section class="contact-grid">
+        <article class="panel contact-channels">
+          <div class="panel-heading">
+            <div><div class="section-kicker">SYSTEM STATUS &amp; DIRECT CHANNELS</div><h2>Departments</h2></div>
+          </div>
+          <div class="contact-table" role="table" aria-label="Support departments">
+            <div class="contact-row contact-head" role="row">
+              <span role="columnheader">DEPARTMENT</span><span role="columnheader">CONTACT ENDPOINT</span><span role="columnheader">OPERATING HOURS (EAT)</span><span role="columnheader">TARGET SLA</span>
+            </div>
+            ${channelRows}
+          </div>
+        </article>
+
+        <article class="panel contact-lines">
+          <div class="panel-heading">
+            <div><div class="section-kicker">COMMAND DIRECT LINES</div><h2>Call or message</h2></div>
+          </div>
+          <div class="contact-line-list">
+            <a class="contact-line" href="tel:+254700000988"><span class="contact-line-icon">☎</span><span><small>PRIMARY OPERATIONS DESK</small><strong>+254 (0) 700 000 988</strong></span></a>
+            <a class="contact-line" href="https://wa.me/254799000988" target="_blank" rel="noopener"><span class="contact-line-icon">✉</span><span><small>ENCRYPTED DISPATCH (WHATSAPP ONLY)</small><strong>+254 (0) 799 000 988</strong></span></a>
+            <a class="contact-line emergency" href="tel:*384*988%23"><span class="contact-line-icon">⚠</span><span><small>EMERGENCY SYSTEM OVERRIDE / ACCOUNT LOCK</small><strong>Dial *384*988#</strong><em>USSD Emergency Shield</em></span></a>
+          </div>
+        </article>
+      </section>
+
+      <section class="contact-grid contact-grid-lower">
+        <form class="terminal" data-contact-form novalidate aria-label="Contact terminal">
+          <div class="terminal-bar"><i></i><i></i><i></i><span>[NETRA_OS_TERMINAL v2.4] &gt; INIT_CONTACT_STREAM...</span></div>
+          <div class="terminal-body">
+            <label class="terminal-field"><span>USER_IDENTIFIER</span><input name="handle" type="text" maxlength="80" autocomplete="name" placeholder="Enter your name / handle"></label>
+            <label class="terminal-field"><span>SIGNAL_DESTINATION</span>
+              <select name="dest">${Object.entries(contactDestinations).map(([key, dest]) => `<option value="${key}">${dest.label}</option>`).join("")}</select>
+            </label>
+            <label class="terminal-field"><span>COMMUNICATION_PAYLOAD</span><textarea name="payload" maxlength="2000" rows="5" placeholder="Type message here..."></textarea></label>
+            <div class="terminal-actions">
+              <button class="terminal-send" type="submit">[ SEND_TRANSMISSION ]</button>
+              <button class="terminal-clear" type="button" data-contact-clear>[ CLEAR_BUFFER ]</button>
+            </div>
+            <div class="terminal-status" role="status" aria-live="polite">STATUS: <b>READY TO TRANSMIT</b></div>
+            <p class="terminal-note">Sending opens your email app with the message filled in. Never include your PIN, M-Pesa credentials or master security key.</p>
+          </div>
+        </form>
+
+        <div class="contact-side">
+          <article class="panel contact-hq">
+            <div class="panel-heading">
+              <div><div class="section-kicker">PHYSICAL HQ &amp; DATA OPERATIONS</div><h2>NetraOS Technologies Lab</h2></div>
+            </div>
+            <dl class="contact-dl">
+              <div><dt>Location</dt><dd>The Mirage Towers, 8th Floor, Tower 2</dd></div>
+              <div><dt>Street</dt><dd>Chiromo Road, Westlands</dd></div>
+              <div><dt>City</dt><dd>Nairobi, Kenya</dd></div>
+              <div><dt>Postal address</dt><dd>P.O. Box 40100 - 00100</dd></div>
+            </dl>
+          </article>
+
+          <article class="panel contact-security">
+            <div class="panel-heading">
+              <div><div class="section-kicker">ENCRYPTION &amp; VERIFICATION</div><h2>Private by design</h2></div>
+            </div>
+            <dl class="contact-dl">
+              <div><dt>PGP key fingerprint</dt><dd class="mono">8F2A 991B C4DE 0012 3456 7890 NETRA OS HQ</dd></div>
+              <div><dt>End-to-end encryption</dt><dd>Active (TLS 1.3 / AES-256)</dd></div>
+              <div><dt>Zero-knowledge guarantee</dt><dd>Support engineers never request your PIN, M-Pesa credentials, or master security key.</dd></div>
+            </dl>
+          </article>
+        </div>
+      </section>
+    </section>
+    <footer class="page-footer">
+      <span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span>
+      <span>Private by design <i>✳</i></span>
+    </footer>`;
+}
+
+document.addEventListener("submit", event => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || !form.matches("[data-contact-form]")) return;
+  event.preventDefault();
+  const status = form.querySelector(".terminal-status");
+  const setStatus = (text, error = false) => {
+    status.innerHTML = `STATUS: <b class="${error ? "error" : ""}">${text}</b>`;
+  };
+  const data = new FormData(form);
+  const handle = String(data.get("handle") || "").trim();
+  const payload = String(data.get("payload") || "").trim();
+  const dest = contactDestinations[String(data.get("dest"))] || contactDestinations.support;
+  if (!handle) { setStatus("ERROR · USER_IDENTIFIER REQUIRED", true); form.elements.handle.focus(); return; }
+  if (payload.length < 10) { setStatus("ERROR · PAYLOAD TOO SHORT", true); form.elements.payload.focus(); return; }
+  const subject = `[${dest.tag}] NetraOS message from ${handle}`;
+  const body = `${payload}\n\n— ${handle}`;
+  window.location.href = `mailto:${dest.to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  setStatus(`HANDED TO YOUR EMAIL APP · ${dest.to}`);
+});
+
+document.addEventListener("click", event => {
+  const clear = event.target.closest("[data-contact-clear]");
+  if (!clear) return;
+  const form = clear.closest("form");
+  form.reset();
+  form.querySelector(".terminal-status").innerHTML = "STATUS: <b>BUFFER CLEARED · READY TO TRANSMIT</b>";
+});
 
 // Menus and short status messages
 function closePopover() {
@@ -1929,6 +2434,7 @@ const initialPage = decodeURIComponent(window.location.hash.slice(1));
 updateDashboardInventorySummary();
 updateDashboardPowerUpSummary();
 updateDashboardQuests();
+updateDashboardTaxCard();
 applyStoredSettings();
 let hasLocalSession = false;
 try {
