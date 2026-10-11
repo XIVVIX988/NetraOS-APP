@@ -46,6 +46,9 @@ const appShell = document.querySelector(".app-shell");
 const profileStorageKey = "netraos-profile-v1";
 const sessionStorageKey = "netraos-local-session-v1";
 const settingsStorageKey = "netraos-settings-v1";
+const securityAuditStorageKey = "netraos-security-audit-v1";
+const termsVersion = "2026-10-10";
+let autoLockTimer = 0;
 let toastTimer;
 let profilePreviewUrl = "";
 let landingScrollEffectsBound = false;
@@ -216,10 +219,14 @@ function getStoredSettings() {
       reduceMotion: Boolean(saved.reduceMotion),
       darkMode: Boolean(saved.darkMode),
       goalNotifications: saved.goalNotifications !== false,
-      monthlyReminders: saved.monthlyReminders !== false
+      monthlyReminders: saved.monthlyReminders !== false,
+      performanceTelemetryConsent: Boolean(saved.performanceTelemetryConsent),
+      lockTimeoutMinutes: [0, 1, 5, 15].includes(Number(saved.lockTimeoutMinutes)) ? Number(saved.lockTimeoutMinutes) : 0,
+      localPinSalt: typeof saved.localPinSalt === "string" ? saved.localPinSalt : "",
+      localPinHash: typeof saved.localPinHash === "string" ? saved.localPinHash : ""
     };
   } catch {
-    return { alwaysShowCents: false, reduceMotion: false, darkMode: false, goalNotifications: true, monthlyReminders: true };
+    return { alwaysShowCents: false, reduceMotion: false, darkMode: false, goalNotifications: true, monthlyReminders: true, performanceTelemetryConsent: false, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "" };
   }
 }
 
@@ -238,6 +245,113 @@ function applyStoredSettings() {
   const darkModeInput = document.querySelector('input[name="darkMode"]');
   if (darkModeInput) darkModeInput.checked = settings.darkMode;
 }
+
+// Keep a short, local-only history of security-relevant actions without recording financial values.
+function getSecurityAuditLog() {
+  try {
+    const entries = JSON.parse(localStorage.getItem(securityAuditStorageKey) || "[]");
+    return Array.isArray(entries) ? entries : [];
+  } catch {
+    return [];
+  }
+}
+
+function recordSecurityAudit(action) {
+  try {
+    const entries = getSecurityAuditLog();
+    entries.unshift({ action, at: new Date().toISOString() });
+    localStorage.setItem(securityAuditStorageKey, JSON.stringify(entries.slice(0, 50)));
+  } catch {
+    // Audit history is a convenience and must never block an app action.
+  }
+}
+
+// Derive a salted PIN verifier; it protects the screen only and does not encrypt stored records.
+async function deriveLocalPinHash(pin, saltBase64) {
+  if (!globalThis.crypto?.subtle) throw new Error("Secure browser cryptography is unavailable.");
+  const saltBytes = Uint8Array.from(atob(saltBase64), character => character.charCodeAt(0));
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const result = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: saltBytes, iterations: 210000, hash: "SHA-256" }, key, 256);
+  return Array.from(new Uint8Array(result), byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function createLocalPinVerifier(pin) {
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  const salt = btoa(Array.from(saltBytes, byte => String.fromCharCode(byte)).join(""));
+  return { localPinSalt: salt, localPinHash: await deriveLocalPinHash(pin, salt) };
+}
+
+// Lock the visible workspace after inactivity when a local PIN and timeout are configured.
+function scheduleAutoLock() {
+  window.clearTimeout(autoLockTimer);
+  const settings = getStoredSettings();
+  if (!settings.localPinHash || !settings.lockTimeoutMinutes || appShell.hidden) return;
+  try {
+    if (localStorage.getItem(sessionStorageKey) !== "active") return;
+  } catch {
+    return;
+  }
+  autoLockTimer = window.setTimeout(lockWorkspace, settings.lockTimeoutMinutes * 60 * 1000);
+}
+
+function lockWorkspace() {
+  if (appShell.hidden) return;
+  const settings = getStoredSettings();
+  if (!settings.localPinHash || !settings.localPinSalt || !settings.lockTimeoutMinutes) return;
+  appShell.hidden = true;
+  publicShell.hidden = true;
+  document.querySelector("#security-lock-screen")?.remove();
+  const lockScreen = document.createElement("main");
+  lockScreen.id = "security-lock-screen";
+  lockScreen.className = "security-lock-screen";
+  lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">NETRAOS · LOCAL SESSION LOCK</span><h1 id="security-lock-title">Your workspace is locked.</h1><p>Enter your six-digit local PIN to continue. This screen lock does not encrypt browser storage.</p><form><label for="security-unlock-pin">Six-digit PIN</label><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Unlock workspace</button></form></section>`;
+  document.body.append(lockScreen);
+  recordSecurityAudit("Workspace locked after inactivity");
+  const form = lockScreen.querySelector("form");
+  const pinInput = form.elements.pin;
+  const error = lockScreen.querySelector(".security-lock-error");
+  let attempts = 0;
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!/^[0-9]{6}$/.test(pinInput.value)) {
+      error.textContent = "Enter the six-digit PIN.";
+      error.hidden = false;
+      pinInput.focus();
+      return;
+    }
+    try {
+      const candidate = await deriveLocalPinHash(pinInput.value, settings.localPinSalt);
+      let difference = 0;
+      for (let index = 0; index < candidate.length; index += 1) difference |= candidate.charCodeAt(index) ^ settings.localPinHash.charCodeAt(index);
+      if (difference !== 0) throw new Error("PIN did not match.");
+      lockScreen.remove();
+      appShell.hidden = false;
+      publicShell.hidden = true;
+      recordSecurityAudit("Workspace unlocked");
+      scheduleAutoLock();
+    } catch {
+      attempts += 1;
+      pinInput.value = "";
+      error.textContent = attempts >= 5 ? "Too many attempts. Wait 30 seconds before trying again." : "That PIN did not match. Try again.";
+      error.hidden = false;
+      if (attempts >= 5) {
+        form.querySelector("button").disabled = true;
+        window.setTimeout(() => {
+          attempts = 0;
+          form.querySelector("button").disabled = false;
+          error.hidden = true;
+          pinInput.focus();
+        }, 30000);
+      } else pinInput.focus();
+    }
+  });
+  pinInput.focus();
+}
+
+// Restart the inactivity countdown on deliberate user input while the app is active.
+["pointerdown", "keydown", "touchstart"].forEach(eventName => {
+  document.addEventListener(eventName, scheduleAutoLock, { passive: eventName !== "keydown" });
+});
 
 // Update the signed-in user's displayed name and refresh the greeting.
 function setProfileName(name) {
@@ -298,6 +412,24 @@ function renderBrandMark() {
   return `<span class="public-brand-mark" aria-hidden="true"><img src="netraos-logo.svg" alt="" /></span>`;
 }
 
+// Explain the current local prototype's terms and data handling in plain language.
+function renderLegalPage(page) {
+  const isTerms = page === "terms";
+  const title = isTerms ? "Terms of Service" : "Privacy Policy";
+  const content = isTerms ? `
+    <h2>Using NetraOS</h2><p>NetraOS is a personal finance organization tool. It is not a bank, lender, tax agent, investment adviser, or provider of financial, legal, or tax advice. You are responsible for decisions made using the app.</p>
+    <h2>Estimates and financial information</h2><p>Calculators and projections are estimates for planning only. Tax, PAYE, NSSF, SHIF and other statutory figures may change and may not reflect your circumstances. Verify current requirements with the relevant official authority or a qualified professional before acting.</p>
+    <h2>Your records and device</h2><p>You retain ownership of the financial information you enter. In this version, records are stored in this browser on this device. Keep your own backups and protect access to your device and browser profile. Clearing browser data can permanently remove these records.</p>
+    <h2>Acceptable use</h2><p>Do not use the app to disrupt or compromise it, automate scraping, reverse engineer it, or access another person's data without permission.</p>
+    <h2>Availability</h2><p>This preview is provided as-is and may change. No financial data is synced to a NetraOS account server in this version.</p>` : `
+    <h2>Information stored</h2><p>NetraOS currently saves your profile, financial entries, preferences, and a limited local security activity log in browser storage on this device. The app has no account server, cloud sync, or telemetry collection in this version.</p>
+    <h2>Storage and security limits</h2><p>Browser storage is not encrypted by this app. A person with access to this browser profile may be able to read its contents. The optional PIN locks the visible workspace only; it does not encrypt records. HTTPS and security headers depend on the website host and are not configured by this app's source.</p>
+    <h2>Sharing and third parties</h2><p>NetraOS does not sell or rent your financial records, use ad networks for them, or send them to a NetraOS server. This version collects no error reports or analytics. If you choose to open email, telephone, or WhatsApp links, those services handle the information you share with them. Google Fonts may be loaded by the page and can receive a request from your browser.</p>
+    <h2>Your choices</h2><p>You can review, export, correct, or clear the information held in this browser using the app's profile, download, and storage controls. Clearing app data removes the local profile and financial records from this browser. This does not erase exported copies or information held by third-party services.</p>
+    <h2>Contact</h2><p>For privacy questions, contact <a href="mailto:support@netraos.io">support@netraos.io</a>.</p>`;
+  return `<main class="legal-page"><header class="public-header"><a class="public-brand" href="#home" data-public-action="landing" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a><button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button></header><article class="legal-card"><div class="section-kicker">NETRAOS · ${isTerms ? "TERMS" : "PRIVACY"}</div><h1>${title}.</h1><p class="legal-updated">Last updated October 10, 2026</p>${content}<a class="public-primary legal-back" href="#signup" data-public-action="signup">Continue to signup <span>↗</span></a></article><footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><a href="#privacy" data-public-action="privacy">Privacy</a></footer></main>`;
+}
+
 // Render public landing/auth pages and their responsive feature content.
 function showPublicPage(page = "landing") {
   if (!publicShell || !appShell) return;
@@ -354,9 +486,11 @@ function showPublicPage(page = "landing") {
           <section class="landing-bottom-cta"><div><small>START WHERE YOU ARE</small><h2>Make your next money move with clarity.</h2></div><button class="public-primary" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></section>
         </main>
         <button class="landing-back-top" type="button" aria-label="Back to top" title="Back to top">↑</button>
-        <footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><span>Kenyan shillings · KSh</span></footer>
+        <footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><span>Kenyan shillings · KSh</span><nav aria-label="Legal"><a href="#terms" data-public-action="terms">Terms</a><a href="#privacy" data-public-action="privacy">Privacy</a></nav></footer>
       </div>`;
     setupLandingScrollEffects();
+  } else if (page === "terms" || page === "privacy") {
+    publicShell.innerHTML = renderLegalPage(page);
   } else {
     const isSignup = page === "signup";
     publicShell.innerHTML = `
@@ -371,6 +505,7 @@ function showPublicPage(page = "landing") {
             ${isSignup ? `<label class="inventory-form-field"><span>Full name</span><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your name" required></label>` : ""}
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
             <label class="inventory-form-field"><span>Password</span><input name="password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" minlength="8" placeholder="At least 8 characters" required></label>
+            ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>` : ""}
             <div class="auth-error" role="alert" hidden></div>
             <button class="public-primary auth-submit" type="submit">${isSignup ? "Create local profile" : "Log in"} <span>↗</span></button>
           </form>
@@ -425,6 +560,19 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Quest progress</strong><small>Saved as a preference; this preview does not send notifications.</small></span><input name="goalNotifications" type="checkbox" ${settings.goalNotifications ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Monthly plan</strong><small>Saved as a preference; this preview does not send notifications.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
         </section>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">LOCAL SECURITY</div><h2>Session protection</h2></div></div>
+          <p class="settings-disclosure">Financial records are stored in this browser and are not encrypted by the app. A PIN can lock the visible workspace after inactivity; it does not encrypt stored data. HTTPS and security headers are controlled by the hosting platform.</p>
+          <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a local six-digit PIN.</small></span><select name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Off</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
+          <div class="settings-pin-fields"><label class="inventory-form-field"><span>New six-digit PIN <small>Leave blank to keep the current PIN</small></span><input name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{6}" maxlength="6"></label><label class="inventory-form-field"><span>Confirm PIN</span><input name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{6}" maxlength="6"></label></div>
+          <label class="settings-field"><span><strong>Remove current PIN</strong><small>Turns off the local screen lock.</small></span><input name="clearPin" type="checkbox"></label>
+          <div class="settings-audit"><strong>Recent local security activity</strong>${getSecurityAuditLog().length ? `<ul>${getSecurityAuditLog().slice(0, 8).map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.at).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>No activity recorded yet.</p>`}</div>
+        </section>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">STORAGE &amp; PRIVACY</div><h2>Your browser data</h2></div></div>
+          <p class="settings-disclosure">Essential browser storage keeps your profile, financial records, and settings on this device. This app currently sets no cookies. Optional performance telemetry is not collected; this preference is saved for future use only.</p>
+          <label class="settings-field"><span><strong>Allow optional performance telemetry</strong><small>No telemetry is currently collected by this version.</small></span><input name="performanceTelemetryConsent" type="checkbox" ${settings.performanceTelemetryConsent ? "checked" : ""}></label>
+          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button><button class="danger-button" type="button" data-settings-action="clear-data">Clear all NetraOS data</button></div>
+          <p class="legal-links"><a href="#terms" data-public-action="terms">Terms of Service</a><a href="#privacy" data-public-action="privacy">Privacy Policy</a></p>
+        </section>
         <div class="settings-actions"><span>Preferences save to this browser.</span><button class="inventory-submit" type="submit">Save changes</button></div>
       </form>
     </section>
@@ -445,6 +593,8 @@ function enterApp(profile) {
   publicShell.hidden = true;
   appShell.hidden = false;
   showPage("Dashboard");
+  recordSecurityAudit("Local profile signed in");
+  scheduleAutoLock();
 }
 
 // Local data accessors keep each financial module's stored data in a consistent shape.
@@ -1592,6 +1742,7 @@ function deleteQuest(button) {
   try {
     const quests = getQuests().filter(quest => quest.id !== id);
     saveQuests(quests);
+    recordSecurityAudit("Removed a savings quest");
     refreshFinancialPage();
     showToast("Quest removed.");
   } catch {
@@ -2554,8 +2705,52 @@ function saveFile(filename, content, type) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Export only NetraOS-prefixed browser keys so unrelated site data is excluded.
+function downloadAllLocalData(format) {
+  const data = {};
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (!key?.startsWith("netraos-")) continue;
+    const value = localStorage.getItem(key);
+    try { data[key] = JSON.parse(value); } catch { data[key] = value; }
+  }
+  recordSecurityAudit(`Downloaded local data as ${format.toUpperCase()}`);
+  const snapshot = { exportedAt: new Date().toISOString(), storage: data };
+  if (format === "json") {
+    saveFile("netraos-local-data.json", JSON.stringify(snapshot, null, 2), "application/json;charset=utf-8");
+  } else {
+    const rows = [["Storage key", "Value"], ...Object.entries(data).map(([key, value]) => [key, JSON.stringify(value)])];
+    const csv = rows.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    saveFile("netraos-local-data.csv", csv, "text/csv;charset=utf-8");
+  }
+  showToast(`Local data downloaded as ${format.toUpperCase()}.`);
+}
+
+// Erase this app's own browser keys and cookie names, without touching other site data.
+function clearAllLocalData() {
+  if (!window.confirm("Clear all NetraOS profiles, financial records, settings, and local activity from this browser? This cannot be undone.")) return;
+  window.clearTimeout(autoLockTimer);
+  for (const storage of [localStorage, sessionStorage]) {
+    const keys = [];
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key?.startsWith("netraos-")) keys.push(key);
+    }
+    keys.forEach(key => storage.removeItem(key));
+  }
+  document.cookie.split(";").forEach(cookie => {
+    const name = cookie.split("=")[0]?.trim();
+    if (name?.startsWith("netraos_")) document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax`;
+  });
+  document.querySelector("#security-lock-screen")?.remove();
+  appShell.hidden = true;
+  showPublicPage("landing");
+  showToast("NetraOS data cleared from this browser.");
+}
+
 // Download financial data as a plain CSV file.
 function downloadSummary() {
+  recordSecurityAudit("Downloaded dashboard CSV");
   const rows = collectDashboardRows();
   const csvEscape = value =>
     '"' + String(value).replace(/"/g, '""') + '"';
@@ -2566,6 +2761,7 @@ function downloadSummary() {
 
 // Download an Excel-compatible workbook using SpreadsheetML markup.
 function downloadExcel() {
+  recordSecurityAudit("Downloaded dashboard spreadsheet");
   const rows = collectDashboardRows();
   const xmlEscape = value =>
     String(value)
@@ -2595,6 +2791,7 @@ function downloadExcel() {
 
 // Build a self-contained, vector-based PDF with report charts, logo, and watermark.
 function downloadPDF() {
+  recordSecurityAudit("Downloaded financial PDF");
   const W = 612;
   const H = 792;
   const colors = {
@@ -3001,12 +3198,18 @@ document.addEventListener("submit", async event => {
         fail("Enter your name to create a profile.");
         return;
       }
+      if (!formData.has("acceptTerms")) {
+        fail("Please agree to the Terms of Service before creating your local profile.");
+        return;
+      }
       const currentProfile = getStoredProfile();
       if (currentProfile && String(currentProfile.email || "").toLowerCase() !== email) {
         fail("This browser already has a local profile. Log in with its email instead.");
         return;
       }
-      const profile = { name, email };
+      const profile = currentProfile && String(currentProfile.email || "").toLowerCase() === email
+        ? { ...currentProfile, name, email, termsVersion, termsAcceptedAt: new Date().toISOString() }
+        : { name, email, termsVersion, termsAcceptedAt: new Date().toISOString() };
       try {
         saveStoredProfile(profile);
       } catch {
@@ -3045,6 +3248,7 @@ document.addEventListener("submit", async event => {
       }
     }
     const profile = {
+      ...existingProfile,
       name: String(formData.get("name") || "").trim(),
       email: String(formData.get("email") || "").trim().toLowerCase(),
       sex: String(formData.get("sex") || ""),
@@ -3073,16 +3277,45 @@ document.addEventListener("submit", async event => {
   if (form.matches("[data-account-form='settings']")) {
     event.preventDefault();
     const formData = new FormData(form);
+    const previousSettings = getStoredSettings();
     const settings = {
       alwaysShowCents: formData.has("alwaysShowCents"),
       reduceMotion: formData.has("reduceMotion"),
       darkMode: formData.has("darkMode"),
       goalNotifications: formData.has("goalNotifications"),
-      monthlyReminders: formData.has("monthlyReminders")
+      monthlyReminders: formData.has("monthlyReminders"),
+      performanceTelemetryConsent: formData.has("performanceTelemetryConsent"),
+      lockTimeoutMinutes: Number(formData.get("lockTimeoutMinutes") || 0),
+      localPinSalt: previousSettings.localPinSalt,
+      localPinHash: previousSettings.localPinHash
     };
+    const newPin = String(formData.get("newPin") || "");
+    const confirmPin = String(formData.get("confirmPin") || "");
+    if (formData.has("clearPin")) {
+      settings.localPinSalt = "";
+      settings.localPinHash = "";
+      settings.lockTimeoutMinutes = 0;
+    } else if (newPin || confirmPin) {
+      if (!/^[0-9]{6}$/.test(newPin) || newPin !== confirmPin) {
+        showToast("Enter and confirm the same six-digit PIN.");
+        return;
+      }
+      try {
+        Object.assign(settings, await createLocalPinVerifier(newPin));
+      } catch {
+        showToast("Secure local PIN setup is unavailable in this browser context.");
+        return;
+      }
+    }
+    if (settings.lockTimeoutMinutes && !settings.localPinHash) {
+      showToast("Set a six-digit PIN before enabling auto-lock.");
+      return;
+    }
     try {
       localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
+      recordSecurityAudit("Updated local security and privacy settings");
       applyStoredSettings();
+      scheduleAutoLock();
       showToast("Settings saved.");
     } catch {
       showToast("Unable to save settings in browser storage.");
@@ -3093,6 +3326,15 @@ document.addEventListener("submit", async event => {
 // Route clicks for app actions, dialog controls, profile menus, and theme/privacy toggles.
 document.addEventListener("click", event => {
   const target = event.target;
+  const publicLink = target.closest("[data-public-action]");
+  if (publicLink && publicLink.tagName === "A" && publicLink.target !== "_blank") {
+    const action = publicLink.dataset.publicAction;
+    if (["signup", "login", "landing", "terms", "privacy"].includes(action)) {
+      event.preventDefault();
+      showPublicPage(action);
+      return;
+    }
+  }
   const themeToggle = target.closest("[data-theme-toggle]");
   if (themeToggle) {
     // Save the appearance choice with the other local preferences so it survives reloads.
@@ -3153,6 +3395,12 @@ document.addEventListener("click", event => {
   }
   const button = target.closest("button");
   if (!button) return;
+  if (button.matches("[data-settings-action]")) {
+    if (button.dataset.settingsAction === "export-json") downloadAllLocalData("json");
+    else if (button.dataset.settingsAction === "export-csv") downloadAllLocalData("csv");
+    else if (button.dataset.settingsAction === "clear-data") clearAllLocalData();
+    return;
+  }
   if (button.matches("[data-remove-profile-image]")) {
     const form = button.closest("form");
     const input = form?.querySelector('input[name="photo"]');
@@ -3170,7 +3418,7 @@ document.addEventListener("click", event => {
   }
   if (button.matches("[data-public-action]")) {
     const action = button.dataset.publicAction;
-    if (action === "signup" || action === "login" || action === "landing") {
+    if (["signup", "login", "landing", "terms", "privacy"].includes(action)) {
       showPublicPage(action);
     }
     return;
@@ -3234,6 +3482,7 @@ document.addEventListener("click", event => {
     data[list] = updated;
     try {
       savePowerUpData(data);
+      recordSecurityAudit("Removed a monthly plan item");
       refreshFinancialPage();
       showToast("Monthly plan item removed.");
     } catch {
@@ -3246,6 +3495,7 @@ document.addEventListener("click", event => {
     const entries = getInventoryEntries().filter(entry => entry.id !== id);
     try {
       saveInventoryEntries(entries);
+      recordSecurityAudit("Removed an asset or liability record");
       content.innerHTML = renderInventoryPage();
       showToast("Inventory item removed.");
     } catch {
@@ -3316,7 +3566,7 @@ try {
 } catch {
   hasLocalSession = false;
 }
-if (hasLocalSession) {
+if (hasLocalSession && !["terms", "privacy"].includes(initialPage)) {
   appShell.hidden = false;
   publicShell.hidden = true;
   applyProfileAvatar();
@@ -3327,6 +3577,7 @@ if (hasLocalSession) {
       showPage(initialPage === "profile" ? "Profile" : "Settings");
     }
   }
+  scheduleAutoLock();
 } else {
-  showPublicPage(initialPage === "login" || initialPage === "signup" ? initialPage : "landing");
+  showPublicPage(["login", "signup", "terms", "privacy"].includes(initialPage) ? initialPage : "landing");
 }
