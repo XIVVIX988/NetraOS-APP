@@ -444,6 +444,15 @@ function renderBrandMark() {
   return `<span class="public-brand-mark" aria-hidden="true"><img src="netraos-logo.svg" alt="" /></span>`;
 }
 
+// Reuse accessible social links and a year-aware copyright across the app footers.
+function renderSocialLinks(className = "footer-social-links") {
+  return `<nav class="${className}" aria-label="Social media"><a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="18" cy="6" r=".8" class="social-fill"/></svg></a><a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.2 21v-8h2.7l.4-3.1h-3.1v-2c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H8V13h2.8v8z"/></svg></a><a href="https://x.com/" target="_blank" rel="noopener noreferrer" aria-label="X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 3h2.8l-6.1 7 7.2 11h-5.6l-4.4-6.8L6.9 21H4l6.6-7.6L3.8 3h5.8l4 6.3zm-1 16h1.5L8.7 4.9H7.1z"/></svg></a><a href="https://www.tiktok.com/" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.6 8.2a7.4 7.4 0 0 1-4.4-1.5v8.1a6.2 6.2 0 1 1-5.4-6.1v3.2a3.1 3.1 0 1 0 2.2 3V2.8h3.2c.2 2.2 1.7 4 4.4 4.3z"/></svg></a></nav>`;
+}
+
+function renderAppFooter() {
+  return `<footer class="page-footer"><span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span><span>Private by design <i>✳</i></span>${renderSocialLinks()}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer>`;
+}
+
 // Explain the current local prototype's terms and data handling in plain language.
 function renderLegalPage(page) {
   const isTerms = page === "terms";
@@ -459,7 +468,7 @@ function renderLegalPage(page) {
     <h2>Sharing and third parties</h2><p>NetraOS does not sell or rent your financial records, use ad networks for them, or send them to a NetraOS server. This version collects no error reports or analytics. If you choose to open email, telephone, or WhatsApp links, those services handle the information you share with them. Google Fonts may be loaded by the page and can receive a request from your browser.</p>
     <h2>Your choices</h2><p>You can review, export, correct, or clear the information held in this browser using the app's profile, download, and storage controls. Clearing app data removes the local profile and financial records from this browser. This does not erase exported copies or information held by third-party services.</p>
     <h2>Contact</h2><p>For privacy questions, contact <a href="mailto:support@netraos.io">support@netraos.io</a>.</p>`;
-  return `<main class="legal-page"><header class="public-header"><a class="public-brand" href="#home" data-public-action="landing" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a><button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button></header><article class="legal-card"><div class="section-kicker">NETRAOS · ${isTerms ? "TERMS" : "PRIVACY"}</div><h1>${title}.</h1><p class="legal-updated">Last updated October 10, 2026</p>${content}<a class="public-primary legal-back" href="#signup" data-public-action="signup">Continue to signup <span>↗</span></a></article><footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><a href="#privacy" data-public-action="privacy">Privacy</a></footer></main>`;
+  return `<main class="legal-page"><header class="public-header"><a class="public-brand" href="#home" data-public-action="landing" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a><button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button></header><article class="legal-card"><div class="section-kicker">NETRAOS · ${isTerms ? "TERMS" : "PRIVACY"}</div><h1>${title}.</h1><p class="legal-updated">Last updated October 10, 2026</p>${content}<a class="public-primary legal-back" href="#signup" data-public-action="signup">Continue to signup <span>↗</span></a></article><footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><a href="#privacy" data-public-action="privacy">Privacy</a>${renderSocialLinks("footer-social-links public-social-links")}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer></main>`;
 }
 
 // Render public landing/auth pages and their responsive feature content.
@@ -474,7 +483,7 @@ function showPublicPage(page = "landing") {
     publicShell.innerHTML = `
       <div class="public-page">
         <header class="public-header landing-header">
-          <a class="public-brand" href="#home" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a>
+          <a class="public-brand" href="#home" data-public-action="landing" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a>
           <nav class="public-nav" aria-label="Public navigation"><div class="landing-nav-links"><a class="landing-nav-current" href="#home">Home</a><a href="#features">Features</a><a href="#about">About</a><a href="#faq">FAQ</a><a href="#contact">Contact</a></div><button class="icon-button theme-toggle public-theme-toggle landing-theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Enable dark mode" title="Enable dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g class="theme-moon"><path d="M20.4 15.2A8.5 8.5 0 0 1 8.8 3.6a8.6 8.6 0 1 0 11.6 11.6Z" /></g><g class="theme-sun"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></g></svg></button><button type="button" data-public-action="login">Log in</button><button class="public-nav-cta" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></nav>
         </header>
         <main>
@@ -518,7 +527,7 @@ function showPublicPage(page = "landing") {
           <section class="landing-bottom-cta"><div><small>START WHERE YOU ARE</small><h2>Make your next money move with clarity.</h2></div><button class="public-primary" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></section>
         </main>
         <button class="landing-back-top" type="button" aria-label="Back to top" title="Back to top">↑</button>
-        <footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><span>Kenyan shillings · KSh</span><nav aria-label="Legal"><a href="#terms" data-public-action="terms">Terms</a><a href="#privacy" data-public-action="privacy">Privacy</a></nav></footer>
+        <footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><span>Kenyan shillings · KSh</span><nav aria-label="Legal"><a href="#terms" data-public-action="terms">Terms</a><a href="#privacy" data-public-action="privacy">Privacy</a></nav>${renderSocialLinks("footer-social-links public-social-links")}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer>
       </div>`;
     setupLandingScrollEffects();
   } else if (page === "terms" || page === "privacy") {
@@ -573,7 +582,7 @@ function renderProfilePage() {
       </section>
       <section class="account-notice"><span>i</span><p>This is a local profile for the app preview. NetraOS currently has no account server or cloud sync.</p></section>
     </section>
-    <footer class="page-footer"><span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span><span>Private by design <i>✳</i></span></footer>`;
+    ${renderAppFooter()}`;
 }
 
 function renderSettingsPage() {
@@ -634,7 +643,7 @@ function renderSettingsPage() {
         <div class="settings-actions"><span>Preferences save to this browser.</span><button class="inventory-submit" type="submit">Save changes</button></div>
       </form>
     </section>
-    <footer class="page-footer"><span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span><span>Private by design <i>✳</i></span></footer>`;
+    ${renderAppFooter()}`;
 }
 
 // Start the local session, apply the profile and preferences, and open the dashboard.
@@ -1334,10 +1343,7 @@ function renderInventoryPage() {
         ${renderAccountRows(entries)}
       </section>
     </section>
-    <footer class="page-footer">
-      <span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span>
-      <span>Private by design <i>✳</i></span>
-    </footer>`;
+    ${renderAppFooter()}`;
 }
 
 function updateDashboardInventorySummary() {
@@ -1733,7 +1739,7 @@ function renderQuestsPage() {
         <div class="quest-page-list">${renderQuestRows(quests)}</div>
       </section>
     </section>
-    <footer class="page-footer"><span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span><span>Private by design <i>✳</i></span></footer>`;
+    ${renderAppFooter()}`;
 }
 
 function openQuestDialog(questId = "") {
@@ -1934,7 +1940,7 @@ function renderStatsPage() {
         </article>
       </section>
     </section>
-    <footer class="page-footer"><span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span><span>Private by design <i>✳</i></span></footer>`;
+    ${renderAppFooter()}`;
 }
 
 function renderAchievementsPage() {
@@ -1989,7 +1995,7 @@ function renderAchievementsPage() {
       </header>
       <section class="achievement-grid" aria-label="Financial achievements">${cards}</section>
     </section>
-    <footer class="page-footer"><span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span><span>Private by design <i>✳</i></span></footer>`;
+    ${renderAppFooter()}`;
 }
 
 // Select a page, refresh its data, and update the active tab and URL.
@@ -2062,10 +2068,7 @@ function showPage(page) {
         <button class="empty-action">${info.action} <span>↗</span></button>
       </div>
     </section>
-    <footer class="page-footer">
-      <span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span>
-      <span>Private by design <i>✳</i></span>
-    </footer>
+    ${renderAppFooter()}
   `;
 }
 
@@ -2180,10 +2183,7 @@ function renderPowerUpPage() {
         </article>
       </section>
     </section>
-    <footer class="page-footer">
-      <span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span>
-      <span>Private by design <i>✳</i></span>
-    </footer>`;
+    ${renderAppFooter()}`;
 }
 
 // Tax brackets, contribution rates, and chart colors used by the payroll calculator.
@@ -2663,10 +2663,7 @@ function renderContactPage() {
         </div>
       </section>
     </section>
-    <footer class="page-footer">
-      <span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span>
-      <span>Private by design <i>✳</i></span>
-    </footer>`;
+    ${renderAppFooter()}`;
 }
 
 // Validate contact form details and hand the message to the user's email program.
@@ -3514,6 +3511,13 @@ document.addEventListener("submit", async event => {
 // Route clicks for app actions, dialog controls, profile menus, and theme/privacy toggles.
 document.addEventListener("click", event => {
   const target = event.target;
+  const homeLink = target.closest("[data-home-link]");
+  if (homeLink) {
+    event.preventDefault();
+    if (!appShell.hidden) showPage("Dashboard");
+    else showPublicPage("landing");
+    return;
+  }
   const publicLink = target.closest("[data-public-action]");
   if (publicLink && publicLink.tagName === "A" && publicLink.target !== "_blank") {
     const action = publicLink.dataset.publicAction;
@@ -3761,6 +3765,8 @@ document.addEventListener("keydown", event => {
 // Initialize preferences and summaries before restoring any local session.
 updateDateSwitcher();
 initializePrivacyMode();
+const copyrightYear = document.querySelector("#footer-copyright-year");
+if (copyrightYear) copyrightYear.textContent = String(new Date().getFullYear());
 const initialPage = decodeURIComponent(window.location.hash.slice(1));
 updateDashboardInventorySummary();
 updateDashboardPowerUpSummary();
