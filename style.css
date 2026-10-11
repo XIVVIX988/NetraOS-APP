@@ -7401,3 +7401,25 @@ body.auth-view.theme-dark { background: #0e1311; }
     height: 32px;
   }
 }
+
+/* Make the selected theme glyph unmistakable against the dark control surface. */
+.theme-toggle svg { width: 20px; height: 20px; overflow: visible; }
+.theme-toggle .theme-moon path {
+  fill: currentColor;
+  stroke: none;
+}
+.theme-toggle .theme-sun circle {
+  fill: currentColor;
+  stroke-width: 1.2;
+}
+.theme-toggle .theme-sun path { stroke-width: 2; }
+body.theme-dark .app-shell .theme-toggle[aria-pressed="true"],
+body.theme-dark #public-shell .theme-toggle[aria-pressed="true"] {
+  color: #f6d66f !important;
+  background: #2c3528 !important;
+  border-color: #927b3e !important;
+  box-shadow: 0 0 0 2px #e1c26724, inset 0 0 0 1px #e1c26738;
+}
+body.theme-dark .theme-toggle[aria-pressed="true"] svg {
+  filter: drop-shadow(0 0 3px #e1c26766);
+}
