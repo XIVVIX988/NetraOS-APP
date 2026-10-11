@@ -80,14 +80,43 @@ function setupLandingScrollEffects() {
   if (backToTop) backToTop.classList.toggle("is-visible", window.scrollY > 320);
 }
 
-const welcomeName = document.querySelector("#welcome-name");
 const initialProfile = getStoredProfile();
 if (initialProfile?.name) document.body.dataset.userName = initialProfile.name;
-const displayName = (document.body.dataset.userName || "Jordan Davis").trim().split(/\s+/)[0];
-if (welcomeName) welcomeName.textContent = displayName + ".";
 let dashboardMarkup = content.innerHTML;
 
+function updateDashboardWelcome(date = new Date()) {
+  const profile = getStoredProfile();
+  const fullName = (document.body.dataset.userName || profile?.name || "Jordan Davis").trim();
+  const firstName = fullName.split(/\s+/)[0] || "there";
+  const hour = date.getHours();
+  const greeting = hour >= 5 && hour < 12
+    ? "Good morning,"
+    : hour >= 12 && hour < 17
+      ? "Good afternoon,"
+      : "Good evening,";
+  const dateLabel = date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  }).toUpperCase();
+  const greetingElement = document.querySelector("#welcome-greeting");
+  const nameElement = document.querySelector("#welcome-name");
+  const dateElement = document.querySelector("#dashboard-date");
+  if (greetingElement) greetingElement.textContent = greeting;
+  if (nameElement) nameElement.textContent = firstName + ".";
+  if (dateElement) dateElement.textContent = dateLabel;
+  dashboardMarkup = dashboardMarkup
+    .replace(/(<span id="welcome-greeting">)[\s\S]*?(<\/span>)/, (_, opening, closing) => opening + escapeHTML(greeting) + closing)
+    .replace(/(<em id="welcome-name">)[\s\S]*?(<\/em>)/, (_, opening, closing) => opening + escapeHTML(firstName) + "." + closing)
+    .replace(/(<span id="dashboard-date">)[\s\S]*?(<\/span>)/, (_, opening, closing) => opening + escapeHTML(dateLabel) + closing);
+}
+
+updateDashboardWelcome();
+
 const assetCategories = [
+  { name: "Bank accounts", icon: "▤" },
+  { name: "Mobile money", icon: "◉" },
   { name: "Cash & savings", icon: "◉" },
   { name: "Investments", icon: "▥" },
   { name: "Property & vehicles", icon: "⌂" },
@@ -103,6 +132,8 @@ const budgetCategories = [
   "Housing",
   "Food & groceries",
   "Transport",
+  "Airtime & bundles",
+  "Mobile money fees",
   "Utilities",
   "Savings & investing",
   "Other"
@@ -112,6 +143,18 @@ const powerUpStorageKey = "netraos-powerup-v1";
 const questStorageKey = "netraos-quests-v1";
 const achievementStorageKey = "netraos-achievements-v1";
 const reportPeriodStorageKey = "netraos-report-period-v1";
+const currencyStorageKey = "netraos-currency-v1";
+const savingsProjectionStorageKey = "netraos-savings-projection-v1";
+const privacyModeStorageKey = "netraos-privacy-mode-v1";
+const currencyAmountPattern = /(?:KSh|USh|TSh|KES|USD|EUR|GBP|UGX|TZS|[$€£])\s*[+-]?\s*\d[\d,]*(?:\.\d+)?/i;
+const displayCurrencies = {
+  KES: { symbol: "KSh", locale: "en-KE", name: "Kenyan shilling" },
+  USD: { symbol: "$", locale: "en-US", name: "US dollar" },
+  EUR: { symbol: "€", locale: "de-DE", name: "Euro" },
+  GBP: { symbol: "£", locale: "en-GB", name: "British pound" },
+  UGX: { symbol: "USh", locale: "en-UG", name: "Ugandan shilling" },
+  TZS: { symbol: "TSh", locale: "en-TZ", name: "Tanzanian shilling" }
+};
 
 function getReportPeriod() {
   const saved = localStorage.getItem(reportPeriodStorageKey);
@@ -165,28 +208,33 @@ function getStoredSettings() {
     return {
       alwaysShowCents: Boolean(saved.alwaysShowCents),
       reduceMotion: Boolean(saved.reduceMotion),
+      darkMode: Boolean(saved.darkMode),
       goalNotifications: saved.goalNotifications !== false,
       monthlyReminders: saved.monthlyReminders !== false
     };
   } catch {
-    return { alwaysShowCents: false, reduceMotion: false, goalNotifications: true, monthlyReminders: true };
+    return { alwaysShowCents: false, reduceMotion: false, darkMode: false, goalNotifications: true, monthlyReminders: true };
   }
 }
 
 function applyStoredSettings() {
-  document.body.classList.toggle("reduce-motion", getStoredSettings().reduceMotion);
+  const settings = getStoredSettings();
+  document.body.classList.toggle("reduce-motion", settings.reduceMotion);
+  appShell.classList.toggle("theme-dark", settings.darkMode);
+  const themeToggle = document.querySelector("[data-theme-toggle]");
+  if (themeToggle) {
+    themeToggle.setAttribute("aria-pressed", String(settings.darkMode));
+    themeToggle.setAttribute("aria-label", settings.darkMode ? "Enable light mode" : "Enable dark mode");
+    themeToggle.title = settings.darkMode ? "Enable light mode" : "Enable dark mode";
+  }
+  const darkModeInput = document.querySelector('input[name="darkMode"]');
+  if (darkModeInput) darkModeInput.checked = settings.darkMode;
 }
 
 function setProfileName(name) {
   const cleanName = String(name || "").trim() || "Jordan Davis";
   document.body.dataset.userName = cleanName;
-  const firstName = cleanName.split(/\s+/)[0];
-  const greeting = document.querySelector("#welcome-name");
-  if (greeting) greeting.textContent = firstName + ".";
-  dashboardMarkup = dashboardMarkup.replace(
-    /(<em id="welcome-name">)[\s\S]*?(<\/em>)/,
-    (match, opening, closing) => opening + escapeHTML(firstName) + "." + closing
-  );
+  updateDashboardWelcome();
 }
 
 function applyProfileAvatar() {
@@ -238,7 +286,7 @@ function compressProfileImage(file) {
 }
 
 function renderBrandMark() {
-  return `<span class="public-brand-mark" aria-hidden="true"><svg viewBox="0 0 500 500"><rect width="500" height="500" rx="40" fill="#0A0A0A"/><path d="M100 250h300M250 100v300" stroke="#1F2937" stroke-width="2" stroke-dasharray="4 4"/><circle cx="250" cy="250" r="140" stroke="#1F2937" stroke-width="2" fill="none" stroke-dasharray="6 6"/><path d="M110 250Q250 120 390 250 250 380 110 250Z" fill="none" stroke="#F2F1E1" stroke-width="12"/><circle cx="250" cy="250" r="65" fill="none" stroke="#E3B74B" stroke-width="10"/><path d="m220 270 30-40 30 40" stroke="#E3B74B" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="250" cy="250" r="16" fill="#F2F1E1"/></svg></span>`;
+  return `<span class="public-brand-mark" aria-hidden="true"><img src="netraos-logo.svg" alt="" /></span>`;
 }
 
 function showPublicPage(page = "landing") {
@@ -277,8 +325,8 @@ function showPublicPage(page = "landing") {
               <div class="floating-note floating-note-bottom"><span>↗</span><div><small>YOUR NEXT MOVE</small><strong>Progress, at your pace</strong></div></div>
             </div>
           </section>
-          <section class="landing-feature-strip" id="features" aria-label="NetraOS features"><article><span>◉</span><div><strong>Inventory</strong><small>Assets, liabilities, net worth</small></div></article><article><span>↗</span><div><strong>Power-Up</strong><small>Income, budgets, spending</small></div></article><article><span>◎</span><div><strong>Quests</strong><small>Goals with visible progress</small></div></article><article><span>▥</span><div><strong>Stats</strong><small>Patterns that guide your plan</small></div></article></section>
-          <section class="landing-deep-dive" id="about"><div class="landing-deep-copy"><div class="landing-eyebrow"><i></i> A BETTER VIEW, STEP BY STEP</div><h2>From the big picture<br>to your next move.</h2><p>Bring your financial basics together, then build from there. NetraOS keeps the essentials close without making money management feel like another job.</p><ul><li><i>✓</i> Understand what you own and owe</li><li><i>✓</i> Give monthly income a clear plan</li><li><i>✓</i> Track goals without losing sight of today</li></ul><button class="public-primary" type="button" data-public-action="signup">Build your financial picture <span>↗</span></button></div><div class="insight-collage"><article class="insight-card insight-progress"><div class="insight-card-head"><span><small>QUEST PROGRESS</small><strong>Emergency fund</strong></span><i>◈</i></div><div class="insight-progress-line"><span></span></div><div class="insight-card-foot"><small>One goal at a time</small><strong>0%</strong></div></article><article class="insight-card insight-rate"><small>SAVINGS RATE</small><strong>0<span>%</span></strong><div class="insight-sparkline"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>Calculated from your monthly plan</small></article><article class="insight-card insight-budget"><i>▤</i><small>MONTHLY BUDGET</small><strong>KSh 0</strong><span>Set your first budget line</span></article><article class="insight-card insight-note"><span>✳</span><p>Your plan should work for your life—not the other way around.</p></article></div></section>
+          <section class="landing-feature-strip" id="features" aria-label="NetraOS features"><article><span>◉</span><div><strong>Balance sheet</strong><small>Assets, debts, cash, and net worth</small></div></article><article><span>▣</span><div><strong>Mobile money</strong><small>Track M-Pesa alongside your assets</small></div></article><article><span>⇄</span><div><strong>Multi-currency</strong><small>Switch currencies with manual rates</small></div></article><article><span>↗</span><div><strong>Monthly plan</strong><small>Income, budgets, and spending</small></div></article><article><span>⌁</span><div><strong>What-if projections</strong><small>Compound savings with inflation options</small></div></article><article><span>％</span><div><strong>Kenya tax calculator</strong><small>Estimate take-home pay</small></div></article><article><span>◎</span><div><strong>Quests & milestones</strong><small>Follow goals and celebrate progress</small></div></article><article><span>◈</span><div><strong>Privacy & exports</strong><small>Mask amounts and download polished PDFs</small></div></article></section>
+          <section class="landing-deep-dive" id="about"><div class="landing-deep-copy"><div class="landing-eyebrow"><i></i> A BETTER VIEW, STEP BY STEP</div><h2>From the big picture<br>to your next move.</h2><p>Bring your financial basics together, then build from there. NetraOS keeps the essentials close without making money management feel like another job.</p><ul><li><i>✓</i> See bank, cash, and M-Pesa balances together</li><li><i>✓</i> Switch display currency using rates you manage</li><li><i>✓</i> Project compounding savings month by month</li><li><i>✓</i> Keep amounts private and export a polished PDF</li></ul><button class="public-primary" type="button" data-public-action="signup">Build your financial picture <span>↗</span></button></div><div class="insight-collage"><article class="insight-card insight-progress"><div class="insight-card-head"><span><small>QUEST PROGRESS</small><strong>Emergency fund</strong></span><i>◈</i></div><div class="insight-progress-line"><span></span></div><div class="insight-card-foot"><small>One goal at a time</small><strong>0%</strong></div></article><article class="insight-card insight-rate"><small>SAVINGS RATE</small><strong>0<span>%</span></strong><div class="insight-sparkline"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>Calculated from your monthly plan</small></article><article class="insight-card insight-budget"><i>▤</i><small>MONTHLY BUDGET</small><strong>KSh 0</strong><span>Set your first budget line</span></article><article class="insight-card insight-note"><span>✳</span><p>Your plan should work for your life—not the other way around.</p></article></div></section>
           <section class="landing-faq" id="faq" aria-labelledby="landing-faq-title"><div class="landing-faq-intro"><span class="landing-faq-index">NETRAOS / FAQ</span><h2 id="landing-faq-title">A few useful<br>answers.</h2><p>Quick details about how the system works and where your information stays.</p></div><div class="landing-faq-list"><details><summary>What can I track in NetraOS?<span aria-hidden="true">+</span></summary><p>Record assets and liabilities, plan income and monthly budgets, track spending, and follow your savings goals and financial progress.</p></details><details><summary>Does NetraOS connect to my bank?<span aria-hidden="true">+</span></summary><p>No. This version does not connect to bank accounts. You add and update your information yourself.</p></details><details><summary>Where is my financial information stored?<span aria-hidden="true">+</span></summary><p>Your entries are saved in this browser on this device. They are not sent to a NetraOS account or synced to another device.</p></details><details><summary>Can I export my dashboard?<span aria-hidden="true">+</span></summary><p>Yes. Use the dashboard download controls to export a PDF or spreadsheet copy of your financial summary.</p></details></div></section>
           <section class="landing-contact" id="contact" aria-labelledby="landing-contact-title">
             <div class="landing-contact-intro">
@@ -357,6 +405,7 @@ function renderSettingsPage() {
       <form class="settings-form" data-account-form="settings">
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">DISPLAY</div><h2>Regional preferences</h2></div></div>
           <label class="settings-field"><span><strong>Currency</strong><small>NetraOS currently displays Kenyan shillings.</small></span><strong class="settings-value">KSh · Kenyan shilling</strong></label>
+          <label class="settings-field"><span><strong>Dark mode</strong><small>Use a darker color theme across your workspace.</small></span><input name="darkMode" type="checkbox" ${settings.darkMode ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Always show cents</strong><small>Show two decimal places in money amounts.</small></span><input name="alwaysShowCents" type="checkbox" ${settings.alwaysShowCents ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Reduce motion</strong><small>Use fewer animation and hover effects.</small></span><input name="reduceMotion" type="checkbox" ${settings.reduceMotion ? "checked" : ""}></label>
         </section>
@@ -461,12 +510,12 @@ function renderQuestRows(quests, dashboard = false) {
   return quests.map(quest => {
     const progress = questProgress(quest);
     return `
-      <div class="quest-row" data-quest-id="${escapeHTML(quest.id)}">
-        <span class="quest-icon shield">◈</span>
+      <div class="quest-row ${progress === 100 ? "is-complete" : ""}" data-quest-id="${escapeHTML(quest.id)}">
+        <span class="quest-icon shield">${progress === 100 ? "✦" : "◈"}</span>
         <div class="quest-info">
           <div class="quest-title">
             ${escapeHTML(quest.name)}
-            ${dashboard ? "" : `<span class="quest-xp">${progress === 100 ? "COMPLETE" : "ACTIVE"}</span>`}
+            ${progress === 100 ? `<span class="quest-xp quest-complete-badge">COMPLETE</span>` : dashboard ? "" : `<span class="quest-xp">ACTIVE</span>`}
           </div>
           <div class="quest-meta">${formatKsh(quest.current)} <span>of</span> ${formatKsh(quest.target)}</div>
           <div class="quest-track"><i style="width:${progress}%"></i></div>
@@ -486,14 +535,421 @@ function updateDashboardQuests() {
   const badge = document.querySelector(".quests-panel .count-badge");
   if (list) list.innerHTML = renderQuestRows(quests, true);
   if (badge) badge.textContent = quests.length;
+  updateDashboardOnboarding();
+  updateSavingsProjection();
+}
+
+function updateDashboardOnboarding() {
+  const card = document.querySelector("[data-onboarding]");
+  if (!card) return;
+  const inventory = getInventoryEntries();
+  const quests = getQuests();
+  const power = getPowerUpData();
+  const stepState = {
+    account: inventory.some(entry => entry.type === "asset"),
+    goal: quests.some(quest => Number(quest.target) > 0),
+    income: power.incomes.length > 0,
+    budget: power.budgets.length > 0
+  };
+  const steps = [stepState.account, stepState.goal, stepState.income && stepState.budget];
+  const completed = steps.filter(Boolean).length;
+  card.hidden = completed === steps.length;
+  const count = card.querySelector("[data-onboarding-count]");
+  const progress = card.querySelector("[data-onboarding-progress]");
+  const progressBar = card.querySelector(".onboarding-progress");
+  if (count) count.textContent = `${completed} of ${steps.length} complete`;
+  if (progress) progress.style.width = `${(completed / steps.length) * 100}%`;
+  if (progressBar) progressBar.setAttribute("aria-valuenow", String(completed));
+  card.querySelectorAll("[data-onboarding-step]").forEach((row, index) => {
+    const key = row.dataset.onboardingStep;
+    const done = steps[index];
+    row.classList.toggle("is-complete", done);
+    const mark = row.querySelector(".onboarding-step-mark");
+    if (mark) mark.textContent = done ? "✓" : String(index + 1);
+    row.querySelectorAll("[data-onboarding-action]").forEach(button => {
+      const action = button.dataset.onboardingAction;
+      const actionDone = action === "account" ? stepState.account
+        : action === "goal" ? stepState.goal
+          : action === "income" ? stepState.income
+            : action === "budget" ? stepState.budget
+              : false;
+      button.hidden = actionDone;
+    });
+    if (key === "plan" && done) row.setAttribute("aria-label", "Monthly plan complete");
+  });
+}
+
+function getCurrencyState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(currencyStorageKey) || "{}");
+    const rates = { KES: 1 };
+    for (const code of Object.keys(displayCurrencies)) {
+      const rate = Number(saved.rates?.[code]);
+      if (code !== "KES" && Number.isFinite(rate) && rate > 0) rates[code] = rate;
+    }
+    return { active: rates[saved.active] ? saved.active : "KES", rates };
+  } catch {
+    return { active: "KES", rates: { KES: 1 } };
+  }
+}
+
+function saveCurrencyState(state) {
+  localStorage.setItem(currencyStorageKey, JSON.stringify(state));
+}
+
+function formatNavigationMonth(date) {
+  return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" }).format(date);
+}
+
+function updateDateSwitcher(date = new Date()) {
+  const label = document.querySelector(".date-select-label");
+  if (label) label.textContent = formatNavigationMonth(date);
+}
+
+function getRecentNavigationMonths(count = 3) {
+  const now = new Date();
+  return Array.from({ length: count }, (_, offset) => {
+    const month = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    const label = formatNavigationMonth(month);
+    return { label, action: `date:${label}` };
+  });
+}
+
+function updateCurrencySwitcher() {
+  const button = document.querySelector(".currency-select");
+  if (!button) return;
+  const currency = getCurrencyState().active;
+  const details = displayCurrencies[currency];
+  button.querySelector(".currency-select-label").textContent = currency === "KES" ? "KSh" : currency;
+  button.setAttribute("aria-label", `Display currency: ${details.name}`);
+  updateSavingsProjection();
 }
 
 function formatKsh(amount) {
+  const settings = getStoredSettings();
+  const currencyState = getCurrencyState();
+  const currency = displayCurrencies[currencyState.active];
+  const rate = currencyState.rates[currencyState.active] || 1;
+  const converted = Number(amount || 0) / rate;
+  return currency.symbol + " " + converted.toLocaleString(currency.locale, {
+    minimumFractionDigits: settings.alwaysShowCents ? 2 : 0,
+    maximumFractionDigits: 2
+  });
+}
+
+function markPrivacySensitiveText(node) {
+  if (!node || node.nodeType !== Node.TEXT_NODE || !currencyAmountPattern.test(node.nodeValue || "")) return;
+  const element = node.parentElement;
+  if (!element || element.closest("script, style, svg, [data-privacy-ignore]")) return;
+  element.setAttribute("data-privacy-currency", "");
+}
+
+function markPrivacySensitiveSubtree(root) {
+  if (!root) return;
+  if (root.nodeType === Node.TEXT_NODE) {
+    markPrivacySensitiveText(root);
+    return;
+  }
+  if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let textNode;
+  while ((textNode = walker.nextNode())) markPrivacySensitiveText(textNode);
+}
+
+function initializePrivacyMode() {
+  const toggle = document.querySelector("[data-privacy-toggle]");
+  if (!toggle) return;
+  let enabled = false;
+  try {
+    enabled = localStorage.getItem(privacyModeStorageKey) === "true";
+  } catch {
+    // Privacy masking remains available for this session when storage is unavailable.
+  }
+  const syncToggle = () => {
+    appShell.classList.toggle("privacy-mode", enabled);
+    document.body.classList.toggle("privacy-mode", enabled);
+    toggle.setAttribute("aria-pressed", String(enabled));
+    toggle.setAttribute("aria-label", enabled ? "Show currency amounts" : "Hide currency amounts");
+    toggle.title = enabled ? "Show currency amounts" : "Hide currency amounts";
+  };
+  syncToggle();
+  markPrivacySensitiveSubtree(document.body);
+  const observer = new MutationObserver(records => {
+    records.forEach(record => {
+      if (record.type === "characterData") markPrivacySensitiveText(record.target);
+      else record.addedNodes.forEach(node => markPrivacySensitiveSubtree(node));
+    });
+  });
+  observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+  toggle.addEventListener("click", () => {
+    enabled = !enabled;
+    try {
+      localStorage.setItem(privacyModeStorageKey, String(enabled));
+    } catch {
+      // Keep the toggle responsive for the current session.
+    }
+    syncToggle();
+  });
+}
+
+function getSavingsProjectionState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(savingsProjectionStorageKey) || "{}");
+    const savedContribution = Number(saved.contribution ?? 5000);
+    const savedReturn = Number(saved.annualReturn ?? 5);
+    const savedInflation = Number(saved.inflationRate ?? 5);
+    return {
+      contribution: Number.isFinite(savedContribution) ? Math.max(0, Math.min(50000, Math.round(savedContribution / 5000) * 5000)) : 5000,
+      annualReturn: Number.isFinite(savedReturn) ? Math.max(0, Math.min(12, Math.round(savedReturn))) : 5,
+      inflationRate: Number.isFinite(savedInflation) ? Math.max(0, Math.min(15, Math.round(savedInflation * 2) / 2)) : 5,
+      inflationAdjusted: Boolean(saved.inflationAdjusted),
+      years: [1, 3, 5].includes(Number(saved.years)) ? Number(saved.years) : 3,
+      minimized: Boolean(saved.minimized)
+    };
+  } catch {
+    return { contribution: 5000, annualReturn: 5, inflationRate: 5, inflationAdjusted: false, years: 3, minimized: false };
+  }
+}
+
+function updateProjectionInspection(chart, index) {
+  const samples = chart?.projectionSamples;
+  if (!samples?.length) return;
+  const sampleIndex = Math.max(0, Math.min(samples.length - 1, Number(index) || 0));
+  const sample = samples[sampleIndex];
+  const hitArea = chart.querySelector(".projection-hit-area");
+  const cursorLine = chart.querySelector("#projection-cursor-line");
+  const cursorPoint = chart.querySelector("#projection-cursor-point");
+  if (hitArea) {
+    hitArea.setAttribute("aria-valuemax", String(samples.length - 1));
+    hitArea.setAttribute("aria-valuenow", String(sampleIndex));
+    hitArea.setAttribute("aria-valuetext", sample.label);
+  }
+  if (cursorLine) {
+    cursorLine.setAttribute("x1", sample.x.toFixed(1));
+    cursorLine.setAttribute("x2", sample.x.toFixed(1));
+  }
+  if (cursorPoint) {
+    cursorPoint.setAttribute("cx", sample.x.toFixed(1));
+    cursorPoint.setAttribute("cy", sample.y.toFixed(1));
+  }
+  const panel = chart.closest(".projection-panel");
+  if (!panel) return;
+  const period = panel.querySelector("[data-projection-insight-period]");
+  const balance = panel.querySelector("[data-projection-insight-balance]");
+  const contributions = panel.querySelector("[data-projection-insight-contributions]");
+  const growth = panel.querySelector("[data-projection-insight-growth]");
+  if (period) period.textContent = sample.label;
+  if (balance) balance.textContent = formatKsh(sample.balance);
+  if (contributions) contributions.textContent = formatKsh(sample.contributions);
+  if (growth) growth.textContent = formatKsh(sample.balance - sample.contributions);
+}
+
+function updateSavingsProjection(changedInput = null, selectedYears = null, changes = null) {
+  const panel = document.querySelector(".projection-panel");
+  if (!panel) return;
+  const contributionInput = panel.querySelector("#projection-contribution");
+  const returnInput = panel.querySelector("#projection-return");
+  const inflationInput = panel.querySelector("#projection-inflation");
+  if (!contributionInput || !returnInput || !inflationInput) return;
+  const state = getSavingsProjectionState();
+  if (changedInput?.dataset.projectionInput === "contribution") state.contribution = Number(contributionInput.value) || 0;
+  if (changedInput?.dataset.projectionInput === "returnRate") state.annualReturn = Number(returnInput.value) || 0;
+  if (changedInput?.dataset.projectionInput === "inflationRate") state.inflationRate = Number(inflationInput.value) || 0;
+  if (changes && typeof changes === "object") Object.assign(state, changes);
+  if ([1, 3, 5].includes(Number(selectedYears))) state.years = Number(selectedYears);
+  contributionInput.value = String(state.contribution);
+  returnInput.value = String(state.annualReturn);
+  inflationInput.value = String(state.inflationRate);
+  try {
+    localStorage.setItem(savingsProjectionStorageKey, JSON.stringify(state));
+  } catch {
+    // Keep the simulator usable when browser storage is unavailable.
+  }
+
+  const contributionValue = panel.querySelector("#projection-contribution-value");
+  const returnValue = panel.querySelector("#projection-return-value");
+  const inflationValue = panel.querySelector("#projection-inflation-value");
+  const minimumValue = panel.querySelector("[data-projection-min]");
+  const maximumValue = panel.querySelector("[data-projection-max]");
+  if (contributionValue) contributionValue.textContent = formatKsh(state.contribution);
+  if (returnValue) returnValue.textContent = `${state.annualReturn}%`;
+  if (inflationValue) inflationValue.textContent = `${state.inflationRate}%`;
+  const inflationToggle = panel.querySelector("[data-projection-inflation-toggle]");
+  if (inflationToggle) inflationToggle.setAttribute("aria-checked", String(state.inflationAdjusted));
+  const inflationControl = panel.querySelector("[data-projection-inflation-control]");
+  if (inflationControl) inflationControl.hidden = !state.inflationAdjusted;
+  panel.classList.toggle("is-collapsed", state.minimized);
+  const projectionBody = panel.querySelector("[data-projection-body]");
+  if (projectionBody) projectionBody.hidden = state.minimized;
+  const collapseToggle = panel.querySelector("[data-projection-toggle]");
+  if (collapseToggle) {
+    collapseToggle.setAttribute("aria-expanded", String(!state.minimized));
+    collapseToggle.setAttribute("aria-label", state.minimized ? "Expand projections" : "Minimize projections");
+    const toggleLabel = collapseToggle.querySelector("[data-projection-toggle-label]");
+    if (toggleLabel) toggleLabel.textContent = state.minimized ? "Expand" : "Minimize";
+    const toggleIcon = collapseToggle.querySelector(".projection-collapse-icon");
+    if (toggleIcon) toggleIcon.textContent = state.minimized ? "+" : "−";
+  }
+  const balanceLabel = panel.querySelector("#projection-balance-label");
+  if (balanceLabel) balanceLabel.textContent = state.inflationAdjusted ? "BALANCE IN TODAY’S MONEY" : "PROJECTED BALANCE";
+  if (minimumValue) minimumValue.textContent = formatKsh(0);
+  if (maximumValue) maximumValue.textContent = formatKsh(50000);
+  panel.querySelectorAll("[data-projection-years]").forEach(button => {
+    const selected = Number(button.dataset.projectionYears) === state.years;
+    button.setAttribute("aria-pressed", String(selected));
+  });
+
+  const quests = getQuests();
+  const startingBalance = quests.reduce((sum, quest) => sum + Math.max(0, Number(quest.current) || 0), 0);
+  const plannedMonthlySavings = getPowerUpData().budgets
+    .filter(item => item.category === "Savings & investing")
+    .reduce((sum, item) => sum + Math.max(0, Number(item.amount) || 0), 0);
+  const monthlyContribution = plannedMonthlySavings + state.contribution;
+  const plannedSavingsValue = panel.querySelector("#projection-planned-savings-value");
+  const totalMonthlyValue = panel.querySelector("#projection-monthly-total-value");
+  if (plannedSavingsValue) plannedSavingsValue.textContent = formatKsh(plannedMonthlySavings);
+  if (totalMonthlyValue) totalMonthlyValue.textContent = formatKsh(monthlyContribution);
+  const months = state.years * 12;
+  const monthlyRate = Math.pow(1 + state.annualReturn / 100, 1 / 12) - 1;
+  const inflationMonthlyRate = Math.pow(1 + state.inflationRate / 100, 1 / 12) - 1;
+  const growthRate = state.inflationAdjusted ? (1 + monthlyRate) / (1 + inflationMonthlyRate) - 1 : monthlyRate;
+  let balance = startingBalance;
+  let totalContributions = startingBalance;
+  const monthlyValues = [{ month: 0, balance, contributions: totalContributions }];
+  for (let month = 1; month <= months; month += 1) {
+    const contribution = state.inflationAdjusted ? monthlyContribution / Math.pow(1 + inflationMonthlyRate, month) : monthlyContribution;
+    balance = balance * (1 + growthRate) + contribution;
+    totalContributions += contribution;
+    monthlyValues.push({ month, balance, contributions: totalContributions });
+  }
+  const startValue = panel.querySelector("#projection-start-value");
+  const projectedValue = panel.querySelector("#projection-balance");
+  const growthValue = panel.querySelector("#projection-growth");
+  const horizonLabel = panel.querySelector("#projection-end-label");
+  const linePath = panel.querySelector("#projection-line");
+  const areaPath = panel.querySelector("#projection-area");
+  const point = panel.querySelector("#projection-point");
+  const chart = panel.querySelector(".projection-chart");
+  const granularityLabel = panel.querySelector("#projection-granularity");
+  if (startValue) startValue.textContent = formatKsh(startingBalance);
+  if (projectedValue) projectedValue.textContent = formatKsh(balance);
+  if (growthValue) growthValue.textContent = formatKsh(balance - totalContributions);
+  if (horizonLabel) horizonLabel.textContent = `${state.years} ${state.years === 1 ? "year" : "years"}`;
+  if (granularityLabel) granularityLabel.textContent = state.years === 1 ? "Monthly points" : "Yearly points";
+
+  const chartLeft = 38, chartRight = 620, chartTop = 28, chartBottom = 184;
+  const sampleMonths = state.years === 1
+    ? monthlyValues.map(value => value.month)
+    : Array.from({ length: state.years + 1 }, (_, year) => year * 12);
+  const projectionSamples = sampleMonths.map((month, index) => {
+    const value = monthlyValues[month];
+    const x = chartLeft + (index / (sampleMonths.length - 1)) * (chartRight - chartLeft);
+    return {
+      ...value,
+      x,
+      y: 0,
+      label: month === 0 ? "Today" : state.years === 1 ? `Month ${month}` : `Year ${month / 12}`
+    };
+  });
+  if (chart) {
+    chart.projectionSamples = projectionSamples;
+    if (!chart.dataset.projectionInteractive) {
+      chart.dataset.projectionInteractive = "true";
+      chart.addEventListener("pointermove", event => {
+        const bounds = chart.getBoundingClientRect();
+        if (!bounds.width) return;
+        const progress = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+        updateProjectionInspection(chart, Math.round(progress * (chart.projectionSamples.length - 1)));
+      });
+      chart.addEventListener("pointerleave", () => updateProjectionInspection(chart, chart.projectionSamples.length - 1));
+      chart.querySelector(".projection-hit-area")?.addEventListener("keydown", event => {
+        const hitArea = event.currentTarget;
+        const current = Number(hitArea.getAttribute("aria-valuenow")) || 0;
+        let next = current;
+        if (event.key === "ArrowRight" || event.key === "ArrowUp") next += 1;
+        else if (event.key === "ArrowLeft" || event.key === "ArrowDown") next -= 1;
+        else if (event.key === "Home") next = 0;
+        else if (event.key === "End") next = chart.projectionSamples.length - 1;
+        else return;
+        event.preventDefault();
+        updateProjectionInspection(chart, next);
+      });
+    }
+  }
+  const maxSampleBalance = Math.max(1, ...projectionSamples.map(sample => sample.balance)) * 1.08;
+  projectionSamples.forEach(sample => {
+    sample.y = chartBottom - (sample.balance / maxSampleBalance) * (chartBottom - chartTop);
+  });
+  const points = projectionSamples.map((sample, index) => {
+    return `${index ? "L" : "M"}${sample.x.toFixed(1)} ${sample.y.toFixed(1)}`;
+  }).join(" ");
+  if (linePath) linePath.setAttribute("d", points);
+  if (areaPath) areaPath.setAttribute("d", `${points} L${chartRight} ${chartBottom} L${chartLeft} ${chartBottom} Z`);
+  if (point) {
+    point.setAttribute("cx", String(chartRight));
+    point.setAttribute("cy", projectionSamples[projectionSamples.length - 1].y.toFixed(1));
+  }
+  updateProjectionInspection(chart, projectionSamples.length - 1);
+  if (chart) chart.setAttribute("aria-label", `Projected savings grow from ${formatKsh(startingBalance)} to ${formatKsh(balance)} over ${state.years} ${state.years === 1 ? "year" : "years"}, with an assumed ${state.annualReturn}% annual return${state.inflationAdjusted ? ` and ${state.inflationRate}% inflation, shown in today’s money` : ""}.`);
+}
+
+function formatBaseKsh(amount) {
   const alwaysShowCents = getStoredSettings().alwaysShowCents;
   return "KSh " + Number(amount || 0).toLocaleString("en-KE", {
     minimumFractionDigits: alwaysShowCents ? 2 : 0,
     maximumFractionDigits: 2
   });
+}
+
+function openCurrencyRatesDialog(requestedCurrency = "") {
+  const state = getCurrencyState();
+  const dialog = document.createElement("dialog");
+  dialog.className = "inventory-dialog currency-rates-dialog";
+  dialog.innerHTML = `
+    <form class="inventory-form">
+      <header class="inventory-dialog-heading">
+        <div><span class="section-kicker">LOCAL DISPLAY SETTINGS</span><h2>Exchange rates</h2></div>
+        <button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button>
+      </header>
+      <p class="currency-rate-note">Enter how many Kenyan shillings equal one unit of each currency. Values stay in this browser; the app uses these rates for display only.</p>
+      <div class="inventory-form-fields">
+        ${Object.entries(displayCurrencies).filter(([code]) => code !== "KES").map(([code, currency]) => `
+          <label class="inventory-form-field"><span>${currency.name} (${code})</span><input name="rate-${code}" type="number" min="0.000001" step="any" inputmode="decimal" placeholder="KSh per 1 ${code}" value="${state.rates[code] || ""}" ${requestedCurrency === code ? "required" : ""}></label>
+        `).join("")}
+      </div>
+      <footer class="inventory-dialog-actions"><button class="inventory-cancel" type="button">Cancel</button><button class="inventory-submit" type="submit">Save rates</button></footer>
+    </form>`;
+  document.body.append(dialog);
+  const form = dialog.querySelector("form");
+  dialog.querySelector(".inventory-dialog-close").addEventListener("click", () => dialog.close());
+  dialog.querySelector(".inventory-cancel").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const rates = { KES: 1 };
+    for (const code of Object.keys(displayCurrencies).filter(item => item !== "KES")) {
+      const raw = String(formData.get(`rate-${code}`) || "").trim();
+      const rate = Number(raw);
+      if (raw && Number.isFinite(rate) && rate > 0) rates[code] = rate;
+    }
+    if (requestedCurrency && !rates[requestedCurrency]) {
+      showToast(`Enter a valid KSh rate for ${requestedCurrency} to switch currencies.`);
+      return;
+    }
+    const active = requestedCurrency || (rates[state.active] ? state.active : "KES");
+    try {
+      saveCurrencyState({ active, rates });
+    } catch {
+      showToast("Unable to save exchange rates in browser storage.");
+      return;
+    }
+    dialog.close();
+    updateCurrencySwitcher();
+    showPage(crumb.textContent);
+  });
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.showModal();
 }
 
 function escapeHTML(value) {
@@ -558,7 +1014,8 @@ function renderAccountRows(entries) {
           <span class="inventory-row-icon">${entry.type === "asset" ? "◉" : "▤"}</span>
           <span class="inventory-account-name">
             <strong>${escapeHTML(entry.name)}</strong>
-            <small>${escapeHTML(entry.category)} · ${entry.type === "asset" ? "Asset" : "Liability"}</small>
+            <small>${escapeHTML(entry.category)}${entry.mobileType ? ` · ${escapeHTML(entry.mobileType)}` : ""} · ${entry.type === "asset" ? "Asset" : "Liability"}</small>
+            ${entry.mobileReference ? `<small class="inventory-account-notes">${escapeHTML(entry.mobileReference)}</small>` : ""}
             ${entry.notes ? `<small class="inventory-account-notes">${escapeHTML(entry.notes)}</small>` : ""}
           </span>
           <strong class="inventory-account-amount">${formatKsh(entry.amount)}</strong>
@@ -647,7 +1104,7 @@ function updateDashboardInventorySummary() {
 
   const allocations = [
     { label: "Investments", categories: ["Investments"] },
-    { label: "Cash", categories: ["Cash & savings"] },
+    { label: "Cash", categories: ["Bank accounts", "Mobile money", "Cash & savings"] },
     { label: "Retirement", categories: [] },
     { label: "Other", categories: ["Property & vehicles", "Other assets"] }
   ].map(allocation => {
@@ -692,7 +1149,7 @@ function updateDashboardPowerUpSummary() {
   const data = getPowerUpData();
   const totals = getPowerUpReportTotals();
   const periodButton = document.querySelector(".period-button");
-  if (periodButton) periodButton.innerHTML = `${getReportPeriod()} <span>⌄</span>`;
+  if (periodButton) periodButton.innerHTML = `${getReportPeriod()} <svg class="dropdown-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3" /></svg>`;
   const metricCards = document.querySelectorAll(".metric-card");
   const incomeCard = metricCards[1];
   const savingsCard = metricCards[2];
@@ -778,6 +1235,7 @@ function reportMonthLabel() {
 function refreshFinancialPage() {
   if (crumb.textContent === "Dashboard") {
     content.innerHTML = dashboardMarkup;
+    updateDashboardWelcome();
     updateDashboardInventorySummary();
     updateDashboardPowerUpSummary();
     updateDashboardQuests();
@@ -831,6 +1289,10 @@ function openInventoryDialog(action) {
           <span>Category</span>
           <select name="category" id="inventory-entry-category" required></select>
         </label>
+        <div class="inventory-form-fields mobile-money-fields" hidden>
+          <label class="inventory-form-field"><span>Mobile account type</span><select name="mobileType"><option>Mobile wallet</option><option>Till</option><option>Paybill</option></select></label>
+          <label class="inventory-form-field"><span>Phone, Till or Paybill number <small>Optional</small></span><input name="mobileReference" type="text" maxlength="60" placeholder="e.g. 07xx xxx xxx or 123456"></label>
+        </div>
         <label class="inventory-form-field">
           <span>Current balance (KSh)</span>
           <input name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" required>
@@ -858,10 +1320,14 @@ function openInventoryDialog(action) {
     categorySelect.innerHTML = categories
       .map(category => `<option value="${category.name}">${category.name}</option>`)
       .join("");
+    dialog.querySelector(".mobile-money-fields").hidden = categorySelect.value !== "Mobile money";
   }
 
   refreshCategories();
   typeSelect?.addEventListener("change", refreshCategories);
+  categorySelect.addEventListener("change", () => {
+    dialog.querySelector(".mobile-money-fields").hidden = categorySelect.value !== "Mobile money";
+  });
   dialog.querySelector(".inventory-dialog-close").addEventListener("click", () => dialog.close());
   dialog.querySelector(".inventory-cancel").addEventListener("click", () => dialog.close());
   dialog.addEventListener("click", event => {
@@ -882,6 +1348,8 @@ function openInventoryDialog(action) {
       name,
       category: String(formData.get("category")),
       amount,
+      mobileType: String(formData.get("category") === "Mobile money" ? formData.get("mobileType") || "Mobile wallet" : ""),
+      mobileReference: String(formData.get("category") === "Mobile money" ? formData.get("mobileReference") || "" : "").trim(),
       notes: String(formData.get("notes") || "").trim()
     });
 
@@ -1050,6 +1518,7 @@ function openQuestDialog(questId = "") {
     const current = Number(formData.get("current"));
     const target = Number(formData.get("target"));
     if (!name || !Number.isFinite(current) || !Number.isFinite(target) || current < 0 || target <= 0) return;
+    const wasComplete = quest ? questProgress(quest) === 100 : false;
     const updatedQuest = { id: quest?.id || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`, name, current, target };
     const updatedQuests = quest ? quests.map(item => item.id === quest.id ? updatedQuest : item) : [...quests, updatedQuest];
     try {
@@ -1060,11 +1529,36 @@ function openQuestDialog(questId = "") {
     }
     dialog.close();
     refreshFinancialPage();
-    showToast(quest ? "Quest progress updated." : `${name} added to your quests.`);
+    if (!wasComplete && questProgress(updatedQuest) === 100) celebrateQuestCompletion(name);
+    else showToast(quest ? "Quest progress updated." : `${name} added to your quests.`);
   });
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   dialog.showModal();
   dialog.querySelector('input[name="name"]').focus();
+}
+
+function celebrateQuestCompletion(name) {
+  document.querySelector(".quest-celebration")?.remove();
+  const celebration = document.createElement("div");
+  celebration.className = "quest-celebration";
+  celebration.setAttribute("role", "status");
+  celebration.setAttribute("aria-live", "polite");
+  const particles = Array.from({ length: 14 }, (_, index) => {
+    const angle = (Math.PI * 2 * index) / 14;
+    const distance = 28 + (index % 3) * 8;
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance;
+    return `<i style="--particle-x:${x.toFixed(1)}px;--particle-y:${y.toFixed(1)}px;--particle-delay:${(index % 4) * 35}ms"></i>`;
+  }).join("");
+  celebration.innerHTML = `
+    <div class="quest-celebration-particles" aria-hidden="true">${particles}</div>
+    <span class="quest-celebration-badge" aria-hidden="true">✦</span>
+    <span class="quest-celebration-copy"><small>MILESTONE UNLOCKED</small><strong data-celebrated-quest></strong><span>Quest complete · 100%</span></span>
+    <span class="quest-celebration-check" aria-hidden="true">✓</span>`;
+  celebration.querySelector("[data-celebrated-quest]").textContent = name;
+  document.body.append(celebration);
+  requestAnimationFrame(() => celebration.classList.add("is-visible"));
+  window.setTimeout(() => celebration.remove(), 4600);
 }
 
 function deleteQuest(button) {
@@ -1245,10 +1739,10 @@ function showPage(page) {
   if (page === "Dashboard") {
     window.location.hash = "dashboard";
     content.innerHTML = dashboardMarkup;
+    updateDashboardWelcome();
     updateDashboardInventorySummary();
     updateDashboardPowerUpSummary();
     updateDashboardQuests();
-    updateDashboardTaxCard();
     return;
   }
   if (page === "Inventory") {
@@ -1524,15 +2018,15 @@ function renderTaxResults(p) {
   const pct = value => (p.gross > 0 ? (value / p.gross) * 100 : 0);
   const fmtPct = value => (Math.round(value * 10) / 10).toFixed(1) + "%";
   const items = [
-    { key: "paye", label: "PAYE", amount: p.paye, note: p.relief > 0 ? `After ${formatKsh(p.relief)} personal relief` : "Income tax" },
-    { key: "nssf", label: "NSSF", amount: p.nssf, note: p.gross >= KE_TAX.nssfUpperLimit ? `6% · capped at ${formatKsh(KE_TAX.nssfUpperLimit * KE_TAX.nssfRate)}` : `6% of pay up to ${formatKsh(KE_TAX.nssfUpperLimit)}` },
-    { key: "shif", label: "SHIF", amount: p.shif, note: p.shifAtMinimum ? `Minimum ${formatKsh(KE_TAX.shifMinimum)}` : "2.75% of gross" },
+    { key: "paye", label: "PAYE", amount: p.paye, note: p.relief > 0 ? `After ${formatBaseKsh(p.relief)} personal relief` : "Income tax" },
+    { key: "nssf", label: "NSSF", amount: p.nssf, note: p.gross >= KE_TAX.nssfUpperLimit ? `6% · capped at ${formatBaseKsh(KE_TAX.nssfUpperLimit * KE_TAX.nssfRate)}` : `6% of pay up to ${formatBaseKsh(KE_TAX.nssfUpperLimit)}` },
+    { key: "shif", label: "SHIF", amount: p.shif, note: p.shifAtMinimum ? `Minimum ${formatBaseKsh(KE_TAX.shifMinimum)}` : "2.75% of gross" },
     { key: "ahl", label: "Housing Levy", amount: p.ahl, note: "1.5% of gross" }
   ];
   const takeHomePct = pct(p.net);
   const bar = p.gross > 0
     ? [{ key: "net", label: "Take-home", amount: p.net }, ...items].map(item =>
-        `<span style="flex:${Math.max(item.amount, 0)} 1 0;background:${taxColors[item.key]}" title="${item.label}: ${formatKsh(item.amount)}"></span>`).join("")
+        `<span style="flex:${Math.max(item.amount, 0)} 1 0;background:${taxColors[item.key]}" title="${item.label}: ${formatBaseKsh(item.amount)}"></span>`).join("")
     : "";
   return `
     <div class="tax-hero">
@@ -1541,10 +2035,10 @@ function renderTaxResults(p) {
         <div class="tax-hero-center"><strong>${p.gross > 0 ? Math.round(takeHomePct) : 0}%</strong><span>TAKE-HOME</span></div>
       </div>
       <div class="tax-hero-figures" role="status">
-        <div><span>GROSS PAY</span><strong>${formatKsh(p.gross)}</strong></div>
-        <div class="tax-net"><span>NET PAY</span><strong>${formatKsh(p.net)}</strong></div>
-        <div><span>TOTAL DEDUCTIONS</span><strong>${formatKsh(p.deductions)}</strong></div>
-        <small>${formatKsh(p.net * 12)} take-home over 12 months</small>
+        <div><span>GROSS PAY</span><strong>${formatBaseKsh(p.gross)}</strong></div>
+        <div class="tax-net"><span>NET PAY</span><strong>${formatBaseKsh(p.net)}</strong></div>
+        <div><span>TOTAL DEDUCTIONS</span><strong>${formatBaseKsh(p.deductions)}</strong></div>
+        <small>${formatBaseKsh(p.net * 12)} take-home over 12 months</small>
       </div>
     </div>
     <div class="tax-bar" aria-hidden="true">${bar}</div>
@@ -1556,7 +2050,7 @@ function renderTaxResults(p) {
             <b>${fmtPct(pct(item.amount))}</b>
           </div>
           <span class="tax-ring-label">${item.label}</span>
-          <strong>${formatKsh(item.amount)}</strong>
+          <strong>${formatBaseKsh(item.amount)}</strong>
         </div>`).join("")}
     </div>
     <div class="tax-table" role="table" aria-label="Deduction breakdown">
@@ -1565,16 +2059,16 @@ function renderTaxResults(p) {
           <i style="background:${taxColors[item.key]}"></i>
           <span class="tax-row-name" role="cell"><strong>${item.label}</strong><small>${item.note}</small></span>
           <span class="tax-row-pct" role="cell">${fmtPct(pct(item.amount))}</span>
-          <strong class="tax-row-amount" role="cell">−${formatKsh(item.amount)}</strong>
+          <strong class="tax-row-amount" role="cell">−${formatBaseKsh(item.amount)}</strong>
         </div>`).join("")}
       <div class="tax-row tax-row-net" role="row">
         <i style="background:${taxColors.net}"></i>
-        <span class="tax-row-name" role="cell"><strong>Take-home pay</strong><small>Taxable pay was ${formatKsh(p.taxable)}</small></span>
+        <span class="tax-row-name" role="cell"><strong>Take-home pay</strong><small>Taxable pay was ${formatBaseKsh(p.taxable)}</small></span>
         <span class="tax-row-pct" role="cell">${fmtPct(takeHomePct)}</span>
-        <strong class="tax-row-amount" role="cell">${formatKsh(p.net)}</strong>
+        <strong class="tax-row-amount" role="cell">${formatBaseKsh(p.net)}</strong>
       </div>
     </div>
-    <p class="tax-employer">Your employer also pays a matching ${formatKsh(p.nssf)} NSSF and ${formatKsh(p.ahl)} Housing Levy on top of your gross pay.</p>`;
+    <p class="tax-employer">Your employer also pays a matching ${formatBaseKsh(p.nssf)} NSSF and ${formatBaseKsh(p.ahl)} Housing Levy on top of your gross pay.</p>`;
 }
 
 function taxFieldLabel(mode) {
@@ -1587,22 +2081,19 @@ function renderTaxWidget(compact = false) {
   const sliderValue = Math.min(state.value, KE_TAX.sliderMax);
   const inputId = compact ? "tax-amount-compact" : "tax-amount";
   return `
-    <article class="panel tax-panel${compact ? " tax-compact tax-collapsed" : ""}" data-tax-mode="${state.mode}" aria-label="Gross to net calculator">
+    <article class="panel tax-panel tax-collapsed${compact ? " tax-compact" : ""}" data-tax-mode="${state.mode}" aria-label="Gross to net calculator">
       <div class="panel-heading">
         <div>
           <div class="section-kicker">${compact ? "KENYA · TAKE-HOME PAY" : "KENYA · PAYE, NSSF, SHIF &amp; HOUSING LEVY"}</div>
           <h2>${compact ? "Take-home calculator" : "Gross-to-net take-home"}</h2>
         </div>
-        ${compact ? `<button type="button" class="tax-expand" data-tax-toggle aria-expanded="false" aria-controls="tax-body-compact"><span>Show calculator</span><span class="tax-expand-icon" aria-hidden="true">⌄</span></button>` : `<div class="tax-toggle" role="group" aria-label="Calculate from">
-          <button type="button" class="${state.mode === "gross" ? "active" : ""}" data-tax-mode-btn="gross" aria-pressed="${state.mode === "gross"}">Gross → Net</button>
-          <button type="button" class="${state.mode === "net" ? "active" : ""}" data-tax-mode-btn="net" aria-pressed="${state.mode === "net"}">Net → Gross</button>
-        </div>`}
+        <button type="button" class="tax-expand" data-tax-toggle aria-expanded="false" aria-controls="${compact ? "tax-body-compact" : "tax-body-full"}"><span>Show calculator</span><span class="tax-expand-icon" aria-hidden="true">⌄</span></button>
       </div>
-      <div class="tax-body"${compact ? ` id="tax-body-compact"` : ""}>
-        ${compact ? `<div class="tax-toggle" role="group" aria-label="Calculate from">
+      <div class="tax-body" id="${compact ? "tax-body-compact" : "tax-body-full"}">
+        <div class="tax-toggle" role="group" aria-label="Calculate from">
           <button type="button" class="${state.mode === "gross" ? "active" : ""}" data-tax-mode-btn="gross" aria-pressed="${state.mode === "gross"}">Gross → Net</button>
           <button type="button" class="${state.mode === "net" ? "active" : ""}" data-tax-mode-btn="net" aria-pressed="${state.mode === "net"}">Net → Gross</button>
-        </div>` : ""}
+        </div>
         <div class="tax-controls">
           <label class="tax-field" for="${inputId}">
             <span class="tax-field-label">${taxFieldLabel(state.mode)}</span>
@@ -1648,6 +2139,35 @@ function syncTaxPanel(panel, state, source) {
   panel.querySelector(".tax-field-label").textContent = taxFieldLabel(state.mode);
   panel.querySelector(".tax-results").innerHTML = panel.classList.contains("tax-compact") ? renderTaxCompactResults(p) : renderTaxResults(p);
 }
+
+document.addEventListener("input", event => {
+  const projectionInput = event.target.closest?.("[data-projection-input]");
+  if (projectionInput) updateSavingsProjection(projectionInput);
+});
+
+document.addEventListener("click", event => {
+  const projectionToggle = event.target.closest?.("[data-projection-toggle]");
+  if (projectionToggle) {
+    const state = getSavingsProjectionState();
+    updateSavingsProjection(null, null, { minimized: !state.minimized });
+    return;
+  }
+  const inflationToggle = event.target.closest?.("[data-projection-inflation-toggle]");
+  if (inflationToggle) {
+    const state = getSavingsProjectionState();
+    updateSavingsProjection(null, null, { inflationAdjusted: !state.inflationAdjusted });
+    return;
+  }
+  const horizonButton = event.target.closest?.("[data-projection-years]");
+  if (!horizonButton) return;
+  const panel = horizonButton.closest(".projection-panel");
+  if (!panel) return;
+  panel.querySelectorAll("[data-projection-years]").forEach(button => {
+    const selected = button === horizonButton;
+    button.setAttribute("aria-pressed", String(selected));
+  });
+  updateSavingsProjection(null, Number(horizonButton.dataset.projectionYears));
+});
 
 document.addEventListener("input", event => {
   const el = event.target;
@@ -1700,12 +2220,6 @@ document.addEventListener("click", event => {
   saveTaxState(state);
   syncTaxPanel(panel, state, null);
 });
-
-// Dashboard take-home card (compact version of the Power-Up calculator)
-function updateDashboardTaxCard() {
-  const slot = document.querySelector("#dashboard-tax-slot");
-  if (slot) slot.innerHTML = renderTaxWidget(true);
-}
 
 function renderTaxCompactResults(p) {
   const pct = value => (p.gross > 0 ? (value / p.gross) * 100 : 0);
@@ -2047,39 +2561,305 @@ function downloadExcel() {
   showToast("Dashboard Excel workbook downloaded.");
 }
 
-// Generate a small single-page PDF without an external library.
+// Build a self-contained, vector-based financial report PDF.
 function downloadPDF() {
-  const rows = collectDashboardRows();
-  const ascii = value =>
-    String(value)
-      .normalize("NFKD")
-      .replace(/[^\x20-\x7E]/g, " ")
-      .replace(/\s+/g, " ");
-  const escapePDF = value =>
-    ascii(value)
-      .replace(/\\/g, "\\\\")
-      .replace(/\(/g, "\\(")
-      .replace(/\)/g, "\\)");
-  let y = 748;
-  let stream = "BT /F1 20 Tf 48 748 Td (NetraOS Dashboard) Tj ET\n";
-  y -= 28;
-  stream += `BT /F1 10 Tf 48 ${y} Td (Your Financial Operating System  |  KSh) Tj ET\n`;
-  y -= 24;
-  rows.slice(1).forEach(([label, value]) => {
-    const line = escapePDF(label + ": " + value).slice(0, 100);
-    if (y > 36) {
-      stream += `BT /F1 10 Tf 48 ${y} Td (${line}) Tj ET\n`;
-      y -= 18;
+  const W = 612;
+  const H = 792;
+  const colors = {
+    ink: "#17251D", muted: "#64736A", green: "#126B4A", deep: "#103B2C",
+    gold: "#D9B653", pale: "#F3F8F5", line: "#DDE8E1", white: "#FFFFFF",
+    red: "#C65B50", blue: "#4D8197", purple: "#8973A8", light: "#EAF2ED"
+  };
+  const toRgb = hex => {
+    const raw = hex.replace("#", "");
+    return [0, 2, 4].map(index => (parseInt(raw.slice(index, index + 2), 16) / 255).toFixed(3)).join(" ");
+  };
+  const ascii = value => String(value).normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, " ").replace(/\s+/g, " ").trim();
+  const escaped = value => ascii(value).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  const short = (value, max = 30) => {
+    const text = ascii(value);
+    return text.length > max ? text.slice(0, Math.max(0, max - 3)) + "..." : text;
+  };
+  const currencyState = getCurrencyState();
+  const reportCurrency = currencyState.active === "KES" ? "KSh" : currencyState.active;
+  const reportRate = currencyState.rates[currencyState.active] || 1;
+  const reportMoney = amount => `${reportCurrency} ${ (Number(amount || 0) / reportRate).toLocaleString("en-US", { minimumFractionDigits: getStoredSettings().alwaysShowCents ? 2 : 0, maximumFractionDigits: 2 })}`;
+  const entries = getInventoryEntries();
+  const totals = getInventoryTotals();
+  const power = getPowerUpData();
+  const reportSpending = spendingForReport(power.spending);
+  const plan = {
+    income: power.incomes.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+    budget: power.budgets.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+    spending: reportSpending.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  };
+  plan.surplus = plan.income - plan.spending;
+  const quests = getQuests();
+  const savingsRate = plan.income > 0 ? Math.round(((plan.income - plan.spending) / plan.income) * 1000) / 10 : 0;
+  const initials = (getStoredProfile()?.name || "NetraOS").trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "NO";
+  const reportDate = new Date().toLocaleDateString("en-KE", { year: "numeric", month: "long", day: "numeric" });
+  const streams = [];
+
+  function text(stream, x, y, size, value, color = colors.ink, bold = false) {
+    stream.push(`${toRgb(color)} rg BT /${bold ? "F2" : "F1"} ${size} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${escaped(value)}) Tj ET\n`);
+  }
+  function rect(stream, x, y, w, h, fill, stroke = "", lineWidth = 1) {
+    if (fill) stream.push(`${toRgb(fill)} rg `);
+    if (stroke) stream.push(`${toRgb(stroke)} RG ${lineWidth} w `);
+    stream.push(`${x} ${y} ${w} ${h} re ${fill && stroke ? "B" : fill ? "f" : "S"}\n`);
+  }
+  function line(stream, x1, y1, x2, y2, color = colors.line, width = 1) {
+    stream.push(`${toRgb(color)} RG ${width} w ${x1} ${y1} m ${x2} ${y2} l S\n`);
+  }
+  function circlePath(stream, cx, cy, r) {
+    const k = r * 0.5522847498;
+    stream.push(`${(cx + r).toFixed(2)} ${cy.toFixed(2)} m ${(cx + r).toFixed(2)} ${(cy + k).toFixed(2)} ${(cx + k).toFixed(2)} ${(cy + r).toFixed(2)} ${cx.toFixed(2)} ${(cy + r).toFixed(2)} c ${(cx - k).toFixed(2)} ${(cy + r).toFixed(2)} ${(cx - r).toFixed(2)} ${(cy + k).toFixed(2)} ${(cx - r).toFixed(2)} ${cy.toFixed(2)} c ${(cx - r).toFixed(2)} ${(cy - k).toFixed(2)} ${(cx - k).toFixed(2)} ${(cy - r).toFixed(2)} ${cx.toFixed(2)} ${(cy - r).toFixed(2)} c ${(cx + k).toFixed(2)} ${(cy - r).toFixed(2)} ${(cx + r).toFixed(2)} ${(cy - k).toFixed(2)} ${(cx + r).toFixed(2)} ${cy.toFixed(2)} c`);
+  }
+  function drawLogo(stream, x, y, size, light = false) {
+    const scale = size / 256;
+    stream.push(`q ${scale} 0 0 -${scale} ${x} ${y + size} cm\n`);
+    stream.push(toRgb('#0A0A0A') + ' rg 0 0 256 256 re f\n');
+    stream.push(toRgb('#1F2937') + ' RG 0.8 w [2 2] 0 d 51.2 128 m 204.8 128 l 128 51.2 m 128 204.8 l S [] 0 d\n');
+    circlePath(stream, 128, 128, 71.68);
+    stream.push(toRgb('#1F2937') + ' RG 0.75 w [3 3] 0 d S [] 0 d\n');
+    stream.push(toRgb('#F2F1E1') + ' RG 6.14 w 56.32 128 m 104.11 83.63 151.89 83.63 199.68 128 c 151.89 172.37 104.11 172.37 56.32 128 c S\n');
+    circlePath(stream, 128, 128, 33.28);
+    stream.push(toRgb('#E3B74B') + ' RG 5.12 w S\n');
+    stream.push(toRgb('#E3B74B') + ' RG 4.1 w 112.64 138.24 m 128 117.76 l 143.36 138.24 l S\n');
+    circlePath(stream, 128, 128, 8.19);
+    stream.push(toRgb('#F2F1E1') + ' rg f\n');
+    circlePath(stream, 56.32, 128, 3.07);
+    stream.push(toRgb('#E3B74B') + ' rg f\n');
+    circlePath(stream, 199.68, 128, 3.07);
+    stream.push(toRgb('#E3B74B') + ' rg f\n');
+    stream.push('Q\n');
+  }
+  function drawWatermark(stream) {
+    const size = 176, x = 218, y = 340, scale = size / 256;
+    stream.push(`q ${scale} 0 0 -${scale} ${x} ${y + size} cm\n`);
+    stream.push(toRgb('#CAD4CE') + ' RG 3.2 w 56.32 128 m 104.11 83.63 151.89 83.63 199.68 128 c 151.89 172.37 104.11 172.37 56.32 128 c S\n');
+    circlePath(stream, 128, 128, 33.28);
+    stream.push(toRgb('#D3B05F') + ' RG 2.8 w S\n');
+    stream.push(toRgb('#D3B05F') + ' RG 2.2 w 112.64 138.24 m 128 117.76 l 143.36 138.24 l S\n');
+    circlePath(stream, 128, 128, 8.19);
+    stream.push(toRgb('#CAD4CE') + ' rg f\n');
+    circlePath(stream, 56.32, 128, 3.07);
+    stream.push(toRgb('#D3B05F') + ' rg f\n');
+    circlePath(stream, 199.68, 128, 3.07);
+    stream.push(toRgb('#D3B05F') + ' rg f\n');
+    stream.push('Q\n');
+    text(stream, 306 - (initials.length * 4), 357, 8, initials, '#A9B4AD', true);
+  }
+  function drawHeader(stream, title, pageNo, pageCount) {
+    rect(stream, 0, 700, W, 92, colors.deep);
+    drawLogo(stream, 42, 723, 42, true);
+    text(stream, 96, 753, 18, "NETRAOS", colors.white, true);
+    text(stream, 97, 737, 8, "YOUR FINANCIAL OPERATING SYSTEM", "#C9DDD2");
+    text(stream, 42, 674, 19, title, colors.ink, true);
+    text(stream, 42, 657, 9, `Generated ${reportDate}  |  ${getReportPeriod()}  |  Display: ${reportCurrency}`, colors.muted);
+    line(stream, 42, 642, 570, 642, colors.line, 1);
+    text(stream, 500, 24, 8, `PAGE ${pageNo} / ${pageCount}`, colors.muted);
+    text(stream, 42, 24, 8, "PRIVATE FINANCIAL SUMMARY  |  SAVED LOCALLY IN THIS BROWSER", colors.muted);
+  }
+  function pieSlice(stream, cx, cy, radius, start, end, fill) {
+    const segments = Math.max(1, Math.ceil(Math.abs(end - start) / (Math.PI / 2)));
+    const delta = (end - start) / segments;
+    let angle = start;
+    const sx = cx + radius * Math.cos(angle);
+    const sy = cy + radius * Math.sin(angle);
+    stream.push(`${toRgb(fill)} rg ${cx.toFixed(2)} ${cy.toFixed(2)} m ${sx.toFixed(2)} ${sy.toFixed(2)} l `);
+    for (let i = 0; i < segments; i += 1) {
+      const next = angle + delta;
+      const k = (4 / 3) * Math.tan((next - angle) / 4);
+      const x0 = cx + radius * Math.cos(angle), y0 = cy + radius * Math.sin(angle);
+      const x1 = cx + radius * Math.cos(next), y1 = cy + radius * Math.sin(next);
+      const c1x = x0 - radius * k * Math.sin(angle), c1y = y0 + radius * k * Math.cos(angle);
+      const c2x = x1 + radius * k * Math.sin(next), c2y = y1 - radius * k * Math.cos(next);
+      stream.push(`${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(2)} ${x1.toFixed(2)} ${y1.toFixed(2)} c `);
+      angle = next;
     }
+    stream.push("h f\n");
+  }
+  function drawOverview(pageCount) {
+    const s = [];
+    drawHeader(s, "Financial Snapshot", 1, pageCount);
+
+    const summary = [
+      { label: "TOTAL ASSETS", value: totals.assets, fill: colors.pale },
+      { label: "TOTAL LIABILITIES", value: totals.liabilities, fill: "#FBF2F0" },
+      { label: "NET WORTH", value: totals.netWorth, fill: "#EDF5EF" }
+    ];
+    summary.forEach((item, index) => {
+      const x = 42 + index * 178;
+      rect(s, x, 570, 166, 56, item.fill, colors.line);
+      text(s, x + 12, 609, 8, item.label, colors.muted, true);
+      text(s, x + 12, 585, 15, reportMoney(item.value), index === 1 ? colors.red : colors.ink, true);
+    });
+
+    rect(s, 42, 350, 256, 202, colors.white, colors.line);
+    rect(s, 314, 350, 256, 202, colors.white, colors.line);
+    drawWatermark(s);
+    text(s, 58, 529, 10, "ASSET MIX", colors.ink, true);
+    text(s, 330, 529, 10, "SPENDING MIX", colors.ink, true);
+
+    const assetGroups = [
+      { label: "Bank accounts", value: entries.filter(item => item.type === "asset" && item.category === "Bank accounts").reduce((sum, item) => sum + Number(item.amount || 0), 0), color: colors.green },
+      { label: "Mobile money", value: entries.filter(item => item.type === "asset" && item.category === "Mobile money").reduce((sum, item) => sum + Number(item.amount || 0), 0), color: colors.gold },
+      { label: "Cash & savings", value: entries.filter(item => item.type === "asset" && item.category === "Cash & savings").reduce((sum, item) => sum + Number(item.amount || 0), 0), color: colors.blue },
+      { label: "Investments", value: entries.filter(item => item.type === "asset" && item.category === "Investments").reduce((sum, item) => sum + Number(item.amount || 0), 0), color: colors.purple },
+      { label: "Property & other", value: entries.filter(item => item.type === "asset" && ["Property & vehicles", "Other assets"].includes(item.category)).reduce((sum, item) => sum + Number(item.amount || 0), 0), color: colors.red }
+    ];
+    const assetTotal = assetGroups.reduce((sum, item) => sum + item.value, 0);
+    if (assetTotal > 0) {
+      let angle = Math.PI / 2;
+      assetGroups.filter(item => item.value > 0).forEach(item => {
+        const next = angle - (item.value / assetTotal) * Math.PI * 2;
+        pieSlice(s, 112, 435, 56, angle, next, item.color);
+        angle = next;
+      });
+    } else {
+      circlePath(s, 112, 435, 56);
+      s.push(`${toRgb(colors.light)} rg f\n`);
+    }
+    circlePath(s, 112, 435, 30);
+    s.push(`${toRgb(colors.white)} rg f\n`);
+    text(s, 91, 438, 8, "ASSETS", colors.muted, true);
+    text(s, 83, 422, 8, reportMoney(totals.assets), colors.ink, true);
+    assetGroups.forEach((item, index) => {
+      const y = 495 - index * 27;
+      rect(s, 184, y - 2, 7, 7, item.color);
+      text(s, 198, y, 7, short(item.label, 18), colors.ink);
+      text(s, 198, y - 10, 6.5, `${assetTotal ? Math.round(item.value / assetTotal * 100) : 0}%  ${reportMoney(item.value)}`, colors.muted);
+    });
+    if (assetTotal === 0) text(s, 58, 358, 7, "Add asset balances to build your asset mix.", colors.muted);
+
+    const expenseGroupsAll = budgetCategories.map((label, index) => ({
+      label,
+      value: reportSpending.filter(item => item.category === label).reduce((sum, item) => sum + Number(item.amount || 0), 0),
+      color: [colors.red, colors.gold, colors.blue, colors.purple, colors.green, "#829783", "#B77D57", "#6880A6"][index % 8]
+    })).filter(item => item.value > 0).sort((a, b) => b.value - a.value);
+    const spendGroups = expenseGroupsAll.length > 5
+      ? [...expenseGroupsAll.slice(0, 4), { label: "Other", value: expenseGroupsAll.slice(4).reduce((sum, item) => sum + item.value, 0), color: "#829783" }]
+      : expenseGroupsAll;
+    const spendTotal = spendGroups.reduce((sum, item) => sum + item.value, 0);
+    if (spendTotal > 0) {
+      let angle = Math.PI / 2;
+      spendGroups.forEach(item => {
+        const next = angle - (item.value / spendTotal) * Math.PI * 2;
+        pieSlice(s, 384, 435, 56, angle, next, item.color);
+        angle = next;
+      });
+    } else {
+      circlePath(s, 384, 435, 56);
+      s.push(`${toRgb(colors.light)} rg f\n`);
+    }
+    circlePath(s, 384, 435, 30);
+    s.push(`${toRgb(colors.white)} rg f\n`);
+    text(s, 364, 438, 7, "SPENT", colors.muted, true);
+    text(s, 351, 422, 7, reportMoney(plan.spending), colors.ink, true);
+    if (spendGroups.length) {
+      spendGroups.forEach((item, index) => {
+        const y = 495 - index * 27;
+        rect(s, 446, y - 2, 7, 7, item.color);
+        text(s, 460, y, 6.5, short(item.label, 15), colors.ink);
+        text(s, 460, y - 10, 6.5, `${Math.round(item.value / spendTotal * 100)}%  ${reportMoney(item.value)}`, colors.muted);
+      });
+    } else {
+      text(s, 446, 426, 7, "No spending recorded for this period.", colors.muted);
+    }
+
+    rect(s, 42, 158, 528, 174, colors.white, colors.line);
+    text(s, 58, 310, 10, "MONTHLY CASH FLOW", colors.ink, true);
+    const chartX = 75, chartBase = 207, chartWidth = 462;
+    [0, 1, 2, 3].forEach(index => {
+      const y = chartBase + index * 20;
+      line(s, chartX, y, chartX + chartWidth, y, "#E7EEE9", 0.6);
+    });
+    const flowBars = [
+      { label: "Income", value: plan.income, color: colors.green },
+      { label: "Budget", value: plan.budget, color: colors.blue },
+      { label: "Spent", value: plan.spending, color: colors.red },
+      { label: "Left", value: plan.budget - plan.spending, color: colors.gold }
+    ];
+    const maxFlow = Math.max(1, ...flowBars.map(item => Math.abs(item.value)));
+    const slot = chartWidth / flowBars.length;
+    flowBars.forEach((item, index) => {
+      const x = chartX + slot * index + 28;
+      const h = Math.max(1, Math.abs(item.value) / maxFlow * (item.value >= 0 ? 50 : 25));
+      const y = item.value >= 0 ? chartBase : chartBase - h;
+      rect(s, x, y, 48, h, item.color);
+      text(s, x - 8, Math.max(chartBase + 55, y + h + 6), 7, reportMoney(item.value), colors.ink, true);
+      text(s, x + 8, 177, 8, item.label, colors.muted);
+    });
+    text(s, 58, 165, 7, "Income, planned budget, spending and remaining budget. Values use your selected display currency.", colors.muted);
+
+    rect(s, 42, 70, 528, 72, colors.pale, colors.line);
+    text(s, 58, 123, 9, "PERIOD HIGHLIGHTS", colors.ink, true);
+    const highlights = [
+      { label: "MONTHLY INCOME", value: reportMoney(plan.income) },
+      { label: "SPENDING", value: reportMoney(plan.spending) },
+      { label: "BUDGET LEFT", value: reportMoney(plan.budget - plan.spending) },
+      { label: "SAVINGS RATE", value: `${savingsRate}%` }
+    ];
+    highlights.forEach((item, index) => {
+      const x = 58 + index * 128;
+      text(s, x, 104, 6.5, item.label, colors.muted, true);
+      text(s, x, 86, 9, item.value, colors.ink, true);
+    });
+    streams.push(s.join(""));
+  }
+  function drawDetailPage(pageNo, pageCount, detailRows) {
+    const s = [];
+    drawHeader(s, "Accounts & Plan Details", pageNo, pageCount);
+    drawWatermark(s);
+    text(s, 48, 620, 8, "SECTION", colors.muted, true);
+    text(s, 142, 620, 8, "ACCOUNT / ITEM", colors.muted, true);
+    text(s, 356, 620, 8, "DETAIL", colors.muted, true);
+    text(s, 510, 620, 8, "VALUE", colors.muted, true);
+    line(s, 42, 607, 570, 607, colors.line, 1);
+    detailRows.forEach((row, index) => {
+      const y = 585 - index * 19;
+      if (index % 2 === 0) rect(s, 42, y - 7, 528, 18, "#F7FAF8");
+      text(s, 48, y, 7, short(row.section, 13), colors.green, true);
+      text(s, 142, y, 8, short(row.name, 31), colors.ink, true);
+      text(s, 356, y, 7, short(row.detail, 25), colors.muted);
+      text(s, 510, y, 7.5, short(row.value, 17), colors.ink, true);
+    });
+    streams.push(s.join(""));
+  }
+
+  const details = [];
+  entries.forEach(entry => details.push({ section: entry.type === "asset" ? "ASSET" : "LIABILITY", name: entry.name, detail: `${entry.category}${entry.mobileType ? ` - ${entry.mobileType}` : ""}${entry.mobileReference ? ` - ${entry.mobileReference}` : ""}`, value: reportMoney(entry.amount) }));
+  power.incomes.forEach(item => details.push({ section: "INCOME", name: item.name, detail: "Monthly source", value: reportMoney(item.amount) }));
+  power.budgets.forEach(item => details.push({ section: "BUDGET", name: item.name, detail: `${item.category} - planned`, value: reportMoney(item.amount) }));
+  reportSpending.forEach(item => details.push({ section: "SPENDING", name: item.name, detail: `${item.category} - ${item.month || getReportMonth()}`, value: reportMoney(item.amount) }));
+  quests.forEach(item => details.push({ section: "QUEST", name: item.name, detail: `${questProgress(item)}% complete`, value: `${reportMoney(item.current)} / ${reportMoney(item.target)}` }));
+  if (!details.length) details.push({ section: "READY", name: "No financial entries yet", detail: "Add accounts or a monthly plan to populate this report.", value: "-" });
+
+  const detailChunks = [];
+  for (let index = 0; index < details.length; index += 27) detailChunks.push(details.slice(index, index + 27));
+  const pageCount = 1 + detailChunks.length;
+  drawOverview(pageCount);
+  const allStreams = [streams[0]];
+  detailChunks.forEach((chunk, index) => {
+    streams.push("");
+    drawDetailPage(index + 2, pageCount, chunk);
+    allStreams.push(streams[streams.length - 1]);
   });
+
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
-    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources 4 0 R /Contents 5 0 R >>",
-    "<< /Font << /F1 6 0 R >> >>",
-    `<< /Length ${stream.length} >>\nstream\n${stream}endstream`,
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+    `<< /Type /Pages /Kids [${allStreams.map((_, index) => `${6 + index * 2} 0 R`).join(" ")}] /Count ${allStreams.length} >>`,
+    "<< /Font << /F1 4 0 R /F2 5 0 R >> >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>"
   ];
+  allStreams.forEach((stream, index) => {
+    const pageObject = 6 + index * 2;
+    const contentObject = pageObject + 1;
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources 3 0 R /Contents ${contentObject} 0 R >>`);
+    objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}endstream`);
+  });
   let pdf = "%PDF-1.4\n";
   const offsets = [0];
   objects.forEach((object, index) => {
@@ -2088,12 +2868,10 @@ function downloadPDF() {
   });
   const xrefOffset = pdf.length;
   pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  offsets.slice(1).forEach(offset => {
-    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
-  });
+  offsets.slice(1).forEach(offset => { pdf += `${String(offset).padStart(10, "0")} 00000 n \n`; });
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-  saveFile("netraos-dashboard.pdf", pdf, "application/pdf");
-  showToast("Dashboard PDF downloaded.");
+  saveFile("netraos-financial-report.pdf", pdf, "application/pdf");
+  showToast("Professional financial report downloaded.");
 }
 
 // Menu actions
@@ -2116,16 +2894,33 @@ function handleMenuChoice(action) {
     const period = action.slice("period:".length);
     localStorage.setItem(reportPeriodStorageKey, period);
     const button = document.querySelector(".period-button");
-    if (button) button.innerHTML = `${period} <span>⌄</span>`;
+    if (button) button.innerHTML = `${period} <svg class="dropdown-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3" /></svg>`;
     refreshFinancialPage();
     showToast(`Showing ${period.toLowerCase()} spending.`);
     return;
   }
   if (action.startsWith("date:")) {
     const date = action.slice("date:".length);
-    const button = document.querySelector(".date-select");
-    if (button) button.innerHTML = `${date} · KSh <span>⌄</span>`;
+    const label = document.querySelector(".date-select-label");
+    if (label) label.textContent = date;
     showToast("Selected " + date + ".");
+    return;
+  }
+  if (action === "currency:rates") {
+    openCurrencyRatesDialog();
+    return;
+  }
+  if (action.startsWith("currency:")) {
+    const code = action.slice("currency:".length);
+    const state = getCurrencyState();
+    if (state.rates[code]) {
+      state.active = code;
+      saveCurrencyState(state);
+      updateCurrencySwitcher();
+      showPage(crumb.textContent);
+      return;
+    }
+    openCurrencyRatesDialog(code);
     return;
   }
   if (action === "download-csv") {
@@ -2248,6 +3043,7 @@ document.addEventListener("submit", async event => {
     const settings = {
       alwaysShowCents: formData.has("alwaysShowCents"),
       reduceMotion: formData.has("reduceMotion"),
+      darkMode: formData.has("darkMode"),
       goalNotifications: formData.has("goalNotifications"),
       monthlyReminders: formData.has("monthlyReminders")
     };
@@ -2263,6 +3059,32 @@ document.addEventListener("submit", async event => {
 
 document.addEventListener("click", event => {
   const target = event.target;
+  const themeToggle = target.closest("[data-theme-toggle]");
+  if (themeToggle) {
+    const settings = getStoredSettings();
+    settings.darkMode = !settings.darkMode;
+    appShell.classList.toggle("theme-dark", settings.darkMode);
+    try {
+      localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
+      applyStoredSettings();
+      showToast(settings.darkMode ? "Dark mode enabled." : "Light mode enabled.");
+    } catch {
+      applyStoredSettings();
+      showToast("Theme changed for this session; browser storage is unavailable.");
+    }
+    return;
+  }
+  const onboardingAction = target.closest("[data-onboarding-action]");
+  if (onboardingAction) {
+    const action = onboardingAction.dataset.onboardingAction;
+    if (action === "account") openInventoryDialog("add-asset");
+    else if (action === "goal") {
+      const placeholder = getQuests().find(quest => !(Number(quest.target) > 0));
+      openQuestDialog(placeholder?.id || "");
+    } else if (action === "income") openPowerUpDialog("income");
+    else if (action === "budget") openPowerUpDialog("budget");
+    return;
+  }
   const exploreLink = target.closest(".landing-text-link[href='#features']");
   if (exploreLink) {
     const features = document.querySelector("#features");
@@ -2286,6 +3108,12 @@ document.addEventListener("click", event => {
   }
   const activeMenu = document.querySelector(".action-popover");
   if (activeMenu && !activeMenu.contains(target)) closePopover();
+  const pageLink = target.closest("[data-jump]");
+  if (pageLink) {
+    event.preventDefault();
+    showPage(pageLink.dataset.jump);
+    return;
+  }
   const button = target.closest("button");
   if (!button) return;
   if (button.matches("[data-remove-profile-image]")) {
@@ -2319,17 +3147,22 @@ document.addEventListener("click", event => {
     return;
   }
   if (button.matches(".date-select")) {
-    openMenu(button, [
-      { label: "October 2026", action: "date:October 2026" },
-      { label: "September 2026", action: "date:September 2026" },
-      { label: "August 2026", action: "date:August 2026" }
-    ]);
+    openMenu(button, getRecentNavigationMonths());
+    return;
+  }
+  if (button.matches(".currency-select")) {
+    const current = getCurrencyState();
+    const choices = Object.entries(displayCurrencies).map(([code, currency]) => ({
+      label: `${code === current.active ? "✓ " : ""}${currency.symbol} · ${currency.name}${current.rates[code] ? "" : " · Set rate"}`,
+      action: `currency:${code}`
+    }));
+    choices.push({ label: "Manage exchange rates…", action: "currency:rates" });
+    openMenu(button, choices);
     return;
   }
   if (button.matches(".more-button")) {
     openMenu(button, [
       { label: "View details", action: "details" },
-      { label: "Download PDF", action: "download-pdf" },
       { label: "Download Excel workbook (.xls)", action: "download-excel" },
       { label: "Download CSV", action: "download-csv" }
     ]);
@@ -2404,8 +3237,6 @@ document.addEventListener("click", event => {
     showToast("This section is ready for your financial data.");
     return;
   }
-  const jump = button.closest("[data-jump]");
-  if (jump) showPage(jump.dataset.jump);
 });
 
 document.addEventListener("change", event => {
@@ -2430,12 +3261,15 @@ document.addEventListener("keydown", event => {
   if (event.key === "Escape") closePopover();
 });
 
+updateDateSwitcher();
+initializePrivacyMode();
 const initialPage = decodeURIComponent(window.location.hash.slice(1));
 updateDashboardInventorySummary();
 updateDashboardPowerUpSummary();
 updateDashboardQuests();
-updateDashboardTaxCard();
+updateCurrencySwitcher();
 applyStoredSettings();
+updateSavingsProjection();
 let hasLocalSession = false;
 try {
   hasLocalSession = localStorage.getItem(sessionStorageKey) === "active" && Boolean(getStoredProfile());

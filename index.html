@@ -7,7 +7,7 @@
     <title>
       NetraOS — Your Financial Operating System
     </title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20500%20500%22%3E%3Crect%20width=%22500%22%20height=%22500%22%20rx=%2240%22%20fill=%22%230A0A0A%22/%3E%3Cpath%20d=%22M100%20250h300M250%20100v300%22%20stroke=%22%231F2937%22%20stroke-width=%222%22%20stroke-dasharray=%224%204%22/%3E%3Ccircle%20cx=%22250%22%20cy=%22250%22%20r=%22140%22%20stroke=%22%231F2937%22%20stroke-width=%221.5%22%20fill=%22none%22%20stroke-dasharray=%226%206%22/%3E%3Cpath%20d=%22M110%20250Q250%20120%20390%20250%20250%20380%20110%20250Z%22%20fill=%22none%22%20stroke=%22%23F2F1E1%22%20stroke-width=%2212%22%20stroke-linejoin=%22round%22/%3E%3Ccircle%20cx=%22250%22%20cy=%22250%22%20r=%2265%22%20fill=%22none%22%20stroke=%22%23E3B74B%22%20stroke-width=%2210%22/%3E%3Cpath%20d=%22m220%20270%2030-40%2030%2040%22%20stroke=%22%23E3B74B%22%20stroke-width=%228%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%20fill=%22none%22/%3E%3Ccircle%20cx=%22250%22%20cy=%22250%22%20r=%2216%22%20fill=%22%23F2F1E1%22/%3E%3Ccircle%20cx=%22110%22%20cy=%22250%22%20r=%226%22%20fill=%22%23E3B74B%22/%3E%3Ccircle%20cx=%22390%22%20cy=%22250%22%20r=%226%22%20fill=%22%23E3B74B%22/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/svg+xml" sizes="any" href="netraos-logo.svg?v=20261010-2" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -20,17 +20,7 @@
         <header class="topbar">
           <a class="top-brand" href="#dashboard" aria-label="NetraOS dashboard">
             <span class="brand-mark">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" aria-hidden="true">
-                <rect width="500" height="500" rx="40" fill="#0A0A0A" />
-                <path d="M100 250h300M250 100v300" stroke="#1F2937" stroke-width="2" stroke-dasharray="4 4" />
-                <circle cx="250" cy="250" r="140" stroke="#1F2937" stroke-width="1.5" fill="none" stroke-dasharray="6 6" />
-                <path d="M110 250Q250 120 390 250 250 380 110 250Z" fill="none" stroke="#F2F1E1" stroke-width="12" stroke-linejoin="round" />
-                <circle cx="250" cy="250" r="65" fill="none" stroke="#E3B74B" stroke-width="10" />
-                <path d="m220 270 30-40 30 40" stroke="#E3B74B" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                <circle cx="250" cy="250" r="16" fill="#F2F1E1" />
-                <circle cx="110" cy="250" r="6" fill="#E3B74B" />
-                <circle cx="390" cy="250" r="6" fill="#E3B74B" />
-              </svg>
+              <img src="netraos-logo.svg" alt="" />
             </span>
             <span class="brand-copy"><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL<br />OPERATING SYSTEM</small></span>
           </a>
@@ -59,15 +49,30 @@
           </nav>
           <span class="breadcrumb" aria-hidden="true"><strong id="crumb-page">Dashboard</strong></span>
           <div class="topbar-actions">
-            <span class="sync-status"><i></i>All systems synced</span>
             <button class="icon-button" aria-label="Notifications" title="Notifications">
               ♧
               <b></b>
             </button>
             <span class="top-divider"></span>
             <button class="date-select" aria-haspopup="menu" aria-expanded="false">
-              October 2026 · KSh
-              <span>⌄</span>
+              <span class="date-select-label">Oct 2026</span>
+              <svg class="dropdown-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3" /></svg>
+            </button>
+            <button class="currency-select" aria-haspopup="menu" aria-expanded="false" aria-label="Display currency: Kenyan shilling">
+              <span class="currency-select-label">KSh</span><svg class="dropdown-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3" /></svg>
+            </button>
+            <button class="icon-button privacy-toggle" type="button" data-privacy-toggle aria-pressed="false" aria-label="Hide currency amounts" title="Hide currency amounts">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path class="privacy-eye" d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" />
+                <circle class="privacy-eye" cx="12" cy="12" r="2.5" />
+                <path class="privacy-eye-slash" d="m4 4 16 16" />
+              </svg>
+            </button>
+            <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Enable dark mode" title="Enable dark mode">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <g class="theme-moon"><path d="M20.4 15.2A8.5 8.5 0 0 1 8.8 3.6a8.6 8.6 0 1 0 11.6 11.6Z" /></g>
+                <g class="theme-sun"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></g>
+              </svg>
             </button>
             <button class="profile-button" aria-label="Profile" title="Profile">
               <span class="avatar" aria-hidden="true">
@@ -84,11 +89,11 @@
             <div>
               <div class="eyebrow">
                 <span class="eyebrow-line"></span>
-                THURSDAY, OCTOBER 8, 2026
+                <span id="dashboard-date">SATURDAY, OCTOBER 10, 2026</span>
                 <span class="eyebrow-dot">✳</span>
               </div>
               <h1>
-                Welcome back,
+                <span id="welcome-greeting">Good morning,</span>
                 <br />
                 <em id="welcome-name">Jordan.</em>
               </h1>
@@ -96,11 +101,29 @@
                 Your financial overview is ready when you are.
               </p>
             </div>
-            <button class="period-button" aria-haspopup="menu" aria-expanded="false">
-              This month
-              <span>⌄</span>
-            </button>
+            <div class="welcome-actions">
+              <button class="pdf-download-button" type="button" data-menu-choice="download-pdf" aria-label="Download dashboard report as PDF">
+                <span class="pdf-download-icon" aria-hidden="true">↓</span>
+                <span>Download PDF</span>
+              </button>
+              <button class="period-button" aria-haspopup="menu" aria-expanded="false">
+                This month
+                <svg class="dropdown-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3" /></svg>
+              </button>
+            </div>
           </section>
+          <aside class="onboarding-card" data-onboarding hidden aria-labelledby="onboarding-title">
+            <div class="onboarding-heading">
+              <div><span class="section-kicker">A GOOD PLACE TO START</span><h2 id="onboarding-title">Build your financial picture</h2><p>Complete a few quick steps to make your dashboard useful.</p></div>
+              <span class="onboarding-count" data-onboarding-count>0 of 3</span>
+            </div>
+            <div class="onboarding-progress" role="progressbar" aria-label="Getting started" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0"><span data-onboarding-progress></span></div>
+            <div class="onboarding-steps">
+              <div class="onboarding-step" data-onboarding-step="account"><span class="onboarding-step-mark">1</span><div><strong>Add a primary account</strong><small>Enter a bank, mobile money, or cash balance.</small></div><button type="button" data-onboarding-action="account">Add account <span aria-hidden="true">↗</span></button></div>
+              <div class="onboarding-step" data-onboarding-step="goal"><span class="onboarding-step-mark">2</span><div><strong>Set an emergency goal</strong><small>Choose a target and track your progress.</small></div><button type="button" data-onboarding-action="goal">Set a goal <span aria-hidden="true">↗</span></button></div>
+              <div class="onboarding-step" data-onboarding-step="plan"><span class="onboarding-step-mark">3</span><div><strong>Start a monthly plan</strong><small>Add income and a budget line in Power-Up.</small></div><div class="onboarding-step-actions"><button type="button" data-onboarding-action="income">Add income</button><button type="button" data-onboarding-action="budget">Add budget</button></div></div>
+            </div>
+          </aside>
           <section class="metrics-grid" aria-label="Financial overview">
             <article class="metric-card networth-card">
               <div class="metric-heading">
@@ -332,6 +355,92 @@
               </div>
             </article>
           </section>
+          <section class="panel projection-panel" aria-labelledby="projection-title">
+            <div class="projection-heading">
+              <div>
+                <div class="section-kicker">A LOOK AHEAD</div>
+                <h2 id="projection-title">What if you saved more?</h2>
+                <p>See how extra savings on top of your monthly plan could grow over time.</p>
+              </div>
+              <div class="projection-heading-actions">
+                <span class="projection-tag">MINI SIMULATOR</span>
+                <button class="projection-collapse-button" type="button" data-projection-toggle aria-expanded="true" aria-controls="projection-body" aria-label="Minimize projections">
+                  <span data-projection-toggle-label>Minimize</span><span class="projection-collapse-icon" aria-hidden="true">−</span>
+                </button>
+              </div>
+            </div>
+            <div class="projection-body" id="projection-body" data-projection-body>
+              <div class="projection-layout">
+              <div class="projection-controls">
+                <label class="projection-control" for="projection-contribution">
+                  <span>Extra monthly savings</span>
+                  <output id="projection-contribution-value" for="projection-contribution">KSh 5,000</output>
+                </label>
+                <input class="projection-range" id="projection-contribution" data-projection-input="contribution" type="range" min="0" max="50000" step="5000" value="5000" aria-label="Extra monthly savings amount" />
+                <div class="projection-range-ends"><span data-projection-min>KSh 0</span><span data-projection-max>KSh 50,000</span></div>
+                <div class="projection-savings-baseline"><span>Planned savings <strong id="projection-planned-savings-value">KSh 0</strong></span><span>Total per month <strong id="projection-monthly-total-value">KSh 5,000</strong></span></div>
+
+                <label class="projection-control projection-return-control" for="projection-return">
+                  <span>Assumed annual return</span>
+                  <output id="projection-return-value" for="projection-return">5%</output>
+                </label>
+                <input class="projection-range projection-return-range" id="projection-return" data-projection-input="returnRate" type="range" min="0" max="12" step="1" value="5" aria-label="Assumed annual return percentage" />
+                <div class="projection-range-ends"><span>0%</span><span>12%</span></div>
+
+                <div class="projection-inflation-row">
+                  <span>Adjust for inflation</span>
+                  <button class="projection-switch" type="button" role="switch" data-projection-inflation-toggle aria-checked="false" aria-label="Adjust projection for inflation">
+                    <span aria-hidden="true"></span>
+                  </button>
+                </div>
+                <div class="projection-inflation-control" data-projection-inflation-control hidden>
+                  <label class="projection-control" for="projection-inflation">
+                    <span>Assumed annual inflation</span>
+                    <output id="projection-inflation-value" for="projection-inflation">5%</output>
+                  </label>
+                  <input class="projection-range projection-inflation-range" id="projection-inflation" data-projection-input="inflationRate" type="range" min="0" max="15" step="0.5" value="5" aria-label="Assumed annual inflation percentage" />
+                  <div class="projection-range-ends"><span>0%</span><span>15%</span></div>
+                </div>
+
+                <div class="projection-control projection-horizon-label"><span>Project for</span></div>
+                <div class="projection-horizons" role="group" aria-label="Projection time period">
+                  <button type="button" data-projection-years="1" aria-pressed="false">1 year</button>
+                  <button type="button" data-projection-years="3" aria-pressed="true">3 years</button>
+                  <button type="button" data-projection-years="5" aria-pressed="false">5 years</button>
+                </div>
+                <div class="projection-start">Starting balance from active quests <strong id="projection-start-value">KSh 0</strong></div>
+              </div>
+              <div class="projection-chart-column">
+                <div class="projection-results">
+                  <div><span id="projection-balance-label">PROJECTED BALANCE</span><strong id="projection-balance" aria-live="polite">KSh 0</strong></div>
+                  <div><span>GROWTH FROM RETURNS</span><strong id="projection-growth">KSh 0</strong></div>
+                </div>
+                <svg class="projection-chart" viewBox="0 0 640 220" role="group" aria-label="Interactive savings projection chart">
+                  <defs>
+                    <linearGradient id="projection-fill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#13875f" stop-opacity=".22"/>
+                      <stop offset="1" stop-color="#13875f" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path class="projection-gridline" d="M38 28H620 M38 80H620 M38 132H620 M38 184H620"/>
+                  <path id="projection-area" class="projection-area" d=""/>
+                  <path id="projection-line" class="projection-line" d=""/>
+                  <line id="projection-cursor-line" class="projection-cursor-line" x1="620" y1="28" x2="620" y2="184"/>
+                  <circle id="projection-cursor-point" class="projection-cursor-point" cx="620" cy="184" r="6"/>
+                  <circle id="projection-point" class="projection-point" cx="38" cy="184" r="5"/>
+                  <rect class="projection-hit-area" x="38" y="20" width="582" height="172" tabindex="0" role="slider" aria-label="Explore projection timeline" aria-valuemin="0" aria-valuemax="36" aria-valuenow="36" aria-valuetext="Year 3"/>
+                </svg>
+                <div class="projection-insight" data-projection-insight aria-live="polite">
+                  <span data-projection-insight-period>Year 3</span>
+                  <span>Balance <strong data-projection-insight-balance>KSh 0</strong></span>
+                  <span>Principal <strong data-projection-insight-contributions>KSh 0</strong></span>
+                  <span>Growth <strong data-projection-insight-growth>KSh 0</strong></span>
+                </div>
+                <div class="projection-axis-labels"><span>Now</span><span id="projection-granularity">Yearly points</span><span id="projection-end-label">3 years</span></div>
+              </div>
+              <p class="projection-note">Illustration only. Assumes steady annual return and inflation rates compounded monthly; actual results vary.</p>
+            </div>
+          </section>
           <section class="bottom-grid">
             <article class="panel quests-panel">
               <div class="panel-heading">
@@ -421,7 +530,9 @@
               </button>
             </article>
           </section>
-          <section id="dashboard-tax-slot" class="dashboard-tax-slot" aria-label="Take-home calculator"></section>
+          <section class="dashboard-tax-slot" aria-label="Take-home calculator">
+            <a class="dashboard-tax-link" href="#power-up" data-jump="Power-Up"><span class="dashboard-tax-icon" aria-hidden="true">％</span><span><strong>Kenya take-home calculator</strong><small>Estimate your net pay with PAYE, NSSF, SHIF and Housing Levy</small></span><span class="dashboard-tax-arrow" aria-hidden="true">↗</span></a>
+          </section>
           <footer class="page-footer">
             <span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span>
             <span>Private by design<i>✳</i></span>
