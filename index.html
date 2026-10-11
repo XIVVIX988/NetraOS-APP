@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Document metadata, browser theme color, title, brand icon, fonts, and app styles. -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#13875f" />
@@ -14,16 +15,21 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body data-user-name="Jordan Davis">
+    <!-- Public pages are rendered into this mount point by scrip.js when needed. -->
     <div id="public-shell" hidden></div>
+    <!-- Main signed-in workspace; scrip.js fills its page-content area with app views. -->
     <div class="app-shell">
       <main class="main-panel">
+        <!-- Global header: brand, section navigation, date/currency menus, and quick actions. -->
         <header class="topbar">
+          <!-- Brand link returns to the dashboard. -->
           <a class="top-brand" href="#dashboard" aria-label="NetraOS dashboard">
             <span class="brand-mark">
               <img src="netraos-logo.svg" alt="" />
             </span>
             <span class="brand-copy"><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL<br />OPERATING SYSTEM</small></span>
           </a>
+          <!-- Primary in-app page navigation; data-page values are handled by scrip.js. -->
           <nav class="top-nav" aria-label="Primary sections">
             <button class="top-nav-item active" data-page="Dashboard">
               Dashboard
@@ -47,7 +53,9 @@
               Contact
             </button>
           </nav>
+          <!-- Current-section label for compact or assistive navigation contexts. -->
           <span class="breadcrumb" aria-hidden="true"><strong id="crumb-page">Dashboard</strong></span>
+          <!-- Header actions: notifications, date range, display currency, privacy, theme, and profile. -->
           <div class="topbar-actions">
             <button class="icon-button notification-toggle" aria-label="Notifications" title="Notifications">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -87,7 +95,9 @@
             </button>
           </div>
         </header>
+        <!-- Dynamic dashboard and other app page content. -->
         <div class="content" id="page-content">
+          <!-- Dashboard greeting, current date, report download, and date-range selector. -->
           <section class="welcome-row">
             <div>
               <div class="eyebrow">
@@ -115,6 +125,7 @@
               </button>
             </div>
           </section>
+          <!-- First-use checklist; JavaScript reveals it and updates each step's progress. -->
           <aside class="onboarding-card" data-onboarding hidden aria-labelledby="onboarding-title">
             <div class="onboarding-heading">
               <div><span class="section-kicker">A GOOD PLACE TO START</span><h2 id="onboarding-title">Build your financial picture</h2><p>Complete a few quick steps to make your dashboard useful.</p></div>
@@ -127,7 +138,9 @@
               <div class="onboarding-step" data-onboarding-step="plan"><span class="onboarding-step-mark">3</span><div><strong>Start a monthly plan</strong><small>Add income and a budget line in Power-Up.</small></div><div class="onboarding-step-actions"><button type="button" data-onboarding-action="income">Add income</button><button type="button" data-onboarding-action="budget">Add budget</button></div></div>
             </div>
           </aside>
+          <!-- At-a-glance financial metrics populated from the user's saved records. -->
           <section class="metrics-grid" aria-label="Financial overview">
+            <!-- Net worth, monthly income, savings rate, and monthly spending cards. -->
             <article class="metric-card networth-card">
               <div class="metric-heading">
                 <span>NET WORTH</span>
@@ -223,6 +236,7 @@
               </button>
             </article>
           </section>
+          <!-- Dashboard charts: cash flow by month and the current asset allocation. -->
           <section class="dashboard-grid">
             <article class="panel cashflow-panel">
               <div class="panel-heading">
@@ -358,6 +372,7 @@
               </div>
             </article>
           </section>
+          <!-- Interactive what-if savings simulator with contribution, return, inflation, and duration controls. -->
           <section class="panel projection-panel" aria-labelledby="projection-title">
             <div class="projection-heading">
               <div>
@@ -444,6 +459,7 @@
               <p class="projection-note">Illustration only. Assumes steady annual return and inflation rates compounded monthly; actual results vary.</p>
             </div>
           </section>
+          <!-- Current quest progress and recent financial activity. -->
           <section class="bottom-grid">
             <article class="panel quests-panel">
               <div class="panel-heading">
@@ -533,9 +549,11 @@
               </button>
             </article>
           </section>
+          <!-- Mount point for the collapsible take-home tax calculator widget. -->
           <section class="dashboard-tax-slot" aria-label="Take-home calculator">
             <a class="dashboard-tax-link" href="#power-up" data-jump="Power-Up"><span class="dashboard-tax-icon" aria-hidden="true">％</span><span><strong>Kenya take-home calculator</strong><small>Estimate your net pay with PAYE, NSSF, SHIF and Housing Levy</small></span><span class="dashboard-tax-arrow" aria-hidden="true">↗</span></a>
           </section>
+          <!-- App identity and privacy statement shown below dashboard content. -->
           <footer class="page-footer">
             <span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span>
             <span>Private by design<i>✳</i></span>
@@ -543,6 +561,7 @@
         </div>
       </main>
     </div>
+    <!-- Main application logic: navigation, saved data, interactions, and report downloads. -->
     <script src="scrip.js">
     </script>
   </body>

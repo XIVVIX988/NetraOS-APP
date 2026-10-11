@@ -37,6 +37,7 @@ const pageDescriptions = {
   }
 };
 
+// Cache shared DOM roots and local storage keys used by the app's page modules.
 const navItems = [...document.querySelectorAll("[data-page]")];
 const content = document.querySelector("#page-content");
 const crumb = document.querySelector("#crumb-page");
@@ -50,6 +51,7 @@ let profilePreviewUrl = "";
 let landingScrollEffectsBound = false;
 let landingRevealObserver = null;
 
+// Add scroll reveals and show the landing page's back-to-top control when needed.
 function setupLandingScrollEffects() {
   const revealItems = document.querySelectorAll(
     ".landing-hero-v2 .landing-copy-v2, .landing-hero-v2 .landing-visual, .landing-feature-strip, .landing-deep-copy, .insight-collage, .landing-faq, .landing-contact, .landing-bottom-cta"
@@ -84,6 +86,7 @@ const initialProfile = getStoredProfile();
 if (initialProfile?.name) document.body.dataset.userName = initialProfile.name;
 let dashboardMarkup = content.innerHTML;
 
+// Keep the dashboard greeting and date current, including when the user's name changes.
 function updateDashboardWelcome(date = new Date()) {
   const profile = getStoredProfile();
   const fullName = (document.body.dataset.userName || profile?.name || "Jordan Davis").trim();
@@ -147,6 +150,7 @@ const currencyStorageKey = "netraos-currency-v1";
 const savingsProjectionStorageKey = "netraos-savings-projection-v1";
 const privacyModeStorageKey = "netraos-privacy-mode-v1";
 const currencyAmountPattern = /(?:KSh|USh|TSh|KES|USD|EUR|GBP|UGX|TZS|[$€£])\s*[+-]?\s*\d[\d,]*(?:\.\d+)?/i;
+// Supported display currencies and the locale used to format each currency.
 const displayCurrencies = {
   KES: { symbol: "KSh", locale: "en-KE", name: "Kenyan shilling" },
   USD: { symbol: "$", locale: "en-US", name: "US dollar" },
@@ -156,6 +160,7 @@ const displayCurrencies = {
   TZS: { symbol: "TSh", locale: "en-TZ", name: "Tanzanian shilling" }
 };
 
+// Resolve the selected report window and summarize income, budgets, and spending.
 function getReportPeriod() {
   const saved = localStorage.getItem(reportPeriodStorageKey);
   return ["This month", "Last month", "Year to date"].includes(saved) ? saved : "This month";
@@ -190,6 +195,7 @@ function getPowerUpReportTotals() {
   return { income, budget, spending, surplus: income - budget };
 }
 
+// Read and save the browser-local profile and preference settings.
 function getStoredProfile() {
   try {
     return JSON.parse(localStorage.getItem(profileStorageKey) || "null");
@@ -221,17 +227,19 @@ function getStoredSettings() {
 function applyStoredSettings() {
   const settings = getStoredSettings();
   document.body.classList.toggle("reduce-motion", settings.reduceMotion);
+  document.body.classList.toggle("theme-dark", settings.darkMode);
   appShell.classList.toggle("theme-dark", settings.darkMode);
-  const themeToggle = document.querySelector("[data-theme-toggle]");
-  if (themeToggle) {
+  publicShell.classList.toggle("theme-dark", settings.darkMode);
+  document.querySelectorAll("[data-theme-toggle]").forEach(themeToggle => {
     themeToggle.setAttribute("aria-pressed", String(settings.darkMode));
     themeToggle.setAttribute("aria-label", settings.darkMode ? "Enable light mode" : "Enable dark mode");
     themeToggle.title = settings.darkMode ? "Enable light mode" : "Enable dark mode";
-  }
+  });
   const darkModeInput = document.querySelector('input[name="darkMode"]');
   if (darkModeInput) darkModeInput.checked = settings.darkMode;
 }
 
+// Update the signed-in user's displayed name and refresh the greeting.
 function setProfileName(name) {
   const cleanName = String(name || "").trim() || "Jordan Davis";
   document.body.dataset.userName = cleanName;
@@ -290,6 +298,7 @@ function renderBrandMark() {
   return `<span class="public-brand-mark" aria-hidden="true"><img src="netraos-logo.svg" alt="" /></span>`;
 }
 
+// Render public landing/auth pages and their responsive feature content.
 function showPublicPage(page = "landing") {
   if (!publicShell || !appShell) return;
   appShell.hidden = true;
@@ -302,7 +311,7 @@ function showPublicPage(page = "landing") {
       <div class="public-page">
         <header class="public-header landing-header">
           <a class="public-brand" href="#home" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a>
-          <nav class="public-nav" aria-label="Public navigation"><div class="landing-nav-links"><a class="landing-nav-current" href="#home">Home</a><a href="#features">Features</a><a href="#about">About</a><a href="#faq">FAQ</a><a href="#contact">Contact</a></div><button type="button" data-public-action="login">Log in</button><button class="public-nav-cta" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></nav>
+          <nav class="public-nav" aria-label="Public navigation"><div class="landing-nav-links"><a class="landing-nav-current" href="#home">Home</a><a href="#features">Features</a><a href="#about">About</a><a href="#faq">FAQ</a><a href="#contact">Contact</a></div><button class="icon-button theme-toggle public-theme-toggle landing-theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Enable dark mode" title="Enable dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g class="theme-moon"><path d="M20.4 15.2A8.5 8.5 0 0 1 8.8 3.6a8.6 8.6 0 1 0 11.6 11.6Z" /></g><g class="theme-sun"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></g></svg></button><button type="button" data-public-action="login">Log in</button><button class="public-nav-cta" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></nav>
         </header>
         <main>
           <section class="landing-hero landing-hero-v2">
@@ -370,8 +379,10 @@ function showPublicPage(page = "landing") {
         </section>
       </div>`;
   }
+  applyStoredSettings();
 }
 
+// Build profile and settings screens from the current browser-local preferences.
 function renderProfilePage() {
   const profile = getStoredProfile() || { name: document.body.dataset.userName || "Jordan Davis", email: "" };
   const initials = profile.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
@@ -420,6 +431,7 @@ function renderSettingsPage() {
     <footer class="page-footer"><span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span><span>Private by design <i>✳</i></span></footer>`;
 }
 
+// Start the local session, apply the profile and preferences, and open the dashboard.
 function enterApp(profile) {
   try {
     localStorage.setItem(sessionStorageKey, "active");
@@ -435,6 +447,7 @@ function enterApp(profile) {
   showPage("Dashboard");
 }
 
+// Local data accessors keep each financial module's stored data in a consistent shape.
 function getInventoryEntries() {
   try {
     const entries = JSON.parse(localStorage.getItem(inventoryStorageKey) || "[]");
@@ -474,6 +487,7 @@ function getPowerUpTotals() {
   return { income, budget, spending, surplus: income - budget };
 }
 
+// Quest helpers load goals, calculate completion, and keep dashboard progress current.
 function getQuests() {
   try {
     const saved = localStorage.getItem(questStorageKey);
@@ -580,6 +594,7 @@ function updateDashboardOnboarding() {
   });
 }
 
+// Currency helpers manage manual exchange rates, switcher labels, and formatted amounts.
 function getCurrencyState() {
   try {
     const saved = JSON.parse(localStorage.getItem(currencyStorageKey) || "{}");
@@ -638,6 +653,7 @@ function formatKsh(amount) {
   });
 }
 
+// Find currency amounts in rendered text so the privacy toggle can mask them.
 function markPrivacySensitiveText(node) {
   if (!node || node.nodeType !== Node.TEXT_NODE || !currencyAmountPattern.test(node.nodeValue || "")) return;
   const element = node.parentElement;
@@ -693,6 +709,7 @@ function initializePrivacyMode() {
   });
 }
 
+// Projection helpers model monthly contributions, compound returns, and inflation.
 function getSavingsProjectionState() {
   try {
     const saved = JSON.parse(localStorage.getItem(savingsProjectionStorageKey) || "{}");
@@ -894,6 +911,7 @@ function updateSavingsProjection(changedInput = null, selectedYears = null, chan
   if (chart) chart.setAttribute("aria-label", `Projected savings grow from ${formatKsh(startingBalance)} to ${formatKsh(balance)} over ${state.years} ${state.years === 1 ? "year" : "years"}, with an assumed ${state.annualReturn}% annual return${state.inflationAdjusted ? ` and ${state.inflationRate}% inflation, shown in today’s money` : ""}.`);
 }
 
+// Format base KSh values without converting them to the selected display currency.
 function formatBaseKsh(amount) {
   const alwaysShowCents = getStoredSettings().alwaysShowCents;
   return "KSh " + Number(amount || 0).toLocaleString("en-KE", {
@@ -902,6 +920,7 @@ function formatBaseKsh(amount) {
   });
 }
 
+// Show and persist the user's manual exchange-rate table in a native dialog.
 function openCurrencyRatesDialog(requestedCurrency = "") {
   const state = getCurrencyState();
   const dialog = document.createElement("dialog");
@@ -953,6 +972,7 @@ function openCurrencyRatesDialog(requestedCurrency = "") {
   dialog.showModal();
 }
 
+// Escape user-provided text before inserting it into generated HTML templates.
 function escapeHTML(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -962,6 +982,7 @@ function escapeHTML(value) {
     .replace(/'/g, "&#39;");
 }
 
+// Inventory and Power-Up renderers summarize saved assets and monthly cash flow.
 function getInventoryTotals() {
   const entries = getInventoryEntries();
   const assets = entries
@@ -1228,6 +1249,7 @@ function updateDashboardCashflowChart(totals = getPowerUpTotals()) {
   }
 }
 
+// Refresh the visible financial page after one of its saved records changes.
 function reportMonthLabel() {
   if (getReportPeriod() === "Year to date") return "YTD";
   return new Date(`${getReportMonth()}-01T12:00:00`).toLocaleDateString(undefined, { month: "short" });
@@ -1248,6 +1270,7 @@ function refreshFinancialPage() {
   }
 }
 
+// Dialog builders collect or edit financial records without leaving the current page.
 function openInventoryDialog(action) {
   const fixedType = action === "add-asset"
     ? "asset"
@@ -1455,6 +1478,7 @@ function openPowerUpDialog(kind) {
   dialog.querySelector('input[name="name"]').focus();
 }
 
+// Quest and achievement pages show goals, completion celebrations, and earned badges.
 function renderQuestsPage() {
   const quests = getQuests();
   const canAddQuest = quests.length < 4;
@@ -1729,7 +1753,7 @@ function renderAchievementsPage() {
     <footer class="page-footer"><span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span><span>Private by design <i>✳</i></span></footer>`;
 }
 
-// Navigation
+// Select a page, refresh its data, and update the active tab and URL.
 function showPage(page) {
   navItems.forEach(item => {
     const selected = item.dataset.page === page;
@@ -1923,7 +1947,7 @@ function renderPowerUpPage() {
     </footer>`;
 }
 
-// Kenya gross-to-net calculator (monthly): PAYE, NSSF, SHIF and Affordable Housing Levy
+// Tax brackets, contribution rates, and chart colors used by the payroll calculator.
 const taxStorageKey = "netraos-tax-v1";
 const KE_TAX = {
   nssfRate: 0.06,
@@ -1944,6 +1968,7 @@ const KE_TAX = {
 };
 const taxColors = { net: "#13875f", paye: "#d8b451", nssf: "#2f6f8f", shif: "#c0584a", ahl: "#7a6bb0" };
 
+// Calculate monthly take-home pay after statutory deductions and progressive PAYE.
 function computeKenyaPayroll(grossInput) {
   const gross = Math.max(0, Math.round(Number(grossInput) || 0));
   const nssf = Math.round(Math.min(gross, KE_TAX.nssfUpperLimit) * KE_TAX.nssfRate);
@@ -2141,11 +2166,13 @@ function syncTaxPanel(panel, state, source) {
   panel.querySelector(".tax-results").innerHTML = panel.classList.contains("tax-compact") ? renderTaxCompactResults(p) : renderTaxResults(p);
 }
 
+// Recalculate projection values as users adjust savings, returns, or inflation.
 document.addEventListener("input", event => {
   const projectionInput = event.target.closest?.("[data-projection-input]");
   if (projectionInput) updateSavingsProjection(projectionInput);
 });
 
+// Handle projection minimize, inflation adjustment, and time-horizon controls.
 document.addEventListener("click", event => {
   const projectionToggle = event.target.closest?.("[data-projection-toggle]");
   if (projectionToggle) {
@@ -2170,6 +2197,7 @@ document.addEventListener("click", event => {
   updateSavingsProjection(null, Number(horizonButton.dataset.projectionYears));
 });
 
+// Keep the expanded and compact tax widgets synced while a user edits an input.
 document.addEventListener("input", event => {
   const el = event.target;
   if (!(el instanceof HTMLInputElement) || !el.matches(".tax-input, .tax-slider")) return;
@@ -2181,6 +2209,7 @@ document.addEventListener("input", event => {
   syncTaxPanel(panel, state, el);
 });
 
+// Handle tax-widget collapse, gross/net mode changes, and income shortcuts.
 document.addEventListener("click", event => {
   const taxToggle = event.target.closest("[data-tax-toggle]");
   const modeButton = event.target.closest("[data-tax-mode-btn]");
@@ -2252,7 +2281,7 @@ function renderTaxCompactResults(p) {
     </div>`;
 }
 
-// Contact page
+// Contact status helpers show local time and the availability of the user's email app.
 const supportChannels = [
   { dept: "Core Systems & Support", email: "support@netraos.io", hours: "Mon – Fri: 08:00 – 18:00", sla: "< 2 hours", window: { start: 8, end: 18 } },
   { dept: "Security & Privacy Desk", email: "security@netraos.io", hours: "24 / 7 / 365 (Automated)", sla: "< 30 mins", window: null },
@@ -2399,6 +2428,7 @@ function renderContactPage() {
     </footer>`;
 }
 
+// Validate contact form details and hand the message to the user's email program.
 document.addEventListener("submit", event => {
   const form = event.target;
   if (!(form instanceof HTMLFormElement) || !form.matches("[data-contact-form]")) return;
@@ -2419,6 +2449,7 @@ document.addEventListener("submit", event => {
   setStatus(`HANDED TO YOUR EMAIL APP · ${dest.to}`);
 });
 
+// Reset the contact form and its status line when the clear control is selected.
 document.addEventListener("click", event => {
   const clear = event.target.closest("[data-contact-clear]");
   if (!clear) return;
@@ -2427,7 +2458,7 @@ document.addEventListener("click", event => {
   form.querySelector(".terminal-status").innerHTML = "STATUS: <b>BUFFER CLEARED · READY TO TRANSMIT</b>";
 });
 
-// Menus and short status messages
+// Shared popover menus and toast messages provide lightweight app feedback.
 function closePopover() {
   document.querySelector(".action-popover")?.remove();
   document
@@ -2468,7 +2499,7 @@ function openMenu(button, choices) {
   button.setAttribute("aria-expanded", "true");
 }
 
-// Dashboard export data
+// Collect dashboard values in a report-ready structure for PDF and spreadsheet exports.
 function collectDashboardRows() {
   const rows = [["Dashboard item", "Value"]];
   document.querySelectorAll(".metric-card").forEach(card => {
@@ -2523,7 +2554,7 @@ function saveFile(filename, content, type) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// CSV export
+// Download financial data as a plain CSV file.
 function downloadSummary() {
   const rows = collectDashboardRows();
   const csvEscape = value =>
@@ -2533,7 +2564,7 @@ function downloadSummary() {
   showToast("Dashboard CSV downloaded.");
 }
 
-// Excel-compatible SpreadsheetML export
+// Download an Excel-compatible workbook using SpreadsheetML markup.
 function downloadExcel() {
   const rows = collectDashboardRows();
   const xmlEscape = value =>
@@ -2562,7 +2593,7 @@ function downloadExcel() {
   showToast("Dashboard Excel workbook downloaded.");
 }
 
-// Build a self-contained, vector-based financial report PDF.
+// Build a self-contained, vector-based PDF with report charts, logo, and watermark.
 function downloadPDF() {
   const W = 612;
   const H = 792;
@@ -2875,7 +2906,7 @@ function downloadPDF() {
   showToast("Professional financial report downloaded.");
 }
 
-// Menu actions
+// Route menu selections to date, currency, profile, settings, and export actions.
 function handleMenuChoice(action) {
   closePopover();
   if (action === "profile") {
@@ -2939,11 +2970,12 @@ function handleMenuChoice(action) {
   showToast(action === "details" ? "Dashboard figures are at zero and ready for your accounts." : "You’re all caught up.");
 }
 
-// Page controls and dashboard actions
+// Page controls and delegated event handlers connect rendered controls to app actions.
 navItems.forEach(item => {
   item.addEventListener("click", () => showPage(item.dataset.page));
 });
 
+// Handle local sign-in, profile edits, settings, and financial record submissions.
 document.addEventListener("submit", async event => {
   const form = event.target;
   if (!(form instanceof HTMLFormElement)) return;
@@ -3058,6 +3090,7 @@ document.addEventListener("submit", async event => {
   }
 });
 
+// Route clicks for app actions, dialog controls, profile menus, and theme/privacy toggles.
 document.addEventListener("click", event => {
   const target = event.target;
   const themeToggle = target.closest("[data-theme-toggle]");
@@ -3066,6 +3099,8 @@ document.addEventListener("click", event => {
     const settings = getStoredSettings();
     settings.darkMode = !settings.darkMode;
     appShell.classList.toggle("theme-dark", settings.darkMode);
+    publicShell.classList.toggle("theme-dark", settings.darkMode);
+    document.body.classList.toggle("theme-dark", settings.darkMode);
     try {
       localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
       applyStoredSettings();
@@ -3241,6 +3276,7 @@ document.addEventListener("click", event => {
   }
 });
 
+// Validate profile image uploads and show a local preview before saving the profile.
 document.addEventListener("change", event => {
   const input = event.target;
   if (!(input instanceof HTMLInputElement) || input.name !== "photo") return;
@@ -3259,10 +3295,12 @@ document.addEventListener("change", event => {
   input.closest("form")?.removeAttribute("data-remove-image");
 });
 
+// Close open action menus when the user presses Escape.
 document.addEventListener("keydown", event => {
   if (event.key === "Escape") closePopover();
 });
 
+// Initialize preferences and summaries before restoring any local session.
 updateDateSwitcher();
 initializePrivacyMode();
 const initialPage = decodeURIComponent(window.location.hash.slice(1));
