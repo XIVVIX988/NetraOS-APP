@@ -49,6 +49,7 @@ const settingsStorageKey = "netraos-settings-v1";
 const securityAuditStorageKey = "netraos-security-audit-v1";
 const termsVersion = "2026-10-10";
 let autoLockTimer = 0;
+let backupPromptTimer = 0;
 let toastTimer;
 let profilePreviewUrl = "";
 let landingScrollEffectsBound = false;
@@ -176,16 +177,25 @@ function monthKey(date = new Date()) {
 function getReportMonth() {
   const today = new Date();
   const period = getReportPeriod();
-  if (period === "Last month") return monthKey(new Date(today.getFullYear(), today.getMonth() - 1, 1));
-  return monthKey(today);
+  const settings = getStoredSettings();
+  const cycleStart = new Date(today.getFullYear(), today.getMonth() - (today.getDate() < settings.paydayAnchorDay ? 1 : 0), 1);
+  if (period === "Last month") return monthKey(new Date(cycleStart.getFullYear(), cycleStart.getMonth() - 1, 1));
+  return monthKey(cycleStart);
 }
 
 function spendingForReport(entries) {
-  const currentMonth = monthKey();
+  const currentMonth = getReportMonth();
   const period = getReportPeriod();
   return entries.filter(item => {
     const month = /^\d{4}-\d{2}$/.test(item.month || "") ? item.month : currentMonth;
-    if (period === "Year to date") return month.slice(0, 4) === currentMonth.slice(0, 4) && month <= currentMonth;
+    if (period === "Year to date") {
+      const settings = getStoredSettings();
+      const now = new Date();
+      let fiscalYear = now.getFullYear();
+      if (now.getMonth() + 1 < settings.financialYearStartMonth) fiscalYear -= 1;
+      const fiscalStart = `${fiscalYear}-${String(settings.financialYearStartMonth).padStart(2, "0")}`;
+      return month >= fiscalStart && month <= currentMonth;
+    }
     return month === getReportMonth();
   });
 }
@@ -223,10 +233,27 @@ function getStoredSettings() {
       performanceTelemetryConsent: Boolean(saved.performanceTelemetryConsent),
       lockTimeoutMinutes: [0, 1, 5, 15].includes(Number(saved.lockTimeoutMinutes)) ? Number(saved.lockTimeoutMinutes) : 0,
       localPinSalt: typeof saved.localPinSalt === "string" ? saved.localPinSalt : "",
-      localPinHash: typeof saved.localPinHash === "string" ? saved.localPinHash : ""
+      localPinHash: typeof saved.localPinHash === "string" ? saved.localPinHash : "",
+      localPinLength: saved.localPinLength === 4 ? 4 : 6,
+      financialYearStartMonth: Math.max(1, Math.min(12, Number(saved.financialYearStartMonth) || 1)),
+      paydayAnchorDay: [1, 5, 10, 15, 20, 25, 28].includes(Number(saved.paydayAnchorDay)) ? Number(saved.paydayAnchorDay) : 1,
+      privacyShortcut: ["Shift+S", "Alt+Shift+S", "Off"].includes(saved.privacyShortcut) ? saved.privacyShortcut : "Shift+S",
+      taxPaye: saved.taxPaye !== false,
+      taxNssf: saved.taxNssf !== false,
+      taxShif: saved.taxShif !== false,
+      taxAhl: saved.taxAhl !== false,
+      personalRelief: Number.isFinite(Number(saved.personalRelief)) ? Math.max(0, Number(saved.personalRelief)) : 2400,
+      insuranceRelief: Number.isFinite(Number(saved.insuranceRelief)) ? Math.max(0, Number(saved.insuranceRelief)) : 0,
+      customRelief: Number.isFinite(Number(saved.customRelief)) ? Math.max(0, Number(saved.customRelief)) : 0,
+      monthlyBackupPrompt: Boolean(saved.monthlyBackupPrompt),
+      lastBackupPromptAt: typeof saved.lastBackupPromptAt === "string" ? saved.lastBackupPromptAt : "",
+      accentProfile: ["emerald", "amber", "matrix", "blue"].includes(saved.accentProfile) ? saved.accentProfile : "emerald",
+      showXpPoints: saved.showXpPoints !== false,
+      questSounds: Boolean(saved.questSounds),
+      questAnimations: saved.questAnimations !== false
     };
   } catch {
-    return { alwaysShowCents: false, reduceMotion: false, darkMode: false, goalNotifications: true, monthlyReminders: true, performanceTelemetryConsent: false, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "" };
+    return { alwaysShowCents: false, reduceMotion: false, darkMode: false, goalNotifications: true, monthlyReminders: true, performanceTelemetryConsent: false, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 6, financialYearStartMonth: 1, paydayAnchorDay: 1, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "emerald", showXpPoints: true, questSounds: false, questAnimations: true };
   }
 }
 
@@ -237,6 +264,9 @@ function applyStoredSettings() {
   document.body.classList.toggle("theme-dark", settings.darkMode);
   appShell.classList.toggle("theme-dark", settings.darkMode);
   publicShell.classList.toggle("theme-dark", settings.darkMode);
+  appShell.dataset.accent = settings.accentProfile;
+  appShell.classList.toggle("hide-xp-points", !settings.showXpPoints);
+  appShell.classList.toggle("disable-quest-animations", !settings.questAnimations || settings.reduceMotion);
   document.querySelectorAll("[data-theme-toggle]").forEach(themeToggle => {
     themeToggle.setAttribute("aria-pressed", String(settings.darkMode));
     themeToggle.setAttribute("aria-label", settings.darkMode ? "Enable light mode" : "Enable dark mode");
@@ -244,6 +274,8 @@ function applyStoredSettings() {
   });
   const darkModeInput = document.querySelector('input[name="darkMode"]');
   if (darkModeInput) darkModeInput.checked = settings.darkMode;
+  const privacyInput = document.querySelector('input[name="privacyShield"]');
+  if (privacyInput) privacyInput.checked = document.body.classList.contains("privacy-mode");
 }
 
 // Keep a short, local-only history of security-relevant actions without recording financial values.
@@ -304,7 +336,7 @@ function lockWorkspace() {
   const lockScreen = document.createElement("main");
   lockScreen.id = "security-lock-screen";
   lockScreen.className = "security-lock-screen";
-  lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">NETRAOS · LOCAL SESSION LOCK</span><h1 id="security-lock-title">Your workspace is locked.</h1><p>Enter your six-digit local PIN to continue. This screen lock does not encrypt browser storage.</p><form><label for="security-unlock-pin">Six-digit PIN</label><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Unlock workspace</button></form></section>`;
+  lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">NETRAOS · LOCAL SESSION LOCK</span><h1 id="security-lock-title">Your workspace is locked.</h1><p>Enter your ${settings.localPinLength}-digit local PIN to continue. This screen lock does not encrypt browser storage.</p><form><label for="security-unlock-pin">${settings.localPinLength}-digit PIN</label><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${settings.localPinLength}}" maxlength="${settings.localPinLength}" required><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Unlock workspace</button></form></section>`;
   document.body.append(lockScreen);
   recordSecurityAudit("Workspace locked after inactivity");
   const form = lockScreen.querySelector("form");
@@ -313,8 +345,8 @@ function lockWorkspace() {
   let attempts = 0;
   form.addEventListener("submit", async event => {
     event.preventDefault();
-    if (!/^[0-9]{6}$/.test(pinInput.value)) {
-      error.textContent = "Enter the six-digit PIN.";
+    if (!new RegExp(`^[0-9]{${settings.localPinLength}}$`).test(pinInput.value)) {
+      error.textContent = `Enter the ${settings.localPinLength}-digit PIN.`;
       error.hidden = false;
       pinInput.focus();
       return;
@@ -546,12 +578,19 @@ function renderProfilePage() {
 
 function renderSettingsPage() {
   const settings = getStoredSettings();
+  const currencyState = getCurrencyState();
+  const fiscalMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  let privacyEnabled = false;
+  try { privacyEnabled = localStorage.getItem(privacyModeStorageKey) === "true"; } catch { /* Use the visible default when storage is unavailable. */ }
   return `
     <section class="account-page">
       <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> APP PREFERENCES</div><h1>Make it yours.</h1><p class="welcome-sub">Choose how NetraOS behaves in this browser.</p></div></header>
       <form class="settings-form" data-account-form="settings">
-        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">DISPLAY</div><h2>Regional preferences</h2></div></div>
-          <label class="settings-field"><span><strong>Currency</strong><small>NetraOS currently displays Kenyan shillings.</small></span><strong class="settings-value">KSh · Kenyan shilling</strong></label>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">GENERAL &amp; LOCALIZATION</div><h2>Regional preferences</h2></div></div>
+          <label class="settings-field"><span><strong>Default display currency</strong><small>Set a manual KSh exchange rate before selecting another currency.</small></span><select name="displayCurrency">${Object.entries(displayCurrencies).map(([code, currency]) => `<option value="${code}" ${currencyState.active === code ? "selected" : ""} ${currencyState.rates[code] ? "" : "disabled"}>${currency.symbol} · ${currency.name}${currencyState.rates[code] ? "" : " · set rate first"}</option>`).join("")}</select></label>
+          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="manage-rates">Manage manual exchange rates</button></div>
+          <label class="settings-field"><span><strong>Financial year starts</strong><small>Used to calculate Year to date reports.</small></span><select name="financialYearStartMonth">${fiscalMonths.map((month, index) => `<option value="${index + 1}" ${settings.financialYearStartMonth === index + 1 ? "selected" : ""}>${month}</option>`).join("")}</select></label>
+          <label class="settings-field"><span><strong>Payday / cycle anchor</strong><small>Cycle totals and the default spending month start on this day.</small></span><select name="paydayAnchorDay">${[1, 5, 10, 15, 20, 25, 28].map(day => `<option value="${day}" ${settings.paydayAnchorDay === day ? "selected" : ""}>${day}${day === 1 ? "st" : day === 2 ? "nd" : day === 3 ? "rd" : "th"} of each month</option>`).join("")}</select></label>
           <label class="settings-field"><span><strong>Dark mode</strong><small>Use a darker color theme across your workspace.</small></span><input name="darkMode" type="checkbox" ${settings.darkMode ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Always show cents</strong><small>Show two decimal places in money amounts.</small></span><input name="alwaysShowCents" type="checkbox" ${settings.alwaysShowCents ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Reduce motion</strong><small>Use fewer animation and hover effects.</small></span><input name="reduceMotion" type="checkbox" ${settings.reduceMotion ? "checked" : ""}></label>
@@ -560,18 +599,37 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Quest progress</strong><small>Saved as a preference; this preview does not send notifications.</small></span><input name="goalNotifications" type="checkbox" ${settings.goalNotifications ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Monthly plan</strong><small>Saved as a preference; this preview does not send notifications.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
         </section>
-        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">LOCAL SECURITY</div><h2>Session protection</h2></div></div>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">PRIVACY &amp; SECURITY</div><h2>Session protection</h2></div></div>
           <p class="settings-disclosure">Financial records are stored in this browser and are not encrypted by the app. A PIN can lock the visible workspace after inactivity; it does not encrypt stored data. HTTPS and security headers are controlled by the hosting platform.</p>
-          <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a local six-digit PIN.</small></span><select name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Off</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
-          <div class="settings-pin-fields"><label class="inventory-form-field"><span>New six-digit PIN <small>Leave blank to keep the current PIN</small></span><input name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{6}" maxlength="6"></label><label class="inventory-form-field"><span>Confirm PIN</span><input name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{6}" maxlength="6"></label></div>
+          <label class="settings-field"><span><strong>Privacy Shield</strong><small>Mask currency amounts in the app header or with the shortcut.</small></span><input name="privacyShield" type="checkbox" ${privacyEnabled ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Privacy Shield shortcut</strong><small>Keyboard shortcut to toggle amount masking.</small></span><select name="privacyShortcut"><option value="Shift+S" ${settings.privacyShortcut === "Shift+S" ? "selected" : ""}>Shift + S</option><option value="Alt+Shift+S" ${settings.privacyShortcut === "Alt+Shift+S" ? "selected" : ""}>Alt + Shift + S</option><option value="Off" ${settings.privacyShortcut === "Off" ? "selected" : ""}>Off</option></select></label>
+          <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a local four-digit PIN.</small></span><select name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Never</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
+          <div class="settings-pin-fields"><label class="inventory-form-field"><span>New four-digit PIN <small>Leave blank to keep the current PIN</small></span><input name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label><label class="inventory-form-field"><span>Confirm PIN</span><input name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label></div>
           <label class="settings-field"><span><strong>Remove current PIN</strong><small>Turns off the local screen lock.</small></span><input name="clearPin" type="checkbox"></label>
           <div class="settings-audit"><strong>Recent local security activity</strong>${getSecurityAuditLog().length ? `<ul>${getSecurityAuditLog().slice(0, 8).map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.at).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>No activity recorded yet.</p>`}</div>
+        </section>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">LOCAL TAX &amp; DEDUCTIONS</div><h2>Kenya statutory estimates</h2></div></div>
+          <p class="settings-disclosure">These switches change the local calculator estimate only. Relief amounts are subtracted directly from estimated PAYE, up to the tax before relief. Verify current statutory requirements before relying on a result.</p>
+          <label class="settings-field"><span><strong>PAYE income tax</strong><small>Apply the progressive PAYE estimate.</small></span><input name="taxPaye" type="checkbox" ${settings.taxPaye ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>NSSF Tier I &amp; II</strong><small>Apply the current in-app NSSF estimate.</small></span><input name="taxNssf" type="checkbox" ${settings.taxNssf ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>SHIF</strong><small>Apply the current in-app SHIF estimate.</small></span><input name="taxShif" type="checkbox" ${settings.taxShif ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Affordable Housing Levy</strong><small>Apply the in-app 1.5% estimate.</small></span><input name="taxAhl" type="checkbox" ${settings.taxAhl ? "checked" : ""}></label>
+          <div class="settings-pin-fields"><label class="inventory-form-field"><span>Personal relief per month (KSh)</span><input name="personalRelief" type="number" min="0" step="100" value="${settings.personalRelief}"></label><label class="inventory-form-field"><span>Insurance relief per month (KSh)</span><input name="insuranceRelief" type="number" min="0" step="100" value="${settings.insuranceRelief}"></label><label class="inventory-form-field"><span>Other tax relief per month (KSh)</span><input name="customRelief" type="number" min="0" step="100" value="${settings.customRelief}"></label></div>
         </section>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">STORAGE &amp; PRIVACY</div><h2>Your browser data</h2></div></div>
           <p class="settings-disclosure">Essential browser storage keeps your profile, financial records, and settings on this device. This app currently sets no cookies. Optional performance telemetry is not collected; this preference is saved for future use only.</p>
           <label class="settings-field"><span><strong>Allow optional performance telemetry</strong><small>No telemetry is currently collected by this version.</small></span><input name="performanceTelemetryConsent" type="checkbox" ${settings.performanceTelemetryConsent ? "checked" : ""}></label>
-          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button><button class="danger-button" type="button" data-settings-action="clear-data">Clear all NetraOS data</button></div>
+          <label class="settings-field"><span><strong>Monthly backup reminder</strong><small>Remind you in this browser to download a local backup.</small></span><input name="monthlyBackupPrompt" type="checkbox" ${settings.monthlyBackupPrompt ? "checked" : ""}></label>
+          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button></div>
+          <label class="settings-import-drop" data-settings-drop><strong>Restore a JSON backup</strong><span>Choose a file or drop it here. Existing matching NetraOS records will be replaced.</span><input name="backupFile" type="file" accept="application/json,.json" data-settings-import></label>
+          <div class="settings-inline-actions"><button class="danger-button" type="button" data-settings-action="clear-data">Factory reset · Clear all NetraOS data</button></div>
           <p class="legal-links"><a href="#terms" data-public-action="terms">Terms of Service</a><a href="#privacy" data-public-action="privacy">Privacy Policy</a></p>
+        </section>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">CUSTOMIZATION &amp; GAMIFICATION</div><h2>System preferences</h2></div></div>
+          <label class="settings-field"><span><strong>Theme accent</strong><small>Choose the color profile used across the workspace.</small></span><select name="accentProfile"><option value="emerald" ${settings.accentProfile === "emerald" ? "selected" : ""}>Emerald Terminal</option><option value="amber" ${settings.accentProfile === "amber" ? "selected" : ""}>Cyber Amber</option><option value="matrix" ${settings.accentProfile === "matrix" ? "selected" : ""}>Matrix Green</option><option value="blue" ${settings.accentProfile === "blue" ? "selected" : ""}>Classic Blue</option></select></label>
+          <label class="settings-field"><span><strong>Show XP Points</strong><small>Show quest status badges and XP-style progress labels.</small></span><input name="showXpPoints" type="checkbox" ${settings.showXpPoints ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Quest completion sounds</strong><small>Play a short sound when a quest is completed.</small></span><input name="questSounds" type="checkbox" ${settings.questSounds ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Quest completion animations</strong><small>Show the milestone celebration animation.</small></span><input name="questAnimations" type="checkbox" ${settings.questAnimations ? "checked" : ""}></label>
         </section>
         <div class="settings-actions"><span>Preferences save to this browser.</span><button class="inventory-submit" type="submit">Save changes</button></div>
       </form>
@@ -595,6 +653,7 @@ function enterApp(profile) {
   showPage("Dashboard");
   recordSecurityAudit("Local profile signed in");
   scheduleAutoLock();
+  maybePromptForBackup();
 }
 
 // Local data accessors keep each financial module's stored data in a consistent shape.
@@ -632,7 +691,7 @@ function getPowerUpTotals() {
   const data = getPowerUpData();
   const income = data.incomes.reduce((total, item) => total + Number(item.amount || 0), 0);
   const budget = data.budgets.reduce((total, item) => total + Number(item.amount || 0), 0);
-  const spending = data.spending.reduce((total, item) => total + Number(item.amount || 0), 0);
+  const spending = spendingForReport(data.spending).reduce((total, item) => total + Number(item.amount || 0), 0);
 
   return { income, budget, spending, surplus: income - budget };
 }
@@ -823,6 +882,20 @@ function markPrivacySensitiveSubtree(root) {
   while ((textNode = walker.nextNode())) markPrivacySensitiveText(textNode);
 }
 
+function setPrivacyMode(enabled) {
+  const toggle = document.querySelector("[data-privacy-toggle]");
+  appShell.classList.toggle("privacy-mode", enabled);
+  document.body.classList.toggle("privacy-mode", enabled);
+  if (toggle) {
+    toggle.setAttribute("aria-pressed", String(enabled));
+    toggle.setAttribute("aria-label", enabled ? "Show currency amounts" : "Hide currency amounts");
+    toggle.title = enabled ? "Show currency amounts" : "Hide currency amounts";
+  }
+  const input = document.querySelector('input[name="privacyShield"]');
+  if (input) input.checked = enabled;
+  try { localStorage.setItem(privacyModeStorageKey, String(enabled)); } catch { /* Keep privacy masking active for this session. */ }
+}
+
 function initializePrivacyMode() {
   const toggle = document.querySelector("[data-privacy-toggle]");
   if (!toggle) return;
@@ -832,14 +905,7 @@ function initializePrivacyMode() {
   } catch {
     // Privacy masking remains available for this session when storage is unavailable.
   }
-  const syncToggle = () => {
-    appShell.classList.toggle("privacy-mode", enabled);
-    document.body.classList.toggle("privacy-mode", enabled);
-    toggle.setAttribute("aria-pressed", String(enabled));
-    toggle.setAttribute("aria-label", enabled ? "Show currency amounts" : "Hide currency amounts");
-    toggle.title = enabled ? "Show currency amounts" : "Hide currency amounts";
-  };
-  syncToggle();
+  setPrivacyMode(enabled);
   markPrivacySensitiveSubtree(document.body);
   const observer = new MutationObserver(records => {
     records.forEach(record => {
@@ -848,14 +914,14 @@ function initializePrivacyMode() {
     });
   });
   observer.observe(document.body, { subtree: true, childList: true, characterData: true });
-  toggle.addEventListener("click", () => {
-    enabled = !enabled;
-    try {
-      localStorage.setItem(privacyModeStorageKey, String(enabled));
-    } catch {
-      // Keep the toggle responsive for the current session.
-    }
-    syncToggle();
+  toggle.addEventListener("click", () => setPrivacyMode(!appShell.classList.contains("privacy-mode")));
+  document.addEventListener("keydown", event => {
+    const shortcut = getStoredSettings().privacyShortcut;
+    const allowed = (shortcut === "Shift+S" && event.shiftKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "s") ||
+      (shortcut === "Alt+Shift+S" && event.altKey && event.shiftKey && !event.ctrlKey && event.key.toLowerCase() === "s");
+    if (!allowed || event.target instanceof HTMLElement && event.target.matches("input, textarea, select, [contenteditable='true']")) return;
+    event.preventDefault();
+    setPrivacyMode(!appShell.classList.contains("privacy-mode"));
   });
 }
 
@@ -1116,7 +1182,16 @@ function openCurrencyRatesDialog(requestedCurrency = "") {
     }
     dialog.close();
     updateCurrencySwitcher();
-    showPage(crumb.textContent);
+    if (crumb.textContent === "Settings") {
+      const currencySelect = document.querySelector('select[name="displayCurrency"]');
+      if (currencySelect) {
+        [...currencySelect.options].forEach(option => {
+          option.disabled = !rates[option.value];
+          if (option.disabled) option.textContent = `${displayCurrencies[option.value].symbol} · ${displayCurrencies[option.value].name} · set rate first`;
+          else option.textContent = `${displayCurrencies[option.value].symbol} · ${displayCurrencies[option.value].name}`;
+        });
+      }
+    } else showPage(crumb.textContent);
   });
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   dialog.showModal();
@@ -1713,6 +1788,27 @@ function openQuestDialog(questId = "") {
 }
 
 function celebrateQuestCompletion(name) {
+  const settings = getStoredSettings();
+  if (settings.questSounds && globalThis.AudioContext) {
+    try {
+      const audio = new AudioContext();
+      const oscillator = audio.createOscillator();
+      const gain = audio.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = 740;
+      gain.gain.setValueAtTime(0.07, audio.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.22);
+      oscillator.connect(gain);
+      gain.connect(audio.destination);
+      oscillator.start();
+      oscillator.stop(audio.currentTime + 0.22);
+      oscillator.onended = () => audio.close();
+    } catch { /* Sound is optional and must not interrupt quest progress. */ }
+  }
+  if (!settings.questAnimations || settings.reduceMotion) {
+    showToast(`${name} completed.`);
+    return;
+  }
   document.querySelector(".quest-celebration")?.remove();
   const celebration = document.createElement("div");
   celebration.className = "quest-celebration";
@@ -1753,6 +1849,7 @@ function deleteQuest(button) {
 function renderStatsPage() {
   const inventory = getInventoryEntries();
   const power = getPowerUpData();
+  const reportSpending = spendingForReport(power.spending);
   const totals = getPowerUpTotals();
   const balance = getInventoryTotals();
   const quests = getQuests();
@@ -1762,7 +1859,7 @@ function renderStatsPage() {
   const categories = budgetCategories.map(category => {
     const planned = power.budgets.filter(item => item.category === category)
       .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const spent = power.spending.filter(item => item.category === category)
+    const spent = reportSpending.filter(item => item.category === category)
       .reduce((sum, item) => sum + Number(item.amount || 0), 0);
     return { category, planned, spent };
   }).filter(item => item.planned > 0 || item.spent > 0);
@@ -1855,19 +1952,10 @@ function renderAchievementsPage() {
     { id: "positive-flow", icon: "⌁", name: "Positive cash flow", detail: "Record monthly income greater than spending.", progress: totals.income > 0 ? Math.max(0, Math.min(100, Math.round(((totals.income - totals.spending) / totals.income) * 100))) : 0, target: 100, suffix: "%", earned: totals.income > 0 && totals.income > totals.spending },
     { id: "net-worth-100k", icon: "◇", name: "KSh 100,000 net worth", detail: "Build your net worth to KSh 100,000.", progress: Math.max(0, Math.min(100, Math.round((balance.netWorth / 100000) * 100))), target: 100, suffix: "%", earned: balance.netWorth >= 100000 }
   ];
-  let earnedIds = [];
-  try {
-    const savedIds = JSON.parse(localStorage.getItem(achievementStorageKey) || "[]");
-    earnedIds = Array.isArray(savedIds) ? savedIds : [];
-  } catch {
-    earnedIds = [];
-  }
-  milestones.forEach(milestone => {
-    if (milestone.progress >= milestone.target || milestone.earned) {
-      if (!earnedIds.includes(milestone.id)) earnedIds.push(milestone.id);
-    }
-    milestone.isEarned = earnedIds.includes(milestone.id);
-  });
+  const earnedIds = milestones
+    .filter(milestone => Number(milestone.progress) >= Number(milestone.target) || milestone.earned === true)
+    .map(milestone => milestone.id);
+  milestones.forEach(milestone => { milestone.isEarned = earnedIds.includes(milestone.id); });
   try {
     localStorage.setItem(achievementStorageKey, JSON.stringify(earnedIds));
   } catch {
@@ -1895,7 +1983,7 @@ function renderAchievementsPage() {
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> MILESTONES EARNED</div>
           <h1>Progress worth<br><em>keeping.</em></h1>
-          <p class="welcome-sub">Your milestones unlock as you build healthy financial habits. Earned achievements stay on your record.</p>
+          <p class="welcome-sub">Milestones unlock when your saved financial records meet each goal. Add your first account, plan, or quest to get started.</p>
         </div>
         <div class="achievement-score"><strong>${earnedCount} / ${milestones.length}</strong><span>milestones earned</span></div>
       </header>
@@ -2121,10 +2209,11 @@ const taxColors = { net: "#13875f", paye: "#d8b451", nssf: "#2f6f8f", shif: "#c0
 
 // Calculate monthly take-home pay after statutory deductions and progressive PAYE.
 function computeKenyaPayroll(grossInput) {
+  const settings = getStoredSettings();
   const gross = Math.max(0, Math.round(Number(grossInput) || 0));
-  const nssf = Math.round(Math.min(gross, KE_TAX.nssfUpperLimit) * KE_TAX.nssfRate);
-  const ahl = Math.round(gross * KE_TAX.ahlRate);
-  const shifRaw = gross > 0 ? Math.max(KE_TAX.shifMinimum, gross * KE_TAX.shifRate) : 0;
+  const nssf = settings.taxNssf ? Math.round(Math.min(gross, KE_TAX.nssfUpperLimit) * KE_TAX.nssfRate) : 0;
+  const ahl = settings.taxAhl ? Math.round(gross * KE_TAX.ahlRate) : 0;
+  const shifRaw = settings.taxShif && gross > 0 ? Math.max(KE_TAX.shifMinimum, gross * KE_TAX.shifRate) : 0;
   const shif = Math.round(Math.min(shifRaw, Math.max(0, gross - nssf - ahl)));
   // NSSF, SHIF and the housing levy are all deducted before PAYE is worked out.
   const taxable = Math.max(0, gross - nssf - shif - ahl);
@@ -2138,15 +2227,16 @@ function computeKenyaPayroll(grossInput) {
     remaining -= slice;
     lower = band.upTo;
   }
-  const relief = Math.min(KE_TAX.personalRelief, taxBeforeRelief);
-  const paye = Math.round(taxBeforeRelief - relief);
+  const configuredRelief = settings.personalRelief + settings.insuranceRelief + settings.customRelief;
+  const relief = settings.taxPaye ? Math.min(configuredRelief, taxBeforeRelief) : 0;
+  const paye = settings.taxPaye ? Math.round(taxBeforeRelief - relief) : 0;
   const deductions = paye + nssf + shif + ahl;
   const net = Math.max(0, gross - deductions);
   return {
     gross, nssf, shif, ahl, taxable, paye, deductions, net,
     taxBeforeRelief: Math.round(taxBeforeRelief),
     relief: Math.round(relief),
-    shifAtMinimum: gross > 0 && shifRaw === KE_TAX.shifMinimum && gross * KE_TAX.shifRate < KE_TAX.shifMinimum
+    shifAtMinimum: settings.taxShif && gross > 0 && shifRaw === KE_TAX.shifMinimum && gross * KE_TAX.shifRate < KE_TAX.shifMinimum
   };
 }
 
@@ -2705,8 +2795,32 @@ function saveFile(filename, content, type) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Prompt no more than once every 30 days when the user has enabled local reminders.
+function maybePromptForBackup() {
+  window.clearTimeout(backupPromptTimer);
+  const settings = getStoredSettings();
+  if (!settings.monthlyBackupPrompt) return;
+  const lastPrompt = Date.parse(settings.lastBackupPromptAt || "");
+  const interval = 30 * 24 * 60 * 60 * 1000;
+  const delay = Number.isFinite(lastPrompt) ? Math.max(1200, interval - (Date.now() - lastPrompt)) : 1200;
+  backupPromptTimer = window.setTimeout(() => {
+    const current = getStoredSettings();
+    if (!current.monthlyBackupPrompt) return;
+    current.lastBackupPromptAt = new Date().toISOString();
+    try { localStorage.setItem(settingsStorageKey, JSON.stringify(current)); } catch { return; }
+    if (window.confirm("It’s time to save a local NetraOS backup. Download your data now?")) downloadAllLocalData("json");
+    maybePromptForBackup();
+  }, delay);
+}
+
 // Export only NetraOS-prefixed browser keys so unrelated site data is excluded.
 function downloadAllLocalData(format) {
+  const settings = getStoredSettings();
+  settings.lastBackupPromptAt = new Date().toISOString();
+  try { localStorage.setItem(settingsStorageKey, JSON.stringify(settings)); } catch { /* Export can continue if preference storage is unavailable. */ }
+  if (format.toLowerCase() === "json") {
+    recordSecurityAudit("Downloaded local data as JSON");
+  }
   const data = {};
   for (let index = 0; index < localStorage.length; index += 1) {
     const key = localStorage.key(index);
@@ -2714,7 +2828,7 @@ function downloadAllLocalData(format) {
     const value = localStorage.getItem(key);
     try { data[key] = JSON.parse(value); } catch { data[key] = value; }
   }
-  recordSecurityAudit(`Downloaded local data as ${format.toUpperCase()}`);
+  if (format.toLowerCase() !== "json") recordSecurityAudit(`Downloaded local data as ${format.toUpperCase()}`);
   const snapshot = { exportedAt: new Date().toISOString(), storage: data };
   if (format === "json") {
     saveFile("netraos-local-data.json", JSON.stringify(snapshot, null, 2), "application/json;charset=utf-8");
@@ -2726,9 +2840,51 @@ function downloadAllLocalData(format) {
   showToast(`Local data downloaded as ${format.toUpperCase()}.`);
 }
 
+// Restore only NetraOS-prefixed keys from this app's JSON export format.
+async function restoreLocalData(file) {
+  if (!file || file.size > 50 * 1024 * 1024 || !/\.json$/i.test(file.name)) {
+    showToast("Choose a NetraOS JSON backup smaller than 50 MB.");
+    return;
+  }
+  try {
+    const backup = JSON.parse(await file.text());
+    const source = backup?.storage && typeof backup.storage === "object" ? backup.storage : backup;
+    const entries = Object.entries(source).filter(([key]) => key.startsWith("netraos-") && key !== sessionStorageKey);
+    if (!entries.length) throw new Error("No NetraOS records were found in that file.");
+    for (const [key, value] of entries) {
+      if (typeof value === "undefined" || typeof value === "function") throw new Error("The backup contains an unsupported value.");
+      JSON.stringify(value);
+      if (key === profileStorageKey && (!value || typeof value.name !== "string" || typeof value.email !== "string")) throw new Error("The profile in this backup is invalid.");
+      if ([inventoryStorageKey, questStorageKey, achievementStorageKey].includes(key) && !Array.isArray(value)) throw new Error("A list in this backup is invalid.");
+      if (key === powerUpStorageKey && (!value || !Array.isArray(value.incomes) || !Array.isArray(value.budgets) || !Array.isArray(value.spending))) throw new Error("The monthly plan in this backup is invalid.");
+      if (key === settingsStorageKey && (!value || typeof value !== "object" || Array.isArray(value))) throw new Error("Settings in this backup are invalid.");
+    }
+    if (!window.confirm(`Restore ${entries.length} NetraOS records? Matching data in this browser will be replaced.`)) return;
+    const previous = new Map(entries.map(([key]) => [key, localStorage.getItem(key)]));
+    try {
+      entries.forEach(([key, value]) => localStorage.setItem(key, JSON.stringify(value)));
+    } catch (error) {
+      previous.forEach((value, key) => value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value));
+      throw error;
+    }
+    recordSecurityAudit("Restored a local JSON backup");
+    applyStoredSettings();
+    setPrivacyMode(localStorage.getItem(privacyModeStorageKey) === "true");
+    applyProfileAvatar();
+    setProfileName(getStoredProfile()?.name || "Jordan Davis");
+    updateCurrencySwitcher();
+    scheduleAutoLock();
+    showPage(crumb.textContent);
+    showToast("NetraOS JSON backup restored.");
+  } catch (error) {
+    showToast(error.message || "Unable to read that backup file.");
+  }
+}
+
 // Erase this app's own browser keys and cookie names, without touching other site data.
 function clearAllLocalData() {
-  if (!window.confirm("Clear all NetraOS profiles, financial records, settings, and local activity from this browser? This cannot be undone.")) return;
+  if (!window.confirm("Factory reset will remove all NetraOS profiles, financial records, plans, goals, and settings from this browser. This cannot be undone. Continue?")) return;
+  if (!window.confirm("Final confirmation: permanently clear all NetraOS data from this browser now?")) return;
   window.clearTimeout(autoLockTimer);
   for (const storage of [localStorage, sessionStorage]) {
     const keys = [];
@@ -3285,37 +3441,69 @@ document.addEventListener("submit", async event => {
       goalNotifications: formData.has("goalNotifications"),
       monthlyReminders: formData.has("monthlyReminders"),
       performanceTelemetryConsent: formData.has("performanceTelemetryConsent"),
+      financialYearStartMonth: Number(formData.get("financialYearStartMonth")),
+      paydayAnchorDay: Number(formData.get("paydayAnchorDay")),
+      privacyShortcut: String(formData.get("privacyShortcut") || "Shift+S"),
+      taxPaye: formData.has("taxPaye"),
+      taxNssf: formData.has("taxNssf"),
+      taxShif: formData.has("taxShif"),
+      taxAhl: formData.has("taxAhl"),
+      personalRelief: Math.max(0, Number(formData.get("personalRelief") || 0)),
+      insuranceRelief: Math.max(0, Number(formData.get("insuranceRelief") || 0)),
+      customRelief: Math.max(0, Number(formData.get("customRelief") || 0)),
+      monthlyBackupPrompt: formData.has("monthlyBackupPrompt"),
+      lastBackupPromptAt: previousSettings.lastBackupPromptAt,
+      accentProfile: String(formData.get("accentProfile") || "emerald"),
+      showXpPoints: formData.has("showXpPoints"),
+      questSounds: formData.has("questSounds"),
+      questAnimations: formData.has("questAnimations"),
       lockTimeoutMinutes: Number(formData.get("lockTimeoutMinutes") || 0),
       localPinSalt: previousSettings.localPinSalt,
-      localPinHash: previousSettings.localPinHash
+      localPinHash: previousSettings.localPinHash,
+      localPinLength: previousSettings.localPinLength
     };
+    if (settings.monthlyBackupPrompt && !previousSettings.monthlyBackupPrompt) settings.lastBackupPromptAt = new Date().toISOString();
     const newPin = String(formData.get("newPin") || "");
     const confirmPin = String(formData.get("confirmPin") || "");
     if (formData.has("clearPin")) {
       settings.localPinSalt = "";
       settings.localPinHash = "";
+      settings.localPinLength = 4;
       settings.lockTimeoutMinutes = 0;
     } else if (newPin || confirmPin) {
-      if (!/^[0-9]{6}$/.test(newPin) || newPin !== confirmPin) {
-        showToast("Enter and confirm the same six-digit PIN.");
+      if (!/^[0-9]{4}$/.test(newPin) || newPin !== confirmPin) {
+        showToast("Enter and confirm the same four-digit PIN.");
         return;
       }
       try {
-        Object.assign(settings, await createLocalPinVerifier(newPin));
+        Object.assign(settings, await createLocalPinVerifier(newPin), { localPinLength: 4 });
       } catch {
         showToast("Secure local PIN setup is unavailable in this browser context.");
         return;
       }
     }
     if (settings.lockTimeoutMinutes && !settings.localPinHash) {
-      showToast("Set a six-digit PIN before enabling auto-lock.");
+      showToast("Set a four-digit PIN before enabling auto-lock.");
       return;
     }
+    const desiredCurrency = String(formData.get("displayCurrency") || "KES");
+    const currencyState = getCurrencyState();
+    if (!currencyState.rates[desiredCurrency]) {
+      showToast(`Set a manual exchange rate for ${desiredCurrency} before selecting it.`);
+      openCurrencyRatesDialog(desiredCurrency);
+      return;
+    }
+    currencyState.active = desiredCurrency;
     try {
+      saveCurrencyState(currencyState);
       localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
+      setPrivacyMode(formData.has("privacyShield"));
       recordSecurityAudit("Updated local security and privacy settings");
       applyStoredSettings();
+      updateCurrencySwitcher();
+      showPage(crumb.textContent);
       scheduleAutoLock();
+      maybePromptForBackup();
       showToast("Settings saved.");
     } catch {
       showToast("Unable to save settings in browser storage.");
@@ -3398,6 +3586,7 @@ document.addEventListener("click", event => {
   if (button.matches("[data-settings-action]")) {
     if (button.dataset.settingsAction === "export-json") downloadAllLocalData("json");
     else if (button.dataset.settingsAction === "export-csv") downloadAllLocalData("csv");
+    else if (button.dataset.settingsAction === "manage-rates") openCurrencyRatesDialog();
     else if (button.dataset.settingsAction === "clear-data") clearAllLocalData();
     return;
   }
@@ -3529,7 +3718,14 @@ document.addEventListener("click", event => {
 // Validate profile image uploads and show a local preview before saving the profile.
 document.addEventListener("change", event => {
   const input = event.target;
-  if (!(input instanceof HTMLInputElement) || input.name !== "photo") return;
+  if (!(input instanceof HTMLInputElement)) return;
+  if (input.matches("[data-settings-import]")) {
+    const backupFile = input.files?.[0];
+    if (backupFile) restoreLocalData(backupFile);
+    input.value = "";
+    return;
+  }
+  if (input.name !== "photo") return;
   const file = input.files?.[0];
   if (!file) return;
   if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 5 * 1024 * 1024) {
@@ -3543,6 +3739,18 @@ document.addEventListener("change", event => {
   profilePreviewUrl = URL.createObjectURL(file);
   preview.innerHTML = `<img src="${profilePreviewUrl}" alt="Selected profile photo preview">`;
   input.closest("form")?.removeAttribute("data-remove-image");
+});
+
+// Accept a dropped JSON backup only over the Settings restore target.
+document.addEventListener("dragover", event => {
+  if (event.target.closest?.("[data-settings-drop]")) event.preventDefault();
+});
+document.addEventListener("drop", event => {
+  const dropTarget = event.target.closest?.("[data-settings-drop]");
+  if (!dropTarget) return;
+  event.preventDefault();
+  const file = event.dataTransfer?.files?.[0];
+  if (file) restoreLocalData(file);
 });
 
 // Close open action menus when the user presses Escape.
@@ -3578,6 +3786,7 @@ if (hasLocalSession && !["terms", "privacy"].includes(initialPage)) {
     }
   }
   scheduleAutoLock();
+  maybePromptForBackup();
 } else {
   showPublicPage(["login", "signup", "terms", "privacy"].includes(initialPage) ? initialPage : "landing");
 }

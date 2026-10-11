@@ -7477,3 +7477,24 @@ body.theme-dark .legal-links a { color: #a6d3b5; }
   .settings-pin-fields { grid-template-columns: 1fr; }
   .settings-audit li { flex-direction: column; gap: 2px; }
 }
+
+/* Per-user accent palettes and controls added to the expanded Settings view. */
+.app-shell[data-accent="amber"] { --gold: #b97818; --gold-bright: #a35d08; --green: #b97818; --coral: #d28c31; }
+.app-shell[data-accent="matrix"] { --gold: #238a42; --gold-bright: #167b36; --green: #238a42; --coral: #49a95e; }
+.app-shell[data-accent="blue"] { --gold: #3478b8; --gold-bright: #23669f; --green: #3478b8; --coral: #548fca; }
+.app-shell.theme-dark[data-accent="amber"] { --gold: #f0b75c; --gold-bright: #f3c879; --green: #e3a949; --coral: #e3a949; }
+.app-shell.theme-dark[data-accent="matrix"] { --gold: #6fce7f; --gold-bright: #91e49c; --green: #55b86c; --coral: #70ce83; }
+.app-shell.theme-dark[data-accent="blue"] { --gold: #7eb8f0; --gold-bright: #a5d0fa; --green: #5797d1; --coral: #7eb8f0; }
+.settings-import-drop { display: grid; gap: 6px; margin-top: 16px; padding: 18px; border: 1px dashed #bac8be; border-radius: 14px; background: #f8faf8; color: #33493a; cursor: pointer; }
+.settings-import-drop span { color: #718077; font-size: 12px; line-height: 1.5; }
+.settings-import-drop input { max-width: 100%; margin-top: 6px; color: inherit; }
+.settings-import-drop:focus-within,
+.settings-import-drop:hover { border-color: #13875f; background: #f0f7f2; }
+.app-shell.hide-xp-points .quest-xp { display: none !important; }
+.app-shell.disable-quest-animations .quest-celebration,
+.app-shell.disable-quest-animations .quest-celebration-badge,
+.app-shell.disable-quest-animations .quest-celebration-particles i { animation: none !important; transition: none !important; }
+.app-shell .settings-field input[type="checkbox"] { accent-color: var(--green); }
+body.theme-dark .settings-import-drop { border-color: #4b5b50; background: #202a24; color: #e2eae4; }
+body.theme-dark .settings-import-drop span { color: #aab6ad; }
+body.theme-dark .settings-import-drop:hover { border-color: #69bd91; background: #26372c; }
