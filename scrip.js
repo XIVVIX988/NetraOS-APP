@@ -217,6 +217,7 @@ function getStoredSettings() {
   }
 }
 
+// Apply browser-saved preferences and keep the header and settings controls in sync.
 function applyStoredSettings() {
   const settings = getStoredSettings();
   document.body.classList.toggle("reduce-motion", settings.reduceMotion);
@@ -3061,6 +3062,7 @@ document.addEventListener("click", event => {
   const target = event.target;
   const themeToggle = target.closest("[data-theme-toggle]");
   if (themeToggle) {
+    // Save the appearance choice with the other local preferences so it survives reloads.
     const settings = getStoredSettings();
     settings.darkMode = !settings.darkMode;
     appShell.classList.toggle("theme-dark", settings.darkMode);

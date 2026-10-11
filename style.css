@@ -7147,3 +7147,59 @@ body.reduce-motion .quest-celebration { opacity: 1; transform: none; }
   border-radius: 50%;
   object-fit: cover;
 }
+
+/* Header action buttons use the same compact, circular hit area in both themes. */
+.app-shell .topbar-actions .notification-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #e7ece8;
+  border-radius: 50%;
+  color: #56645b;
+  background: #f7f9f7;
+}
+.app-shell .topbar-actions .notification-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.app-shell .topbar-actions .notification-toggle:hover {
+  color: #087953;
+  background: #edf5f0;
+  border-color: #d7e7dc;
+}
+.app-shell .topbar-actions .notification-toggle b {
+  right: 5px;
+  top: 5px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid #fff;
+  background: #d3a63a;
+}
+
+/* Dark header controls share the same raised surface, borders, and gold focus ring. */
+.app-shell.theme-dark .topbar-actions .notification-toggle {
+  color: #b8c4bb;
+  background: #171e1b;
+  border-color: #2c3932;
+  box-shadow: 0 2px 7px #0002;
+}
+.app-shell.theme-dark .topbar-actions .notification-toggle:hover {
+  color: #f3d984;
+  background: #222d26;
+  border-color: #405247;
+}
+.app-shell.theme-dark .topbar-actions .notification-toggle:focus-visible {
+  outline: 2px solid #e1c267;
+  outline-offset: 3px;
+}
+.app-shell.theme-dark .topbar-actions .notification-toggle b {
+  border-color: #171e1b;
+}
