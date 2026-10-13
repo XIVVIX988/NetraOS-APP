@@ -5,11 +5,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#13875f" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="NetraOS" />
-    <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="netraos-icon-192.png" />
     <title>
       NetraOS — Your Financial Operating System
     </title>
@@ -34,9 +29,8 @@
             </span>
             <span class="brand-copy"><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL<br />OPERATING SYSTEM</small></span>
           </a>
-          <button class="mobile-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="primary-navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg></button>
           <!-- Primary in-app page navigation; data-page values are handled by scrip.js. -->
-          <nav id="primary-navigation" class="top-nav" aria-label="Primary sections">
+          <nav class="top-nav" aria-label="Primary sections">
             <button class="top-nav-item active" data-page="Dashboard">
               Dashboard
             </button>
@@ -63,7 +57,6 @@
           <span class="breadcrumb" aria-hidden="true"><strong id="crumb-page">Dashboard</strong></span>
           <!-- Header actions: notifications, date range, display currency, privacy, theme, and profile. -->
           <div class="topbar-actions">
-            <button class="install-app-button" type="button" hidden>Install app</button>
             <button class="icon-button notification-toggle" aria-label="Notifications" title="Notifications">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
@@ -102,7 +95,6 @@
             </button>
           </div>
         </header>
-        <button class="mobile-menu-backdrop" type="button" aria-label="Close navigation menu" tabindex="-1" hidden></button>
         <!-- Dynamic dashboard and other app page content. -->
         <div class="content" id="page-content">
           <!-- Dashboard greeting, current date, report download, and date-range selector. -->
