@@ -7875,3 +7875,32 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
 .app-shell.theme-dark .milestone-strip { background: #1c2520; border-color: var(--line); }
 .app-shell.theme-dark .milestone-strip b { color: var(--text); }
 @media (max-width: 560px) { .milestone-strip { grid-template-columns: 1fr; } }
+
+/* Password reveal */
+.password-field { position: relative; display: block; }
+.password-field input { width: 100%; box-sizing: border-box; padding-right: 46px; }
+.password-toggle { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #668071; cursor: pointer; transition: background .15s, color .15s; }
+.password-toggle:hover { background: #eef3ef; color: #187653; }
+.password-toggle:focus-visible { outline: 2px solid #187653; outline-offset: 1px; }
+.password-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.password-toggle .eye-off { display: none; }
+.password-toggle.is-showing .eye-open { display: none; }
+.password-toggle.is-showing .eye-off { display: inline; }
+#public-shell.theme-dark .password-toggle { color: #a2ada5; }
+#public-shell.theme-dark .password-toggle:hover { background: #26302a; color: #e1c267; }
+
+/* Factory reset verification */
+.reset-copy { margin: 0; font-size: 13px; line-height: 1.6; color: var(--soft); }
+.reset-copy b { color: var(--text); }
+.reset-demo { padding: 10px 12px; border: 1px dashed #d8a421; border-radius: 10px; background: #fbf3dc; color: #6b5110; font-size: 12.5px; line-height: 1.55; }
+.reset-demo strong { font: 700 15px var(--mono); letter-spacing: .12em; }
+.reset-status { min-height: 18px; margin: 0; font-size: 13px; color: var(--green); }
+.reset-status.error { color: #b3423a; }
+.inventory-submit.danger { background: #b3423a; border-color: #b3423a; }
+.inventory-submit.danger:hover { background: #9a342c; }
+.inventory-submit[hidden], .reset-form [hidden] { display: none; }
+.inventory-submit:disabled { opacity: .55; cursor: not-allowed; }
+.app-shell.theme-dark .reset-demo, .theme-dark .reset-demo { background: #2c2815; color: #e1c267; border-color: #6b5f33; }
+.password-toggle { z-index: 3; }
+.inventory-form-field > .password-field { font: inherit; letter-spacing: normal; text-transform: none; color: inherit; display: block; }
+.password-toggle, .password-toggle:hover, .password-toggle:active { top: calc(50% - 16px); transform: none; }

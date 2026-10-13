@@ -75,7 +75,7 @@ const faqCategories = [
     { q: "Can I switch statutory deductions on or off?", a: "Yes. In Settings you can toggle PAYE, NSSF, SHIF and the Housing Levy individually, and add personal relief, insurance relief or a custom relief. The calculator can start from gross salary or from net take-home pay.", action: { label: "Open Settings", target: "Settings" } }
   ]},
   { id: "yield", label: "Assets & Yield", items: [
-    { q: "Why should I enter annual return rates (% p.a.) on my asset cards?", a: "A return rate lets the Asset Engine on the Inventory page work out your <b>monthly passive income</b>, your weighted net yield, and your spread against loan interest. That shows when keeping money invested earns more than clearing a cheap loan early, and when the reverse is true.", action: { label: "Open Inventory", target: "Inventory" } },
+    { q: "Why should I enter annual return rates (% p.a.) on my asset cards?", a: "A return rate lets each asset card on the Inventory page show its <b>net yield</b> and <b>monthly passive income</b>, so you can see what your money earns and compare it with what your loans cost.", action: { label: "Open Inventory", target: "Inventory" } },
     { q: "Does NetraOS account for Withholding Tax on investment returns?", a: "Yes. Taxable assets such as money market funds and savings are reduced by the standard 15% withholding tax deducted at source in Kenya, so you see the true net yield. Mark an asset <b>tax-free</b> (for example an infrastructure bond) and no tax is deducted." }
   ]},
   { id: "data", label: "Backup & Maintenance", items: [
@@ -312,13 +312,6 @@ function formatLoanTenure(loan) {
 const WITHHOLDING_TAX = 0.15;
 const compoundingFrequencies = ["Daily", "Monthly", "Quarterly", "Semi-annual", "Annually", "None (simple / dividend)"];
 const liquidityTiers = ["Immediate (T+0)", "High (T+1)", "Medium (coupon / T+3 to T+7)", "Locked (90+ days / collateral)"];
-const assetPillars = [
-  { name: "Liquid Cash & Checking", categories: ["Bank accounts", "Mobile money", "Cash & savings"] },
-  { name: "Money Market Funds", categories: ["Money market funds"] },
-  { name: "SACCO Deposits & Shares", categories: ["SACCO deposits & shares"] },
-  { name: "Fixed Income & Equities", categories: ["Bonds & equities", "Investments"] },
-  { name: "Property & other", categories: ["Property & vehicles", "Other assets"] }
-];
 const assetCategoryDefaults = {
   "Bank accounts": { compounding: "Monthly", liquidity: liquidityTiers[0] },
   "Mobile money": { compounding: "None (simple / dividend)", liquidity: liquidityTiers[0] },
@@ -339,129 +332,6 @@ function getAssetYield(entry) {
   if (!Number.isFinite(gross)) return null;
   const net = returns.taxFree ? gross : gross * (1 - WITHHOLDING_TAX);
   return { gross, net, taxFree: Boolean(returns.taxFree), monthly: Math.round(Number(entry.amount || 0) * net / 100 / 12) };
-}
-
-function annualiseLoanRate(loan) {
-  if (!loan || loan.interestRate === null || loan.interestRate === undefined) return null;
-  const rate = Number(loan.interestRate);
-  const base = String(loan.rateType || "");
-  if (base.startsWith("per month")) return rate * 12;
-  if (base.startsWith("per day")) return rate * 365;
-  return rate;
-}
-
-function getAssetEngine(entries = getInventoryEntries()) {
-  const assets = entries.filter(entry => entry.type === "asset");
-  const tracked = assets.map(entry => ({ entry, y: getAssetYield(entry) })).filter(item => item.y);
-  const balance = tracked.reduce((sum, item) => sum + Number(item.entry.amount || 0), 0);
-  const monthly = tracked.reduce((sum, item) => sum + item.y.monthly, 0);
-  const netYield = balance > 0 ? monthly * 12 / balance * 100 : 0;
-  const grossYield = balance > 0
-    ? tracked.reduce((sum, item) => sum + Number(item.entry.amount || 0) * item.y.gross, 0) / balance
-    : 0;
-
-  const loans = entries
-    .filter(entry => entry.type === "liability" && entry.loan)
-    .map(entry => ({ entry, rate: annualiseLoanRate(entry.loan) }))
-    .filter(item => item.rate !== null && Number(item.entry.amount) > 0);
-  const loanBalance = loans.reduce((sum, item) => sum + Number(item.entry.amount), 0);
-  const loanRate = loanBalance > 0
-    ? loans.reduce((sum, item) => sum + Number(item.entry.amount) * item.rate, 0) / loanBalance
-    : null;
-
-  const pillars = assetPillars.map(pillar => {
-    const items = assets.filter(entry => pillar.categories.includes(entry.category));
-    const value = items.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
-    const income = items.reduce((sum, entry) => sum + (getAssetYield(entry)?.monthly || 0), 0);
-    return { name: pillar.name, value, income };
-  });
-  const totalAssets = assets.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
-
-  const living = getPowerUpData().budgets
-    .filter(item => item.category !== "Savings & investing")
-    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-
-  return {
-    tracked, balance, monthly, netYield, grossYield, loans, loanRate, pillars, totalAssets,
-    untracked: assets.length - tracked.length,
-    spread: loanRate === null || tracked.length === 0 ? null : netYield - loanRate,
-    living,
-    coverage: living > 0 ? monthly / living * 100 : null
-  };
-}
-
-function renderAssetEngine() {
-  const entries = getInventoryEntries();
-  const engine = getAssetEngine(entries);
-  const pct = value => `${(Math.round(value * 100) / 100).toString()}%`;
-
-  if (engine.tracked.length === 0) {
-    return `
-      <section class="panel asset-engine">
-        <div class="panel-heading">
-          <div><div class="section-kicker">NETRAOS ASSET ENGINE</div><h2>Passive income &amp; yield</h2></div>
-        </div>
-        <div class="asset-engine-empty">
-          <strong>Put your assets to work.</strong>
-          <p>Add an expected annual return, tax treatment, compounding and liquidity to an asset and NetraOS will calculate your net yield and monthly passive income.</p>
-          <button class="inventory-add-small" type="button" data-inventory-action="add-asset">＋ Add a yielding asset</button>
-        </div>
-      </section>`;
-  }
-
-  const insights = [];
-  if (engine.coverage !== null) {
-    insights.push(`Your passive asset returns currently cover <b>${pct(engine.coverage)}</b> of your baseline monthly living costs (${formatKsh(engine.living)}) automatically. Every month your money generates ${engine.coverage >= 100 ? "more than a full paycheck" : "the equivalent of a partial paycheck"} without reducing your principal balance.`);
-  } else {
-    insights.push(`Your assets generate <b>${formatKsh(engine.monthly)}</b> a month without reducing your principal. Add budget lines in Power-Up to see how much of your living costs this covers.`);
-  }
-  if (engine.spread !== null) {
-    const spreadText = `${engine.spread >= 0 ? "+" : "−"}${pct(Math.abs(engine.spread))}`;
-    insights.push(engine.spread >= 0
-      ? `Wealth velocity is <b>positive</b>: your portfolio earns ${pct(engine.netYield)} net against an average loan cost of ${pct(engine.loanRate)} (spread ${spreadText}).`
-      : `Wealth velocity is <b>negative</b>: your loans cost an average ${pct(engine.loanRate)} against ${pct(engine.netYield)} net asset yield (spread ${spreadText}). Clearing the costliest debt would beat holding it against these assets.`);
-    const costliest = [...engine.loans].sort((a, b) => b.rate - a.rate)[0];
-    const liquid = engine.tracked
-      .filter(item => /^(Immediate|High)/.test(item.entry.returns.liquidity || ""))
-      .sort((a, b) => b.y.net - a.y.net)[0];
-    if (costliest && liquid) {
-      insights.push(liquid.y.net > costliest.rate
-        ? `Smart arbitrage: <b>${escapeHTML(liquid.entry.name)}</b> earns ${pct(liquid.y.net)} net, more than <b>${escapeHTML(costliest.entry.name)}</b> costs (${pct(costliest.rate)}), so keeping cash invested is usually better than rushing to clear that loan.`
-        : `Smart arbitrage: <b>${escapeHTML(costliest.entry.name)}</b> costs ${pct(costliest.rate)}, more than <b>${escapeHTML(liquid.entry.name)}</b> earns (${pct(liquid.y.net)} net), so extra cash is better used to clear it.`);
-    }
-  }
-  if (engine.untracked > 0) {
-    insights.push(`${engine.untracked} ${engine.untracked === 1 ? "asset has" : "assets have"} no return set and ${engine.untracked === 1 ? "is" : "are"} left out of these figures.`);
-  }
-
-  const maxPillar = Math.max(1, ...engine.pillars.map(pillar => pillar.value));
-  return `
-    <section class="panel asset-engine">
-      <div class="panel-heading">
-        <div><div class="section-kicker">NETRAOS ASSET ENGINE SUMMARY</div><h2>Passive income &amp; yield</h2></div>
-        <span class="inventory-account-count">${engine.tracked.length} yielding ${engine.tracked.length === 1 ? "asset" : "assets"}</span>
-      </div>
-      <div class="asset-engine-kpis">
-        <article class="asset-engine-kpi"><span class="inventory-label">TOTAL ASSET PORTFOLIO BALANCE</span><strong>${formatKsh(engine.balance)}</strong><span class="inventory-note">Gross yield ${pct(engine.grossYield)} p.a.</span></article>
-        <article class="asset-engine-kpi"><span class="inventory-label">WEIGHTED AVERAGE NET YIELD</span><strong>${pct(engine.netYield)} <small>p.a.</small></strong><span class="inventory-note">After 15% withholding tax</span></article>
-        <article class="asset-engine-kpi highlight"><span class="inventory-label">MONTHLY PASSIVE INCOME</span><strong>${formatKsh(engine.monthly)} <small>/ month</small></strong><span class="inventory-note">${formatKsh(engine.monthly * 12)} a year</span></article>
-        <article class="asset-engine-kpi"><span class="inventory-label">NET INTEREST SPREAD</span><strong class="${engine.spread === null ? "" : engine.spread >= 0 ? "positive" : "negative"}">${engine.spread === null ? "—" : `${engine.spread >= 0 ? "+" : "−"}${pct(Math.abs(engine.spread))}`}</strong><span class="inventory-note">${engine.spread === null ? "Add a loan with an interest rate" : "Asset yield vs. loan interest"}</span></article>
-      </div>
-      <div class="asset-engine-body">
-        <div class="asset-pillars" aria-label="Allocation by pillar">
-          ${engine.pillars.filter(pillar => pillar.value > 0).map(pillar => `
-            <div class="asset-pillar">
-              <div class="asset-pillar-head"><span>${pillar.name}</span><strong>${formatKsh(pillar.value)}</strong></div>
-              <div class="asset-pillar-bar"><span style="width:${Math.max(3, pillar.value / maxPillar * 100).toFixed(1)}%"></span></div>
-              <small>${engine.totalAssets > 0 ? (pillar.value / engine.totalAssets * 100).toFixed(1) : "0"}% of assets · ${formatKsh(pillar.income)}/mo</small>
-            </div>`).join("")}
-        </div>
-        <aside class="asset-insight">
-          <span class="inventory-label">SYSTEM INSIGHT</span>
-          ${insights.map(text => `<p>${text}</p>`).join("")}
-        </aside>
-      </div>
-    </section>`;
 }
 
 const budgetCategories = [
@@ -636,6 +506,44 @@ function recordSecurityAudit(action) {
     // Audit history is a convenience and must never block an app action.
   }
 }
+
+
+// Password fields: typed text stays visible for a few seconds, and the eye button shows or hides it on demand.
+const PASSWORD_REVEAL_MS = 3000;
+const passwordRevealTimers = new WeakMap();
+
+function setPasswordVisible(input, visible, pinned) {
+  const toggle = input.closest(".password-field")?.querySelector("[data-password-toggle]");
+  input.type = visible ? "text" : "password";
+  if (toggle) {
+    const shown = pinned ?? toggle.getAttribute("aria-pressed") === "true";
+    toggle.setAttribute("aria-pressed", String(shown));
+    toggle.setAttribute("aria-label", shown ? "Hide password" : "Show password");
+    toggle.title = shown ? "Hide password" : "Show password";
+    toggle.classList.toggle("is-showing", visible);
+  }
+}
+
+document.addEventListener("input", event => {
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement) || !input.closest(".password-field")) return;
+  const toggle = input.closest(".password-field").querySelector("[data-password-toggle]");
+  if (toggle?.getAttribute("aria-pressed") === "true") return;
+  window.clearTimeout(passwordRevealTimers.get(input));
+  if (!input.value) { setPasswordVisible(input, false); return; }
+  setPasswordVisible(input, true);
+  passwordRevealTimers.set(input, window.setTimeout(() => setPasswordVisible(input, false), PASSWORD_REVEAL_MS));
+});
+
+document.addEventListener("click", event => {
+  const toggle = event.target.closest("[data-password-toggle]");
+  if (!toggle) return;
+  const input = toggle.closest(".password-field").querySelector("input");
+  window.clearTimeout(passwordRevealTimers.get(input));
+  const pin = toggle.getAttribute("aria-pressed") !== "true";
+  setPasswordVisible(input, pin, pin);
+  input.focus();
+});
 
 // Derive a salted PIN verifier; it protects the screen only and does not encrypt stored records.
 async function deriveLocalPinHash(pin, saltBase64) {
@@ -885,7 +793,7 @@ function showPublicPage(page = "landing") {
           <form class="auth-form" data-auth-form="${isSignup ? "signup" : "login"}" novalidate>
             ${isSignup ? `<label class="inventory-form-field"><span>Full name</span><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your name" required></label>` : ""}
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
-            <label class="inventory-form-field"><span>Password</span><input name="password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" minlength="8" placeholder="At least 8 characters" required></label>
+            <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" minlength="8" placeholder="At least 8 characters" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>` : ""}
             <div class="auth-error" role="alert" hidden></div>
             <button class="public-primary auth-submit" type="submit">${isSignup ? "Create local profile" : "Log in"} <span>↗</span></button>
@@ -1803,8 +1711,6 @@ function renderInventoryPage() {
           <span class="inventory-note">Assets minus liabilities</span>
         </article>
       </section>
-
-      ${renderAssetEngine()}
 
       <section class="inventory-columns" aria-label="Assets and liabilities">
         <article class="panel inventory-list-panel">
@@ -3542,9 +3448,38 @@ async function restoreLocalData(file) {
 }
 
 // Erase this app's own browser keys and cookie names, without touching other site data.
-function clearAllLocalData() {
-  if (!window.confirm("Factory reset will remove all NetraOS profiles, financial records, plans, goals, and settings from this browser. This cannot be undone. Continue?")) return;
-  if (!window.confirm("Final confirmation: permanently clear all NetraOS data from this browser now?")) return;
+// Factory reset is protected by a one-time code sent to the registered email address.
+// Delivery needs an email service: set EMAIL_CODE_ENDPOINT to a URL that accepts
+// POST {to, subject, code, purpose, expiresInMinutes} and sends the message.
+const EMAIL_CODE_ENDPOINT = "";
+const RESET_CODE_TTL_MS = 10 * 60 * 1000;
+const RESET_CODE_MAX_ATTEMPTS = 5;
+const RESET_RESEND_SECONDS = 60;
+
+function isLocalPreviewHost() {
+  return location.protocol === "file:" || ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+}
+
+function maskEmail(email) {
+  const [user = "", domain = ""] = String(email).split("@");
+  return `${user.slice(0, 1)}${"•".repeat(Math.max(2, Math.min(6, user.length - 1)))}@${domain}`;
+}
+
+async function sendResetCodeEmail(to, code) {
+  if (EMAIL_CODE_ENDPOINT) {
+    const response = await fetch(EMAIL_CODE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to, subject: "Your NetraOS verification code", code, purpose: "factory-reset", expiresInMinutes: RESET_CODE_TTL_MS / 60000 })
+    });
+    if (!response.ok) throw new Error("The email service could not send the code. Try again shortly.");
+    return { demo: false };
+  }
+  if (isLocalPreviewHost()) return { demo: true };
+  throw new Error("Email delivery is not set up for this app yet, so the reset cannot be verified.");
+}
+
+function performFactoryReset() {
   window.clearTimeout(autoLockTimer);
   for (const storage of [localStorage, sessionStorage]) {
     const keys = [];
@@ -3562,6 +3497,105 @@ function clearAllLocalData() {
   appShell.hidden = true;
   showPublicPage("landing");
   showToast("NetraOS data cleared from this browser.");
+}
+
+function clearAllLocalData() {
+  const profile = getStoredProfile();
+  const email = String(profile?.email || "").trim();
+  if (!email.includes("@")) {
+    showToast("Add an email address to your profile first so a verification code can be sent.");
+    return;
+  }
+  let pending = null;
+  let resendTimer = 0;
+  const dialog = document.createElement("dialog");
+  dialog.className = "inventory-dialog";
+  dialog.innerHTML = `
+    <form class="inventory-form reset-form" novalidate>
+      <header class="inventory-dialog-heading"><div><span class="section-kicker">SECURITY CHECK</span><h2>Confirm factory reset</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header>
+      <div class="inventory-form-fields">
+        <p class="reset-copy">This permanently removes all NetraOS profiles, records, plans, goals and settings from this browser. It cannot be undone, so download a backup first.</p>
+        <p class="reset-copy" data-reset-step-copy>We will email a 6-digit verification code to <b>${escapeHTML(maskEmail(email))}</b>.</p>
+        <div class="reset-demo" data-reset-demo hidden></div>
+        <label class="inventory-form-field" data-reset-code-field hidden><span>Verification code</span><input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="6-digit code"></label>
+        <p class="reset-status" role="status" aria-live="polite" data-reset-status></p>
+      </div>
+      <footer class="inventory-dialog-actions">
+        <button class="inventory-cancel" type="button">Cancel</button>
+        <button class="inventory-submit" type="button" data-reset-send>Send code</button>
+        <button class="inventory-submit danger" type="submit" data-reset-confirm hidden>Verify &amp; erase everything</button>
+      </footer>
+    </form>`;
+  document.body.append(dialog);
+  const form = dialog.querySelector("form");
+  const status = dialog.querySelector("[data-reset-status]");
+  const sendButton = dialog.querySelector("[data-reset-send]");
+  const confirmButton = dialog.querySelector("[data-reset-confirm]");
+  const codeField = dialog.querySelector("[data-reset-code-field]");
+  const demoBox = dialog.querySelector("[data-reset-demo]");
+  const setStatus = (text, error = false) => { status.textContent = text; status.classList.toggle("error", error); };
+  const close = () => { window.clearInterval(resendTimer); pending = null; dialog.close(); };
+
+  function startCooldown() {
+    let left = RESET_RESEND_SECONDS;
+    sendButton.disabled = true;
+    window.clearInterval(resendTimer);
+    const tick = () => {
+      sendButton.textContent = left > 0 ? `Resend code (${left}s)` : "Resend code";
+      if (left <= 0) { window.clearInterval(resendTimer); sendButton.disabled = false; }
+      left -= 1;
+    };
+    tick();
+    resendTimer = window.setInterval(tick, 1000);
+  }
+
+  sendButton.addEventListener("click", async () => {
+    sendButton.disabled = true;
+    setStatus("Sending code…");
+    try {
+      const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, "0");
+      const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+      const salt = btoa(Array.from(saltBytes, byte => String.fromCharCode(byte)).join(""));
+      const hash = await deriveLocalPinHash(code, salt);
+      const result = await sendResetCodeEmail(email, code);
+      pending = { salt, hash, expires: Date.now() + RESET_CODE_TTL_MS, attempts: 0 };
+      codeField.hidden = false;
+      confirmButton.hidden = false;
+      dialog.querySelector("[data-reset-step-copy]").innerHTML = `Enter the 6-digit code${result.demo ? "" : ` we sent to <b>${escapeHTML(maskEmail(email))}</b>`}. It expires in 10 minutes.`;
+      demoBox.hidden = !result.demo;
+      if (result.demo) demoBox.innerHTML = `<b>Preview mode:</b> no email service is connected here, so your code is <strong>${code}</strong>. On a live site this code is emailed instead.`;
+      setStatus(result.demo ? "" : "Code sent. Check your inbox and spam folder.");
+      form.elements.code.value = "";
+      form.elements.code.focus();
+      startCooldown();
+    } catch (error) {
+      setStatus(error.message || "Unable to send the code.", true);
+      sendButton.disabled = false;
+    }
+  });
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!pending) return;
+    const entered = String(form.elements.code.value || "").trim();
+    if (Date.now() > pending.expires) { pending = null; setStatus("That code has expired. Send a new one.", true); return; }
+    if (!/^[0-9]{6}$/.test(entered)) { setStatus("Enter the 6-digit code from the email.", true); return; }
+    pending.attempts += 1;
+    const ok = (await deriveLocalPinHash(entered, pending.salt)) === pending.hash;
+    if (!ok) {
+      const left = RESET_CODE_MAX_ATTEMPTS - pending.attempts;
+      if (left <= 0) { pending = null; setStatus("Too many incorrect attempts. Send a new code.", true); form.elements.code.value = ""; return; }
+      setStatus(`That code is not correct. ${left} ${left === 1 ? "attempt" : "attempts"} left.`, true);
+      return;
+    }
+    close();
+    performFactoryReset();
+  });
+
+  dialog.querySelector(".inventory-dialog-close").addEventListener("click", close);
+  dialog.querySelector(".inventory-cancel").addEventListener("click", close);
+  dialog.addEventListener("close", () => { window.clearInterval(resendTimer); dialog.remove(); }, { once: true });
+  dialog.showModal();
 }
 
 // Download financial data as a plain CSV file.
