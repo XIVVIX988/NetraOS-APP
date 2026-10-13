@@ -1569,7 +1569,10 @@ function openInventoryDialog(action) {
   const categorySelect = dialog.querySelector("#inventory-entry-category");
 
   function refreshCategories() {
-    const categories = typeSelect?.value === "liability"
+    // The type is a <select> on "Add an account" but a hidden input on
+    // "Add asset" / "Add liability", so read it from whichever exists.
+    const entryType = fixedType || typeSelect?.value || "asset";
+    const categories = entryType === "liability"
       ? liabilityCategories
       : assetCategories;
     categorySelect.innerHTML = categories
@@ -2799,11 +2802,22 @@ function maybePromptForBackup() {
   if (!settings.monthlyBackupPrompt) return;
   const lastPrompt = Date.parse(settings.lastBackupPromptAt || "");
   const interval = 30 * 24 * 60 * 60 * 1000;
-  const delay = Number.isFinite(lastPrompt) ? Math.max(1200, interval - (Date.now() - lastPrompt)) : 1200;
+  // setTimeout stores its delay as a signed 32-bit integer (~24.8 days). A
+  // 30-day delay overflows and fires immediately, which re-armed the timer
+  // and made the confirm() dialog loop forever. Cap each wait and re-check
+  // whether the reminder is actually due when the timer fires.
+  const maxTimerDelay = 2147483647;
+  const remaining = Number.isFinite(lastPrompt) ? interval - (Date.now() - lastPrompt) : 0;
+  const delay = Math.min(maxTimerDelay, Math.max(1200, remaining));
   backupPromptTimer = window.setTimeout(() => {
     const current = getStoredSettings();
     if (!current.monthlyBackupPrompt) return;
+    const last = Date.parse(current.lastBackupPromptAt || "");
+    const due = !Number.isFinite(last) || Date.now() - last >= interval;
+    if (!due) { maybePromptForBackup(); return; }
     current.lastBackupPromptAt = new Date().toISOString();
+    // If the timestamp can't be saved the reminder would repeat on every
+    // page load, so skip it rather than trap the user in a prompt loop.
     try { localStorage.setItem(settingsStorageKey, JSON.stringify(current)); } catch { return; }
     if (window.confirm("It’s time to save a local NetraOS backup. Download your data now?")) downloadAllLocalData("json");
     maybePromptForBackup();

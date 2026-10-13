@@ -7520,3 +7520,94 @@ body.theme-dark .legal-links a { color: #a6d3b5; }
 body.theme-dark .settings-import-drop { border-color: #4b5b50; background: #202a24; color: #e2eae4; }
 body.theme-dark .settings-import-drop span { color: #aab6ad; }
 body.theme-dark .settings-import-drop:hover { border-color: #69bd91; background: #26372c; }
+
+/* ==========================================================================
+   Dark-mode fixes
+   1) Dialogs are appended to <body>, outside .app-shell, so the
+      `.app-shell.theme-dark` rules never reached them. Scope them to
+      body.theme-dark instead and redeclare the tokens they rely on.
+   2) Figures and labels on Inventory, Power-Up, Quests and Stats were
+      hard-coded to dark greens, which vanished on the dark surface.
+   ========================================================================== */
+body.theme-dark dialog.inventory-dialog {
+  --bg: #0e1311;
+  --panel: #171e1b;
+  --panel-2: #202925;
+  --line: #2c3932;
+  --text: #e8eee9;
+  --muted: #a2ada5;
+  --soft: #c3cbc5;
+  color-scheme: dark;
+  color: var(--text);
+  background: #1a231e;
+  border-color: var(--line);
+  box-shadow: 0 24px 70px #0009;
+}
+body.theme-dark dialog.inventory-dialog::backdrop {
+  background: #05080680;
+}
+body.theme-dark .inventory-dialog-heading h2 { color: var(--text); }
+body.theme-dark .inventory-dialog .section-kicker { color: var(--muted); }
+body.theme-dark .inventory-dialog .inventory-dialog-close { color: #b8c4bb; }
+body.theme-dark .inventory-dialog .inventory-dialog-close:hover { color: var(--text); background: #26332b; }
+body.theme-dark .inventory-dialog .inventory-form-field { color: #b4c0b7; }
+body.theme-dark .inventory-dialog .inventory-form-field > span small { color: #8e9b92; }
+body.theme-dark .inventory-dialog .inventory-form-field input,
+body.theme-dark .inventory-dialog .inventory-form-field select,
+body.theme-dark .inventory-dialog .inventory-form-field textarea {
+  background: #111814;
+  border-color: #33423a;
+  color: var(--text);
+  color-scheme: dark;
+}
+body.theme-dark .inventory-dialog .inventory-form-field input::placeholder,
+body.theme-dark .inventory-dialog .inventory-form-field textarea::placeholder { color: #7b887f; }
+body.theme-dark .inventory-dialog .inventory-form-field input:focus,
+body.theme-dark .inventory-dialog .inventory-form-field select:focus,
+body.theme-dark .inventory-dialog .inventory-form-field textarea:focus {
+  border-color: #53c294;
+  box-shadow: 0 0 0 3px #53c29426;
+}
+body.theme-dark .inventory-dialog .inventory-form-field > strong {
+  background: #111814;
+  border-color: #33423a;
+  color: var(--text);
+}
+body.theme-dark .inventory-dialog .inventory-cancel {
+  background: transparent;
+  border-color: #3a4a41;
+  color: #c3cbc5;
+}
+body.theme-dark .inventory-dialog .inventory-cancel:hover { background: #26332b; color: var(--text); }
+body.theme-dark .inventory-dialog .inventory-submit {
+  background: #53c294;
+  border-color: #53c294;
+  color: #102018;
+}
+
+/* Figures and labels: Inventory, Power-Up, Quests, Stats */
+.app-shell.theme-dark .inventory-summary-card strong,
+.app-shell.theme-dark .inventory-row strong,
+.app-shell.theme-dark .inventory-panel-total strong,
+.app-shell.theme-dark .inventory-account-name strong,
+.app-shell.theme-dark .power-row-name strong,
+.app-shell.theme-dark .power-row-amount strong,
+.app-shell.theme-dark .quest-title,
+.app-shell.theme-dark .quest-meta,
+.app-shell.theme-dark .quest-percent,
+.app-shell.theme-dark .stats-page strong,
+.app-shell.theme-dark .stats-category-heading span,
+.app-shell.theme-dark .stats-category-heading strong,
+.app-shell.theme-dark .stats-asset-row strong,
+.app-shell.theme-dark .stats-quest-row strong { color: var(--text); }
+.app-shell.theme-dark .inventory-panel-total span,
+.app-shell.theme-dark .inventory-row > span:not(.inventory-row-icon),
+.app-shell.theme-dark .quest-meta span,
+.app-shell.theme-dark .stats-planned-label,
+.app-shell.theme-dark .stats-legend { color: var(--soft); }
+.app-shell.theme-dark .inventory-account-count {
+  background: #202925;
+  color: var(--soft);
+  border-color: var(--line);
+}
+.app-shell.theme-dark .inventory-panel-total { border-color: var(--line); }
