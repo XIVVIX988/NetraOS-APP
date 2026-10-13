@@ -138,6 +138,40 @@ const liabilityCategories = [
   { name: "Home loans", icon: "⌂" },
   { name: "Other liabilities", icon: "＋" }
 ];
+// Liability tracking: lender kinds, rate bases, and helpers for tenure and display.
+const lenderTypes = ["Bank Loan", "Mobile Loan / Fuliza", "SACCO Emergency Loan", "SACCO Development Loan", "Credit Card", "Chama Loan", "Employer / Salary Advance", "Other"];
+const interestRateTypes = ["p.a. (per year)", "per month", "per day", "flat rate"];
+
+function monthsUntil(dateValue) {
+  const target = new Date(`${dateValue}T12:00:00`);
+  const now = new Date();
+  let months = (target.getFullYear() - now.getFullYear()) * 12 + (target.getMonth() - now.getMonth());
+  if (target.getDate() > now.getDate()) months += 1;
+  return Math.max(0, months);
+}
+
+function addMonthsToToday(months) {
+  const date = new Date();
+  date.setMonth(date.getMonth() + months);
+  return localDateValue(date);
+}
+
+function formatLoanRate(loan) {
+  if (!loan || loan.interestRate === null || loan.interestRate === undefined) return "Not set";
+  const rate = Number(loan.interestRate);
+  const base = String(loan.rateType || "").replace(/\s*\(.*\)/, "");
+  return base === "flat rate" ? `${rate}% flat` : `${rate}% ${base}`;
+}
+
+function formatLoanTenure(loan) {
+  if (!loan) return "Not set";
+  const months = loan.tenureMonths;
+  const date = loan.payoffDate ? new Date(`${loan.payoffDate}T12:00:00`).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) : "";
+  if (months === null || months === undefined) return date || "Not set";
+  const label = months === 1 ? "1 month left" : `${months} months left`;
+  return date ? `${label} · ${date}` : label;
+}
+
 const budgetCategories = [
   "Housing",
   "Food & groceries",
@@ -1287,6 +1321,13 @@ function renderAccountRows(entries) {
             <small>${escapeHTML(entry.category)}${entry.mobileType ? ` · ${escapeHTML(entry.mobileType)}` : ""} · ${entry.type === "asset" ? "Asset" : "Liability"}</small>
             ${entry.mobileReference ? `<small class="inventory-account-notes">${escapeHTML(entry.mobileReference)}</small>` : ""}
             ${entry.notes ? `<small class="inventory-account-notes">${escapeHTML(entry.notes)}</small>` : ""}
+            ${entry.loan ? `<span class="loan-metrics">
+              <span><small>LENDER / TYPE</small><b>${escapeHTML(entry.loan.lenderType)}</b></span>
+              <span><small>OUTSTANDING PRINCIPAL</small><b>${formatKsh(entry.amount)}</b></span>
+              <span><small>INTEREST (APR / TYPE)</small><b>${escapeHTML(formatLoanRate(entry.loan))}</b></span>
+              <span><small>MIN. MONTHLY INSTALLMENT</small><b>${entry.loan.minInstallment === null ? "Not set" : formatKsh(entry.loan.minInstallment) + "/mo"}</b></span>
+              <span><small>REMAINING TENURE</small><b>${escapeHTML(formatLoanTenure(entry.loan))}</b></span>
+            </span>` : ""}
           </span>
           <strong class="inventory-account-amount">${formatKsh(entry.amount)}</strong>
           <button class="inventory-delete" type="button" data-delete-entry="${escapeHTML(entry.id)}" aria-label="Delete ${escapeHTML(entry.name)}" title="Delete item">×</button>
@@ -1563,9 +1604,22 @@ function openInventoryDialog(action) {
           <label class="inventory-form-field"><span>Phone, Till or Paybill number <small>Optional</small></span><input name="mobileReference" type="text" maxlength="60" placeholder="e.g. 07xx xxx xxx or 123456"></label>
         </div>
         <label class="inventory-form-field">
-          <span>Current balance (KSh)</span>
+          <span id="inventory-amount-label">Current balance (KSh)</span>
           <input name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" required>
         </label>
+        <div class="inventory-form-fields liability-fields" hidden>
+          <label class="inventory-form-field"><span>Lender / type</span><select name="lenderType">${lenderTypes.map(type => `<option>${type}</option>`).join("")}</select></label>
+          <div class="liability-rate-row">
+            <label class="inventory-form-field"><span>Interest rate (%)</span><input name="interestRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 14"></label>
+            <label class="inventory-form-field"><span>Rate type</span><select name="rateType">${interestRateTypes.map(type => `<option>${type}</option>`).join("")}</select></label>
+          </div>
+          <label class="inventory-form-field"><span>Minimum monthly installment (KSh)</span><input name="minInstallment" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 8500"></label>
+          <div class="liability-rate-row">
+            <label class="inventory-form-field"><span>Months remaining</span><input name="tenureMonths" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g. 18"></label>
+            <label class="inventory-form-field"><span>Or target payoff date</span><input name="payoffDate" type="date"></label>
+          </div>
+          <small class="liability-hint">Enter months remaining or a payoff date; the other is worked out for you.</small>
+        </div>
         <label class="inventory-form-field">
           <span>Notes <small>Optional</small></span>
           <textarea name="notes" rows="3" maxlength="500" placeholder="Add a note about this item"></textarea>
@@ -1593,6 +1647,10 @@ function openInventoryDialog(action) {
       .map(category => `<option value="${category.name}">${category.name}</option>`)
       .join("");
     dialog.querySelector(".mobile-money-fields").hidden = categorySelect.value !== "Mobile money";
+    const isLiability = entryType === "liability";
+    dialog.querySelector(".liability-fields").hidden = !isLiability;
+    dialog.querySelector("#inventory-amount-label").textContent = isLiability ? "Current outstanding principal (KSh)" : "Current balance (KSh)";
+    dialog.querySelector("h2").textContent = isLiability ? "Add a liability" : "Add an inventory item";
   }
 
   refreshCategories();
@@ -1613,16 +1671,47 @@ function openInventoryDialog(action) {
 
     if (!name || !Number.isFinite(amount) || amount < 0) return;
 
+    const entryType = String(formData.get("type"));
+    let loan = null;
+    if (entryType === "liability") {
+      const rateRaw = String(formData.get("interestRate") || "").trim();
+      const installmentRaw = String(formData.get("minInstallment") || "").trim();
+      const monthsRaw = String(formData.get("tenureMonths") || "").trim();
+      let payoffDate = String(formData.get("payoffDate") || "");
+      let tenureMonths = monthsRaw === "" ? null : Math.round(Number(monthsRaw));
+      const interestRate = rateRaw === "" ? null : Number(rateRaw);
+      const minInstallment = installmentRaw === "" ? null : Number(installmentRaw);
+      if ([interestRate, minInstallment, tenureMonths].some(value => value !== null && (!Number.isFinite(value) || value < 0))) {
+        showToast("Interest, installment and months must be zero or more.");
+        return;
+      }
+      if (payoffDate && payoffDate <= localDateValue()) {
+        showToast("Choose a payoff date in the future.");
+        return;
+      }
+      if (tenureMonths === null && payoffDate) tenureMonths = monthsUntil(payoffDate);
+      else if (tenureMonths !== null && !payoffDate && tenureMonths > 0) payoffDate = addMonthsToToday(tenureMonths);
+      loan = {
+        lenderType: String(formData.get("lenderType") || "Other"),
+        interestRate,
+        rateType: String(formData.get("rateType") || interestRateTypes[0]),
+        minInstallment,
+        tenureMonths,
+        payoffDate
+      };
+    }
+
     const entries = getInventoryEntries();
     entries.push({
       id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      type: String(formData.get("type")),
+      type: entryType,
       name,
       category: String(formData.get("category")),
       amount,
       mobileType: String(formData.get("category") === "Mobile money" ? formData.get("mobileType") || "Mobile wallet" : ""),
       mobileReference: String(formData.get("category") === "Mobile money" ? formData.get("mobileReference") || "" : "").trim(),
-      notes: String(formData.get("notes") || "").trim()
+      notes: String(formData.get("notes") || "").trim(),
+      ...(loan ? { loan } : {})
     });
 
     try {
@@ -3054,318 +3143,464 @@ function downloadExcel() {
   showToast("Dashboard Excel workbook downloaded.");
 }
 
-// Build a self-contained, vector-based PDF with report charts, logo, and watermark.
+// Build a self-contained, vector-based A4 PDF report: cover summary, liabilities schedule,
+// detail tables, and a translucent brand watermark. No external libraries are required.
 function downloadPDF() {
   recordSecurityAudit("Downloaded financial PDF");
-  const W = 612;
-  const H = 792;
-  const colors = {
-    ink: "#17251D", muted: "#64736A", green: "#126B4A", deep: "#103B2C",
-    gold: "#D9B653", pale: "#F3F8F5", line: "#DDE8E1", white: "#FFFFFF",
-    red: "#C65B50", blue: "#4D8197", purple: "#8973A8", light: "#EAF2ED"
+  const W = 595.28, H = 841.89, M = 40, CW = W - M * 2, FOOT = 56;
+  const C = {
+    ink: "#16241D", body: "#3B4A42", muted: "#6B7A71", green: "#13875F", deep: "#0E3B2C",
+    gold: "#C9A24A", pale: "#F2F7F4", tint: "#E3F0E8", line: "#DCE6DF", white: "#FFFFFF",
+    red: "#B94A3F", blue: "#3D7A94", purple: "#7F6BA6", amber: "#C98B2B", zebra: "#F7FAF8", sage: "#8DB8A2"
   };
-  const toRgb = hex => {
+
+  // Helvetica glyph widths (ASCII 32-126) so text can be aligned and truncated precisely.
+  const regular = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+  const heavy = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
+  const tw = (str, size, bold = false) => {
+    const table = bold ? heavy : regular;
+    let total = 0;
+    for (const ch of str) total += table[ch.charCodeAt(0) - 32] ?? 556;
+    return (total * size) / 1000;
+  };
+  const rgb = hex => {
     const raw = hex.replace("#", "");
-    return [0, 2, 4].map(index => (parseInt(raw.slice(index, index + 2), 16) / 255).toFixed(3)).join(" ");
+    return [0, 2, 4].map(i => (parseInt(raw.slice(i, i + 2), 16) / 255).toFixed(3)).join(" ");
   };
-  const ascii = value => String(value).normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, " ").replace(/\s+/g, " ").trim();
-  const escaped = value => ascii(value).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-  const short = (value, max = 30) => {
-    const text = ascii(value);
-    return text.length > max ? text.slice(0, Math.max(0, max - 3)) + "..." : text;
+  const n = value => String(Math.round(value * 100) / 100);
+  const ascii = value => String(value ?? "").normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^\x20-\x7E]/g, " ").replace(/\s+/g, " ").trim();
+  const esc = value => value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  const fit = (value, size, bold, maxW) => {
+    if (tw(value, size, bold) <= maxW) return value;
+    let cut = value;
+    while (cut.length > 1 && tw(cut + "...", size, bold) > maxW) cut = cut.slice(0, -1);
+    return cut.trimEnd() + "...";
   };
+  const py = top => H - top;
+
+  // Report data -----------------------------------------------------------------------
   const currencyState = getCurrencyState();
   const reportCurrency = currencyState.active === "KES" ? "KSh" : currencyState.active;
   const reportRate = currencyState.rates[currencyState.active] || 1;
-  const reportMoney = amount => `${reportCurrency} ${ (Number(amount || 0) / reportRate).toLocaleString("en-US", { minimumFractionDigits: getStoredSettings().alwaysShowCents ? 2 : 0, maximumFractionDigits: 2 })}`;
+  const cents = getStoredSettings().alwaysShowCents;
+  const money = amount => `${reportCurrency} ${(Number(amount || 0) / reportRate).toLocaleString("en-US", { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: 2 })}`;
   const entries = getInventoryEntries();
   const totals = getInventoryTotals();
   const power = getPowerUpData();
   const reportSpending = spendingForReport(power.spending);
-  const plan = {
-    income: power.incomes.reduce((sum, item) => sum + Number(item.amount || 0), 0),
-    budget: power.budgets.reduce((sum, item) => sum + Number(item.amount || 0), 0),
-    spending: reportSpending.reduce((sum, item) => sum + Number(item.amount || 0), 0)
-  };
-  plan.surplus = plan.income - plan.spending;
+  const sum = list => list.reduce((total, item) => total + Number(item.amount || 0), 0);
+  const plan = { income: sum(power.incomes), budget: sum(power.budgets), spending: sum(reportSpending) };
   const quests = getQuests();
-  const savingsRate = plan.income > 0 ? Math.round(((plan.income - plan.spending) / plan.income) * 1000) / 10 : 0;
-  const initials = (getStoredProfile()?.name || "NetraOS").trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "NO";
-  const reportDate = new Date().toLocaleDateString("en-KE", { year: "numeric", month: "long", day: "numeric" });
-  const streams = [];
+  const assets = entries.filter(item => item.type === "asset");
+  const liabilities = entries.filter(item => item.type === "liability");
+  const profile = getStoredProfile();
+  const preparedFor = ascii(profile?.name || document.body.dataset.userName || "NetraOS user");
+  const now = new Date();
+  const reportDate = now.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const reportRef = `NOS-${localDateValue(now).replace(/-/g, "")}`;
+  const period = getReportPeriod();
+  const pct = (value, digits = 1) => `${(Math.round(value * 10 ** digits) / 10 ** digits).toFixed(digits)}%`;
+  const savingsRate = plan.income > 0 ? ((plan.income - plan.spending) / plan.income) * 100 : 0;
+  const debtToAsset = totals.assets > 0 ? (totals.liabilities / totals.assets) * 100 : null;
+  const monthlyInstallments = liabilities.reduce((total, item) => total + Number(item.loan?.minInstallment || 0), 0);
+  const debtService = plan.income > 0 ? (monthlyInstallments / plan.income) * 100 : null;
+  const loanDates = liabilities.map(item => item.loan?.payoffDate).filter(Boolean).sort();
+  const longestTenure = liabilities.reduce((max, item) => Math.max(max, Number(item.loan?.tenureMonths || 0)), 0);
+  const debtHealth = debtToAsset === null ? "No assets recorded" : debtToAsset < 30 ? "Healthy" : debtToAsset <= 50 ? "Moderate" : "Elevated";
+  const debtHealthColor = debtToAsset === null ? C.muted : debtToAsset < 30 ? C.green : debtToAsset <= 50 ? C.amber : C.red;
 
-  function text(stream, x, y, size, value, color = colors.ink, bold = false) {
-    stream.push(`${toRgb(color)} rg BT /${bold ? "F2" : "F1"} ${size} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${escaped(value)}) Tj ET\n`);
+  // Page engine -----------------------------------------------------------------------
+  const pages = [];
+  let s = [];
+  let y = 0;
+  function newPage() { s = []; pages.push(s); y = 78; }
+  function ensure(height) { if (y + height > H - FOOT) newPage(); }
+
+  function txt(x, top, size, value, o = {}) {
+    const bold = Boolean(o.bold);
+    let text = ascii(value);
+    if (o.maxW) text = fit(text, size, bold, o.maxW);
+    const spacing = o.spacing || 0;
+    const width = tw(text, size, bold) + spacing * text.length;
+    const px = o.align === "r" ? x - width : o.align === "c" ? x - width / 2 : x;
+    s.push(`${rgb(o.color || C.ink)} rg BT /${bold ? "F2" : "F1"} ${n(size)} Tf ${spacing ? n(spacing) + " Tc " : ""}${n(px)} ${n(py(top))} Td (${esc(text)}) Tj${spacing ? " 0 Tc" : ""} ET\n`);
   }
-  function rect(stream, x, y, w, h, fill, stroke = "", lineWidth = 1) {
-    if (fill) stream.push(`${toRgb(fill)} rg `);
-    if (stroke) stream.push(`${toRgb(stroke)} RG ${lineWidth} w `);
-    stream.push(`${x} ${y} ${w} ${h} re ${fill && stroke ? "B" : fill ? "f" : "S"}\n`);
+  function box(x, top, w, h, o = {}) {
+    const bx = x, by = py(top) - h, r = Math.min(o.r || 0, w / 2, h / 2), k = r * 0.5523;
+    const path = r > 0
+      ? `${n(bx + r)} ${n(by)} m ${n(bx + w - r)} ${n(by)} l ${n(bx + w - r + k)} ${n(by)} ${n(bx + w)} ${n(by + r - k)} ${n(bx + w)} ${n(by + r)} c ${n(bx + w)} ${n(by + h - r)} l ${n(bx + w)} ${n(by + h - r + k)} ${n(bx + w - r + k)} ${n(by + h)} ${n(bx + w - r)} ${n(by + h)} c ${n(bx + r)} ${n(by + h)} l ${n(bx + r - k)} ${n(by + h)} ${n(bx)} ${n(by + h - r + k)} ${n(bx)} ${n(by + h - r)} c ${n(bx)} ${n(by + r)} l ${n(bx)} ${n(by + r - k)} ${n(bx + r - k)} ${n(by)} ${n(bx + r)} ${n(by)} c h`
+      : `${n(bx)} ${n(by)} ${n(w)} ${n(h)} re`;
+    const op = o.fill && o.stroke ? "B" : o.fill ? "f" : "S";
+    s.push(`${o.fill ? rgb(o.fill) + " rg " : ""}${o.stroke ? rgb(o.stroke) + " RG " + n(o.lw || 0.75) + " w " : ""}${path} ${op}\n`);
   }
-  function line(stream, x1, y1, x2, y2, color = colors.line, width = 1) {
-    stream.push(`${toRgb(color)} RG ${width} w ${x1} ${y1} m ${x2} ${y2} l S\n`);
+  function rule(x1, t1, x2, t2, color = C.line, width = 0.75) {
+    s.push(`${rgb(color)} RG ${n(width)} w ${n(x1)} ${n(py(t1))} m ${n(x2)} ${n(py(t2))} l S\n`);
   }
-  function circlePath(stream, cx, cy, r) {
-    const k = r * 0.5522847498;
-    stream.push(`${(cx + r).toFixed(2)} ${cy.toFixed(2)} m ${(cx + r).toFixed(2)} ${(cy + k).toFixed(2)} ${(cx + k).toFixed(2)} ${(cy + r).toFixed(2)} ${cx.toFixed(2)} ${(cy + r).toFixed(2)} c ${(cx - k).toFixed(2)} ${(cy + r).toFixed(2)} ${(cx - r).toFixed(2)} ${(cy + k).toFixed(2)} ${(cx - r).toFixed(2)} ${cy.toFixed(2)} c ${(cx - r).toFixed(2)} ${(cy - k).toFixed(2)} ${(cx - k).toFixed(2)} ${(cy - r).toFixed(2)} ${cx.toFixed(2)} ${(cy - r).toFixed(2)} c ${(cx + k).toFixed(2)} ${(cy - r).toFixed(2)} ${(cx + r).toFixed(2)} ${(cy - k).toFixed(2)} ${(cx + r).toFixed(2)} ${cy.toFixed(2)} c`);
+  function circle(cx, cyPdf, r) {
+    const k = r * 0.5523;
+    return `${n(cx + r)} ${n(cyPdf)} m ${n(cx + r)} ${n(cyPdf + k)} ${n(cx + k)} ${n(cyPdf + r)} ${n(cx)} ${n(cyPdf + r)} c ${n(cx - k)} ${n(cyPdf + r)} ${n(cx - r)} ${n(cyPdf + k)} ${n(cx - r)} ${n(cyPdf)} c ${n(cx - r)} ${n(cyPdf - k)} ${n(cx - k)} ${n(cyPdf - r)} ${n(cx)} ${n(cyPdf - r)} c ${n(cx + k)} ${n(cyPdf - r)} ${n(cx + r)} ${n(cyPdf - k)} ${n(cx + r)} ${n(cyPdf)} c h`;
   }
-  function drawLogo(stream, x, y, size, light = false) {
-    const scale = size / 256;
-    stream.push(`q ${scale} 0 0 -${scale} ${x} ${y + size} cm\n`);
-    stream.push(toRgb('#0A0A0A') + ' rg 0 0 256 256 re f\n');
-    stream.push(toRgb('#1F2937') + ' RG 0.8 w [2 2] 0 d 51.2 128 m 204.8 128 l 128 51.2 m 128 204.8 l S [] 0 d\n');
-    circlePath(stream, 128, 128, 71.68);
-    stream.push(toRgb('#1F2937') + ' RG 0.75 w [3 3] 0 d S [] 0 d\n');
-    stream.push(toRgb('#F2F1E1') + ' RG 6.14 w 56.32 128 m 104.11 83.63 151.89 83.63 199.68 128 c 151.89 172.37 104.11 172.37 56.32 128 c S\n');
-    circlePath(stream, 128, 128, 33.28);
-    stream.push(toRgb('#E3B74B') + ' RG 5.12 w S\n');
-    stream.push(toRgb('#E3B74B') + ' RG 4.1 w 112.64 138.24 m 128 117.76 l 143.36 138.24 l S\n');
-    circlePath(stream, 128, 128, 8.19);
-    stream.push(toRgb('#F2F1E1') + ' rg f\n');
-    circlePath(stream, 56.32, 128, 3.07);
-    stream.push(toRgb('#E3B74B') + ' rg f\n');
-    circlePath(stream, 199.68, 128, 3.07);
-    stream.push(toRgb('#E3B74B') + ' rg f\n');
-    stream.push('Q\n');
-  }
-  function drawWatermark(stream) {
-    const size = 176, x = 218, y = 340, scale = size / 256;
-    stream.push(`q ${scale} 0 0 -${scale} ${x} ${y + size} cm\n`);
-    stream.push(toRgb('#CAD4CE') + ' RG 3.2 w 56.32 128 m 104.11 83.63 151.89 83.63 199.68 128 c 151.89 172.37 104.11 172.37 56.32 128 c S\n');
-    circlePath(stream, 128, 128, 33.28);
-    stream.push(toRgb('#D3B05F') + ' RG 2.8 w S\n');
-    stream.push(toRgb('#D3B05F') + ' RG 2.2 w 112.64 138.24 m 128 117.76 l 143.36 138.24 l S\n');
-    circlePath(stream, 128, 128, 8.19);
-    stream.push(toRgb('#CAD4CE') + ' rg f\n');
-    circlePath(stream, 56.32, 128, 3.07);
-    stream.push(toRgb('#D3B05F') + ' rg f\n');
-    circlePath(stream, 199.68, 128, 3.07);
-    stream.push(toRgb('#D3B05F') + ' rg f\n');
-    stream.push('Q\n');
-    text(stream, 306 - (initials.length * 4), 357, 8, initials, '#A9B4AD', true);
-  }
-  function drawHeader(stream, title, pageNo, pageCount) {
-    rect(stream, 0, 700, W, 92, colors.deep);
-    drawLogo(stream, 42, 723, 42, true);
-    text(stream, 96, 753, 18, "NETRAOS", colors.white, true);
-    text(stream, 97, 737, 8, "YOUR FINANCIAL OPERATING SYSTEM", "#C9DDD2");
-    text(stream, 42, 674, 19, title, colors.ink, true);
-    text(stream, 42, 657, 9, `Generated ${reportDate}  |  ${getReportPeriod()}  |  Display: ${reportCurrency}`, colors.muted);
-    line(stream, 42, 642, 570, 642, colors.line, 1);
-    text(stream, 500, 24, 8, `PAGE ${pageNo} / ${pageCount}`, colors.muted);
-    text(stream, 42, 24, 8, "PRIVATE FINANCIAL SUMMARY  |  SAVED LOCALLY IN THIS BROWSER", colors.muted);
-  }
-  function pieSlice(stream, cx, cy, radius, start, end, fill) {
+  function slice(cx, cy, radius, start, end, fill) {
     const segments = Math.max(1, Math.ceil(Math.abs(end - start) / (Math.PI / 2)));
     const delta = (end - start) / segments;
     let angle = start;
-    const sx = cx + radius * Math.cos(angle);
-    const sy = cy + radius * Math.sin(angle);
-    stream.push(`${toRgb(fill)} rg ${cx.toFixed(2)} ${cy.toFixed(2)} m ${sx.toFixed(2)} ${sy.toFixed(2)} l `);
+    let out = `${rgb(fill)} rg ${n(cx)} ${n(cy)} m ${n(cx + radius * Math.cos(angle))} ${n(cy + radius * Math.sin(angle))} l `;
     for (let i = 0; i < segments; i += 1) {
       const next = angle + delta;
       const k = (4 / 3) * Math.tan((next - angle) / 4);
       const x0 = cx + radius * Math.cos(angle), y0 = cy + radius * Math.sin(angle);
       const x1 = cx + radius * Math.cos(next), y1 = cy + radius * Math.sin(next);
-      const c1x = x0 - radius * k * Math.sin(angle), c1y = y0 + radius * k * Math.cos(angle);
-      const c2x = x1 + radius * k * Math.sin(next), c2y = y1 - radius * k * Math.cos(next);
-      stream.push(`${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(2)} ${x1.toFixed(2)} ${y1.toFixed(2)} c `);
+      out += `${n(x0 - radius * k * Math.sin(angle))} ${n(y0 + radius * k * Math.cos(angle))} ${n(x1 + radius * k * Math.sin(next))} ${n(y1 - radius * k * Math.cos(next))} ${n(x1)} ${n(y1)} c `;
       angle = next;
     }
-    stream.push("h f\n");
+    s.push(out + "h f\n");
   }
-  function drawOverview(pageCount) {
-    const s = [];
-    drawHeader(s, "Financial Snapshot", 1, pageCount);
-
-    const summary = [
-      { label: "TOTAL ASSETS", value: totals.assets, fill: colors.pale },
-      { label: "TOTAL LIABILITIES", value: totals.liabilities, fill: "#FBF2F0" },
-      { label: "NET WORTH", value: totals.netWorth, fill: "#EDF5EF" }
-    ];
-    summary.forEach((item, index) => {
-      const x = 42 + index * 178;
-      rect(s, x, 570, 166, 56, item.fill, colors.line);
-      text(s, x + 12, 609, 8, item.label, colors.muted, true);
-      text(s, x + 12, 585, 15, reportMoney(item.value), index === 1 ? colors.red : colors.ink, true);
-    });
-
-    rect(s, 42, 350, 256, 202, colors.white, colors.line);
-    rect(s, 314, 350, 256, 202, colors.white, colors.line);
-    drawWatermark(s);
-    text(s, 58, 529, 10, "ASSET MIX", colors.ink, true);
-    text(s, 330, 529, 10, "SPENDING MIX", colors.ink, true);
-
-    const assetGroups = [
-      { label: "Bank accounts", value: entries.filter(item => item.type === "asset" && item.category === "Bank accounts").reduce((sum, item) => sum + Number(item.amount || 0), 0), color: colors.green },
-      { label: "Mobile money", value: entries.filter(item => item.type === "asset" && item.category === "Mobile money").reduce((sum, item) => sum + Number(item.amount || 0), 0), color: colors.gold },
-      { label: "Cash & savings", value: entries.filter(item => item.type === "asset" && item.category === "Cash & savings").reduce((sum, item) => sum + Number(item.amount || 0), 0), color: colors.blue },
-      { label: "Investments", value: entries.filter(item => item.type === "asset" && item.category === "Investments").reduce((sum, item) => sum + Number(item.amount || 0), 0), color: colors.purple },
-      { label: "Property & other", value: entries.filter(item => item.type === "asset" && ["Property & vehicles", "Other assets"].includes(item.category)).reduce((sum, item) => sum + Number(item.amount || 0), 0), color: colors.red }
-    ];
-    const assetTotal = assetGroups.reduce((sum, item) => sum + item.value, 0);
-    if (assetTotal > 0) {
+  function donut(cx, top, radius, groups, centerLabel, centerValue) {
+    const cy = py(top);
+    const total = groups.reduce((acc, g) => acc + g.value, 0);
+    if (total > 0) {
       let angle = Math.PI / 2;
-      assetGroups.filter(item => item.value > 0).forEach(item => {
-        const next = angle - (item.value / assetTotal) * Math.PI * 2;
-        pieSlice(s, 112, 435, 56, angle, next, item.color);
+      groups.filter(g => g.value > 0).forEach(g => {
+        const next = angle - (g.value / total) * Math.PI * 2;
+        slice(cx, cy, radius, angle, next, g.color);
         angle = next;
       });
     } else {
-      circlePath(s, 112, 435, 56);
-      s.push(`${toRgb(colors.light)} rg f\n`);
+      s.push(`${rgb(C.tint)} rg ${circle(cx, cy, radius)} f\n`);
     }
-    circlePath(s, 112, 435, 30);
-    s.push(`${toRgb(colors.white)} rg f\n`);
-    text(s, 91, 438, 8, "ASSETS", colors.muted, true);
-    text(s, 83, 422, 8, reportMoney(totals.assets), colors.ink, true);
-    assetGroups.forEach((item, index) => {
-      const y = 495 - index * 27;
-      rect(s, 184, y - 2, 7, 7, item.color);
-      text(s, 198, y, 7, short(item.label, 18), colors.ink);
-      text(s, 198, y - 10, 6.5, `${assetTotal ? Math.round(item.value / assetTotal * 100) : 0}%  ${reportMoney(item.value)}`, colors.muted);
-    });
-    if (assetTotal === 0) text(s, 58, 358, 7, "Add asset balances to build your asset mix.", colors.muted);
-
-    const expenseGroupsAll = budgetCategories.map((label, index) => ({
-      label,
-      value: reportSpending.filter(item => item.category === label).reduce((sum, item) => sum + Number(item.amount || 0), 0),
-      color: [colors.red, colors.gold, colors.blue, colors.purple, colors.green, "#829783", "#B77D57", "#6880A6"][index % 8]
-    })).filter(item => item.value > 0).sort((a, b) => b.value - a.value);
-    const spendGroups = expenseGroupsAll.length > 5
-      ? [...expenseGroupsAll.slice(0, 4), { label: "Other", value: expenseGroupsAll.slice(4).reduce((sum, item) => sum + item.value, 0), color: "#829783" }]
-      : expenseGroupsAll;
-    const spendTotal = spendGroups.reduce((sum, item) => sum + item.value, 0);
-    if (spendTotal > 0) {
-      let angle = Math.PI / 2;
-      spendGroups.forEach(item => {
-        const next = angle - (item.value / spendTotal) * Math.PI * 2;
-        pieSlice(s, 384, 435, 56, angle, next, item.color);
-        angle = next;
-      });
-    } else {
-      circlePath(s, 384, 435, 56);
-      s.push(`${toRgb(colors.light)} rg f\n`);
-    }
-    circlePath(s, 384, 435, 30);
-    s.push(`${toRgb(colors.white)} rg f\n`);
-    text(s, 364, 438, 7, "SPENT", colors.muted, true);
-    text(s, 351, 422, 7, reportMoney(plan.spending), colors.ink, true);
-    if (spendGroups.length) {
-      spendGroups.forEach((item, index) => {
-        const y = 495 - index * 27;
-        rect(s, 446, y - 2, 7, 7, item.color);
-        text(s, 460, y, 6.5, short(item.label, 15), colors.ink);
-        text(s, 460, y - 10, 6.5, `${Math.round(item.value / spendTotal * 100)}%  ${reportMoney(item.value)}`, colors.muted);
-      });
-    } else {
-      text(s, 446, 426, 7, "No spending recorded for this period.", colors.muted);
-    }
-
-    rect(s, 42, 158, 528, 174, colors.white, colors.line);
-    text(s, 58, 310, 10, "MONTHLY CASH FLOW", colors.ink, true);
-    const chartX = 75, chartBase = 207, chartWidth = 462;
-    [0, 1, 2, 3].forEach(index => {
-      const y = chartBase + index * 20;
-      line(s, chartX, y, chartX + chartWidth, y, "#E7EEE9", 0.6);
-    });
-    const flowBars = [
-      { label: "Income", value: plan.income, color: colors.green },
-      { label: "Budget", value: plan.budget, color: colors.blue },
-      { label: "Spent", value: plan.spending, color: colors.red },
-      { label: "Left", value: plan.budget - plan.spending, color: colors.gold }
-    ];
-    const maxFlow = Math.max(1, ...flowBars.map(item => Math.abs(item.value)));
-    const slot = chartWidth / flowBars.length;
-    flowBars.forEach((item, index) => {
-      const x = chartX + slot * index + 28;
-      const h = Math.max(1, Math.abs(item.value) / maxFlow * (item.value >= 0 ? 50 : 25));
-      const y = item.value >= 0 ? chartBase : chartBase - h;
-      rect(s, x, y, 48, h, item.color);
-      text(s, x - 8, Math.max(chartBase + 55, y + h + 6), 7, reportMoney(item.value), colors.ink, true);
-      text(s, x + 8, 177, 8, item.label, colors.muted);
-    });
-    text(s, 58, 165, 7, "Income, planned budget, spending and remaining budget. Values use your selected display currency.", colors.muted);
-
-    rect(s, 42, 70, 528, 72, colors.pale, colors.line);
-    text(s, 58, 123, 9, "PERIOD HIGHLIGHTS", colors.ink, true);
-    const highlights = [
-      { label: "MONTHLY INCOME", value: reportMoney(plan.income) },
-      { label: "SPENDING", value: reportMoney(plan.spending) },
-      { label: "BUDGET LEFT", value: reportMoney(plan.budget - plan.spending) },
-      { label: "SAVINGS RATE", value: `${savingsRate}%` }
-    ];
-    highlights.forEach((item, index) => {
-      const x = 58 + index * 128;
-      text(s, x, 104, 6.5, item.label, colors.muted, true);
-      text(s, x, 86, 9, item.value, colors.ink, true);
-    });
-    streams.push(s.join(""));
+    s.push(`${rgb(C.white)} rg ${circle(cx, cy, radius * 0.62)} f\n`);
+    txt(cx, top - 1, 6, centerLabel, { align: "c", color: C.muted, bold: true, spacing: 0.5 });
+    let size = 9.5;
+    while (size > 6 && tw(centerValue, size, true) > radius * 1.1) size -= 0.5;
+    txt(cx, top + 10, size, centerValue, { align: "c", bold: true });
   }
-  function drawDetailPage(pageNo, pageCount, detailRows) {
-    const s = [];
-    drawHeader(s, "Accounts & Plan Details", pageNo, pageCount);
-    drawWatermark(s);
-    text(s, 48, 620, 8, "SECTION", colors.muted, true);
-    text(s, 142, 620, 8, "ACCOUNT / ITEM", colors.muted, true);
-    text(s, 356, 620, 8, "DETAIL", colors.muted, true);
-    text(s, 510, 620, 8, "VALUE", colors.muted, true);
-    line(s, 42, 607, 570, 607, colors.line, 1);
-    detailRows.forEach((row, index) => {
-      const y = 585 - index * 19;
-      if (index % 2 === 0) rect(s, 42, y - 7, 528, 18, "#F7FAF8");
-      text(s, 48, y, 7, short(row.section, 13), colors.green, true);
-      text(s, 142, y, 8, short(row.name, 31), colors.ink, true);
-      text(s, 356, y, 7, short(row.detail, 25), colors.muted);
-      text(s, 510, y, 7.5, short(row.value, 17), colors.ink, true);
-    });
-    streams.push(s.join(""));
+  // Brand mark: a stylised eye inside a ring, drawn in a 256-unit design space.
+  function eye(x, top, size, o = {}) {
+    const scale = size / 256, bottom = py(top) - size;
+    s.push(`q ${n(scale * 1000) / 1000} 0 0 -${n(scale * 1000) / 1000} ${n(x)} ${n(bottom + size)} cm\n`);
+    if (o.tile) s.push(`${rgb("#0A0A0A")} rg 0 0 256 256 re f\n`);
+    if (o.ring) s.push(`${rgb(o.ring)} RG ${n(o.ringWidth || 3)} w ${circle(128, 128, 112)} S\n`);
+    s.push(`${rgb(o.lid)} RG ${o.lidWidth || 7} w 56.32 128 m 104.11 83.63 151.89 83.63 199.68 128 c 151.89 172.37 104.11 172.37 56.32 128 c S\n`);
+    s.push(`${rgb(o.accent)} RG ${o.irisWidth || 5.5} w ${circle(128, 128, 33.28)} S\n`);
+    s.push(`${rgb(o.accent)} RG ${o.irisWidth || 5.5} w 112.64 138.24 m 128 117.76 l 143.36 138.24 l S\n`);
+    s.push(`${rgb(o.lid)} rg ${circle(128, 128, 8.19)} f\n`);
+    s.push(`${rgb(o.accent)} rg ${circle(56.32, 128, 3.5)} f ${circle(199.68, 128, 3.5)} f\n`);
+    s.push("Q\n");
   }
 
-  const details = [];
-  entries.forEach(entry => details.push({ section: entry.type === "asset" ? "ASSET" : "LIABILITY", name: entry.name, detail: `${entry.category}${entry.mobileType ? ` - ${entry.mobileType}` : ""}${entry.mobileReference ? ` - ${entry.mobileReference}` : ""}`, value: reportMoney(entry.amount) }));
-  power.incomes.forEach(item => details.push({ section: "INCOME", name: item.name, detail: "Monthly source", value: reportMoney(item.amount) }));
-  power.budgets.forEach(item => details.push({ section: "BUDGET", name: item.name, detail: `${item.category} - planned`, value: reportMoney(item.amount) }));
-  reportSpending.forEach(item => details.push({ section: "SPENDING", name: item.name, detail: `${item.category} - ${item.month || getReportMonth()}`, value: reportMoney(item.amount) }));
-  quests.forEach(item => details.push({ section: "QUEST", name: item.name, detail: `${questProgress(item)}% complete`, value: `${reportMoney(item.current)} / ${reportMoney(item.target)}` }));
-  if (!details.length) details.push({ section: "READY", name: "No financial entries yet", detail: "Add accounts or a monthly plan to populate this report.", value: "-" });
+  // Reusable blocks -------------------------------------------------------------------
+  function section(kicker, title) {
+    ensure(50);
+    box(M, y, 18, 2.2, { fill: C.gold });
+    txt(M, y + 14, 6.6, kicker, { bold: true, color: C.green, spacing: 1 });
+    txt(M, y + 30, 13.5, title, { bold: true });
+    rule(M, y + 37, W - M, y + 37, C.line, 0.8);
+    y += 50;
+  }
+  function kpi(x, top, w, h, label, value, sub, o = {}) {
+    box(x, top, w, h, { fill: o.fill || C.white, stroke: o.stroke || C.line, lw: 0.8, r: 6 });
+    if (o.accent) box(x, top + 11, 3, h - 22, { fill: o.accent });
+    txt(x + 14, top + 17, 6.4, label, { bold: true, color: o.labelColor || C.muted, spacing: 0.6 });
+    let size = 15.5;
+    while (size > 9 && tw(ascii(value), size, true) > w - 26) size -= 0.5;
+    txt(x + 14, top + 39, size, value, { bold: true, color: o.valueColor || C.ink });
+    if (sub) txt(x + 14, top + h - 9, 6.6, sub, { color: o.subColor || C.muted, maxW: w - 24 });
+  }
+  function kpiRow(items, h = 62) {
+    ensure(h + 14);
+    const gap = 10, w = (CW - gap * (items.length - 1)) / items.length;
+    items.forEach((item, index) => kpi(M + index * (w + gap), y, w, h, item.label, item.value, item.sub, item));
+    y += h + 14;
+  }
+  function legend(x, top, rows, width) {
+    rows.forEach((row, index) => {
+      const rowTop = top + index * 21;
+      box(x, rowTop - 6, 7, 7, { fill: row.color, r: 2 });
+      txt(x + 13, rowTop, 7.4, row.label, { bold: true, color: C.body, maxW: width - 36 });
+      txt(x + width, rowTop, 7.4, row.share, { bold: true, align: "r", color: C.ink });
+      txt(x + 13, rowTop + 9.5, 6.6, row.value, { color: C.muted });
+    });
+  }
+  function table(columns, rows, o = {}) {
+    const rowH = o.rowH || 21, headH = 22;
+    const widths = columns.map(col => col.w * CW);
+    const head = () => {
+      box(M, y, CW, headH, { fill: C.deep, r: 4 });
+      let x = M;
+      columns.forEach((col, i) => {
+        const right = col.align === "r";
+        txt(right ? x + widths[i] - 9 : x + 9, y + 14.4, 6.5, col.label, { bold: true, color: C.white, align: right ? "r" : "l", spacing: 0.5, maxW: widths[i] - 18 });
+        x += widths[i];
+      });
+      y += headH;
+    };
+    ensure(headH + rowH * 2);
+    head();
+    rows.forEach((row, index) => {
+      if (y + rowH > H - FOOT) { newPage(); head(); }
+      if (index % 2 === 0) box(M, y, CW, rowH, { fill: C.zebra });
+      let x = M;
+      columns.forEach((col, i) => {
+        const cell = typeof row[i] === "object" && row[i] !== null ? row[i] : { text: row[i] };
+        const right = col.align === "r";
+        txt(right ? x + widths[i] - 9 : x + 9, y + 13.6, 7.6, cell.text, { bold: cell.bold ?? col.bold, color: cell.color || (col.bold ? C.ink : C.body), align: right ? "r" : "l", maxW: widths[i] - 18 });
+        x += widths[i];
+      });
+      rule(M, y + rowH, W - M, y + rowH, "#EBF1ED", 0.5);
+      y += rowH;
+    });
+    if (o.total) {
+      if (y + rowH + 2 > H - FOOT) newPage();
+      box(M, y, CW, rowH + 2, { fill: C.tint, r: 4 });
+      txt(M + 9, y + 14, 7.8, o.total[0], { bold: true, color: C.deep });
+      txt(W - M - 9, y + 14, 7.8, o.total[1], { bold: true, color: C.deep, align: "r" });
+      y += rowH + 2;
+    }
+    y += 16;
+  }
+  function note(message, color = C.muted) {
+    ensure(30);
+    box(M, y, CW, 26, { fill: C.zebra, stroke: C.line, lw: 0.6, r: 5 });
+    txt(M + 12, y + 16, 7.8, message, { color, maxW: CW - 24 });
+    y += 40;
+  }
 
-  const detailChunks = [];
-  for (let index = 0; index < details.length; index += 27) detailChunks.push(details.slice(index, index + 27));
-  const pageCount = 1 + detailChunks.length;
-  drawOverview(pageCount);
-  const allStreams = [streams[0]];
-  detailChunks.forEach((chunk, index) => {
-    streams.push("");
-    drawDetailPage(index + 2, pageCount, chunk);
-    allStreams.push(streams[streams.length - 1]);
+  // Page 1: summary -------------------------------------------------------------------
+  newPage();
+  txt(M, y + 10, 7, "CONFIDENTIAL  |  PERSONAL FINANCIAL REPORT", { bold: true, color: C.green, spacing: 1.2 });
+  txt(M, y + 36, 25, "Financial Position Report", { bold: true });
+  txt(M, y + 53, 9, `Prepared for ${preparedFor}   |   ${period}   |   ${reportDate}`, { color: C.muted });
+  txt(W - M, y + 10, 6.6, `REF ${reportRef}`, { align: "r", color: C.muted, bold: true, spacing: 0.6 });
+  txt(W - M, y + 22, 6.6, `Display currency: ${reportCurrency}`, { align: "r", color: C.muted });
+  y += 72;
+
+  section("BALANCE SHEET", "Your position at a glance");
+  kpiRow([
+    { label: "NET WORTH", value: money(totals.netWorth), sub: "Assets less liabilities", fill: C.deep, stroke: C.deep, labelColor: "#A9D3BF", valueColor: C.white, subColor: "#A9D3BF" },
+    { label: "TOTAL ASSETS", value: money(totals.assets), sub: `${assets.length} ${assets.length === 1 ? "item" : "items"} recorded`, accent: C.green },
+    { label: "TOTAL LIABILITIES", value: money(totals.liabilities), sub: `${liabilities.length} ${liabilities.length === 1 ? "obligation" : "obligations"} recorded`, accent: C.red },
+    { label: "DEBT-TO-ASSET", value: debtToAsset === null ? "n/a" : pct(debtToAsset), sub: debtHealth, accent: debtHealthColor, subColor: debtHealthColor }
+  ]);
+
+  section("MONTHLY PLAN", period + " cash flow");
+  kpiRow([
+    { label: "MONTHLY INCOME", value: money(plan.income), sub: `${power.incomes.length} ${power.incomes.length === 1 ? "source" : "sources"}`, accent: C.green },
+    { label: "PLANNED BUDGET", value: money(plan.budget), sub: `${power.budgets.length} budget ${power.budgets.length === 1 ? "line" : "lines"}`, accent: C.blue },
+    { label: "SPENT", value: money(plan.spending), sub: plan.budget > 0 ? `${pct((plan.spending / plan.budget) * 100, 0)} of budget used` : "No budget set", accent: C.red },
+    { label: "SAVINGS RATE", value: plan.income > 0 ? pct(savingsRate) : "n/a", sub: "Income less recorded spending", accent: C.gold }
+  ]);
+
+  // Mix panels
+  ensure(190);
+  section("COMPOSITION", "Where your money sits and goes");
+  const panelTop = y, panelH = 150, panelW = (CW - 12) / 2;
+  box(M, panelTop, panelW, panelH, { fill: C.white, stroke: C.line, lw: 0.8, r: 8 });
+  box(M + panelW + 12, panelTop, panelW, panelH, { fill: C.white, stroke: C.line, lw: 0.8, r: 8 });
+  txt(M + 14, panelTop + 18, 7, "ASSET MIX", { bold: true, color: C.green, spacing: 0.8 });
+  txt(M + panelW + 26, panelTop + 18, 7, "SPENDING BY CATEGORY", { bold: true, color: C.green, spacing: 0.8 });
+  const assetGroups = [
+    { label: "Bank accounts", cats: ["Bank accounts"], color: C.green },
+    { label: "Mobile money", cats: ["Mobile money"], color: C.gold },
+    { label: "Cash & savings", cats: ["Cash & savings"], color: C.blue },
+    { label: "Investments", cats: ["Investments"], color: C.purple },
+    { label: "Property & other", cats: ["Property & vehicles", "Other assets"], color: C.red }
+  ].map(group => ({ ...group, value: sum(assets.filter(item => group.cats.includes(item.category))) }));
+  const assetTotal = assetGroups.reduce((acc, g) => acc + g.value, 0);
+  donut(M + 62, panelTop + 82, 40, assetGroups, "ASSETS", money(totals.assets));
+  legend(M + 118, panelTop + 46, assetGroups.map(g => ({ color: g.color, label: g.label, share: assetTotal ? pct((g.value / assetTotal) * 100, 0) : "0%", value: money(g.value) })), panelW - 134);
+  const spendPalette = [C.red, C.gold, C.blue, C.purple, C.green, C.sage, C.amber, C.muted];
+  let spendGroups = budgetCategories.map((label, i) => ({ label, value: sum(reportSpending.filter(item => item.category === label)), color: spendPalette[i % spendPalette.length] })).filter(g => g.value > 0).sort((a, b) => b.value - a.value);
+  if (spendGroups.length > 5) spendGroups = [...spendGroups.slice(0, 4), { label: "Other categories", value: spendGroups.slice(4).reduce((acc, g) => acc + g.value, 0), color: C.muted }];
+  const spendTotal = spendGroups.reduce((acc, g) => acc + g.value, 0);
+  const rightX = M + panelW + 12;
+  donut(rightX + 62, panelTop + 82, 40, spendGroups, "SPENT", money(plan.spending));
+  if (spendGroups.length) legend(rightX + 118, panelTop + 46, spendGroups.map(g => ({ color: g.color, label: g.label, share: pct((g.value / spendTotal) * 100, 0), value: money(g.value) })), panelW - 134);
+  else txt(rightX + 118, panelTop + 82, 7.4, "No spending recorded for this period.", { color: C.muted, maxW: panelW - 134 });
+  y += panelH + 16;
+
+  // Cash flow bars
+  ensure(130);
+  section("CASH FLOW", "Income, budget and spending");
+  const flow = [
+    { label: "Income", value: plan.income, color: C.green },
+    { label: "Planned budget", value: plan.budget, color: C.blue },
+    { label: "Spent", value: plan.spending, color: C.red },
+    { label: plan.budget - plan.spending >= 0 ? "Budget remaining" : "Over budget", value: plan.budget - plan.spending, color: plan.budget - plan.spending >= 0 ? C.gold : C.red }
+  ];
+  const flowMax = Math.max(1, ...flow.map(item => Math.abs(item.value)));
+  const barX = M + 96, barW = CW - 96 - 110;
+  box(M, y, CW, 98, { fill: C.white, stroke: C.line, lw: 0.8, r: 8 });
+  flow.forEach((item, index) => {
+    const top = y + 14 + index * 20;
+    txt(M + 14, top + 8, 7.8, item.label, { bold: true, color: C.body });
+    box(barX, top, barW, 9, { fill: "#EDF2EF", r: 4.5 });
+    const length = Math.max(item.value === 0 ? 0 : 4, (Math.abs(item.value) / flowMax) * barW);
+    if (length > 0) box(barX, top, length, 9, { fill: item.color, r: 4.5 });
+    txt(W - M - 14, top + 8, 7.8, money(item.value), { bold: true, align: "r" });
+  });
+  y += 98 + 16;
+
+  // Key observations
+  const insights = [];
+  if (!entries.length && !power.incomes.length && !power.budgets.length) insights.push("Add accounts, income and a monthly budget to unlock personalised observations.");
+  if (entries.length) insights.push(totals.netWorth >= 0 ? `Net worth stands at ${money(totals.netWorth)}, with assets exceeding liabilities.` : `Liabilities exceed assets by ${money(Math.abs(totals.netWorth))}; reducing debt is the fastest way to improve net worth.`);
+  if (plan.income > 0) insights.push(`Recorded spending uses ${pct((plan.spending / plan.income) * 100)} of income, leaving ${pct(Math.max(0, savingsRate))} unspent.`);
+  if (debtService !== null && monthlyInstallments > 0) insights.push(`Minimum loan installments take ${pct(debtService)} of monthly income${debtService > 40 ? ", above the commonly cited 40% comfort guideline" : ", within the commonly cited 40% comfort guideline"}.`);
+  const leadQuest = quests.find(q => Number(q.target) > 0);
+  if (leadQuest) insights.push(`${leadQuest.name} is ${questProgress(leadQuest)}% funded (${money(leadQuest.current)} of ${money(leadQuest.target)}).`);
+  ensure(26 + insights.length * 17 + 14);
+  section("OBSERVATIONS", "What stands out");
+  box(M, y - 6, CW, insights.length * 17 + 14, { fill: C.pale, stroke: C.line, lw: 0.6, r: 8 });
+  insights.forEach((line, index) => {
+    box(M + 14, y + 6 + index * 17 - 5, 4, 4, { fill: C.green, r: 1 });
+    txt(M + 26, y + 6 + index * 17, 8, line, { color: C.body, maxW: CW - 40 });
+  });
+  y += insights.length * 17 + 20;
+
+  // Liabilities schedule --------------------------------------------------------------
+  section("DEBT & OBLIGATIONS", "Liabilities schedule");
+  kpiRow([
+    { label: "OUTSTANDING PRINCIPAL", value: money(totals.liabilities), sub: `${liabilities.length} ${liabilities.length === 1 ? "liability" : "liabilities"}`, accent: C.red },
+    { label: "MIN. MONTHLY INSTALLMENTS", value: money(monthlyInstallments), sub: "Across all loans", accent: C.amber },
+    { label: "DEBT SERVICE RATIO", value: debtService === null ? "n/a" : pct(debtService), sub: debtService === null ? "Add income to calculate" : "Installments / income", accent: debtService !== null && debtService > 40 ? C.red : C.green },
+    { label: "LONGEST TENURE", value: longestTenure ? `${longestTenure} mo` : "n/a", sub: loanDates.length ? `Final payoff ${new Date(`${loanDates[loanDates.length - 1]}T12:00:00`).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}` : "No payoff date set", accent: C.blue }
+  ]);
+  if (!liabilities.length) {
+    note("No liabilities recorded. Add loans, cards or other debts in Inventory to see them here.");
+  } else {
+    const cols = ["LENDER / TYPE", "OUTSTANDING PRINCIPAL", "INTEREST (APR / TYPE)", "MIN. MONTHLY INSTALLMENT", "REMAINING TENURE"];
+    liabilities.slice().sort((a, b) => Number(b.amount) - Number(a.amount)).forEach(item => {
+      const loan = item.loan || null;
+      const cardH = item.notes ? 90 : 78;
+      ensure(cardH + 10);
+      box(M, y, CW, cardH, { fill: C.white, stroke: C.line, lw: 0.8, r: 8 });
+      box(M, y + 12, 3.2, cardH - 24, { fill: C.red });
+      txt(M + 16, y + 20, 10.5, item.name, { bold: true, maxW: CW - 190 });
+      txt(W - M - 14, y + 20, 7, item.category, { align: "r", color: C.muted, bold: true, spacing: 0.4 });
+      rule(M + 14, y + 29, W - M - 14, y + 29, "#EBF1ED", 0.6);
+      const colW = (CW - 28) / 5;
+      const values = [
+        loan?.lenderType || item.category,
+        money(item.amount),
+        loan ? formatLoanRate(loan) : "Not set",
+        loan && loan.minInstallment !== null && loan.minInstallment !== undefined ? `${money(loan.minInstallment)}/mo` : "Not set",
+        loan && loan.tenureMonths !== null && loan.tenureMonths !== undefined ? `${loan.tenureMonths} ${loan.tenureMonths === 1 ? "month" : "months"} left` : "Not set"
+      ];
+      const payoff = loan?.payoffDate ? `Payoff ${new Date(`${loan.payoffDate}T12:00:00`).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}` : "";
+      cols.forEach((label, i) => {
+        const x = M + 14 + i * colW;
+        txt(x, y + 42, 5.6, label, { bold: true, color: C.muted, spacing: 0.3, maxW: colW - 6 });
+        const unset = values[i] === "Not set";
+        txt(x, y + 56, 8.6, values[i], { bold: true, color: unset ? C.muted : i === 1 ? C.red : C.ink, maxW: colW - 8 });
+        if (i === 4 && payoff) txt(x, y + 67, 6.4, payoff, { color: C.muted, maxW: colW - 8 });
+      });
+      if (item.notes) txt(M + 16, y + 83, 7, `Note: ${item.notes}`, { color: C.muted, maxW: CW - 32 });
+      y += cardH + 10;
+    });
+    y += 4;
+    note("Minimum installments and tenure are the figures you entered; actual balances depend on your lender's statements.");
+  }
+
+  // Detail tables ---------------------------------------------------------------------
+  section("ASSETS", "Asset register");
+  if (assets.length) {
+    table(
+      [{ label: "ACCOUNT / ITEM", w: 0.36, bold: true }, { label: "CATEGORY", w: 0.26 }, { label: "DETAIL", w: 0.2 }, { label: "BALANCE", w: 0.18, align: "r", bold: true }],
+      assets.map(item => [item.name, item.category, item.mobileType || item.mobileReference || "-", money(item.amount)]),
+      { total: ["Total assets", money(totals.assets)] }
+    );
+  } else note("No assets recorded yet.");
+
+  section("INCOME & BUDGET", "Monthly plan lines");
+  const planRows = [
+    ...power.incomes.map(item => [item.name, { text: "INCOME", color: C.green, bold: true }, "Monthly source", money(item.amount)]),
+    ...power.budgets.map(item => [item.name, { text: "BUDGET", color: C.blue, bold: true }, item.category, money(item.amount)])
+  ];
+  if (planRows.length) table([{ label: "ITEM", w: 0.36, bold: true }, { label: "TYPE", w: 0.16 }, { label: "CATEGORY", w: 0.3 }, { label: "MONTHLY AMOUNT", w: 0.18, align: "r", bold: true }], planRows);
+  else note("No income or budget lines recorded yet.");
+
+  section("SPENDING", `Recorded expenses (${period.toLowerCase()})`);
+  if (reportSpending.length) {
+    table(
+      [{ label: "EXPENSE", w: 0.36, bold: true }, { label: "CATEGORY", w: 0.28 }, { label: "MONTH", w: 0.18 }, { label: "AMOUNT", w: 0.18, align: "r", bold: true }],
+      reportSpending.map(item => [item.name, item.category, item.month || getReportMonth(), money(item.amount)]),
+      { total: ["Total spending", money(plan.spending)] }
+    );
+  } else note("No spending recorded for this period.");
+
+  section("GOALS", "Quest progress");
+  if (quests.length) {
+    quests.forEach(quest => {
+      ensure(38);
+      const progress = questProgress(quest);
+      box(M, y, CW, 32, { fill: C.white, stroke: C.line, lw: 0.7, r: 6 });
+      txt(M + 14, y + 14, 8.6, quest.name, { bold: true, maxW: CW * 0.5 });
+      txt(W - M - 56, y + 14, 7.6, `${money(quest.current)} of ${money(quest.target)}`, { align: "r", color: C.muted });
+      txt(W - M - 14, y + 14, 8.6, `${progress}%`, { align: "r", bold: true, color: progress === 100 ? C.green : C.ink });
+      box(M + 14, y + 20, CW - 28, 5, { fill: "#EDF2EF", r: 2.5 });
+      if (progress > 0) box(M + 14, y + 20, Math.max(5, ((CW - 28) * progress) / 100), 5, { fill: C.green, r: 2.5 });
+      y += 40;
+    });
+  } else note("No quests created yet.");
+
+  ensure(60);
+  y += 4;
+  box(M, y, CW, 46, { fill: C.pale, stroke: C.line, lw: 0.6, r: 8 });
+  txt(M + 14, y + 16, 6.6, "IMPORTANT NOTICE", { bold: true, color: C.green, spacing: 0.8 });
+  txt(M + 14, y + 29, 6.9, "This report is generated from information you entered in NetraOS and stored on your device. It is for personal planning only and", { color: C.muted });
+  txt(M + 14, y + 38, 6.9, "is not financial, tax or legal advice. Verify figures with your lenders and official sources before acting on them.", { color: C.muted });
+  y += 56;
+
+  // Chrome: header band, footer, watermark (drawn last so page numbers are known) -------
+  const total = pages.length;
+  pages.forEach((stream, index) => {
+    s = stream;
+    box(0, 0, W, 52, { fill: C.deep });
+    box(0, 50, W, 2, { fill: C.gold });
+    eye(M, 11, 30, { tile: true, lid: "#F2F1E1", accent: "#E3B74B", ring: "#1F2937", ringWidth: 1, lidWidth: 7 });
+    txt(M + 40, 26, 13.5, "NETRAOS", { bold: true, color: C.white, spacing: 1.2 });
+    txt(M + 40, 38, 6.2, "YOUR FINANCIAL OPERATING SYSTEM", { color: "#A9D3BF", spacing: 0.7 });
+    txt(W - M, 24, 7.4, "FINANCIAL POSITION REPORT", { bold: true, color: C.gold, align: "r", spacing: 0.9 });
+    txt(W - M, 37, 6.8, `${period}  |  ${reportDate}`, { color: "#A9D3BF", align: "r" });
+    rule(M, H - 40, W - M, H - 40, C.line, 0.7);
+    txt(M, H - 28, 6.6, `NetraOS  |  Private & confidential  |  ${reportRef}`, { color: C.muted });
+    txt(W - M, H - 28, 6.6, `Page ${index + 1} of ${total}`, { color: C.muted, bold: true, align: "r" });
+    // Translucent watermark centred on the page, sitting over content at low opacity.
+    s.push("q /G1 gs\n");
+    eye((W - 300) / 2, 255, 300, { lid: C.green, accent: C.gold, ring: C.green, ringWidth: 2.2, lidWidth: 5, irisWidth: 4 });
+    txt(W / 2, 600, 34, "NETRAOS", { bold: true, color: C.green, align: "c", spacing: 10 });
+    txt(W / 2, 622, 8, "PRIVATE FINANCIAL REPORT", { bold: true, color: C.green, align: "c", spacing: 4 });
+    s.push("Q\n");
   });
 
+  // PDF assembly ----------------------------------------------------------------------
+  const infoId = 6 + total * 2;
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
-    `<< /Type /Pages /Kids [${allStreams.map((_, index) => `${6 + index * 2} 0 R`).join(" ")}] /Count ${allStreams.length} >>`,
-    "<< /Font << /F1 4 0 R /F2 5 0 R >> >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>"
+    `<< /Type /Pages /Kids [${pages.map((_, i) => `${6 + i * 2} 0 R`).join(" ")}] /Count ${total} >>`,
+    "<< /Font << /F1 4 0 R /F2 5 0 R >> /ExtGState << /G1 << /Type /ExtGState /ca 0.07 /CA 0.07 >> >> >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>"
   ];
-  allStreams.forEach((stream, index) => {
-    const pageObject = 6 + index * 2;
-    const contentObject = pageObject + 1;
-    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources 3 0 R /Contents ${contentObject} 0 R >>`);
-    objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}endstream`);
+  pages.forEach((stream, index) => {
+    const body = stream.join("");
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources 3 0 R /Contents ${7 + index * 2} 0 R >>`);
+    objects.push(`<< /Length ${body.length} >>\nstream\n${body}endstream`);
   });
+  const pdfDate = `D:${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}00`;
+  objects.push(`<< /Title (NetraOS Financial Position Report) /Author (${esc(preparedFor)}) /Creator (NetraOS) /Producer (NetraOS) /CreationDate (${pdfDate}) >>`);
   let pdf = "%PDF-1.4\n";
-  const offsets = [0];
+  const offsets = [];
   objects.forEach((object, index) => {
     offsets.push(pdf.length);
     pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
   });
   const xrefOffset = pdf.length;
   pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  offsets.slice(1).forEach(offset => { pdf += `${String(offset).padStart(10, "0")} 00000 n \n`; });
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  offsets.forEach(offset => { pdf += `${String(offset).padStart(10, "0")} 00000 n \n`; });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Info ${infoId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
   saveFile("netraos-financial-report.pdf", pdf, "application/pdf");
-  showToast("Professional financial report downloaded.");
+  showToast("Financial report downloaded.");
 }
 
 // Route menu selections to date, currency, profile, settings, and export actions.

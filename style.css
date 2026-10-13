@@ -7681,3 +7681,17 @@ body.theme-dark .autolock-optout input { accent-color: #53c294; }
 }
 .tax-expand:hover .tax-expand-icon,
 .tax-expand:focus-visible .tax-expand-icon { color: var(--gold-bright); }
+
+/* Liability detail fields and metric cards */
+.liability-fields[hidden] { display: none; }
+.liability-rate-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.liability-hint { color: #87918b; font-size: 12px; line-height: 1.5; }
+.loan-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; padding: 10px; border: 1px solid #e6ebe7; border-radius: 10px; background: #f8faf8; white-space: normal; }
+.loan-metrics > span { display: grid; gap: 3px; min-width: 0; }
+.loan-metrics small { font: 9px var(--mono); letter-spacing: .06em; color: #77817b; }
+.loan-metrics b { color: #1f2a23; font: 600 12px var(--sans); overflow-wrap: anywhere; }
+.inventory-account-row:has(.loan-metrics) { align-items: start; padding: 10px 0; }
+.app-shell.theme-dark .loan-metrics { background: #1c2520; border-color: var(--line); }
+.app-shell.theme-dark .loan-metrics b { color: var(--text); }
+body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
+@media (max-width: 520px) { .liability-rate-row { grid-template-columns: 1fr; } }
