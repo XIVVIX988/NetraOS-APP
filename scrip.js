@@ -95,18 +95,18 @@ function renderLandingFaq() {
           </button>
           <div class="faq-a" id="faq-${category.id}-${index}" role="region"><div class="faq-a-inner">
             <p>${item.a}</p>
-            ${item.action ? `<button class="faq-shortcut" type="button" data-faq-action="${escapeHTML(item.action.target)}">[ ${escapeHTML(item.action.label)} ↗ ]</button>` : ""}
+            ${item.action ? `<button class="faq-shortcut" type="button" data-faq-action="${escapeHTML(item.action.target)}">${escapeHTML(item.action.label)} →</button>` : ""}
           </div></div>
         </div>`).join("")).join("");
   return `<section class="landing-faq" id="faq" aria-labelledby="landing-faq-title">
     <div class="landing-faq-intro">
       <span class="landing-faq-index">NETRAOS / FAQ</span>
-      <h2 id="landing-faq-title">System <br>knowledge base.</h2>
+      <h2 id="landing-faq-title">Answers to <br>common questions.</h2>
       <p>How NetraOS works, where your information stays, and what each tool does. Hover over a question to read the answer.</p>
       <div class="faq-count" aria-live="polite" data-faq-count>${total} answers</div>
     </div>
     <div class="faq-terminal">
-      <div class="faq-search"><span aria-hidden="true">&gt;_</span><input type="search" data-faq-search placeholder="Type to search system knowledge..." aria-label="Search the FAQ" autocomplete="off" spellcheck="false"></div>
+      <div class="faq-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" data-faq-search placeholder="Search questions..." aria-label="Search the FAQ" autocomplete="off" spellcheck="false"></div>
       <div class="faq-tabs" role="tablist" aria-label="FAQ categories">
         <button class="faq-tab is-active" type="button" role="tab" aria-selected="true" data-faq-tab="all">All</button>
         ${faqCategories.map(category => `<button class="faq-tab" type="button" role="tab" aria-selected="false" data-faq-tab="${category.id}">${category.label}</button>`).join("")}
@@ -151,8 +151,6 @@ function setupLandingFaq() {
       if (!match) setOpen(item, false);
       if (match) shown += 1;
     });
-    const visible = items.filter(item => !item.hidden);
-    items.forEach(item => item.classList.toggle("faq-up", visible.slice(-2).includes(item) && visible.length > 2));
     empty.hidden = shown !== 0;
     count.textContent = `${shown} ${shown === 1 ? "answer" : "answers"}`;
   }
@@ -1078,13 +1076,98 @@ function questProgress(quest) {
   return target > 0 ? Math.min(100, Math.round((Number(quest.current || 0) / target) * 100)) : 0;
 }
 
+
+// Milestones Engine: categories, priority tiers, required pace, XP and portfolio summary.
+const questCategories = ["Emergency Buffer", "Debt Eradication", "Asset Accumulation", "Lifestyle & Major Purchase"];
+const questTiers = [
+  { tier: 1, label: "Tier 1 · Critical Safeguard" },
+  { tier: 2, label: "Tier 2 · Structured Milestone" },
+  { tier: 3, label: "Tier 3 · Growth & Lifestyle" }
+];
+const XP_PER_PERCENT = 10;
+
+function questXp(quest) {
+  return questProgress(quest) * XP_PER_PERCENT;
+}
+
+function questTierLabel(quest) {
+  return questTiers.find(item => item.tier === Number(quest.tier))?.label || "";
+}
+
+// Remaining amount spread over the months left (at least one month) before the deadline.
+function questPace(quest) {
+  const target = Number(quest.target || 0);
+  const current = Number(quest.current || 0);
+  const remaining = Math.max(0, target - current);
+  const out = { remaining, monthsLeft: null, required: null, overdue: false, velocity: null, status: "none" };
+  if (remaining === 0) { out.status = "done"; return out; }
+  if (quest.deadline) {
+    const months = monthsUntil(quest.deadline);
+    out.overdue = quest.deadline < localDateValue();
+    out.monthsLeft = months;
+    out.required = out.overdue ? remaining : remaining / Math.max(1, months);
+  }
+  if (quest.createdAt) {
+    const elapsedMonths = (Date.now() - new Date(quest.createdAt).getTime()) / (30.44 * 86400000);
+    if (elapsedMonths >= 0.25) out.velocity = Math.max(0, (current - Number(quest.startAmount || 0)) / elapsedMonths);
+  }
+  if (out.overdue) out.status = "overdue";
+  else if (out.required !== null && out.velocity !== null) out.status = out.velocity >= out.required * 0.9 ? "on-track" : "behind";
+  else if (out.required !== null) out.status = "planned";
+  return out;
+}
+
+function sortQuestsByPriority(quests) {
+  return [...quests].sort((a, b) =>
+    (Number(a.tier) || 4) - (Number(b.tier) || 4) ||
+    String(a.deadline || "9999").localeCompare(String(b.deadline || "9999")));
+}
+
+function getMilestonesEngine(quests = getQuests()) {
+  const withTarget = quests.filter(quest => Number(quest.target) > 0);
+  const active = withTarget.filter(quest => questProgress(quest) < 100);
+  const target = withTarget.reduce((sum, quest) => sum + Number(quest.target), 0);
+  const saved = withTarget.reduce((sum, quest) => sum + Math.min(Number(quest.current || 0), Number(quest.target)), 0);
+  const paces = active.map(quest => ({ quest, pace: questPace(quest) }));
+  return {
+    count: active.length,
+    completed: withTarget.length - active.length,
+    target, saved,
+    rate: target > 0 ? Math.round(saved / target * 100) : 0,
+    monthly: paces.reduce((sum, item) => sum + (item.pace.required || 0), 0),
+    behind: paces.filter(item => item.pace.status === "behind" || item.pace.status === "overdue"),
+    top: sortQuestsByPriority(active)[0] || null
+  };
+}
+
+function renderQuestMetrics(quest) {
+  const pace = questPace(quest);
+  const progress = questProgress(quest);
+  const monthly = progress === 100 ? "Funded" : pace.required === null ? "Set a deadline" : `${formatKsh(Math.ceil(pace.required))}/mo`;
+  const deadline = quest.deadline
+    ? `${new Date(`${quest.deadline}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}${progress < 100 && pace.monthsLeft !== null ? (pace.overdue ? " · overdue" : ` · ${pace.monthsLeft} ${pace.monthsLeft === 1 ? "month" : "months"} left`) : ""}`
+    : "Not set";
+  const paceText = {
+    "on-track": "On track", behind: "Behind pace", overdue: "Past deadline", done: "Complete", planned: "Pace builds as you update", none: "—"
+  }[pace.status];
+  const velocity = pace.velocity !== null ? ` · saving ${formatKsh(Math.round(pace.velocity))}/mo` : "";
+  return `<span class="loan-metrics quest-metrics">
+    <span><small>CATEGORY / PRIORITY</small><b>${escapeHTML(quest.category || "Not set")}${quest.tier ? ` · ${escapeHTML(questTierLabel(quest))}` : ""}</b></span>
+    <span><small>TARGET &amp; CURRENT</small><b>${formatKsh(quest.current)} of ${formatKsh(quest.target)}</b></span>
+    <span><small>DEADLINE</small><b>${escapeHTML(deadline)}</b></span>
+    <span><small>REQUIRED MONTHLY</small><b>${escapeHTML(monthly)}</b></span>
+    <span><small>PACE</small><b class="pace-${pace.status}">${escapeHTML(paceText)}${escapeHTML(velocity)}</b></span>
+  </span>`;
+}
+
 function renderQuestRows(quests, dashboard = false) {
   if (!quests.length) {
     return `<p class="empty-quests">No active goals yet. Add a quest when you are ready.</p>`;
   }
 
-  return quests.map(quest => {
+  return sortQuestsByPriority(quests).map(quest => {
     const progress = questProgress(quest);
+    const pace = questPace(quest);
     return `
       <div class="quest-row ${progress === 100 ? "is-complete" : ""}" data-quest-id="${escapeHTML(quest.id)}">
         <span class="quest-icon shield">${progress === 100 ? "✦" : "◈"}</span>
@@ -1092,9 +1175,12 @@ function renderQuestRows(quests, dashboard = false) {
           <div class="quest-title">
             ${escapeHTML(quest.name)}
             ${progress === 100 ? `<span class="quest-xp quest-complete-badge">COMPLETE</span>` : dashboard ? "" : `<span class="quest-xp">ACTIVE</span>`}
+            ${quest.tier ? `<span class="quest-tier tier-${Number(quest.tier)}">TIER ${Number(quest.tier)}</span>` : ""}
+            <span class="quest-xp quest-xp-earned">+${questXp(quest)} XP</span>
           </div>
-          <div class="quest-meta">${formatKsh(quest.current)} <span>of</span> ${formatKsh(quest.target)}</div>
+          <div class="quest-meta">${formatKsh(quest.current)} <span>of</span> ${formatKsh(quest.target)}${dashboard && progress < 100 && pace.required !== null ? ` <span>·</span> ${formatKsh(Math.ceil(pace.required))}/mo needed` : ""}</div>
           <div class="quest-track"><i style="width:${progress}%"></i></div>
+          ${dashboard ? "" : renderQuestMetrics(quest)}
         </div>
         <strong class="quest-percent">${progress}%</strong>
         ${dashboard ? "" : `<button class="quest-update" type="button" data-edit-quest="${escapeHTML(quest.id)}" aria-label="Update ${escapeHTML(quest.name)} progress">Update progress</button>`}
@@ -1105,11 +1191,51 @@ function renderQuestRows(quests, dashboard = false) {
   }).join("");
 }
 
+// Summary shown on the Quests page and (compact) on the dashboard's Active quests panel.
+function renderMilestonesSummary(compact = false) {
+  const engine = getMilestonesEngine();
+  if (engine.count + engine.completed === 0) return "";
+  const insights = [];
+  if (engine.count > 0) {
+    insights.push(`To keep ${engine.count === 1 ? "your quest" : `all ${engine.count} quests`} on schedule, set aside about <b>${formatKsh(Math.ceil(engine.monthly))}</b> a month.`);
+    if (engine.top) {
+      const pct = questProgress(engine.top);
+      insights.push(`Your top priority, <b>${escapeHTML(engine.top.name)}</b>${engine.top.tier ? ` (Tier ${Number(engine.top.tier)})` : ""}, is ${pct}% funded. Direct spare cash there first.`);
+    }
+    if (engine.behind.length) {
+      insights.push(`Pace check: ${engine.behind.map(item => `<b>${escapeHTML(item.quest.name)}</b>${item.pace.status === "overdue" ? " is past its deadline" : item.pace.velocity !== null ? ` is saving ${formatKsh(Math.round(item.pace.velocity))}/mo against ${formatKsh(Math.ceil(item.pace.required))}/mo needed` : " is behind pace"}`).join("; ")}. A small monthly top-up would bring it back on track.`);
+    }
+  } else {
+    insights.push("Every quest is fully funded. Create a new quest to keep your money working toward something.");
+  }
+  if (compact) {
+    return `<div class="milestone-strip"><span><small>SAVED</small><b>${formatKsh(engine.saved)} / ${formatKsh(engine.target)}</b></span><span><small>COMPLETION</small><b>${engine.rate}%</b></span><span><small>NEEDED / MONTH</small><b>${formatKsh(Math.ceil(engine.monthly))}</b></span></div>`;
+  }
+  return `
+    <section class="panel milestones-engine">
+      <div class="panel-heading">
+        <div><div class="section-kicker">NETRAOS MILESTONES ENGINE SUMMARY</div><h2>Progress &amp; pace</h2></div>
+        <span class="inventory-account-count">${engine.completed} of ${engine.count + engine.completed} complete</span>
+      </div>
+      <div class="asset-engine-kpis">
+        <article class="asset-engine-kpi"><span class="inventory-label">ACTIVE QUESTS IN MOTION</span><strong>${engine.count}</strong><span class="inventory-note">${engine.completed} completed</span></article>
+        <article class="asset-engine-kpi"><span class="inventory-label">TOTAL MILESTONE TARGET</span><strong>${formatKsh(engine.target)}</strong><span class="inventory-note">Across all quests</span></article>
+        <article class="asset-engine-kpi"><span class="inventory-label">TOTAL CAPITAL SAVED</span><strong>${formatKsh(engine.saved)}</strong><span class="inventory-note">${formatKsh(Math.max(0, engine.target - engine.saved))} to go</span></article>
+        <article class="asset-engine-kpi highlight"><span class="inventory-label">OVERALL COMPLETION</span><strong>${engine.rate}%</strong><span class="inventory-note">${formatKsh(Math.ceil(engine.monthly))} / month needed</span></article>
+      </div>
+      <aside class="asset-insight"><span class="inventory-label">SYSTEM DISPATCH INSIGHT</span>${insights.map(text => `<p>${text}</p>`).join("")}</aside>
+    </section>`;
+}
+
 function updateDashboardQuests() {
   const quests = getQuests();
   const list = document.querySelector(".quests-panel .quest-list");
   const badge = document.querySelector(".quests-panel .count-badge");
-  if (list) list.innerHTML = renderQuestRows(quests, true);
+  if (list) {
+    list.innerHTML = renderQuestRows(quests, true);
+    list.parentElement.querySelector(".milestone-strip")?.remove();
+    list.insertAdjacentHTML("beforebegin", renderMilestonesSummary(true));
+  }
   if (badge) badge.textContent = quests.length;
   updateDashboardOnboarding();
   updateSavingsProjection();
@@ -2187,6 +2313,7 @@ function renderQuestsPage() {
         <article class="inventory-summary-card"><span class="inventory-label">COMPLETED</span><strong>${completed}</strong><span class="inventory-note">Goals at 100% progress</span></article>
         <article class="inventory-summary-card net-worth-summary"><span class="inventory-label">NEXT STEP</span><strong>${canAddQuest ? "Keep going" : "Quest limit"}</strong><span class="inventory-note">${canAddQuest ? "Add or update a goal" : "Delete a goal to add another"}</span></article>
       </section>
+      ${renderMilestonesSummary()}
       <section class="panel quest-page-panel">
         <div class="panel-heading">
           <div><div class="section-kicker">YOUR CURRENT GOALS</div><h2>Active quests</h2></div>
@@ -2214,8 +2341,14 @@ function openQuestDialog(questId = "") {
       <header class="inventory-dialog-heading"><div><span class="section-kicker">GOALS WITH MOMENTUM</span><h2>${quest ? "Update quest progress" : "Create a quest"}</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header>
       <div class="inventory-form-fields">
         <label class="inventory-form-field"><span>Quest name</span><input name="name" type="text" maxlength="60" placeholder="e.g. Emergency fund" value="${escapeHTML(quest?.name || "")}" required></label>
+        <div class="liability-rate-row">
+          <label class="inventory-form-field"><span>Category</span><select name="category">${questCategories.map(item => `<option ${quest?.category === item ? "selected" : ""}>${item}</option>`).join("")}</select></label>
+          <label class="inventory-form-field"><span>Priority tier</span><select name="tier">${questTiers.map(item => `<option value="${item.tier}" ${Number(quest?.tier || 2) === item.tier ? "selected" : ""}>${item.label}</option>`).join("")}</select></label>
+        </div>
         <label class="inventory-form-field"><span>Current amount (KSh)</span><input name="current" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(quest?.current || 0)}" required></label>
         <label class="inventory-form-field"><span>Target amount (KSh)</span><input name="target" type="number" min="1" step="0.01" inputmode="decimal" value="${Number(quest?.target || 0) || ""}" required></label>
+        <label class="inventory-form-field"><span>Target deadline <small>Optional</small></span><input name="deadline" type="date" value="${escapeHTML(quest?.deadline || "")}"></label>
+        <small class="liability-hint">With a deadline, NetraOS works out the monthly amount you need to save and warns you if you fall behind.</small>
       </div>
       <footer class="inventory-dialog-actions"><button class="inventory-cancel" type="button">Cancel</button><button class="inventory-submit" type="submit">${quest ? "Save progress" : "Create quest"}</button></footer>
     </form>`;
@@ -2231,7 +2364,21 @@ function openQuestDialog(questId = "") {
     const target = Number(formData.get("target"));
     if (!name || !Number.isFinite(current) || !Number.isFinite(target) || current < 0 || target <= 0) return;
     const wasComplete = quest ? questProgress(quest) === 100 : false;
-    const updatedQuest = { id: quest?.id || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`, name, current, target };
+    const deadline = String(formData.get("deadline") || "");
+    if (deadline && !quest && deadline <= localDateValue()) {
+      showToast("Choose a deadline in the future.");
+      return;
+    }
+    const updatedQuest = {
+      ...(quest || {}),
+      id: quest?.id || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      name, current, target,
+      category: String(formData.get("category") || questCategories[0]),
+      tier: Number(formData.get("tier")) || 2,
+      deadline,
+      createdAt: quest?.createdAt || new Date().toISOString(),
+      startAmount: quest?.startAmount ?? (quest?.createdAt ? 0 : current)
+    };
     const updatedQuests = quest ? quests.map(item => item.id === quest.id ? updatedQuest : item) : [...quests, updatedQuest];
     try {
       saveQuests(updatedQuests);
@@ -2241,7 +2388,14 @@ function openQuestDialog(questId = "") {
     }
     dialog.close();
     refreshFinancialPage();
-    if (!wasComplete && questProgress(updatedQuest) === 100) celebrateQuestCompletion(name);
+    if (!wasComplete && questProgress(updatedQuest) === 100) {
+      celebrateQuestCompletion(name);
+      const next = getMilestonesEngine(updatedQuests).top;
+      if (next) {
+        const need = questPace(next).required;
+        window.setTimeout(() => showToast(`Overflow: re-route this monthly saving to ${next.name}${need !== null ? ` (needs ${formatKsh(Math.ceil(need))}/mo)` : ""}.`), 1200);
+      }
+    }
     else showToast(quest ? "Quest progress updated." : `${name} added to your quests.`);
   });
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
@@ -2978,18 +3132,20 @@ function renderTaxCompactResults(p) {
     </div>`;
 }
 
-// Contact status helpers show local time and the availability of the user's email app.
+// Contact page: team directory, availability helpers, and a simple message form.
 const supportChannels = [
-  { dept: "Core Systems & Support", email: "support@netraos.io", hours: "Mon – Fri: 08:00 – 18:00", sla: "< 2 hours", window: { start: 8, end: 18 } },
-  { dept: "Security & Privacy Desk", email: "security@netraos.io", hours: "24 / 7 / 365 (Automated)", sla: "< 30 mins", window: null },
-  { dept: "Partnerships & Banking APIs", email: "integrations@netraos.io", hours: "Mon – Fri: 09:00 – 17:00", sla: "24 Hours", window: { start: 9, end: 17 } },
-  { dept: "Media & Relations", email: "press@netraos.io", hours: "Mon – Fri: 09:00 – 17:00", sla: "48 Hours", window: { start: 9, end: 17 } }
+  { dept: "Support", detail: "Help using NetraOS", email: "support@netraos.io", hours: "Mon – Fri, 08:00 – 18:00", sla: "Within 2 hours", window: { start: 8, end: 18 } },
+  { dept: "Security & Privacy", detail: "Privacy and security questions", email: "security@netraos.io", hours: "Always monitored", sla: "Within 30 minutes", window: null },
+  { dept: "Partnerships", detail: "Integrations and collaboration", email: "integrations@netraos.io", hours: "Mon – Fri, 09:00 – 17:00", sla: "Within 24 hours", window: { start: 9, end: 17 } },
+  { dept: "Press & Media", detail: "Interviews and media enquiries", email: "press@netraos.io", hours: "Mon – Fri, 09:00 – 17:00", sla: "Within 48 hours", window: { start: 9, end: 17 } }
 ];
 
 const contactDestinations = {
-  support: { label: "Tech Support", to: "support@netraos.io", tag: "SUPPORT" },
-  bug: { label: "Bug Report", to: "support@netraos.io", tag: "BUG REPORT" },
-  security: { label: "Security", to: "security@netraos.io", tag: "SECURITY" }
+  support: { label: "General support", to: "support@netraos.io", tag: "Support" },
+  bug: { label: "Report a problem", to: "support@netraos.io", tag: "Problem report" },
+  security: { label: "Security or privacy", to: "security@netraos.io", tag: "Security" },
+  partnerships: { label: "Partnerships", to: "integrations@netraos.io", tag: "Partnership" },
+  press: { label: "Press & media", to: "press@netraos.io", tag: "Press" }
 };
 
 function nairobiNow() {
@@ -3004,119 +3160,72 @@ function nairobiNow() {
 }
 
 function channelStatus(channel) {
-  if (!channel.window) return { label: "ALWAYS ON", open: true };
+  if (!channel.window) return { label: "Available", open: true };
   const now = nairobiNow();
   if (!now) return { label: "", open: false };
   const open = now.day >= 1 && now.day <= 5 && now.hour >= channel.window.start && now.hour < channel.window.end;
-  return { label: open ? "OPEN NOW" : "CLOSED", open };
+  return { label: open ? "Available now" : "Currently closed", open };
 }
-
-function renderSystemPill() {
-  const online = typeof navigator === "undefined" || navigator.onLine !== false;
-  return online
-    ? `<span class="system-pill" data-system-pill role="status"><i></i>All Nodes Operational <small>Latency: 14ms · Nairobi Server Hub</small></span>`
-    : `<span class="system-pill warn" data-system-pill role="status"><i></i>Sync Delay <small>You're offline · changes are saved locally</small></span>`;
-}
-
-function refreshSystemPills() {
-  document.querySelectorAll("[data-system-pill]").forEach(pill => {
-    pill.outerHTML = renderSystemPill();
-  });
-}
-
-window.addEventListener("online", refreshSystemPills);
-window.addEventListener("offline", refreshSystemPills);
 
 function renderContactPage() {
-  const channelRows = supportChannels.map(channel => {
+  const team = supportChannels.map(channel => {
     const status = channelStatus(channel);
     return `
-      <div class="contact-row" role="row">
-        <span class="contact-dept" role="cell"><strong>${channel.dept}</strong>${status.label ? `<small class="${status.open ? "open" : "closed"}"><i></i>${status.label}</small>` : ""}</span>
-        <a class="contact-email" role="cell" href="mailto:${channel.email}">${channel.email}</a>
-        <span class="contact-hours" role="cell">${channel.hours}</span>
-        <span class="contact-sla" role="cell">${channel.sla}</span>
-      </div>`;
+      <li class="cx-team-row">
+        <div class="cx-team-main">
+          <strong>${channel.dept}</strong>
+          <span>${channel.detail}</span>
+          <a href="mailto:${channel.email}">${channel.email}</a>
+        </div>
+        <div class="cx-team-meta">
+          <span>${channel.hours}</span>
+          <span>${channel.sla}</span>
+          ${status.label ? `<em class="${status.open ? "open" : "closed"}"><i></i>${status.label}</em>` : ""}
+        </div>
+      </li>`;
   }).join("");
 
   return `
-    <section class="contact-page">
-      <header class="inventory-heading">
-        <div>
-          <div class="eyebrow"><span class="eyebrow-line"></span> SUPPORT NODE</div>
-          <h1>Talk to the<br><em>NetraOS team.</em></h1>
-          <p class="welcome-sub">Pick a channel, check who is online, or open the terminal to send a message. All times are East Africa Time (EAT).</p>
-        </div>
-        ${renderSystemPill()}
+    <section class="contact-page cx-page">
+      <header class="cx-heading">
+        <div class="eyebrow"><span class="eyebrow-line"></span> CONTACT</div>
+        <h1>Get in touch.</h1>
+        <p class="welcome-sub">Questions, feedback or partnerships — we read every message. Times shown are East Africa Time (EAT).</p>
       </header>
 
-      <section class="contact-grid">
-        <article class="panel contact-channels">
-          <div class="panel-heading">
-            <div><div class="section-kicker">SYSTEM STATUS &amp; DIRECT CHANNELS</div><h2>Departments</h2></div>
+      <section class="cx-layout">
+        <form class="panel cx-form" data-contact-form novalidate aria-label="Send us a message">
+          <h2>Send us a message</h2>
+          <p class="cx-form-lead">Your message opens in your email app, addressed to the right team.</p>
+          <label class="cx-field"><span>Your name</span><input name="handle" type="text" maxlength="80" autocomplete="name" placeholder="Full name"></label>
+          <label class="cx-field"><span>Topic</span>
+            <select name="dest">${Object.entries(contactDestinations).map(([key, dest]) => `<option value="${key}">${dest.label}</option>`).join("")}</select>
+          </label>
+          <label class="cx-field"><span>Message</span><textarea name="payload" maxlength="2000" rows="6" placeholder="How can we help?"></textarea></label>
+          <div class="cx-actions">
+            <button class="cx-send" type="submit">Send message</button>
+            <button class="cx-clear" type="button" data-contact-clear>Clear</button>
           </div>
-          <div class="contact-table" role="table" aria-label="Support departments">
-            <div class="contact-row contact-head" role="row">
-              <span role="columnheader">DEPARTMENT</span><span role="columnheader">CONTACT ENDPOINT</span><span role="columnheader">OPERATING HOURS (EAT)</span><span role="columnheader">TARGET SLA</span>
-            </div>
-            ${channelRows}
-          </div>
-        </article>
-
-        <article class="panel contact-lines">
-          <div class="panel-heading">
-            <div><div class="section-kicker">COMMAND DIRECT LINES</div><h2>Call or message</h2></div>
-          </div>
-          <div class="contact-line-list">
-            <a class="contact-line" href="tel:+254700000988"><span class="contact-line-icon">☎</span><span><small>PRIMARY OPERATIONS DESK</small><strong>+254 (0) 700 000 988</strong></span></a>
-            <a class="contact-line" href="https://wa.me/254799000988" target="_blank" rel="noopener"><span class="contact-line-icon">✉</span><span><small>ENCRYPTED DISPATCH (WHATSAPP ONLY)</small><strong>+254 (0) 799 000 988</strong></span></a>
-            <a class="contact-line emergency" href="tel:*384*988%23"><span class="contact-line-icon">⚠</span><span><small>EMERGENCY SYSTEM OVERRIDE / ACCOUNT LOCK</small><strong>Dial *384*988#</strong><em>USSD Emergency Shield</em></span></a>
-          </div>
-        </article>
-      </section>
-
-      <section class="contact-grid contact-grid-lower">
-        <form class="terminal" data-contact-form novalidate aria-label="Contact terminal">
-          <div class="terminal-bar"><i></i><i></i><i></i><span>[NETRA_OS_TERMINAL v2.4] &gt; INIT_CONTACT_STREAM...</span></div>
-          <div class="terminal-body">
-            <label class="terminal-field"><span>USER_IDENTIFIER</span><input name="handle" type="text" maxlength="80" autocomplete="name" placeholder="Enter your name / handle"></label>
-            <label class="terminal-field"><span>SIGNAL_DESTINATION</span>
-              <select name="dest">${Object.entries(contactDestinations).map(([key, dest]) => `<option value="${key}">${dest.label}</option>`).join("")}</select>
-            </label>
-            <label class="terminal-field"><span>COMMUNICATION_PAYLOAD</span><textarea name="payload" maxlength="2000" rows="5" placeholder="Type message here..."></textarea></label>
-            <div class="terminal-actions">
-              <button class="terminal-send" type="submit">[ SEND_TRANSMISSION ]</button>
-              <button class="terminal-clear" type="button" data-contact-clear>[ CLEAR_BUFFER ]</button>
-            </div>
-            <div class="terminal-status" role="status" aria-live="polite">STATUS: <b>READY TO TRANSMIT</b></div>
-            <p class="terminal-note">Sending opens your email app with the message filled in. Never include your PIN, M-Pesa credentials or master security key.</p>
-          </div>
+          <p class="cx-status" role="status" aria-live="polite"></p>
+          <p class="cx-note">For your safety, never include your PIN, M-Pesa credentials or security keys in a message.</p>
         </form>
 
-        <div class="contact-side">
-          <article class="panel contact-hq">
-            <div class="panel-heading">
-              <div><div class="section-kicker">PHYSICAL HQ &amp; DATA OPERATIONS</div><h2>NetraOS Technologies Lab</h2></div>
-            </div>
-            <dl class="contact-dl">
-              <div><dt>Location</dt><dd>The Mirage Towers, 8th Floor, Tower 2</dd></div>
-              <div><dt>Street</dt><dd>Chiromo Road, Westlands</dd></div>
-              <div><dt>City</dt><dd>Nairobi, Kenya</dd></div>
-              <div><dt>Postal address</dt><dd>P.O. Box 40100 - 00100</dd></div>
-            </dl>
+        <aside class="cx-side">
+          <article class="panel cx-card">
+            <h2>Reach us directly</h2>
+            <ul class="cx-lines">
+              <li><span class="cx-label">Phone</span><a href="tel:+254700000988">+254 (0) 700 000 988</a></li>
+              <li><span class="cx-label">WhatsApp</span><a href="https://wa.me/254799000988" target="_blank" rel="noopener">+254 (0) 799 000 988</a></li>
+              <li><span class="cx-label">Email</span><a href="mailto:support@netraos.io">support@netraos.io</a></li>
+              <li><span class="cx-label">Office</span><address>NetraOS Technologies Lab<br>The Mirage Towers, 8th Floor, Tower 2<br>Chiromo Road, Westlands<br>Nairobi, Kenya<br>P.O. Box 40100 - 00100</address></li>
+            </ul>
           </article>
+        </aside>
+      </section>
 
-          <article class="panel contact-security">
-            <div class="panel-heading">
-              <div><div class="section-kicker">ENCRYPTION &amp; VERIFICATION</div><h2>Private by design</h2></div>
-            </div>
-            <dl class="contact-dl">
-              <div><dt>PGP key fingerprint</dt><dd class="mono">8F2A 991B C4DE 0012 3456 7890 NETRA OS HQ</dd></div>
-              <div><dt>End-to-end encryption</dt><dd>Active (TLS 1.3 / AES-256)</dd></div>
-              <div><dt>Zero-knowledge guarantee</dt><dd>Support engineers never request your PIN, M-Pesa credentials, or master security key.</dd></div>
-            </dl>
-          </article>
-        </div>
+      <section class="panel cx-card cx-team">
+        <h2>Who to contact</h2>
+        <ul class="cx-team-list">${team}</ul>
       </section>
     </section>
     ${renderAppFooter()}`;
@@ -3127,20 +3236,21 @@ document.addEventListener("submit", event => {
   const form = event.target;
   if (!(form instanceof HTMLFormElement) || !form.matches("[data-contact-form]")) return;
   event.preventDefault();
-  const status = form.querySelector(".terminal-status");
+  const status = form.querySelector(".cx-status");
   const setStatus = (text, error = false) => {
-    status.innerHTML = `STATUS: <b class="${error ? "error" : ""}">${text}</b>`;
+    status.textContent = text;
+    status.classList.toggle("error", error);
   };
   const data = new FormData(form);
   const handle = String(data.get("handle") || "").trim();
   const payload = String(data.get("payload") || "").trim();
   const dest = contactDestinations[String(data.get("dest"))] || contactDestinations.support;
-  if (!handle) { setStatus("ERROR · USER_IDENTIFIER REQUIRED", true); form.elements.handle.focus(); return; }
-  if (payload.length < 10) { setStatus("ERROR · PAYLOAD TOO SHORT", true); form.elements.payload.focus(); return; }
+  if (!handle) { setStatus("Please enter your name.", true); form.elements.handle.focus(); return; }
+  if (payload.length < 10) { setStatus("Please write a little more so we can help.", true); form.elements.payload.focus(); return; }
   const subject = `[${dest.tag}] NetraOS message from ${handle}`;
   const body = `${payload}\n\n— ${handle}`;
   window.location.href = `mailto:${dest.to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  setStatus(`HANDED TO YOUR EMAIL APP · ${dest.to}`);
+  setStatus(`Opening your email app, addressed to ${dest.to}.`);
 });
 
 // Reset the contact form and its status line when the clear control is selected.
@@ -3149,7 +3259,9 @@ document.addEventListener("click", event => {
   if (!clear) return;
   const form = clear.closest("form");
   form.reset();
-  form.querySelector(".terminal-status").innerHTML = "STATUS: <b>BUFFER CLEARED · READY TO TRANSMIT</b>";
+  const status = form.querySelector(".cx-status");
+  status.textContent = "";
+  status.classList.remove("error");
 });
 
 // Shared popover menus and toast messages provide lightweight app feedback.
