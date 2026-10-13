@@ -7695,3 +7695,45 @@ body.theme-dark .autolock-optout input { accent-color: #53c294; }
 .app-shell.theme-dark .loan-metrics b { color: var(--text); }
 body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
 @media (max-width: 520px) { .liability-rate-row { grid-template-columns: 1fr; } }
+
+/* Keep the main navigation visible while scrolling. */
+@media (min-width: 700px) {
+  .app-shell .topbar {
+    position: sticky;
+    top: 10px;
+    z-index: 15;
+    box-shadow: 0 6px 22px #18251e1a, 0 2px 7px #25252508;
+  }
+}
+.app-shell.theme-dark .topbar { box-shadow: 0 8px 26px #0006; }
+
+/* Assets Engine (Inventory page) */
+.asset-fields[hidden] { display: none; }
+.asset-engine { margin: 18px 0; }
+.asset-engine-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.asset-engine-kpi { display: grid; gap: 5px; padding: 14px 16px; border: 1px solid #e6ebe7; border-radius: 12px; background: #f8faf8; }
+.asset-engine-kpi strong { font: 600 22px var(--display); color: #1f2a23; }
+.asset-engine-kpi strong small { font: 11px var(--mono); color: #77817b; }
+.asset-engine-kpi strong.positive { color: #1f7a4d; }
+.asset-engine-kpi strong.negative { color: #b3423a; }
+.asset-engine-kpi.highlight { background: #1f3a2c; border-color: #1f3a2c; }
+.asset-engine-kpi.highlight strong, .asset-engine-kpi.highlight .inventory-label, .asset-engine-kpi.highlight .inventory-note, .asset-engine-kpi.highlight strong small { color: #f1e8cf; }
+.asset-engine-body { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; }
+.asset-pillars { display: grid; gap: 14px; align-content: start; }
+.asset-pillar-head { display: flex; justify-content: space-between; gap: 10px; font: 600 13px var(--sans); }
+.asset-pillar-bar { height: 8px; margin: 6px 0 4px; border-radius: 99px; background: #e6ebe7; overflow: hidden; }
+.asset-pillar-bar span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #2f7a55, #c9a24a); }
+.asset-pillar small { font: 10px var(--mono); color: #77817b; }
+.asset-insight { display: grid; gap: 10px; align-content: start; padding: 16px; border-left: 3px solid #c9a24a; border-radius: 4px 12px 12px 4px; background: #fbf7ea; }
+.asset-insight p { margin: 0; font: 13px/1.55 var(--sans); color: #3a443d; }
+.asset-engine-empty { display: grid; gap: 8px; justify-items: start; padding: 6px 0; }
+.asset-engine-empty p { margin: 0; color: #5e6862; max-width: 60ch; }
+.asset-metrics { background: #f6faf6; }
+.app-shell.theme-dark .asset-engine-kpi { background: #1c2520; border-color: var(--line); }
+.app-shell.theme-dark .asset-engine-kpi strong { color: var(--text); }
+.app-shell.theme-dark .asset-engine-kpi.highlight { background: #24402f; }
+.app-shell.theme-dark .asset-pillar-bar { background: #2a352e; }
+.app-shell.theme-dark .asset-insight { background: #262316; }
+.app-shell.theme-dark .asset-insight p { color: var(--text); }
+.app-shell.theme-dark .asset-metrics { background: #1c2520; }
+@media (max-width: 800px) { .asset-engine-body { grid-template-columns: 1fr; } }

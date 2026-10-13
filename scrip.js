@@ -128,6 +128,9 @@ const assetCategories = [
   { name: "Bank accounts", icon: "▤" },
   { name: "Mobile money", icon: "◉" },
   { name: "Cash & savings", icon: "◉" },
+  { name: "Money market funds", icon: "▥" },
+  { name: "SACCO deposits & shares", icon: "◈" },
+  { name: "Bonds & equities", icon: "▲" },
   { name: "Investments", icon: "▥" },
   { name: "Property & vehicles", icon: "⌂" },
   { name: "Other assets", icon: "◇" }
@@ -170,6 +173,162 @@ function formatLoanTenure(loan) {
   if (months === null || months === undefined) return date || "Not set";
   const label = months === 1 ? "1 month left" : `${months} months left`;
   return date ? `${label} · ${date}` : label;
+}
+
+// Assets Engine: yield tracking, withholding tax, liquidity tiers and portfolio maths.
+const WITHHOLDING_TAX = 0.15;
+const compoundingFrequencies = ["Daily", "Monthly", "Quarterly", "Semi-annual", "Annually", "None (simple / dividend)"];
+const liquidityTiers = ["Immediate (T+0)", "High (T+1)", "Medium (coupon / T+3 to T+7)", "Locked (90+ days / collateral)"];
+const assetPillars = [
+  { name: "Liquid Cash & Checking", categories: ["Bank accounts", "Mobile money", "Cash & savings"] },
+  { name: "Money Market Funds", categories: ["Money market funds"] },
+  { name: "SACCO Deposits & Shares", categories: ["SACCO deposits & shares"] },
+  { name: "Fixed Income & Equities", categories: ["Bonds & equities", "Investments"] },
+  { name: "Property & other", categories: ["Property & vehicles", "Other assets"] }
+];
+const assetCategoryDefaults = {
+  "Bank accounts": { compounding: "Monthly", liquidity: liquidityTiers[0] },
+  "Mobile money": { compounding: "None (simple / dividend)", liquidity: liquidityTiers[0] },
+  "Cash & savings": { compounding: "Monthly", liquidity: liquidityTiers[1] },
+  "Money market funds": { compounding: "Daily", liquidity: liquidityTiers[1] },
+  "SACCO deposits & shares": { compounding: "Annually", liquidity: liquidityTiers[3] },
+  "Bonds & equities": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
+  "Investments": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
+  "Property & vehicles": { compounding: "None (simple / dividend)", liquidity: liquidityTiers[3] },
+  "Other assets": { compounding: "None (simple / dividend)", liquidity: liquidityTiers[2] }
+};
+
+// Per-asset yield: gross rate, net of 15% withholding tax unless tax-free, and monthly income.
+function getAssetYield(entry) {
+  const returns = entry && entry.returns;
+  if (!returns || returns.grossRate === null || returns.grossRate === undefined) return null;
+  const gross = Number(returns.grossRate);
+  if (!Number.isFinite(gross)) return null;
+  const net = returns.taxFree ? gross : gross * (1 - WITHHOLDING_TAX);
+  return { gross, net, taxFree: Boolean(returns.taxFree), monthly: Math.round(Number(entry.amount || 0) * net / 100 / 12) };
+}
+
+function annualiseLoanRate(loan) {
+  if (!loan || loan.interestRate === null || loan.interestRate === undefined) return null;
+  const rate = Number(loan.interestRate);
+  const base = String(loan.rateType || "");
+  if (base.startsWith("per month")) return rate * 12;
+  if (base.startsWith("per day")) return rate * 365;
+  return rate;
+}
+
+function getAssetEngine(entries = getInventoryEntries()) {
+  const assets = entries.filter(entry => entry.type === "asset");
+  const tracked = assets.map(entry => ({ entry, y: getAssetYield(entry) })).filter(item => item.y);
+  const balance = tracked.reduce((sum, item) => sum + Number(item.entry.amount || 0), 0);
+  const monthly = tracked.reduce((sum, item) => sum + item.y.monthly, 0);
+  const netYield = balance > 0 ? monthly * 12 / balance * 100 : 0;
+  const grossYield = balance > 0
+    ? tracked.reduce((sum, item) => sum + Number(item.entry.amount || 0) * item.y.gross, 0) / balance
+    : 0;
+
+  const loans = entries
+    .filter(entry => entry.type === "liability" && entry.loan)
+    .map(entry => ({ entry, rate: annualiseLoanRate(entry.loan) }))
+    .filter(item => item.rate !== null && Number(item.entry.amount) > 0);
+  const loanBalance = loans.reduce((sum, item) => sum + Number(item.entry.amount), 0);
+  const loanRate = loanBalance > 0
+    ? loans.reduce((sum, item) => sum + Number(item.entry.amount) * item.rate, 0) / loanBalance
+    : null;
+
+  const pillars = assetPillars.map(pillar => {
+    const items = assets.filter(entry => pillar.categories.includes(entry.category));
+    const value = items.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+    const income = items.reduce((sum, entry) => sum + (getAssetYield(entry)?.monthly || 0), 0);
+    return { name: pillar.name, value, income };
+  });
+  const totalAssets = assets.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+
+  const living = getPowerUpData().budgets
+    .filter(item => item.category !== "Savings & investing")
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+  return {
+    tracked, balance, monthly, netYield, grossYield, loans, loanRate, pillars, totalAssets,
+    untracked: assets.length - tracked.length,
+    spread: loanRate === null || tracked.length === 0 ? null : netYield - loanRate,
+    living,
+    coverage: living > 0 ? monthly / living * 100 : null
+  };
+}
+
+function renderAssetEngine() {
+  const entries = getInventoryEntries();
+  const engine = getAssetEngine(entries);
+  const pct = value => `${(Math.round(value * 100) / 100).toString()}%`;
+
+  if (engine.tracked.length === 0) {
+    return `
+      <section class="panel asset-engine">
+        <div class="panel-heading">
+          <div><div class="section-kicker">NETRAOS ASSET ENGINE</div><h2>Passive income &amp; yield</h2></div>
+        </div>
+        <div class="asset-engine-empty">
+          <strong>Put your assets to work.</strong>
+          <p>Add an expected annual return, tax treatment, compounding and liquidity to an asset and NetraOS will calculate your net yield and monthly passive income.</p>
+          <button class="inventory-add-small" type="button" data-inventory-action="add-asset">＋ Add a yielding asset</button>
+        </div>
+      </section>`;
+  }
+
+  const insights = [];
+  if (engine.coverage !== null) {
+    insights.push(`Your passive asset returns currently cover <b>${pct(engine.coverage)}</b> of your baseline monthly living costs (${formatKsh(engine.living)}) automatically. Every month your money generates ${engine.coverage >= 100 ? "more than a full paycheck" : "the equivalent of a partial paycheck"} without reducing your principal balance.`);
+  } else {
+    insights.push(`Your assets generate <b>${formatKsh(engine.monthly)}</b> a month without reducing your principal. Add budget lines in Power-Up to see how much of your living costs this covers.`);
+  }
+  if (engine.spread !== null) {
+    const spreadText = `${engine.spread >= 0 ? "+" : "−"}${pct(Math.abs(engine.spread))}`;
+    insights.push(engine.spread >= 0
+      ? `Wealth velocity is <b>positive</b>: your portfolio earns ${pct(engine.netYield)} net against an average loan cost of ${pct(engine.loanRate)} (spread ${spreadText}).`
+      : `Wealth velocity is <b>negative</b>: your loans cost an average ${pct(engine.loanRate)} against ${pct(engine.netYield)} net asset yield (spread ${spreadText}). Clearing the costliest debt would beat holding it against these assets.`);
+    const costliest = [...engine.loans].sort((a, b) => b.rate - a.rate)[0];
+    const liquid = engine.tracked
+      .filter(item => /^(Immediate|High)/.test(item.entry.returns.liquidity || ""))
+      .sort((a, b) => b.y.net - a.y.net)[0];
+    if (costliest && liquid) {
+      insights.push(liquid.y.net > costliest.rate
+        ? `Smart arbitrage: <b>${escapeHTML(liquid.entry.name)}</b> earns ${pct(liquid.y.net)} net, more than <b>${escapeHTML(costliest.entry.name)}</b> costs (${pct(costliest.rate)}), so keeping cash invested is usually better than rushing to clear that loan.`
+        : `Smart arbitrage: <b>${escapeHTML(costliest.entry.name)}</b> costs ${pct(costliest.rate)}, more than <b>${escapeHTML(liquid.entry.name)}</b> earns (${pct(liquid.y.net)} net), so extra cash is better used to clear it.`);
+    }
+  }
+  if (engine.untracked > 0) {
+    insights.push(`${engine.untracked} ${engine.untracked === 1 ? "asset has" : "assets have"} no return set and ${engine.untracked === 1 ? "is" : "are"} left out of these figures.`);
+  }
+
+  const maxPillar = Math.max(1, ...engine.pillars.map(pillar => pillar.value));
+  return `
+    <section class="panel asset-engine">
+      <div class="panel-heading">
+        <div><div class="section-kicker">NETRAOS ASSET ENGINE SUMMARY</div><h2>Passive income &amp; yield</h2></div>
+        <span class="inventory-account-count">${engine.tracked.length} yielding ${engine.tracked.length === 1 ? "asset" : "assets"}</span>
+      </div>
+      <div class="asset-engine-kpis">
+        <article class="asset-engine-kpi"><span class="inventory-label">TOTAL ASSET PORTFOLIO BALANCE</span><strong>${formatKsh(engine.balance)}</strong><span class="inventory-note">Gross yield ${pct(engine.grossYield)} p.a.</span></article>
+        <article class="asset-engine-kpi"><span class="inventory-label">WEIGHTED AVERAGE NET YIELD</span><strong>${pct(engine.netYield)} <small>p.a.</small></strong><span class="inventory-note">After 15% withholding tax</span></article>
+        <article class="asset-engine-kpi highlight"><span class="inventory-label">MONTHLY PASSIVE INCOME</span><strong>${formatKsh(engine.monthly)} <small>/ month</small></strong><span class="inventory-note">${formatKsh(engine.monthly * 12)} a year</span></article>
+        <article class="asset-engine-kpi"><span class="inventory-label">NET INTEREST SPREAD</span><strong class="${engine.spread === null ? "" : engine.spread >= 0 ? "positive" : "negative"}">${engine.spread === null ? "—" : `${engine.spread >= 0 ? "+" : "−"}${pct(Math.abs(engine.spread))}`}</strong><span class="inventory-note">${engine.spread === null ? "Add a loan with an interest rate" : "Asset yield vs. loan interest"}</span></article>
+      </div>
+      <div class="asset-engine-body">
+        <div class="asset-pillars" aria-label="Allocation by pillar">
+          ${engine.pillars.filter(pillar => pillar.value > 0).map(pillar => `
+            <div class="asset-pillar">
+              <div class="asset-pillar-head"><span>${pillar.name}</span><strong>${formatKsh(pillar.value)}</strong></div>
+              <div class="asset-pillar-bar"><span style="width:${Math.max(3, pillar.value / maxPillar * 100).toFixed(1)}%"></span></div>
+              <small>${engine.totalAssets > 0 ? (pillar.value / engine.totalAssets * 100).toFixed(1) : "0"}% of assets · ${formatKsh(pillar.income)}/mo</small>
+            </div>`).join("")}
+        </div>
+        <aside class="asset-insight">
+          <span class="inventory-label">SYSTEM INSIGHT</span>
+          ${insights.map(text => `<p>${text}</p>`).join("")}
+        </aside>
+      </div>
+    </section>`;
 }
 
 const budgetCategories = [
@@ -1328,6 +1487,19 @@ function renderAccountRows(entries) {
               <span><small>MIN. MONTHLY INSTALLMENT</small><b>${entry.loan.minInstallment === null ? "Not set" : formatKsh(entry.loan.minInstallment) + "/mo"}</b></span>
               <span><small>REMAINING TENURE</small><b>${escapeHTML(formatLoanTenure(entry.loan))}</b></span>
             </span>` : ""}
+            ${(() => {
+              const y = entry.type === "asset" ? getAssetYield(entry) : null;
+              if (!y) return "";
+              const r = entry.returns;
+              const rate = v => `${Math.round(v * 100) / 100}%`;
+              return `<span class="loan-metrics asset-metrics">
+                <span><small>CATEGORY / LOCATION</small><b>${escapeHTML(entry.category)}</b></span>
+                <span><small>OUTSTANDING BALANCE</small><b>${formatKsh(entry.amount)}</b></span>
+                <span><small>EXPECTED RETURN</small><b>${rate(y.gross)} gross · ${rate(y.net)} net${y.taxFree ? " (tax-free)" : ""}</b></span>
+                <span><small>COMPOUNDING / LIQUIDITY</small><b>${escapeHTML(r.compounding || "Not set")} · ${escapeHTML(r.liquidity || "Not set")}</b></span>
+                <span><small>MONTHLY PASSIVE YIELD</small><b>${formatKsh(y.monthly)}/mo</b></span>
+              </span>`;
+            })()}
           </span>
           <strong class="inventory-account-amount">${formatKsh(entry.amount)}</strong>
           <button class="inventory-delete" type="button" data-delete-entry="${escapeHTML(entry.id)}" aria-label="Delete ${escapeHTML(entry.name)}" title="Delete item">×</button>
@@ -1369,6 +1541,8 @@ function renderInventoryPage() {
           <span class="inventory-note">Assets minus liabilities</span>
         </article>
       </section>
+
+      ${renderAssetEngine()}
 
       <section class="inventory-columns" aria-label="Assets and liabilities">
         <article class="panel inventory-list-panel">
@@ -1607,6 +1781,17 @@ function openInventoryDialog(action) {
           <span id="inventory-amount-label">Current balance (KSh)</span>
           <input name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" required>
         </label>
+        <div class="inventory-form-fields asset-fields">
+          <div class="liability-rate-row">
+            <label class="inventory-form-field"><span>Expected annual return (% gross)</span><input name="grossRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 11.5"></label>
+            <label class="inventory-form-field"><span>Tax treatment</span><select name="taxTreatment"><option value="taxable">Taxable (15% withholding)</option><option value="exempt">Tax-free (e.g. infrastructure bond)</option></select></label>
+          </div>
+          <div class="liability-rate-row">
+            <label class="inventory-form-field"><span>Compounding</span><select name="compounding">${compoundingFrequencies.map(item => `<option>${item}</option>`).join("")}</select></label>
+            <label class="inventory-form-field"><span>Liquidity tier</span><select name="liquidity">${liquidityTiers.map(item => `<option>${item}</option>`).join("")}</select></label>
+          </div>
+          <small class="liability-hint asset-net-hint">Optional. Leave the return blank for assets that earn nothing; NetraOS works out net yield and monthly passive income.</small>
+        </div>
         <div class="inventory-form-fields liability-fields" hidden>
           <label class="inventory-form-field"><span>Lender / type</span><select name="lenderType">${lenderTypes.map(type => `<option>${type}</option>`).join("")}</select></label>
           <div class="liability-rate-row">
@@ -1636,6 +1821,13 @@ function openInventoryDialog(action) {
   const typeSelect = dialog.querySelector("#inventory-entry-type");
   const categorySelect = dialog.querySelector("#inventory-entry-category");
 
+  function applyAssetDefaults() {
+    const defaults = assetCategoryDefaults[categorySelect.value];
+    if (!defaults) return;
+    form.elements.compounding.value = defaults.compounding;
+    form.elements.liquidity.value = defaults.liquidity;
+  }
+
   function refreshCategories() {
     // The type is a <select> on "Add an account" but a hidden input on
     // "Add asset" / "Add liability", so read it from whichever exists.
@@ -1649,6 +1841,8 @@ function openInventoryDialog(action) {
     dialog.querySelector(".mobile-money-fields").hidden = categorySelect.value !== "Mobile money";
     const isLiability = entryType === "liability";
     dialog.querySelector(".liability-fields").hidden = !isLiability;
+    dialog.querySelector(".asset-fields").hidden = isLiability;
+    applyAssetDefaults();
     dialog.querySelector("#inventory-amount-label").textContent = isLiability ? "Current outstanding principal (KSh)" : "Current balance (KSh)";
     dialog.querySelector("h2").textContent = isLiability ? "Add a liability" : "Add an inventory item";
   }
@@ -1657,6 +1851,7 @@ function openInventoryDialog(action) {
   typeSelect?.addEventListener("change", refreshCategories);
   categorySelect.addEventListener("change", () => {
     dialog.querySelector(".mobile-money-fields").hidden = categorySelect.value !== "Mobile money";
+    applyAssetDefaults();
   });
   dialog.querySelector(".inventory-dialog-close").addEventListener("click", () => dialog.close());
   dialog.querySelector(".inventory-cancel").addEventListener("click", () => dialog.close());
@@ -1701,6 +1896,24 @@ function openInventoryDialog(action) {
       };
     }
 
+    let returns = null;
+    if (entryType === "asset") {
+      const grossRaw = String(formData.get("grossRate") || "").trim();
+      const grossRate = grossRaw === "" ? null : Number(grossRaw);
+      if (grossRate !== null && (!Number.isFinite(grossRate) || grossRate < 0 || grossRate > 100)) {
+        showToast("Expected return must be between 0% and 100%.");
+        return;
+      }
+      if (grossRate !== null) {
+        returns = {
+          grossRate,
+          taxFree: formData.get("taxTreatment") === "exempt",
+          compounding: String(formData.get("compounding") || compoundingFrequencies[0]),
+          liquidity: String(formData.get("liquidity") || liquidityTiers[0])
+        };
+      }
+    }
+
     const entries = getInventoryEntries();
     entries.push({
       id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -1711,7 +1924,8 @@ function openInventoryDialog(action) {
       mobileType: String(formData.get("category") === "Mobile money" ? formData.get("mobileType") || "Mobile wallet" : ""),
       mobileReference: String(formData.get("category") === "Mobile money" ? formData.get("mobileReference") || "" : "").trim(),
       notes: String(formData.get("notes") || "").trim(),
-      ...(loan ? { loan } : {})
+      ...(loan ? { loan } : {}),
+      ...(returns ? { returns } : {})
     });
 
     try {
@@ -3176,6 +3390,17 @@ function downloadPDF() {
     while (cut.length > 1 && tw(cut + "...", size, bold) > maxW) cut = cut.slice(0, -1);
     return cut.trimEnd() + "...";
   };
+  const wrap = (value, size, bold, maxW) => {
+    const lines = [];
+    let current = "";
+    ascii(value).split(" ").forEach(word => {
+      const attempt = current ? current + " " + word : word;
+      if (!current || tw(attempt, size, bold) <= maxW) current = attempt;
+      else { lines.push(current); current = word; }
+    });
+    if (current) lines.push(current);
+    return lines;
+  };
   const py = top => H - top;
 
   // Report data -----------------------------------------------------------------------
@@ -3195,6 +3420,7 @@ function downloadPDF() {
   const liabilities = entries.filter(item => item.type === "liability");
   const profile = getStoredProfile();
   const preparedFor = ascii(profile?.name || document.body.dataset.userName || "NetraOS user");
+  const holderEmail = ascii(profile?.email || "");
   const now = new Date();
   const reportDate = now.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   const reportRef = `NOS-${localDateValue(now).replace(/-/g, "")}`;
@@ -3369,9 +3595,14 @@ function downloadPDF() {
   newPage();
   txt(M, y + 10, 7, "CONFIDENTIAL  |  PERSONAL FINANCIAL REPORT", { bold: true, color: C.green, spacing: 1.2 });
   txt(M, y + 36, 25, "Financial Position Report", { bold: true });
-  txt(M, y + 53, 9, `Prepared for ${preparedFor}   |   ${period}   |   ${reportDate}`, { color: C.muted });
-  txt(W - M, y + 10, 6.6, `REF ${reportRef}`, { align: "r", color: C.muted, bold: true, spacing: 0.6 });
-  txt(W - M, y + 22, 6.6, `Display currency: ${reportCurrency}`, { align: "r", color: C.muted });
+  txt(M, y + 53, 8.6, `Period: ${period}   |   Currency: ${reportCurrency}   |   Generated ${reportDate}`, { color: C.muted });
+  const holderX = W - M - 186;
+  box(holderX, y - 4, 186, 66, { fill: C.pale, stroke: C.line, lw: 0.8, r: 8 });
+  box(holderX, y + 8, 3, 42, { fill: C.gold });
+  txt(holderX + 15, y + 12, 6.2, "ACCOUNT HOLDER", { bold: true, color: C.green, spacing: 0.9 });
+  txt(holderX + 15, y + 28, 11.5, preparedFor, { bold: true, maxW: 160 });
+  if (holderEmail) txt(holderX + 15, y + 40, 7, holderEmail, { color: C.muted, maxW: 160 });
+  txt(holderX + 15, y + 53, 6.4, `REF ${reportRef}`, { color: C.muted, bold: true, spacing: 0.5 });
   y += 72;
 
   section("BALANCE SHEET", "Your position at a glance");
@@ -3543,6 +3774,125 @@ function downloadPDF() {
     });
   } else note("No quests created yet.");
 
+  // Performance review: scored health indicators, a plain-language summary, and next-month guidance.
+  section("PERFORMANCE REVIEW", "Summary of performance and financial health");
+  const monthlyView = period !== "Year to date";
+  const liquid = sum(assets.filter(item => ["Bank accounts", "Mobile money", "Cash & savings"].includes(item.category)));
+  const spendBasis = plan.spending > 0 ? plan.spending : plan.budget;
+  const clamp01 = value => Math.max(0, Math.min(1, value));
+  const rating = score => score >= 75 ? { text: "Strong", color: C.green } : score >= 45 ? { text: "Fair", color: C.amber } : { text: "Weak", color: C.red };
+  const annualRate = loan => {
+    if (!loan || loan.interestRate === null || loan.interestRate === undefined) return null;
+    const rate = Number(loan.interestRate), kind = String(loan.rateType || "");
+    return kind.startsWith("per month") ? rate * 12 : kind.startsWith("per day") ? rate * 365 : rate;
+  };
+  const comps = [];
+  const liveSavingsRate = plan.income > 0 && spendBasis > 0 ? ((plan.income - spendBasis) / plan.income) * 100 : null;
+  if (monthlyView && liveSavingsRate !== null) comps.push({ weight: 25, score: clamp01(liveSavingsRate / 20) * 100, label: "Savings rate", result: pct(liveSavingsRate), meaning: liveSavingsRate >= 20 ? "Meets the 20% saving guideline" : "Below the 20% saving guideline" });
+  if (monthlyView && plan.budget > 0 && plan.spending > 0) {
+    const ratio = plan.spending / plan.budget;
+    comps.push({ weight: 15, score: ratio <= 1 ? 100 : clamp01(1 - (ratio - 1) / 0.5) * 100, label: "Budget adherence", result: pct(ratio * 100, 0) + " used", meaning: ratio <= 1 ? "Spending within planned budget" : `Over budget by ${money(plan.spending - plan.budget)}` });
+  }
+  if (assets.length || liabilities.length) {
+    const lev = totals.liabilities === 0 ? 0 : debtToAsset === null ? 100 : debtToAsset;
+    comps.push({ weight: 15, score: lev < 30 ? 100 : lev >= 80 ? 0 : (1 - (lev - 30) / 50) * 100, label: "Debt-to-asset ratio", result: totals.liabilities === 0 ? "No debt" : debtToAsset === null ? "No assets" : pct(debtToAsset), meaning: lev < 30 ? "Debt is under 30% of assets" : lev <= 50 ? "Moderate leverage (30-50%)" : "Debt is heavy relative to assets" });
+  }
+  if (plan.income > 0 && (!liabilities.length || monthlyInstallments > 0)) {
+    const load = debtService ?? 0;
+    comps.push({ weight: 15, score: load <= 20 ? 100 : load >= 50 ? 0 : (1 - (load - 20) / 30) * 100, label: "Debt service ratio", result: liabilities.length ? pct(load) : "No debt", meaning: load <= 20 ? "Installments are well covered" : load <= 40 ? "Installments are manageable" : "Installments take a large share" });
+  }
+  const goalQuests = quests.filter(q => Number(q.target) > 0);
+  if (goalQuests.length) {
+    const avg = goalQuests.reduce((acc, q) => acc + questProgress(q), 0) / goalQuests.length;
+    comps.push({ weight: 10, score: avg, label: "Goal progress", result: pct(avg, 0), meaning: "Average progress across quests" });
+  }
+  const outflow = plan.spending > 0 ? plan.spending : plan.budget;
+  const coverMonths = outflow > 0 && monthlyView ? liquid / outflow : null;
+  if (coverMonths !== null) comps.push({ weight: 20, score: clamp01(coverMonths / 6) * 100, label: "Emergency cover", result: `${coverMonths.toFixed(1)} months`, meaning: "Liquid savings vs monthly outflow" });
+  const weightTotal = comps.reduce((acc, c) => acc + c.weight, 0);
+  const healthScore = comps.length >= 2 ? Math.round(comps.reduce((acc, c) => acc + c.score * c.weight, 0) / weightTotal) : null;
+  const health = healthScore === null ? { text: "Not enough data", color: C.muted } : healthScore >= 75 ? { text: "STRONG", color: C.green } : healthScore >= 55 ? { text: "STABLE", color: C.blue } : healthScore >= 35 ? { text: "NEEDS ATTENTION", color: C.amber } : { text: "AT RISK", color: C.red };
+
+  const story = [];
+  if (plan.income > 0 || plan.spending > 0) story.push(`In ${period.toLowerCase()}, income was ${money(plan.income)} against spending of ${money(plan.spending)}${monthlyView && plan.income > 0 && plan.spending > 0 ? `, a savings rate of ${pct(savingsRate)}` : ""}.`);
+  if (entries.length) story.push(`Net worth is ${money(totals.netWorth)} with ${money(totals.assets)} in assets and ${money(totals.liabilities)} in liabilities.`);
+  if (liabilities.length && monthlyInstallments > 0) story.push(`Loan installments of ${money(monthlyInstallments)} a month take ${debtService === null ? "an unknown share of" : pct(debtService) + " of"} income.`);
+  if (coverMonths !== null) story.push(`Liquid savings cover roughly ${coverMonths.toFixed(1)} months of outflow.`);
+  if (!monthlyView) story.push("Switch the report to This month or Last month for spending-based ratings.");
+  if (!story.length) story.push("There is not yet enough recorded data to assess performance. Add accounts, income, budgets and spending to unlock this review.");
+  const storyLines = wrap(story.join(" "), 8, false, CW - 196);
+  const cardH = Math.max(100, storyLines.length * 11.5 + 40);
+  ensure(cardH + 16);
+  box(M, y, CW, cardH, { fill: C.white, stroke: C.line, lw: 0.8, r: 8 });
+  box(M, y, 168, cardH, { fill: C.pale, r: 8 });
+  txt(M + 16, y + 20, 6.4, "FINANCIAL HEALTH SCORE", { bold: true, color: C.muted, spacing: 0.7 });
+  txt(M + 16, y + 52, 30, healthScore === null ? "--" : String(healthScore), { bold: true, color: health.color });
+  if (healthScore !== null) txt(M + 16 + tw(String(healthScore), 30, true) + 5, y + 52, 10, "/ 100", { color: C.muted });
+  box(M + 16, y + 62, 136, 5, { fill: "#DCE6DF", r: 2.5 });
+  if (healthScore) box(M + 16, y + 62, Math.max(5, (136 * healthScore) / 100), 5, { fill: health.color, r: 2.5 });
+  txt(M + 16, y + 82, 7.6, health.text, { bold: true, color: health.color, spacing: 0.8 });
+  txt(M + 184, y + 20, 6.4, "PERFORMANCE SUMMARY", { bold: true, color: C.green, spacing: 0.8 });
+  storyLines.forEach((line, index) => txt(M + 184, y + 36 + index * 11.5, 8, line, { color: C.body }));
+  y += cardH + 16;
+
+  if (comps.length) {
+    table(
+      [{ label: "INDICATOR", w: 0.24, bold: true }, { label: "RESULT", w: 0.16 }, { label: "RATING", w: 0.14 }, { label: "WHAT IT MEANS", w: 0.46 }],
+      comps.map(c => { const r = rating(c.score); return [c.label, c.result, { text: r.text, color: r.color, bold: true }, c.meaning]; })
+    );
+  }
+
+  // Next-month plan
+  section("LOOKING AHEAD", "Suggestions for next month");
+  const targetSave = plan.income > 0 ? plan.income * 0.2 : null;
+  const questLeft = goalQuests.length ? goalQuests.reduce((acc, q) => acc + Math.max(0, Number(q.target) - Number(q.current)), 0) : null;
+  kpiRow([
+    { label: "SAVINGS TARGET", value: targetSave === null ? "n/a" : money(targetSave), sub: "20% of income guideline", accent: C.green },
+    { label: "SPENDING CEILING", value: targetSave === null ? "n/a" : money(Math.max(0, plan.income - targetSave)), sub: "Keeps the savings target", accent: C.blue },
+    { label: "INSTALLMENTS DUE", value: money(monthlyInstallments), sub: liabilities.length ? "Minimum payments" : "No loans recorded", accent: C.amber },
+    { label: "GOAL TOP-UP", value: questLeft === null ? "n/a" : money(questLeft / 6), sub: questLeft === null ? "No quest set" : "Finishes quests in ~6 months", accent: C.gold }
+  ]);
+
+  const tips = [];
+  if (plan.income === 0) tips.push({ p: "HIGH", title: "Record your income", detail: "No income is recorded, so savings and debt ratios cannot be measured. Add your salary and other sources in Power-Up." });
+  if (monthlyView && liveSavingsRate !== null) {
+    if (liveSavingsRate < 10) tips.push({ p: "HIGH", title: "Lift your savings rate", detail: `Your savings rate is ${pct(liveSavingsRate)}. Moving toward 20% means setting aside about ${money(plan.income * 0.2)} next month, mainly by trimming flexible categories.` });
+    else if (liveSavingsRate < 20) tips.push({ p: "MEDIUM", title: "Close the gap to a 20% savings rate", detail: `You are saving ${pct(liveSavingsRate)} of income. Setting aside ${money(plan.income * 0.2)} next month would reach the 20% guideline.` });
+    else tips.push({ p: "GOOD", title: "Keep your savings habit going", detail: `A ${pct(liveSavingsRate)} savings rate is healthy. Consider placing the surplus in an interest-earning account so it works for you.` });
+  }
+  if (monthlyView) {
+    const over = budgetCategories.map(cat => ({ cat, planned: sum(power.budgets.filter(b => b.category === cat)), spent: sum(reportSpending.filter(e => e.category === cat)) })).filter(r => r.planned > 0 && r.spent > r.planned).sort((a, b) => (b.spent - b.planned) - (a.spent - a.planned));
+    if (over.length) tips.push({ p: over[0].spent - over[0].planned > plan.income * 0.05 ? "HIGH" : "MEDIUM", title: `Rein in ${over[0].cat}`, detail: `${over[0].cat} ran ${money(over[0].spent - over[0].planned)} over its ${money(over[0].planned)} budget. Set a firm cap, or adjust the budget line so it reflects reality.` });
+    const unbudgeted = budgetCategories.map(cat => ({ cat, planned: sum(power.budgets.filter(b => b.category === cat)), spent: sum(reportSpending.filter(e => e.category === cat)) })).filter(r => r.planned === 0 && r.spent > 0).sort((a, b) => b.spent - a.spent);
+    if (unbudgeted.length) tips.push({ p: "LOW", title: `Budget for ${unbudgeted[0].cat}`, detail: `${money(unbudgeted[0].spent)} was spent on ${unbudgeted[0].cat} with no budget line. Add one so it is planned rather than a surprise.` });
+    if (!reportSpending.length && plan.budget > 0) tips.push({ p: "LOW", title: "Log your spending", detail: "No expenses are recorded for this period, so budget tracking is flying blind. Record spending as it happens in Power-Up." });
+  }
+  if (debtService !== null && debtService > 40) tips.push({ p: "HIGH", title: "Ease the installment load", detail: `Installments take ${pct(debtService)} of income, above the 40% comfort guideline. Speak to lenders about restructuring only if the total cost stays acceptable.` });
+  const costly = liabilities.filter(item => annualRate(item.loan) !== null && annualRate(item.loan) > 0).sort((a, b) => annualRate(b.loan) - annualRate(a.loan))[0];
+  if (costly) tips.push({ p: annualRate(costly.loan) >= 30 ? "HIGH" : "MEDIUM", title: "Target the costliest debt first", detail: `${costly.name} carries the highest cost (${formatLoanRate(costly.loan)}). After minimum payments, directing any surplus here saves the most interest.` });
+  const incomplete = liabilities.find(item => !item.loan || item.loan.minInstallment === null || item.loan.minInstallment === undefined);
+  if (incomplete) tips.push({ p: "LOW", title: "Complete your loan details", detail: `Add the interest rate, installment and tenure for ${incomplete.name} so debt ratios and payoff dates are accurate.` });
+  if (coverMonths !== null && coverMonths < 6) tips.push({ p: coverMonths < 3 ? "HIGH" : "MEDIUM", title: "Strengthen your emergency buffer", detail: `Liquid savings cover about ${coverMonths.toFixed(1)} months of outflow. Work toward 3 to 6 months, roughly ${money(outflow * 3)} to ${money(outflow * 6)}.` });
+  const nextQuest = goalQuests.find(q => questProgress(q) < 100);
+  if (nextQuest) tips.push({ p: "MEDIUM", title: `Keep funding ${nextQuest.name}`, detail: `This quest is ${questProgress(nextQuest)}% complete. About ${money((Number(nextQuest.target) - Number(nextQuest.current)) / 6)} a month would finish it in six months.` });
+  if (!tips.length) tips.push({ p: "GOOD", title: "Add data to unlock suggestions", detail: "Record accounts, income, a budget and spending, and this section will give tailored guidance for next month." });
+  const order = { HIGH: 0, MEDIUM: 1, LOW: 2, GOOD: 3 };
+  const tipColor = { HIGH: C.red, MEDIUM: C.amber, LOW: C.blue, GOOD: C.green };
+  tips.sort((a, b) => order[a.p] - order[b.p]).slice(0, 6).forEach((tip, index) => {
+    const lines = wrap(tip.detail, 7.8, false, CW - 74);
+    const h = 34 + lines.length * 11;
+    ensure(h + 8);
+    box(M, y, CW, h, { fill: C.white, stroke: C.line, lw: 0.8, r: 7 });
+    box(M, y + 10, 3, h - 20, { fill: tipColor[tip.p] });
+    s.push(`${rgb(C.tint)} rg ${circle(M + 28, py(y + 21), 9)} f\n`);
+    txt(M + 28, y + 24, 9, String(index + 1), { bold: true, align: "c", color: C.deep });
+    txt(M + 46, y + 21, 9.4, tip.title, { bold: true, maxW: CW - 150 });
+    txt(W - M - 14, y + 21, 6.2, tip.p === "GOOD" ? "ON TRACK" : tip.p + " PRIORITY", { bold: true, align: "r", color: tipColor[tip.p], spacing: 0.6 });
+    lines.forEach((line, li) => txt(M + 46, y + 35 + li * 11, 7.8, line, { color: C.body }));
+    y += h + 8;
+  });
+  note("Suggestions are rule-based guidelines drawn from your recorded figures, not personalised financial advice.");
+
   ensure(60);
   y += 4;
   box(M, y, CW, 46, { fill: C.pale, stroke: C.line, lw: 0.6, r: 8 });
@@ -3563,7 +3913,7 @@ function downloadPDF() {
     txt(W - M, 24, 7.4, "FINANCIAL POSITION REPORT", { bold: true, color: C.gold, align: "r", spacing: 0.9 });
     txt(W - M, 37, 6.8, `${period}  |  ${reportDate}`, { color: "#A9D3BF", align: "r" });
     rule(M, H - 40, W - M, H - 40, C.line, 0.7);
-    txt(M, H - 28, 6.6, `NetraOS  |  Private & confidential  |  ${reportRef}`, { color: C.muted });
+    txt(M, H - 28, 6.6, `NetraOS  |  Account holder: ${preparedFor}  |  ${reportRef}`, { color: C.muted, maxW: CW - 90 });
     txt(W - M, H - 28, 6.6, `Page ${index + 1} of ${total}`, { color: C.muted, bold: true, align: "r" });
     // Translucent watermark centred on the page, sitting over content at low opacity.
     s.push("q /G1 gs\n");
