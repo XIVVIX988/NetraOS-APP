@@ -58,6 +58,141 @@ let profilePreviewUrl = "";
 let landingScrollEffectsBound = false;
 let landingRevealObserver = null;
 
+// FAQ knowledge base shown on the landing page. Answers describe what this version actually does.
+const faqCategories = [
+  { id: "security", label: "System & Security", items: [
+    { q: "Where is my financial data stored? Is NetraOS safe?", a: "NetraOS is <b>Private by Design</b>. Your income, balances, plans and goals are stored in your own browser's local storage on this device. This version does not send your financial records to a central server, so there is no cloud copy to leak. The trade-off is that clearing site data or switching browsers removes your vault, so keep a backup.", action: { label: "Open Settings", target: "Settings" } },
+    { q: "Does NetraOS link directly to my bank account or M-Pesa?", a: "No. You enter or update balances and income yourself. NetraOS never asks for online-banking passwords, API keys or M-Pesa credentials, so your real accounts stay isolated from it." },
+    { q: "What is the Privacy Shield, and how do I use it?", a: "The Privacy Shield is a toggle for viewing your numbers in public. Click the eye icon in the top bar, or press <kbd>Shift</kbd> + <kbd>S</kbd>, and every currency figure is masked until you switch it off again. You can change the shortcut to <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>, or turn it off, in Settings.", action: { label: "Open Settings", target: "Settings" } }
+  ]},
+  { id: "dispatch", label: "Income & Auto-Router", items: [
+    { q: "How does NetraOS help me split my paycheck?", a: "Today you stay in control: record income sources and budget lines in Power-Up, then fund your quests as you go. Your PDF report adds a month-ahead view with a savings target and a suggested goal top-up. The <b>Smart Auto-Router</b> is <b>coming soon</b>. It is designed to reserve living costs first, then minimum loan payments, then extra payments on your costliest debt (the Debt Avalanche method), and finally spread what is left across your quests by priority and deadline.", action: { label: "Open Power-Up", target: "Power-Up" } },
+    { q: "Can I override or adjust the Auto-Router's suggestion?", a: "Yes, by design. Nothing in NetraOS moves money for you, and the Auto-Router will only propose a split that you can adjust, uncheck or change before you apply it." },
+    { q: "What happens when a quest reaches 100% completion?", a: "NetraOS marks the quest <b>Complete</b>, shows a milestone celebration, and counts it toward your Achievements. You can then point the same monthly saving at your next goal.", action: { label: "Open Quests", target: "Quests" } }
+  ]},
+  { id: "tax", label: "Kenya Statutory Tax", items: [
+    { q: "How does NetraOS calculate Kenya take-home pay?", a: "The Take-Home Calculator in Power-Up runs gross pay through the current schedules built into the app: <b>PAYE</b> on graduated bands less the KSh 2,400 monthly personal relief, <b>NSSF</b> Tier I and II contributions, <b>SHIF</b> at 2.75% (minimum KSh 300), and the <b>Affordable Housing Levy</b> at 1.5% of gross pay. Figures are estimates for planning, so verify against official guidance.", action: { label: "Open Power-Up", target: "Power-Up" } },
+    { q: "Can I switch statutory deductions on or off?", a: "Yes. In Settings you can toggle PAYE, NSSF, SHIF and the Housing Levy individually, and add personal relief, insurance relief or a custom relief. The calculator can start from gross salary or from net take-home pay.", action: { label: "Open Settings", target: "Settings" } }
+  ]},
+  { id: "yield", label: "Assets & Yield", items: [
+    { q: "Why should I enter annual return rates (% p.a.) on my asset cards?", a: "A return rate lets the Asset Engine on the Inventory page work out your <b>monthly passive income</b>, your weighted net yield, and your spread against loan interest. That shows when keeping money invested earns more than clearing a cheap loan early, and when the reverse is true.", action: { label: "Open Inventory", target: "Inventory" } },
+    { q: "Does NetraOS account for Withholding Tax on investment returns?", a: "Yes. Taxable assets such as money market funds and savings are reduced by the standard 15% withholding tax deducted at source in Kenya, so you see the true net yield. Mark an asset <b>tax-free</b> (for example an infrastructure bond) and no tax is deducted." }
+  ]},
+  { id: "data", label: "Backup & Maintenance", items: [
+    { q: "How do I transfer my NetraOS data to a new laptop or phone?", a: "Open Settings and choose <b>Download all data (JSON)</b> and save the file. On the new device open NetraOS, go to Settings and use <b>Restore a JSON backup</b> to bring everything back. A CSV export is available too, and a monthly backup reminder can be switched on.", action: { label: "Open Settings", target: "Settings" } },
+    { q: "How do I completely wipe my data from the app?", a: "In Settings use the red <b>Factory reset · Clear all NetraOS data</b> button. After two confirmation prompts NetraOS removes its profiles, records, plans, goals and settings from this browser. It cannot be undone, so download a backup first.", action: { label: "Open Settings", target: "Settings" } }
+  ]}
+];
+
+function renderLandingFaq() {
+  const total = faqCategories.reduce((sum, category) => sum + category.items.length, 0);
+  const items = faqCategories.map(category => category.items.map((item, index) => `
+        <div class="faq-item" data-faq-item data-faq-cat="${category.id}" data-faq-text="${escapeHTML((item.q + " " + item.a.replace(/<[^>]+>/g, " ") + " " + category.label).toLowerCase())}">
+          <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-${category.id}-${index}">
+            <span class="faq-q-tag">${category.label.toUpperCase()}</span>
+            <span class="faq-q-text">${escapeHTML(item.q)}</span>
+            <span class="faq-q-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-a" id="faq-${category.id}-${index}" role="region"><div class="faq-a-inner">
+            <p>${item.a}</p>
+            ${item.action ? `<button class="faq-shortcut" type="button" data-faq-action="${escapeHTML(item.action.target)}">[ ${escapeHTML(item.action.label)} ↗ ]</button>` : ""}
+          </div></div>
+        </div>`).join("")).join("");
+  return `<section class="landing-faq" id="faq" aria-labelledby="landing-faq-title">
+    <div class="landing-faq-intro">
+      <span class="landing-faq-index">NETRAOS / FAQ</span>
+      <h2 id="landing-faq-title">System <br>knowledge base.</h2>
+      <p>How NetraOS works, where your information stays, and what each tool does. Hover over a question to read the answer.</p>
+      <div class="faq-count" aria-live="polite" data-faq-count>${total} answers</div>
+    </div>
+    <div class="faq-terminal">
+      <div class="faq-search"><span aria-hidden="true">&gt;_</span><input type="search" data-faq-search placeholder="Type to search system knowledge..." aria-label="Search the FAQ" autocomplete="off" spellcheck="false"></div>
+      <div class="faq-tabs" role="tablist" aria-label="FAQ categories">
+        <button class="faq-tab is-active" type="button" role="tab" aria-selected="true" data-faq-tab="all">All</button>
+        ${faqCategories.map(category => `<button class="faq-tab" type="button" role="tab" aria-selected="false" data-faq-tab="${category.id}">${category.label}</button>`).join("")}
+      </div>
+      <div class="faq-list" data-faq-list>${items}
+        <p class="faq-empty" data-faq-empty hidden>No matches. Try “tax”, “backup”, “privacy” or “yield”.</p>
+      </div>
+    </div>
+  </section>`;
+}
+
+// Wire up the FAQ: live search, category tabs, hover-to-open accordion (click/tap/keyboard also work).
+function setupLandingFaq() {
+  const root = document.querySelector(".landing-faq");
+  if (!root) return;
+  const list = root.querySelector("[data-faq-list]");
+  const search = root.querySelector("[data-faq-search]");
+  const empty = root.querySelector("[data-faq-empty]");
+  const count = root.querySelector("[data-faq-count]");
+  const items = [...root.querySelectorAll("[data-faq-item]")];
+  const hoverCapable = window.matchMedia("(hover: hover) and (pointer: fine)");
+  let activeTab = "all";
+  const timers = new WeakMap();
+
+  function setOpen(item, open) {
+    item.classList.toggle("is-open", open);
+    item.querySelector(".faq-q").setAttribute("aria-expanded", String(open));
+  }
+  function schedule(item, open, delay) {
+    window.clearTimeout(timers.get(item));
+    timers.set(item, window.setTimeout(() => {
+      if (open) items.forEach(other => { if (other !== item) setOpen(other, false); });
+      setOpen(item, open);
+    }, delay));
+  }
+  function applyFilter() {
+    const terms = search.value.toLowerCase().split(/\s+/).filter(Boolean);
+    let shown = 0;
+    items.forEach(item => {
+      const match = (activeTab === "all" || item.dataset.faqCat === activeTab) && terms.every(term => item.dataset.faqText.includes(term));
+      item.hidden = !match;
+      if (!match) setOpen(item, false);
+      if (match) shown += 1;
+    });
+    const visible = items.filter(item => !item.hidden);
+    items.forEach(item => item.classList.toggle("faq-up", visible.slice(-2).includes(item) && visible.length > 2));
+    empty.hidden = shown !== 0;
+    count.textContent = `${shown} ${shown === 1 ? "answer" : "answers"}`;
+  }
+
+  applyFilter();
+  items.forEach(item => {
+    item.addEventListener("mouseenter", () => { if (hoverCapable.matches) schedule(item, true, 70); });
+    item.addEventListener("mouseleave", () => { if (hoverCapable.matches) schedule(item, false, 140); });
+    item.querySelector(".faq-q").addEventListener("click", () => {
+      window.clearTimeout(timers.get(item));
+      const open = !item.classList.contains("is-open");
+      if (open) items.forEach(other => { if (other !== item) setOpen(other, false); });
+      setOpen(item, open);
+    });
+  });
+  search.addEventListener("input", applyFilter);
+  root.querySelectorAll("[data-faq-tab]").forEach(tab => tab.addEventListener("click", () => {
+    activeTab = tab.dataset.faqTab;
+    root.querySelectorAll("[data-faq-tab]").forEach(other => {
+      other.classList.toggle("is-active", other === tab);
+      other.setAttribute("aria-selected", String(other === tab));
+    });
+    applyFilter();
+  }));
+  root.querySelectorAll("[data-faq-action]").forEach(button => button.addEventListener("click", () => {
+    const target = button.dataset.faqAction;
+    let signedIn = false;
+    try { signedIn = localStorage.getItem(sessionStorageKey) === "active" && Boolean(getStoredProfile()); } catch { signedIn = false; }
+    if (signedIn) {
+      document.body.classList.remove("auth-view");
+      publicShell.hidden = true;
+      appShell.hidden = false;
+      showPage(target);
+    } else {
+      showPublicPage("signup");
+      showToast(`Create your free vault to open ${target}.`);
+    }
+  }));
+}
+
 // Add scroll reveals and show the landing page's back-to-top control when needed.
 function setupLandingScrollEffects() {
   const revealItems = document.querySelectorAll(
@@ -716,7 +851,7 @@ function showPublicPage(page = "landing") {
           </section>
           <section class="landing-feature-strip" id="features" aria-label="NetraOS features"><article><span>◉</span><div><strong>Balance sheet</strong><small>Assets, debts, cash, and net worth</small></div></article><article><span>▣</span><div><strong>Mobile money</strong><small>Track M-Pesa alongside your assets</small></div></article><article><span>⇄</span><div><strong>Multi-currency</strong><small>Switch currencies with manual rates</small></div></article><article><span>↗</span><div><strong>Monthly plan</strong><small>Income, budgets, and spending</small></div></article><article><span>⌁</span><div><strong>What-if projections</strong><small>Compound savings with inflation options</small></div></article><article><span>％</span><div><strong>Kenya tax calculator</strong><small>Estimate take-home pay</small></div></article><article><span>◎</span><div><strong>Quests & milestones</strong><small>Follow goals and celebrate progress</small></div></article><article><span>◈</span><div><strong>Privacy & exports</strong><small>Mask amounts and download polished PDFs</small></div></article></section>
           <section class="landing-deep-dive" id="about"><div class="landing-deep-copy"><div class="landing-eyebrow"><i></i> A BETTER VIEW, STEP BY STEP</div><h2>From the big picture<br>to your next move.</h2><p>Bring your financial basics together, then build from there. NetraOS keeps the essentials close without making money management feel like another job.</p><ul><li><i>✓</i> See bank, cash, and M-Pesa balances together</li><li><i>✓</i> Switch display currency using rates you manage</li><li><i>✓</i> Project compounding savings month by month</li><li><i>✓</i> Keep amounts private and export a polished PDF</li></ul><button class="public-primary" type="button" data-public-action="signup">Build your financial picture <span>↗</span></button></div><div class="insight-collage"><article class="insight-card insight-progress"><div class="insight-card-head"><span><small>QUEST PROGRESS</small><strong>Emergency fund</strong></span><i>◈</i></div><div class="insight-progress-line"><span></span></div><div class="insight-card-foot"><small>One goal at a time</small><strong>0%</strong></div></article><article class="insight-card insight-rate"><small>SAVINGS RATE</small><strong>0<span>%</span></strong><div class="insight-sparkline"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>Calculated from your monthly plan</small></article><article class="insight-card insight-budget"><i>▤</i><small>MONTHLY BUDGET</small><strong>KSh 0</strong><span>Set your first budget line</span></article><article class="insight-card insight-note"><span>✳</span><p>Your plan should work for your life—not the other way around.</p></article></div></section>
-          <section class="landing-faq" id="faq" aria-labelledby="landing-faq-title"><div class="landing-faq-intro"><span class="landing-faq-index">NETRAOS / FAQ</span><h2 id="landing-faq-title">A few useful<br>answers.</h2><p>Quick details about how the system works and where your information stays.</p></div><div class="landing-faq-list"><details><summary>What can I track in NetraOS?<span aria-hidden="true">+</span></summary><p>Record assets and liabilities, plan income and monthly budgets, track spending, and follow your savings goals and financial progress.</p></details><details><summary>Does NetraOS connect to my bank?<span aria-hidden="true">+</span></summary><p>No. This version does not connect to bank accounts. You add and update your information yourself.</p></details><details><summary>Where is my financial information stored?<span aria-hidden="true">+</span></summary><p>Your entries are saved in this browser on this device. They are not sent to a NetraOS account or synced to another device.</p></details><details><summary>Can I export my dashboard?<span aria-hidden="true">+</span></summary><p>Yes. Use the dashboard download controls to export a PDF or spreadsheet copy of your financial summary.</p></details></div></section>
+          ${renderLandingFaq()}
           <section class="landing-contact" id="contact" aria-labelledby="landing-contact-title">
             <div class="landing-contact-intro">
               <span class="landing-faq-index">NETRAOS / CONTACT</span>
@@ -736,6 +871,7 @@ function showPublicPage(page = "landing") {
         <footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><span>Kenyan shillings · KSh</span><nav aria-label="Legal"><a href="#terms" data-public-action="terms">Terms</a><a href="#privacy" data-public-action="privacy">Privacy</a></nav>${renderSocialLinks("footer-social-links public-social-links")}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer>
       </div>`;
     setupLandingScrollEffects();
+    setupLandingFaq();
   } else if (page === "terms" || page === "privacy") {
     publicShell.innerHTML = renderLegalPage(page);
   } else {
