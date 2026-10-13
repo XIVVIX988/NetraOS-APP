@@ -50,6 +50,9 @@ const securityAuditStorageKey = "netraos-security-audit-v1";
 const termsVersion = "2026-10-10";
 let autoLockTimer = 0;
 let backupPromptTimer = 0;
+let autoLockNudgeTimer = 0;
+const autoLockNudgeSessionKey = "netraos-autolock-nudge-shown";
+const autoLockNudgeDelayMs = 10000;
 let toastTimer;
 let profilePreviewUrl = "";
 let landingScrollEffectsBound = false;
@@ -178,7 +181,10 @@ function getReportMonth() {
   const today = new Date();
   const period = getReportPeriod();
   const settings = getStoredSettings();
-  const cycleStart = new Date(today.getFullYear(), today.getMonth() - (today.getDate() < settings.paydayAnchorDay ? 1 : 0), 1);
+  // A payday of 29-31 falls on the last day of shorter months.
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const anchorDay = Math.min(settings.paydayAnchorDay, daysInMonth);
+  const cycleStart = new Date(today.getFullYear(), today.getMonth() - (today.getDate() < anchorDay ? 1 : 0), 1);
   if (period === "Last month") return monthKey(new Date(cycleStart.getFullYear(), cycleStart.getMonth() - 1, 1));
   return monthKey(cycleStart);
 }
@@ -221,6 +227,12 @@ function saveStoredProfile(profile) {
   localStorage.setItem(profileStorageKey, JSON.stringify(profile));
 }
 
+function ordinalDay(day) {
+  const mod100 = day % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${day}th`;
+  return `${day}${{ 1: "st", 2: "nd", 3: "rd" }[day % 10] || "th"}`;
+}
+
 function getStoredSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(settingsStorageKey) || "{}");
@@ -236,7 +248,8 @@ function getStoredSettings() {
       localPinHash: typeof saved.localPinHash === "string" ? saved.localPinHash : "",
       localPinLength: saved.localPinLength === 4 ? 4 : 6,
       financialYearStartMonth: Math.max(1, Math.min(12, Number(saved.financialYearStartMonth) || 1)),
-      paydayAnchorDay: [1, 5, 10, 15, 20, 25, 28].includes(Number(saved.paydayAnchorDay)) ? Number(saved.paydayAnchorDay) : 1,
+      paydayAnchorDay: Number.isInteger(Number(saved.paydayAnchorDay)) && Number(saved.paydayAnchorDay) >= 1 && Number(saved.paydayAnchorDay) <= 31 ? Number(saved.paydayAnchorDay) : 1,
+      autoLockPromptDismissed: Boolean(saved.autoLockPromptDismissed),
       privacyShortcut: ["Shift+S", "Alt+Shift+S", "Off"].includes(saved.privacyShortcut) ? saved.privacyShortcut : "Shift+S",
       taxPaye: saved.taxPaye !== false,
       taxNssf: saved.taxNssf !== false,
@@ -253,7 +266,7 @@ function getStoredSettings() {
       questAnimations: saved.questAnimations !== false
     };
   } catch {
-    return { alwaysShowCents: false, reduceMotion: false, darkMode: false, goalNotifications: true, monthlyReminders: true, performanceTelemetryConsent: false, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 6, financialYearStartMonth: 1, paydayAnchorDay: 1, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "emerald", showXpPoints: true, questSounds: false, questAnimations: true };
+    return { alwaysShowCents: false, reduceMotion: false, darkMode: false, goalNotifications: true, monthlyReminders: true, performanceTelemetryConsent: false, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 6, financialYearStartMonth: 1, paydayAnchorDay: 1, autoLockPromptDismissed: false, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "emerald", showXpPoints: true, questSounds: false, questAnimations: true };
   }
 }
 
@@ -599,7 +612,7 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Default display currency</strong><small>Set a manual KSh exchange rate before selecting another currency.</small></span><select name="displayCurrency">${Object.entries(displayCurrencies).map(([code, currency]) => `<option value="${code}" ${currencyState.active === code ? "selected" : ""} ${currencyState.rates[code] ? "" : "disabled"}>${currency.symbol} · ${currency.name}${currencyState.rates[code] ? "" : " · set rate first"}</option>`).join("")}</select></label>
           <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="manage-rates">Manage manual exchange rates</button></div>
           <label class="settings-field"><span><strong>Financial year starts</strong><small>Used to calculate Year to date reports.</small></span><select name="financialYearStartMonth">${fiscalMonths.map((month, index) => `<option value="${index + 1}" ${settings.financialYearStartMonth === index + 1 ? "selected" : ""}>${month}</option>`).join("")}</select></label>
-          <label class="settings-field"><span><strong>Payday / cycle anchor</strong><small>Cycle totals and the default spending month start on this day.</small></span><select name="paydayAnchorDay">${[1, 5, 10, 15, 20, 25, 28].map(day => `<option value="${day}" ${settings.paydayAnchorDay === day ? "selected" : ""}>${day}${day === 1 ? "st" : day === 2 ? "nd" : day === 3 ? "rd" : "th"} of each month</option>`).join("")}</select></label>
+          <label class="settings-field"><span><strong>Payday / cycle anchor</strong><small>Type any day from 1 to 31, or pick a suggestion. Shorter months use their last day. Cycle totals and the default spending month start on this day.</small></span><span class="payday-input"><input name="paydayAnchorDay" type="number" min="1" max="31" step="1" inputmode="numeric" list="payday-day-presets" required value="${settings.paydayAnchorDay}" aria-label="Payday, day of the month (1 to 31)"><datalist id="payday-day-presets">${[1, 5, 10, 15, 20, 25, 28].map(day => `<option value="${day}">${ordinalDay(day)} of each month</option>`).join("")}</datalist><em>of each month</em></span></label>
           <label class="settings-field"><span><strong>Dark mode</strong><small>Use a darker color theme across your workspace.</small></span><input name="darkMode" type="checkbox" ${settings.darkMode ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Always show cents</strong><small>Show two decimal places in money amounts.</small></span><input name="alwaysShowCents" type="checkbox" ${settings.alwaysShowCents ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Reduce motion</strong><small>Use fewer animation and hover effects.</small></span><input name="reduceMotion" type="checkbox" ${settings.reduceMotion ? "checked" : ""}></label>
@@ -663,6 +676,7 @@ function enterApp(profile) {
   recordSecurityAudit("Local profile signed in");
   scheduleAutoLock();
   maybePromptForBackup();
+  scheduleAutoLockNudge({ force: true });
 }
 
 // Local data accessors keep each financial module's stored data in a consistent shape.
@@ -2357,7 +2371,7 @@ function renderTaxWidget(compact = false) {
           <div class="section-kicker">${compact ? "KENYA · TAKE-HOME PAY" : "KENYA · PAYE, NSSF, SHIF &amp; HOUSING LEVY"}</div>
           <h2>${compact ? "Take-home calculator" : "Gross-to-net take-home"}</h2>
         </div>
-        <button type="button" class="tax-expand" data-tax-toggle aria-expanded="false" aria-controls="${compact ? "tax-body-compact" : "tax-body-full"}"><span>Show calculator</span><span class="tax-expand-icon" aria-hidden="true">⌄</span></button>
+        <button type="button" class="tax-expand" data-tax-toggle aria-expanded="false" aria-controls="${compact ? "tax-body-compact" : "tax-body-full"}"><span>Show calculator</span><span class="tax-expand-icon" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><path d="m2.5 4.5 3.5 3.5 3.5-3.5" /></svg></span></button>
       </div>
       <div class="tax-body" id="${compact ? "tax-body-compact" : "tax-body-full"}">
         <div class="tax-toggle" role="group" aria-label="Calculate from">
@@ -2793,6 +2807,90 @@ function saveFile(filename, content, type) {
   link.download = filename;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Auto-lock counts as set up only when a PIN exists and a timeout is chosen.
+function isAutoLockSetUp(settings = getStoredSettings()) {
+  return Boolean(settings.localPinHash && settings.localPinSalt && settings.lockTimeoutMinutes > 0);
+}
+
+// Offer auto-lock setup 10 seconds after sign-up/sign-in. A restored session only
+// sees it once per browser tab session, and never after the user opts out.
+function scheduleAutoLockNudge({ force = false } = {}) {
+  window.clearTimeout(autoLockNudgeTimer);
+  try {
+    if (force) sessionStorage.removeItem(autoLockNudgeSessionKey);
+    else if (sessionStorage.getItem(autoLockNudgeSessionKey)) return;
+  } catch { /* Without sessionStorage the prompt can still show once per load. */ }
+  const settings = getStoredSettings();
+  if (settings.autoLockPromptDismissed || isAutoLockSetUp(settings)) return;
+  autoLockNudgeTimer = window.setTimeout(showAutoLockNudge, autoLockNudgeDelayMs);
+}
+
+function showAutoLockNudge() {
+  const settings = getStoredSettings();
+  if (appShell.hidden || settings.autoLockPromptDismissed || isAutoLockSetUp(settings)) return;
+  // Never stack on top of another dialog the user is working in; try again shortly.
+  if (document.querySelector("dialog[open]")) {
+    autoLockNudgeTimer = window.setTimeout(showAutoLockNudge, 5000);
+    return;
+  }
+  try { sessionStorage.setItem(autoLockNudgeSessionKey, "1"); } catch { /* Optional. */ }
+
+  const dialog = document.createElement("dialog");
+  dialog.className = "inventory-dialog autolock-dialog";
+  dialog.setAttribute("aria-labelledby", "autolock-nudge-title");
+  dialog.innerHTML = `
+    <form class="inventory-form">
+      <header class="inventory-dialog-heading">
+        <div>
+          <span class="section-kicker">SECURITY</span>
+          <h2 id="autolock-nudge-title">Lock your workspace when you step away</h2>
+        </div>
+        <button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button>
+      </header>
+      <p class="autolock-copy">Auto-lock hides your finances after a period of inactivity. Choose a four-digit PIN and how long to wait in Settings. This is a screen lock for this device and does not encrypt browser storage.</p>
+      <label class="autolock-optout">
+        <input type="checkbox" name="dismissForever">
+        <span>Do not show this again</span>
+      </label>
+      <footer class="inventory-dialog-actions">
+        <button class="inventory-cancel" type="button">Maybe later</button>
+        <button class="inventory-submit" type="submit">Set up auto-lock</button>
+      </footer>
+    </form>`;
+  document.body.append(dialog);
+
+  const form = dialog.querySelector("form");
+  const optOut = dialog.querySelector('[name="dismissForever"]');
+  let goToSettings = false;
+  dialog.querySelector(".inventory-dialog-close").addEventListener("click", () => dialog.close());
+  dialog.querySelector(".inventory-cancel").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    goToSettings = true;
+    dialog.close();
+  });
+  // Every way of closing (buttons, backdrop, Escape) honours the checkbox.
+  dialog.addEventListener("close", () => {
+    if (optOut.checked) {
+      const current = getStoredSettings();
+      current.autoLockPromptDismissed = true;
+      try { localStorage.setItem(settingsStorageKey, JSON.stringify(current)); } catch { showToast("Unable to save that preference in browser storage."); }
+    }
+    dialog.remove();
+    if (goToSettings) {
+      showPage("Settings");
+      window.requestAnimationFrame(() => {
+        const field = document.querySelector('select[name="lockTimeoutMinutes"]');
+        field?.scrollIntoView({ block: "center" });
+        field?.focus({ preventScroll: true });
+      });
+    }
+  }, { once: true });
+  dialog.showModal();
+  dialog.querySelector(".inventory-submit").focus();
 }
 
 // Prompt no more than once every 30 days when the user has enabled local reminders.
@@ -3283,6 +3381,7 @@ function handleMenuChoice(action) {
   }
   if (action === "sign-out") {
     localStorage.removeItem(sessionStorageKey);
+    window.clearTimeout(autoLockNudgeTimer);
     showPublicPage("landing");
     return;
   }
@@ -3445,6 +3544,13 @@ document.addEventListener("submit", async event => {
     event.preventDefault();
     const formData = new FormData(form);
     const previousSettings = getStoredSettings();
+    const paydayRaw = String(formData.get("paydayAnchorDay") ?? "").trim();
+    const paydayDay = Number(paydayRaw);
+    if (!paydayRaw || !Number.isInteger(paydayDay) || paydayDay < 1 || paydayDay > 31) {
+      showToast("Enter a payday between 1 and 31.");
+      form.querySelector('[name="paydayAnchorDay"]')?.focus();
+      return;
+    }
     const settings = {
       alwaysShowCents: formData.has("alwaysShowCents"),
       reduceMotion: formData.has("reduceMotion"),
@@ -3453,7 +3559,8 @@ document.addEventListener("submit", async event => {
       monthlyReminders: formData.has("monthlyReminders"),
       performanceTelemetryConsent: formData.has("performanceTelemetryConsent"),
       financialYearStartMonth: Number(formData.get("financialYearStartMonth")),
-      paydayAnchorDay: Number(formData.get("paydayAnchorDay")),
+      paydayAnchorDay: paydayDay,
+      autoLockPromptDismissed: previousSettings.autoLockPromptDismissed,
       privacyShortcut: String(formData.get("privacyShortcut") || "Shift+S"),
       taxPaye: formData.has("taxPaye"),
       taxNssf: formData.has("taxNssf"),
@@ -3807,6 +3914,7 @@ if (hasLocalSession && !["terms", "privacy"].includes(initialPage)) {
   }
   scheduleAutoLock();
   maybePromptForBackup();
+  scheduleAutoLockNudge();
 } else {
   showPublicPage(["login", "signup", "terms", "privacy"].includes(initialPage) ? initialPage : "landing");
 }

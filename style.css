@@ -7611,3 +7611,73 @@ body.theme-dark .inventory-dialog .inventory-submit {
   border-color: var(--line);
 }
 .app-shell.theme-dark .inventory-panel-total { border-color: var(--line); }
+
+/* ==========================================================================
+   Payday input, auto-lock nudge, and calculator toggle icon
+   ========================================================================== */
+.settings-field .payday-input { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+.settings-field .payday-input em { color: #858f89; font: 400 11px var(--sans); font-style: normal; white-space: nowrap; }
+.settings-panel .settings-field .payday-input input[type="number"] {
+  width: 76px;
+  min-height: 34px;
+  padding: 9px 12px;
+  border: 1px solid #d9e1db;
+  border-radius: 10px;
+  background: #fff;
+  color: #28382e;
+  font: 12px var(--sans);
+  text-align: center;
+}
+.settings-panel .settings-field .payday-input input[type="number"]:focus {
+  outline: none;
+  border-color: #168660;
+  box-shadow: 0 0 0 3px #16866020;
+}
+body.theme-dark .settings-panel .settings-field .payday-input input[type="number"] {
+  border-color: #46534a;
+  background: #1d2821;
+  color: #e8eee9;
+  color-scheme: dark;
+}
+body.theme-dark .settings-panel .settings-field .payday-input input[type="number"]:focus {
+  border-color: #53c294;
+  box-shadow: 0 0 0 3px #53c29426;
+}
+body.theme-dark .settings-field .payday-input em { color: #a2ada5; }
+
+.autolock-dialog { width: min(440px, calc(100% - 32px)); }
+.autolock-copy { margin: 0 0 18px; color: #5c6961; font: 400 13px/1.6 var(--sans); }
+.autolock-optout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #354139;
+  font: 500 12px var(--sans);
+  cursor: pointer;
+}
+.autolock-optout input { flex: none; width: 17px; height: 17px; margin: 0; accent-color: #13875f; cursor: pointer; }
+body.theme-dark .autolock-copy { color: #b4c0b7; }
+body.theme-dark .autolock-optout { color: #d3ddd5; }
+body.theme-dark .autolock-optout input { accent-color: #53c294; }
+
+/* Show/Hide calculator: the icon now matches the label's size, colour and centring. */
+.tax-expand { line-height: 1; }
+.tax-expand-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.1em;
+  height: 1.1em;
+  color: currentColor;
+}
+.tax-expand-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tax-expand:hover .tax-expand-icon,
+.tax-expand:focus-visible .tax-expand-icon { color: var(--gold-bright); }
