@@ -22,6 +22,9 @@
       <main class="main-panel">
         <!-- Global header: brand, section navigation, date/currency menus, and quick actions. -->
         <header class="topbar">
+          <button class="mobile-nav-toggle" type="button" data-mobile-nav-toggle aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation menu" title="Open navigation menu">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
           <!-- Brand link returns to the dashboard. -->
           <a class="top-brand" href="#dashboard" data-home-link aria-label="NetraOS dashboard home">
             <span class="brand-mark">
@@ -30,7 +33,7 @@
             <span class="brand-copy"><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL<br />OPERATING SYSTEM</small></span>
           </a>
           <!-- Primary in-app page navigation; data-page values are handled by scrip.js. -->
-          <nav class="top-nav" aria-label="Primary sections">
+          <nav class="top-nav" id="primary-nav" aria-label="Primary sections">
             <button class="top-nav-item active" data-page="Dashboard">
               Dashboard
             </button>
@@ -95,6 +98,7 @@
             </button>
           </div>
         </header>
+        <button class="mobile-nav-backdrop" type="button" data-mobile-nav-backdrop aria-label="Close navigation menu" hidden></button>
         <!-- Dynamic dashboard and other app page content. -->
         <div class="content" id="page-content">
           <!-- Dashboard greeting, current date, report download, and date-range selector. -->
@@ -569,6 +573,9 @@
       </main>
     </div>
     <!-- Main application logic: navigation, saved data, interactions, and report downloads. -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="supabase-data.js"></script>
     <script src="scrip.js">
     </script>
   </body>
