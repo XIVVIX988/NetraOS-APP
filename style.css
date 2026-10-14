@@ -8234,3 +8234,49 @@ body.theme-dark .phone-intro-next { background: #69bd91; color: #102018; }
 @media (min-width: 881px) {
   .phone-entry-view #public-shell { display: none; }
 }
+
+
+/* Center the tour card and keep phone branding confined to the launch splash. */
+.phone-entry-welcome { justify-content: center; }
+.phone-entry-intro .phone-entry-header,
+.phone-entry-welcome .phone-entry-header { display: none; }
+.phone-intro-header { display: flex; align-items: center; justify-content: space-between; min-height: 44px; }
+.phone-intro-header-label { color: #13875f; font: 600 9px var(--mono); letter-spacing: .13em; }
+.phone-intro-stage { place-items: center; }
+.phone-intro-card { width: min(100%, 420px); margin: auto; }
+body.theme-dark .phone-intro-header-label { color: #9ed7b7; }
+
+.phone-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 45%, #e9f3ec 0, #f7faf7 55%, #edf3ef 100%);
+  opacity: 1;
+}
+.phone-splash-brand { display: grid; justify-items: center; gap: 16px; }
+.phone-splash-mark { display: grid; place-items: center; width: 82px; height: 82px; }
+.phone-splash-mark .public-brand-mark { width: 76px; height: 76px; margin: 0; animation: phone-logo-breathe 1.5s ease-in-out infinite; }
+.phone-splash-name { color: #1d2a22; font: 800 21px var(--display); letter-spacing: .11em; }
+.phone-splash-name span { color: #13875f; }
+.phone-splash.is-loading .phone-splash-name { animation: phone-name-exit .48s cubic-bezier(.2,.75,.25,1) forwards; }
+.phone-splash.is-loading .phone-splash-mark .public-brand-mark { animation-duration: .9s; }
+.phone-splash.is-loading { animation: phone-splash-exit .35s ease .52s forwards; }
+body.theme-dark .phone-splash { background: radial-gradient(ellipse at 50% 45%, #1b2a21 0, #111815 58%, #0e1311 100%); }
+body.theme-dark .phone-splash-name { color: #e8eee9; }
+body.theme-dark .phone-splash-name span { color: #9ed7b7; }
+@keyframes phone-logo-breathe {
+  0%, 100% { transform: scale(.94); filter: drop-shadow(0 5px 8px #13875f18); }
+  50% { transform: scale(1.04); filter: drop-shadow(0 9px 16px #13875f38); }
+}
+@keyframes phone-name-exit {
+  to { opacity: 0; transform: translateY(-12px) scale(.96); visibility: hidden; }
+}
+@keyframes phone-splash-exit { to { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) {
+  .phone-splash-mark .public-brand-mark { animation-duration: 3s; }
+  .phone-splash.is-loading .phone-splash-name { animation-duration: .01ms; }
+  .phone-splash.is-loading { animation-duration: .01ms; }
+}

@@ -720,6 +720,26 @@ function renderLegalPage(page) {
 
 const phoneIntroStorageKey = "netraos-phone-intro-seen-v1";
 
+
+function showPhoneSplash() {
+  if (!publicShell || !appShell) return;
+  appShell.hidden = true;
+  publicShell.hidden = false;
+  document.body.classList.remove("public-view");
+  document.body.classList.add("auth-view", "phone-entry-view");
+  window.location.hash = "launch";
+  publicShell.innerHTML = '<main class="phone-splash" data-phone-splash aria-label="Loading NetraOS"><div class="phone-splash-brand"><span class="phone-splash-mark">' + renderBrandMark() + '</span><span class="phone-splash-name">NETRA<span>OS</span></span></div></main>';
+  const splash = publicShell.querySelector("[data-phone-splash]");
+  window.setTimeout(() => splash?.classList.add("is-loading"), 3000);
+  window.setTimeout(() => {
+    if (!phoneNavQuery.matches) { showPublicPage("landing"); return; }
+    let introSeen = false;
+    try { introSeen = localStorage.getItem(phoneIntroStorageKey) === "true"; } catch { /* Treat unavailable storage as a first visit. */ }
+    if (introSeen) showPhoneWelcome();
+    else showPhoneIntro();
+  }, 3850);
+}
+
 function showPhoneWelcome() {
   if (!publicShell || !appShell) return;
   appShell.hidden = true;
@@ -727,7 +747,7 @@ function showPhoneWelcome() {
   document.body.classList.remove("public-view");
   document.body.classList.add("auth-view", "phone-entry-view");
   window.location.hash = "welcome";
-  publicShell.innerHTML = '<main class="phone-entry phone-entry-welcome"><header class="phone-entry-header"><a class="phone-entry-brand" href="#welcome" aria-label="NetraOS"><span class="phone-entry-mark">' + renderBrandMark() + '</span><span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a></header><section class="phone-welcome-copy"><span class="phone-entry-kicker">YOUR FINANCIAL OPERATING SYSTEM</span><h1>See your money<br><em>with more clarity.</em></h1><p>Bring your balances, monthly plan, and goals together in one private workspace on this device.</p></section><div class="phone-entry-actions"><button class="public-primary" type="button" data-public-action="signup">Create an account <span>↗</span></button><button class="phone-entry-secondary" type="button" data-public-action="login">Sign in</button><button class="phone-entry-tour" type="button" data-phone-replay-intro>Take a quick tour</button></div><p class="phone-entry-note">Your records stay in this browser. Download a backup any time.</p></main>';
+  publicShell.innerHTML = '<main class="phone-entry phone-entry-welcome"><section class="phone-welcome-copy"><span class="phone-entry-kicker">YOUR FINANCIAL OPERATING SYSTEM</span><h1>See your money<br><em>with more clarity.</em></h1><p>Bring your balances, monthly plan, and goals together in one private workspace on this device.</p></section><div class="phone-entry-actions"><button class="public-primary" type="button" data-public-action="signup">Create an account</button><button class="phone-entry-secondary" type="button" data-public-action="login">Sign in</button><button class="phone-entry-tour" type="button" data-phone-replay-intro>Take a quick tour</button></div><p class="phone-entry-note">Your records stay in this browser. Download a backup any time.</p></main>';
   publicShell.querySelector("[data-phone-replay-intro]")?.addEventListener("click", showPhoneIntro);
 }
 
@@ -745,7 +765,7 @@ function showPhoneIntro() {
   window.location.hash = "intro";
   const cards = slides.map((slide, index) => '<article class="phone-intro-card" data-intro-card aria-label="Card ' + (index + 1) + ' of ' + slides.length + '" ' + (index ? 'hidden' : '') + '><span class="phone-intro-icon" aria-hidden="true">' + slide.icon + '</span><span class="phone-entry-kicker">' + slide.label + '</span><h1>' + slide.title + '</h1><p>' + slide.copy + '</p></article>').join("");
   const dots = slides.map((slide, index) => '<span class="phone-intro-dot' + (index ? '' : ' is-active') + '" data-intro-dot aria-hidden="true"></span>').join("");
-  publicShell.innerHTML = '<main class="phone-entry phone-entry-intro"><header class="phone-entry-header"><a class="phone-entry-brand" href="#intro" aria-label="NetraOS">' + renderBrandMark() + '<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a><button class="phone-intro-skip" type="button" data-intro-skip>Skip</button></header><div class="phone-intro-progress"><span data-intro-progress></span></div><section class="phone-intro-stage" data-intro-track aria-live="polite">' + cards + '</section><footer class="phone-intro-footer"><span class="phone-intro-count" data-intro-count>1 / ' + slides.length + '</span><div class="phone-intro-dots" aria-hidden="true">' + dots + '</div><button class="phone-intro-next" type="button" data-intro-next>Next <span>→</span></button></footer></main>';
+  publicShell.innerHTML = '<main class="phone-entry phone-entry-intro"><header class="phone-intro-header"><span class="phone-intro-header-label">A QUICK TOUR</span><button class="phone-intro-skip" type="button" data-intro-skip>Skip</button></header><div class="phone-intro-progress"><span data-intro-progress></span></div><section class="phone-intro-stage" data-intro-track aria-live="polite">' + cards + '</section><footer class="phone-intro-footer"><span class="phone-intro-count" data-intro-count>1 / ' + slides.length + '</span><div class="phone-intro-dots" aria-hidden="true">' + dots + '</div><button class="phone-intro-next" type="button" data-intro-next>Next <span>→</span></button></footer></main>';
   const cardNodes = [...publicShell.querySelectorAll("[data-intro-card]")];
   const dotNodes = [...publicShell.querySelectorAll("[data-intro-dot]")];
   const next = publicShell.querySelector("[data-intro-next]");
@@ -866,7 +886,7 @@ function showPublicPage(page = "landing") {
             <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" minlength="8" placeholder="At least 8 characters" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>` : ""}
             <div class="auth-error" role="alert" hidden></div>
-            <button class="public-primary auth-submit" type="submit">${isSignup ? "Create local profile" : "Log in"} <span>↗</span></button>
+            <button class="public-primary auth-submit" type="submit">${isSignup ? "Create local profile" : "Log in"}${isSignup ? "" : " <span>↗</span>"}</button>
           </form>
           <p class="auth-switch">${isSignup ? "Already have a local profile?" : "New to NetraOS?"} <button type="button" data-public-action="${isSignup ? "login" : "signup"}">${isSignup ? "Log in" : "Create an account"}</button></p>
           <p class="auth-preview-note">Local prototype: sign-in information is not sent to a server. Passwords are not stored; this page does not provide production authentication.</p>
@@ -4943,10 +4963,7 @@ if (hasLocalSession && !["terms", "privacy"].includes(initialPage)) {
 } else if (["login", "signup", "terms", "privacy"].includes(initialPage)) {
   showPublicPage(initialPage);
 } else if (phoneNavQuery.matches) {
-  let introSeen = false;
-  try { introSeen = localStorage.getItem(phoneIntroStorageKey) === "true"; } catch { /* Treat unavailable storage as a first visit. */ }
-  if (introSeen) showPhoneWelcome();
-  else showPhoneIntro();
+  showPhoneSplash();
 } else {
   showPublicPage("landing");
 }
