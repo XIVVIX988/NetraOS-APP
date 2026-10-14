@@ -4325,6 +4325,27 @@ function setNavDrawer(open, { restoreFocus = true } = {}) {
   }
 }
 
+// On phones the header's date, currency, privacy and theme buttons live in the sidebar. The real nodes are
+// moved (not cloned) so every querySelector, delegated handler and stored setting keeps working.
+const drawerTools = document.querySelector("[data-drawer-tools]");
+const movableControls = [".date-select", ".currency-select", ".privacy-toggle", ".theme-toggle"]
+  .map(selector => document.querySelector(`.topbar-actions ${selector}`))
+  .filter(Boolean);
+function placeHeaderControls(isPhone) {
+  if (!drawerTools) return;
+  const home = document.querySelector(".topbar-actions");
+  const profile = home?.querySelector(".profile-button");
+  movableControls.forEach(control => {
+    if (isPhone) drawerTools.append(control);
+    else home.insertBefore(control, profile);
+  });
+}
+placeHeaderControls(phoneNavQuery.matches);
+phoneNavQuery.addEventListener("change", event => placeHeaderControls(event.matches));
+// closePopover() resets every aria-expanded; re-assert the menu button's state after a tool is used.
+drawerTools?.addEventListener("click", () => setTimeout(() =>
+  navToggle.setAttribute("aria-expanded", String(appShell.classList.contains("drawer-open"))), 0));
+
 navToggle?.addEventListener("click", () => setNavDrawer(!appShell.classList.contains("drawer-open")));
 navDrawer?.addEventListener("click", event => {
   if (event.target.closest(".drawer-item, .top-brand")) setNavDrawer(false, { restoreFocus: false });
@@ -4332,7 +4353,7 @@ navDrawer?.addEventListener("click", event => {
 document.querySelector(".drawer-backdrop")?.addEventListener("click", () => setNavDrawer(false));
 navDrawer?.querySelector(".drawer-close")?.addEventListener("click", () => setNavDrawer(false));
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape" && appShell.classList.contains("drawer-open")) setNavDrawer(false);
+  if (event.key === "Escape" && appShell.classList.contains("drawer-open") && !document.querySelector(".action-popover")) setNavDrawer(false);
   // Keep Tab focus inside the open drawer.
   if (event.key === "Tab" && appShell.classList.contains("drawer-open")) {
     const focusable = [...navDrawer.querySelectorAll("button, a[href]")];

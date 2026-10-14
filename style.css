@@ -7938,9 +7938,9 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
     stroke-linecap: round;
     stroke-linejoin: round;
   }
-  /* Two-row header: [menu] [logo ........ bell profile] then [date currency privacy theme]. */
+  /* One-row header: [menu] [logo ........ bell profile]. Date, currency, privacy and theme live in the sidebar. */
   .app-shell .topbar {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-start;
     gap: 8px;
@@ -7949,14 +7949,9 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
   .app-shell .topbar-actions { display: contents; }
   .app-shell .top-divider { display: none; }
   .app-shell .nav-toggle { order: 0; }
-  .app-shell .topbar > .top-brand { order: 1; flex: 1 1 0; min-width: 0; }
-  .app-shell .notification-toggle { order: 2; }
-  .app-shell .topbar .profile-button { order: 3; margin-left: 0; }
-  .app-shell .topbar::after { content: ""; order: 4; flex: 0 0 100%; height: 0; }
-  .app-shell .date-select { order: 5; }
-  .app-shell .currency-select { order: 6; }
-  .app-shell .privacy-toggle { order: 7; margin-left: auto; }
-  .app-shell .theme-toggle { order: 8; }
+  .app-shell .topbar > .top-brand { order: 1; flex: 1 1 0; min-width: 0; overflow: hidden; }
+  .app-shell .notification-toggle { order: 2; flex: 0 0 auto; }
+  .app-shell .topbar .profile-button { order: 3; margin-left: 0; flex: 0 0 auto; }
 
   .drawer-backdrop {
     display: block;
@@ -8051,3 +8046,51 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
 @media (prefers-reduced-motion: reduce) {
   .mobile-drawer, .drawer-backdrop { transition-duration: .01ms !important; }
 }
+
+/* Sidebar preferences (phones) */
+@media (max-width: 880px) {
+  .drawer-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+    padding: 16px 2px 4px;
+    border-top: 1px solid var(--line);
+  }
+  .drawer-tools-label {
+    flex: 0 0 100%;
+    color: var(--muted);
+    font: 9px var(--mono);
+    letter-spacing: .12em;
+  }
+  .drawer-tools .date-select,
+  .drawer-tools .currency-select {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+    min-height: 42px;
+    padding: 0 14px;
+    font-size: 12px;
+    border-radius: 14px;
+  }
+  /* Icon toggles become full-width rows labelled by their current aria-label ("Hide currency amounts", ...). */
+  .drawer-tools .icon-button {
+    flex: 1 1 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    width: 100%;
+    height: 42px;
+    padding: 0 14px;
+    border-radius: 14px;
+    color: var(--soft);
+    font: 600 13px var(--sans);
+  }
+  .drawer-tools .icon-button svg { width: 20px; height: 20px; flex: none; }
+  .drawer-tools .icon-button::after { content: attr(aria-label); }
+}
+@media (max-width: 360px) {
+  .app-shell .topbar > .top-brand .brand-copy small { display: none; }
+}
+/* Menus opened from the sidebar must sit above it. */
+.action-popover { z-index: 95; }
