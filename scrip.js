@@ -718,11 +718,81 @@ function renderLegalPage(page) {
   return `<main class="legal-page"><header class="public-header"><a class="public-brand" href="#home" data-public-action="landing" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a><button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button></header><article class="legal-card"><div class="section-kicker">NETRAOS · ${isTerms ? "TERMS" : "PRIVACY"}</div><h1>${title}.</h1><p class="legal-updated">Last updated October 10, 2026</p>${content}<a class="public-primary legal-back" href="#signup" data-public-action="signup">Continue to signup <span>↗</span></a></article><footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><a href="#privacy" data-public-action="privacy">Privacy</a>${renderSocialLinks("footer-social-links public-social-links")}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer></main>`;
 }
 
-// Render public landing/auth pages and their responsive feature content.
-function showPublicPage(page = "landing") {
+const phoneIntroStorageKey = "netraos-phone-intro-seen-v1";
+
+function showPhoneWelcome() {
   if (!publicShell || !appShell) return;
   appShell.hidden = true;
   publicShell.hidden = false;
+  document.body.classList.remove("public-view");
+  document.body.classList.add("auth-view", "phone-entry-view");
+  window.location.hash = "welcome";
+  publicShell.innerHTML = '<main class="phone-entry phone-entry-welcome"><header class="phone-entry-header"><a class="phone-entry-brand" href="#welcome" aria-label="NetraOS"><span class="phone-entry-mark">' + renderBrandMark() + '</span><span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a></header><section class="phone-welcome-copy"><span class="phone-entry-kicker">YOUR FINANCIAL OPERATING SYSTEM</span><h1>See your money<br><em>with more clarity.</em></h1><p>Bring your balances, monthly plan, and goals together in one private workspace on this device.</p></section><div class="phone-entry-actions"><button class="public-primary" type="button" data-public-action="signup">Create an account <span>↗</span></button><button class="phone-entry-secondary" type="button" data-public-action="login">Sign in</button><button class="phone-entry-tour" type="button" data-phone-replay-intro>Take a quick tour</button></div><p class="phone-entry-note">Your records stay in this browser. Download a backup any time.</p></main>';
+  publicShell.querySelector("[data-phone-replay-intro]")?.addEventListener("click", showPhoneIntro);
+}
+
+function showPhoneIntro() {
+  if (!publicShell || !appShell) return;
+  const slides = [
+    { icon: "◉", label: "GET A CLEAR PICTURE", title: "Your money, in one view.", copy: "Track cash, bank and M-Pesa balances alongside what you owe. NetraOS brings the pieces together so you can understand your overall position." },
+    { icon: "↗", label: "MAKE A PLAN", title: "Give your month a direction.", copy: "Record income, set spending plans and build savings goals. Simple projections help you see how steady contributions can grow over time." },
+    { icon: "✦", label: "KEEP MOVING", title: "Progress, at your pace.", copy: "Turn goals into quests, follow milestones and review your progress. Mask amounts when you need privacy, and keep a downloadable backup of your data." }
+  ];
+  appShell.hidden = true;
+  publicShell.hidden = false;
+  document.body.classList.remove("public-view");
+  document.body.classList.add("auth-view", "phone-entry-view");
+  window.location.hash = "intro";
+  const cards = slides.map((slide, index) => '<article class="phone-intro-card" data-intro-card aria-label="Card ' + (index + 1) + ' of ' + slides.length + '" ' + (index ? 'hidden' : '') + '><span class="phone-intro-icon" aria-hidden="true">' + slide.icon + '</span><span class="phone-entry-kicker">' + slide.label + '</span><h1>' + slide.title + '</h1><p>' + slide.copy + '</p></article>').join("");
+  const dots = slides.map((slide, index) => '<span class="phone-intro-dot' + (index ? '' : ' is-active') + '" data-intro-dot aria-hidden="true"></span>').join("");
+  publicShell.innerHTML = '<main class="phone-entry phone-entry-intro"><header class="phone-entry-header"><a class="phone-entry-brand" href="#intro" aria-label="NetraOS">' + renderBrandMark() + '<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a><button class="phone-intro-skip" type="button" data-intro-skip>Skip</button></header><div class="phone-intro-progress"><span data-intro-progress></span></div><section class="phone-intro-stage" data-intro-track aria-live="polite">' + cards + '</section><footer class="phone-intro-footer"><span class="phone-intro-count" data-intro-count>1 / ' + slides.length + '</span><div class="phone-intro-dots" aria-hidden="true">' + dots + '</div><button class="phone-intro-next" type="button" data-intro-next>Next <span>→</span></button></footer></main>';
+  const cardNodes = [...publicShell.querySelectorAll("[data-intro-card]")];
+  const dotNodes = [...publicShell.querySelectorAll("[data-intro-dot]")];
+  const next = publicShell.querySelector("[data-intro-next]");
+  const count = publicShell.querySelector("[data-intro-count]");
+  const progress = publicShell.querySelector("[data-intro-progress]");
+  let active = 0;
+  const finish = () => {
+    try { localStorage.setItem(phoneIntroStorageKey, "true"); } catch { /* Continue even when browser storage is unavailable. */ }
+    showPhoneWelcome();
+  };
+  const render = () => {
+    cardNodes.forEach((card, index) => { card.hidden = index !== active; });
+    dotNodes.forEach((dot, index) => dot.classList.toggle("is-active", index === active));
+    count.textContent = (active + 1) + " / " + slides.length;
+    progress.style.width = ((active + 1) / slides.length * 100) + "%";
+    next.innerHTML = active === slides.length - 1 ? 'Get started <span>↗</span>' : 'Next <span>→</span>';
+  };
+  const advance = () => { if (active < slides.length - 1) { active += 1; render(); } else finish(); };
+  next.addEventListener("click", advance);
+  publicShell.querySelector("[data-intro-skip]").addEventListener("click", finish);
+  const track = publicShell.querySelector("[data-intro-track]");
+  let startX = null;
+  track.addEventListener("pointerdown", event => { startX = event.clientX; }, { passive: true });
+  track.addEventListener("pointerup", event => {
+    if (startX === null) return;
+    const distance = event.clientX - startX;
+    startX = null;
+    if (Math.abs(distance) > 48) advance();
+  }, { passive: true });
+  track.addEventListener("pointercancel", () => { startX = null; }, { passive: true });
+  track.addEventListener("keydown", event => {
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); advance(); }
+  });
+  render();
+}
+
+// Render public landing/auth pages and their responsive feature content.
+function showPublicPage(page = "landing") {
+  if (page === "landing" && window.matchMedia("(max-width: 880px)").matches) {
+    showPhoneWelcome();
+    return;
+  }
+
+  if (!publicShell || !appShell) return;
+  appShell.hidden = true;
+  publicShell.hidden = false;
+  document.body.classList.remove("phone-entry-view");
   document.body.classList.toggle("public-view", page === "landing");
   document.body.classList.toggle("auth-view", page !== "landing");
   window.location.hash = page === "landing" ? "home" : page;
@@ -861,8 +931,10 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Privacy Shield</strong><small>Mask currency amounts in the app header or with the shortcut.</small></span><input name="privacyShield" type="checkbox" ${privacyEnabled ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Privacy Shield shortcut</strong><small>Keyboard shortcut to toggle amount masking.</small></span><select name="privacyShortcut"><option value="Shift+S" ${settings.privacyShortcut === "Shift+S" ? "selected" : ""}>Shift + S</option><option value="Alt+Shift+S" ${settings.privacyShortcut === "Alt+Shift+S" ? "selected" : ""}>Alt + Shift + S</option><option value="Off" ${settings.privacyShortcut === "Off" ? "selected" : ""}>Off</option></select></label>
           <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a local four-digit PIN.</small></span><select name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Never</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
-          <div class="settings-pin-fields"><label class="inventory-form-field"><span>New four-digit PIN <small>Leave blank to keep the current PIN</small></span><input name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label><label class="inventory-form-field"><span>Confirm PIN</span><input name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label></div>
-          <label class="settings-field"><span><strong>Remove current PIN</strong><small>Turns off the local screen lock.</small></span><input name="clearPin" type="checkbox"></label>
+          <div class="autolock-options" data-autolock-options ${settings.lockTimeoutMinutes ? "" : "hidden"}>
+            <div class="settings-pin-fields"><label class="inventory-form-field"><span>New four-digit PIN <small>Leave blank to keep the current PIN</small></span><input name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label><label class="inventory-form-field"><span>Confirm PIN</span><input name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label></div>
+            <label class="settings-field"><span><strong>Remove current PIN</strong><small>Turns off the local screen lock.</small></span><input name="clearPin" type="checkbox"></label>
+          </div>
           <div class="settings-audit"><strong>Recent local security activity</strong>${getSecurityAuditLog().length ? `<ul>${getSecurityAuditLog().slice(0, 8).map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.at).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>No activity recorded yet.</p>`}</div>
         </section>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">LOCAL TAX &amp; DEDUCTIONS</div><h2>Kenya statutory estimates</h2></div></div>
@@ -4364,6 +4436,18 @@ document.addEventListener("keydown", event => {
   }
 });
 phoneNavQuery.addEventListener("change", event => { if (!event.matches) setNavDrawer(false, { restoreFocus: false }); });
+phoneNavQuery.addEventListener("change", event => {
+  if (!appShell.hidden) return;
+  const currentPage = decodeURIComponent(window.location.hash.slice(1));
+  if (event.matches && ["", "home", "welcome"].includes(currentPage)) {
+    let introSeen = false;
+    try { introSeen = localStorage.getItem(phoneIntroStorageKey) === "true"; } catch { /* Treat unavailable storage as a first visit. */ }
+    if (introSeen) showPhoneWelcome();
+    else showPhoneIntro();
+  } else if (!event.matches && ["intro", "welcome"].includes(currentPage)) {
+    showPublicPage("landing");
+  }
+});
 // If the app locks or signs out while the menu is open, reset it so it is closed on return.
 new MutationObserver(() => { if (appShell.hidden) setNavDrawer(false, { restoreFocus: false }); })
   .observe(appShell, { attributes: true, attributeFilter: ["hidden"] });
@@ -4773,6 +4857,17 @@ document.addEventListener("click", event => {
 // Validate profile image uploads and show a local preview before saving the profile.
 document.addEventListener("change", event => {
   const input = event.target;
+  if (input instanceof HTMLSelectElement && input.name === "lockTimeoutMinutes") {
+    const autoLockOptions = input.form?.querySelector("[data-autolock-options]");
+    const isNever = Number(input.value) === 0;
+    if (autoLockOptions) autoLockOptions.hidden = isNever;
+    if (isNever && autoLockOptions) {
+      const removePin = autoLockOptions.querySelector('input[name="clearPin"]');
+      if (removePin) removePin.checked = false;
+      autoLockOptions.querySelectorAll('input[name="newPin"], input[name="confirmPin"]').forEach(field => { field.value = ""; });
+    }
+    return;
+  }
   if (!(input instanceof HTMLInputElement)) return;
   if (input.matches("[data-settings-import]")) {
     const backupFile = input.files?.[0];
@@ -4845,6 +4940,13 @@ if (hasLocalSession && !["terms", "privacy"].includes(initialPage)) {
   scheduleAutoLock();
   maybePromptForBackup();
   scheduleAutoLockNudge();
+} else if (["login", "signup", "terms", "privacy"].includes(initialPage)) {
+  showPublicPage(initialPage);
+} else if (phoneNavQuery.matches) {
+  let introSeen = false;
+  try { introSeen = localStorage.getItem(phoneIntroStorageKey) === "true"; } catch { /* Treat unavailable storage as a first visit. */ }
+  if (introSeen) showPhoneWelcome();
+  else showPhoneIntro();
 } else {
-  showPublicPage(["login", "signup", "terms", "privacy"].includes(initialPage) ? initialPage : "landing");
+  showPublicPage("landing");
 }
