@@ -19,11 +19,55 @@
     <div id="public-shell" hidden></div>
     <!-- Main signed-in workspace; scrip.js fills its page-content area with app views. -->
     <div class="app-shell">
+    <!-- Phone navigation: slide-in sidebar. Its buttons carry data-page, so scrip.js drives them like the top nav. -->
+    <div class="drawer-backdrop" data-drawer-close></div>
+    <aside class="mobile-drawer" id="mobile-drawer" aria-label="Main menu" inert>
+      <div class="drawer-head">
+        <a class="top-brand" href="#dashboard" data-home-link aria-label="NetraOS dashboard home">
+          <span class="brand-mark"><img src="netraos-logo.svg" alt="" /></span>
+          <span class="brand-copy"><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL<br />OPERATING SYSTEM</small></span>
+        </a>
+        <button class="drawer-close" type="button" data-drawer-close aria-label="Close menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <nav class="drawer-nav" aria-label="Primary sections">
+        <button class="drawer-item active" type="button" data-page="Dashboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="drawer-item" type="button" data-page="Inventory">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>
+          <span>Inventory</span>
+        </button>
+        <button class="drawer-item" type="button" data-page="Power-Up">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M13 2 4 14h7l-1 8 9-12h-7Z"/></svg>
+          <span>Power-Up</span>
+        </button>
+        <button class="drawer-item" type="button" data-page="Quests">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg>
+          <span>Quests</span>
+        </button>
+        <button class="drawer-item" type="button" data-page="Stats">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+          <span>Stats</span>
+        </button>
+        <button class="drawer-item" type="button" data-page="Achievements">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0ZM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></svg>
+          <span>Achievements</span>
+        </button>
+        <button class="drawer-item" type="button" data-page="Contact">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+          <span>Contact</span>
+        </button>
+      </nav>
+    </aside>
       <main class="main-panel">
         <!-- Global header: brand, section navigation, date/currency menus, and quick actions. -->
         <header class="topbar">
-          <button class="mobile-nav-toggle" type="button" data-mobile-nav-toggle aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation menu" title="Open navigation menu">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+          <!-- Hamburger: only shown on phones; opens the sidebar menu. -->
+          <button class="nav-toggle" type="button" data-nav-toggle aria-label="Open menu" aria-expanded="false" aria-controls="mobile-drawer">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
           </button>
           <!-- Brand link returns to the dashboard. -->
           <a class="top-brand" href="#dashboard" data-home-link aria-label="NetraOS dashboard home">
@@ -33,7 +77,7 @@
             <span class="brand-copy"><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL<br />OPERATING SYSTEM</small></span>
           </a>
           <!-- Primary in-app page navigation; data-page values are handled by scrip.js. -->
-          <nav class="top-nav" id="primary-nav" aria-label="Primary sections">
+          <nav class="top-nav" aria-label="Primary sections">
             <button class="top-nav-item active" data-page="Dashboard">
               Dashboard
             </button>
@@ -98,7 +142,6 @@
             </button>
           </div>
         </header>
-        <button class="mobile-nav-backdrop" type="button" data-mobile-nav-backdrop aria-label="Close navigation menu" hidden></button>
         <!-- Dynamic dashboard and other app page content. -->
         <div class="content" id="page-content">
           <!-- Dashboard greeting, current date, report download, and date-range selector. -->
@@ -573,9 +616,6 @@
       </main>
     </div>
     <!-- Main application logic: navigation, saved data, interactions, and report downloads. -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js"></script>
-    <script src="supabase-data.js"></script>
     <script src="scrip.js">
     </script>
   </body>
