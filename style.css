@@ -7647,6 +7647,8 @@ body.theme-dark .settings-field .payday-input em { color: #a2ada5; }
 
 .autolock-dialog { width: min(440px, calc(100% - 32px)); }
 .autolock-copy { margin: 0 0 18px; color: #5c6961; font: 400 13px/1.6 var(--sans); }
+.shortcut-install-dialog { width: min(440px, calc(100% - 32px)); }
+.shortcut-install-copy { margin: 0 0 18px; color: #5c6961; font: 400 13px/1.6 var(--sans); }
 .autolock-optout {
   display: flex;
   align-items: center;
@@ -7657,6 +7659,7 @@ body.theme-dark .settings-field .payday-input em { color: #a2ada5; }
 }
 .autolock-optout input { flex: none; width: 17px; height: 17px; margin: 0; accent-color: #13875f; cursor: pointer; }
 body.theme-dark .autolock-copy { color: #b4c0b7; }
+body.theme-dark .shortcut-install-copy { color: #b4c0b7; }
 body.theme-dark .autolock-optout { color: #d3ddd5; }
 body.theme-dark .autolock-optout input { accent-color: #53c294; }
 
@@ -8242,8 +8245,13 @@ body.theme-dark .phone-intro-next { background: #69bd91; color: #102018; }
 .phone-entry-welcome .phone-entry-header { display: none; }
 .phone-intro-header { display: flex; align-items: center; justify-content: space-between; min-height: 44px; }
 .phone-intro-header-label { color: #13875f; font: 600 9px var(--mono); letter-spacing: .13em; }
-.phone-intro-stage { place-items: center; }
-.phone-intro-card { width: min(100%, 420px); margin: auto; }
+.phone-intro-stage { position: relative; place-items: center; isolation: isolate; }
+.phone-intro-card { grid-area: 1 / 1; width: min(100%, 420px); margin: auto; transform-origin: 50% 75%; transition: transform 260ms cubic-bezier(.2,.75,.25,1), opacity 220ms ease, box-shadow 220ms ease; will-change: transform; }
+.phone-intro-card.is-top { position: relative; z-index: 2; }
+.phone-intro-card.is-next { z-index: 1; transform: scale(.96) translateY(12px); opacity: .82; pointer-events: none; }
+.phone-intro-card.is-dragging { transition: none; cursor: grabbing; user-select: none; }
+.phone-intro-card.is-out-left { transform: translate3d(-135%, -10px, 0) rotate(-18deg); opacity: 0; }
+.phone-intro-card.is-out-right { transform: translate3d(135%, -10px, 0) rotate(18deg); opacity: 0; }
 body.theme-dark .phone-intro-header-label { color: #9ed7b7; }
 
 .phone-splash {

@@ -51,12 +51,20 @@ const termsVersion = "2026-10-10";
 let autoLockTimer = 0;
 let backupPromptTimer = 0;
 let autoLockNudgeTimer = 0;
+let shortcutPromptTimer = 0;
+let deferredInstallPrompt = null;
+const shortcutPromptSessionKey = "netraos-install-shortcut-shown";
 const autoLockNudgeSessionKey = "netraos-autolock-nudge-shown";
 const autoLockNudgeDelayMs = 10000;
 let toastTimer;
 let profilePreviewUrl = "";
 let landingScrollEffectsBound = false;
 let landingRevealObserver = null;
+
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+});
 
 // FAQ knowledge base shown on the landing page. Answers describe what this version actually does.
 const faqCategories = [
@@ -776,28 +784,92 @@ function showPhoneIntro() {
     try { localStorage.setItem(phoneIntroStorageKey, "true"); } catch { /* Continue even when browser storage is unavailable. */ }
     showPhoneWelcome();
   };
+  let moving = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let dragX = 0;
+  let dragCard = null;
+  let dragPointerId = null;
   const render = () => {
-    cardNodes.forEach((card, index) => { card.hidden = index !== active; });
+    cardNodes.forEach((card, index) => {
+      card.hidden = index < active || index > active + 1;
+      card.classList.remove("is-top", "is-next", "is-dragging", "is-out-left", "is-out-right");
+      card.style.removeProperty("transform");
+      card.style.removeProperty("opacity");
+      card.setAttribute("aria-hidden", index === active ? "false" : "true");
+      if (index === active) card.classList.add("is-top");
+      else if (index === active + 1) card.classList.add("is-next");
+    });
     dotNodes.forEach((dot, index) => dot.classList.toggle("is-active", index === active));
     count.textContent = (active + 1) + " / " + slides.length;
     progress.style.width = ((active + 1) / slides.length * 100) + "%";
-    next.innerHTML = active === slides.length - 1 ? 'Get started <span>↗</span>' : 'Next <span>→</span>';
+    next.innerHTML = active === slides.length - 1 ? 'Get started' : 'Next <span>→</span>';
   };
-  const advance = () => { if (active < slides.length - 1) { active += 1; render(); } else finish(); };
+  const advance = (direction = 1) => {
+    if (moving) return;
+    if (active >= slides.length - 1) { finish(); return; }
+    moving = true;
+    const card = cardNodes[active];
+    card.classList.add(direction < 0 ? "is-out-left" : "is-out-right");
+    window.setTimeout(() => { active += 1; moving = false; render(); }, 260);
+  };
   next.addEventListener("click", advance);
   publicShell.querySelector("[data-intro-skip]").addEventListener("click", finish);
   const track = publicShell.querySelector("[data-intro-track]");
-  let startX = null;
-  track.addEventListener("pointerdown", event => { startX = event.clientX; }, { passive: true });
-  track.addEventListener("pointerup", event => {
-    if (startX === null) return;
-    const distance = event.clientX - startX;
-    startX = null;
-    if (Math.abs(distance) > 48) advance();
-  }, { passive: true });
-  track.addEventListener("pointercancel", () => { startX = null; }, { passive: true });
+  track.addEventListener("pointerdown", event => {
+    if (moving || event.button > 0) return;
+    const card = cardNodes[active];
+    if (!card || !card.contains(event.target)) return;
+    dragStartX = event.clientX;
+    dragStartY = event.clientY;
+    dragX = 0;
+    dragCard = card;
+    dragPointerId = event.pointerId;
+    card.classList.add("is-dragging");
+    card.setPointerCapture?.(event.pointerId);
+  });
+  track.addEventListener("pointermove", event => {
+    if (!dragCard || event.pointerId !== dragPointerId) return;
+    const dx = event.clientX - dragStartX;
+    const dy = event.clientY - dragStartY;
+    if (Math.abs(dy) > Math.abs(dx) * 1.2 && Math.abs(dy) > 10) {
+      dragCard.classList.remove("is-dragging");
+      dragCard = null;
+      dragPointerId = null;
+      return;
+    }
+    dragX = dx;
+    const rotation = Math.max(-16, Math.min(16, dx * 0.055));
+    dragCard.style.transform = `translate3d(${dx}px, ${dy * 0.12}px, 0) rotate(${rotation}deg)`;
+    dragCard.style.opacity = String(Math.max(0.55, 1 - Math.abs(dx) / 700));
+  });
+  const endDrag = (event, canceled = false) => {
+    if (!dragCard || (event && event.pointerId !== dragPointerId)) return;
+    const card = dragCard;
+    const distance = dragX;
+    dragCard = null;
+    dragPointerId = null;
+    const threshold = Math.max(64, track.clientWidth * 0.2);
+    if (!canceled && Math.abs(distance) >= threshold) {
+      moving = true;
+      card.classList.remove("is-dragging");
+      card.classList.add(distance < 0 ? "is-out-left" : "is-out-right");
+      card.style.removeProperty("transform");
+      card.style.removeProperty("opacity");
+      window.setTimeout(() => {
+        if (active < slides.length - 1) { active += 1; moving = false; render(); }
+        else finish();
+      }, 260);
+    } else {
+      card.classList.remove("is-dragging");
+      card.style.removeProperty("transform");
+      card.style.removeProperty("opacity");
+    }
+  };
+  track.addEventListener("pointerup", endDrag);
+  track.addEventListener("pointercancel", event => endDrag(event, true));
   track.addEventListener("keydown", event => {
-    if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); advance(); }
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); advance(event.key === "ArrowLeft" ? -1 : 1); }
   });
   render();
 }
@@ -1004,6 +1076,66 @@ function enterApp(profile) {
   scheduleAutoLock();
   maybePromptForBackup();
   scheduleAutoLockNudge({ force: true });
+  scheduleShortcutPrompt();
+}
+
+function scheduleShortcutPrompt() {
+  window.clearTimeout(shortcutPromptTimer);
+  if (window.matchMedia("(display-mode: standalone)").matches || navigator.standalone) return;
+  try { if (sessionStorage.getItem(shortcutPromptSessionKey)) return; } catch { /* Prompt remains available if session storage is disabled. */ }
+  shortcutPromptTimer = window.setTimeout(showShortcutPrompt, 5000);
+}
+
+function showShortcutPrompt() {
+  if (appShell.hidden || window.matchMedia("(display-mode: standalone)").matches || navigator.standalone) return;
+  if (document.querySelector("dialog[open]")) {
+    shortcutPromptTimer = window.setTimeout(showShortcutPrompt, 5000);
+    return;
+  }
+  try { sessionStorage.setItem(shortcutPromptSessionKey, "1"); } catch { /* Optional. */ }
+
+  const canInstall = Boolean(deferredInstallPrompt);
+  const isPhone = window.matchMedia("(max-width: 880px)").matches;
+  const dialog = document.createElement("dialog");
+  dialog.className = "inventory-dialog shortcut-install-dialog";
+  dialog.setAttribute("aria-labelledby", "shortcut-install-title");
+  dialog.innerHTML = `
+    <div class="inventory-form">
+      <header class="inventory-dialog-heading">
+        <div>
+          <span class="section-kicker">KEEP NETRAOS CLOSE</span>
+          <h2 id="shortcut-install-title">${canInstall ? "Add NetraOS to your device" : "Create a NetraOS shortcut"}</h2>
+        </div>
+        <button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button>
+      </header>
+      <p class="shortcut-install-copy">${canInstall
+        ? "Install NetraOS for quick access from your home screen or apps list. Your data stays in this browser."
+        : isPhone
+          ? "For quicker access, open your browser menu and choose “Add to Home Screen” or “Install app”. Your data stays in this browser."
+          : "For quicker access, open your browser menu and choose “Install NetraOS” or “Create shortcut”. Your data stays in this browser."}</p>
+      <footer class="inventory-dialog-actions">
+        <button class="inventory-cancel" type="button">Maybe later</button>
+        ${canInstall ? '<button class="inventory-submit" type="button" data-shortcut-install>Install app</button>' : ""}
+      </footer>
+    </div>`;
+  document.body.append(dialog);
+  const close = () => dialog.close();
+  dialog.querySelector(".inventory-dialog-close").addEventListener("click", close);
+  dialog.querySelector(".inventory-cancel").addEventListener("click", close);
+  dialog.addEventListener("click", event => { if (event.target === dialog) close(); });
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.querySelector("[data-shortcut-install]")?.addEventListener("click", async event => {
+    const installEvent = deferredInstallPrompt;
+    if (!installEvent) { close(); return; }
+    event.currentTarget.disabled = true;
+    try {
+      await installEvent.prompt();
+      await installEvent.userChoice;
+      deferredInstallPrompt = null;
+    } catch { /* Browser install UI can be unavailable if its event expired. */ }
+    close();
+  });
+  dialog.showModal();
 }
 
 // Local data accessors keep each financial module's stored data in a consistent shape.

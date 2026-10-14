@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "NetraOS — Your Financial Operating System",
+  "short_name": "NetraOS",
+  "description": "A private financial workspace stored in your browser.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7faf7",
+  "theme_color": "#13875f",
+  "icons": [
+    {
+      "src": "netraos-app-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
