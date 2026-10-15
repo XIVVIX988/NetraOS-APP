@@ -842,7 +842,7 @@ function showPhoneWelcome() {
   document.body.classList.remove("public-view");
   document.body.classList.add("auth-view", "phone-entry-view");
   window.location.hash = "welcome";
-  publicShell.innerHTML = '<main class="phone-entry phone-entry-welcome"><section class="phone-welcome-copy"><span class="phone-entry-kicker">YOUR FINANCIAL OPERATING SYSTEM</span><h1>See your money<br><em>with more clarity.</em></h1><p>Bring your balances, monthly plan, and goals together in one private workspace on this device.</p></section><div class="phone-entry-actions"><button class="public-primary" type="button" data-public-action="signup">Create an account</button><button class="phone-entry-secondary" type="button" data-public-action="login">Sign in</button><button class="phone-entry-tour" type="button" data-phone-replay-intro>Take a quick tour</button></div><p class="phone-entry-note">Your records stay in this browser. Download a backup any time.</p></main>';
+  publicShell.innerHTML = '<main class="phone-entry phone-entry-welcome">' + renderFluidArt() + '<section class="phone-welcome-copy"><span class="phone-entry-kicker">YOUR FINANCIAL OPERATING SYSTEM</span><h1>See your money<br><em>with more clarity.</em></h1><p>Bring your balances, monthly plan, and goals together in one private workspace on this device.</p></section><div class="phone-entry-actions"><button class="public-primary" type="button" data-public-action="signup">Create an account</button><button class="phone-entry-secondary" type="button" data-public-action="login">Sign in</button><button class="phone-entry-tour" type="button" data-phone-replay-intro>Take a quick tour</button></div><p class="phone-entry-note">Your records stay in this browser. Download a backup any time.</p></main>';
   publicShell.querySelector("[data-phone-replay-intro]")?.addEventListener("click", showPhoneIntro);
 }
 
@@ -962,6 +962,15 @@ function showPhoneIntro() {
 }
 
 // Render public landing/auth pages and their responsive feature content.
+// Shared fluid hero artwork used by the sign-in / sign-up cards and the phone welcome screen.
+function renderFluidArt() {
+  return `<div class="auth-fluid-art" aria-hidden="true">
+          <span class="fluid-shape fluid-shape-a"></span><span class="fluid-shape fluid-shape-b"></span><span class="fluid-shape fluid-shape-c"></span><span class="fluid-shape fluid-shape-d"></span><span class="fluid-shape fluid-shape-e"></span><span class="fluid-shape fluid-shape-f"></span><span class="fluid-shape fluid-shape-g"></span>
+          <svg class="auth-network-lines" viewBox="0 0 1200 560" preserveAspectRatio="xMidYMin slice"><path d="M105 288 238 187 348 254 492 119 622 203 760 121 875 210 1036 126M238 187l-24 157 134-90 144 146 130-197 138 173 115-166 161 176M348 254l-34 175 178-29 134 113 130-140 138 63 142-82"/><path class="network-wire" d="m492 119 38-65 85 12 7 137M875 210l35 140 126 0 36 103M214 344l-68 52 19 77 149-44"/><circle cx="105" cy="288" r="5"/><circle cx="238" cy="187" r="6"/><circle cx="348" cy="254" r="4"/><circle cx="492" cy="119" r="5"/><circle cx="622" cy="203" r="4"/><circle cx="760" cy="121" r="6"/><circle cx="875" cy="210" r="5"/><circle cx="1036" cy="126" r="4"/><circle cx="622" cy="429" r="5"/><circle cx="910" cy="350" r="4"/><circle cx="1061" cy="350" r="5"/><circle cx="165" cy="473" r="4"/><path class="network-hex" d="m530 44 21 12v24l-21 12-21-12V56zM1060 332l16 9v19l-16 9-16-9v-19zM163 456l18 10v20l-18 10-18-10v-20z"/></svg>
+          <i class="fluid-speck speck-one"></i><i class="fluid-speck speck-two"></i><i class="fluid-speck speck-three"></i><i class="fluid-speck speck-four"></i>
+        </div>`;
+}
+
 function showPublicPage(page = "landing") {
   if (page === "landing" && window.matchMedia("(max-width: 880px)").matches) {
     showPhoneWelcome();
@@ -1033,11 +1042,7 @@ function showPublicPage(page = "landing") {
     const isSignup = page === "signup";
     publicShell.innerHTML = `
       <div class="auth-page">
-        <div class="auth-fluid-art" aria-hidden="true">
-          <span class="fluid-shape fluid-shape-a"></span><span class="fluid-shape fluid-shape-b"></span><span class="fluid-shape fluid-shape-c"></span><span class="fluid-shape fluid-shape-d"></span><span class="fluid-shape fluid-shape-e"></span><span class="fluid-shape fluid-shape-f"></span><span class="fluid-shape fluid-shape-g"></span>
-          <svg class="auth-network-lines" viewBox="0 0 1200 560" preserveAspectRatio="xMidYMin slice"><path d="M105 288 238 187 348 254 492 119 622 203 760 121 875 210 1036 126M238 187l-24 157 134-90 144 146 130-197 138 173 115-166 161 176M348 254l-34 175 178-29 134 113 130-140 138 63 142-82"/><path class="network-wire" d="m492 119 38-65 85 12 7 137M875 210l35 140 126 0 36 103M214 344l-68 52 19 77 149-44"/><circle cx="105" cy="288" r="5"/><circle cx="238" cy="187" r="6"/><circle cx="348" cy="254" r="4"/><circle cx="492" cy="119" r="5"/><circle cx="622" cy="203" r="4"/><circle cx="760" cy="121" r="6"/><circle cx="875" cy="210" r="5"/><circle cx="1036" cy="126" r="4"/><circle cx="622" cy="429" r="5"/><circle cx="910" cy="350" r="4"/><circle cx="1061" cy="350" r="5"/><circle cx="165" cy="473" r="4"/><path class="network-hex" d="m530 44 21 12v24l-21 12-21-12V56zM1060 332l16 9v19l-16 9-16-9v-19zM163 456l18 10v20l-18 10-18-10v-20z"/></svg>
-          <i class="fluid-speck speck-one"></i><i class="fluid-speck speck-two"></i><i class="fluid-speck speck-three"></i><i class="fluid-speck speck-four"></i>
-        </div>
+        ${renderFluidArt()}
         <button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button>
         <section class="auth-card">
           <div class="auth-content">
