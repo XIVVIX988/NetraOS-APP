@@ -43,10 +43,78 @@ const content = document.querySelector("#page-content");
 const crumb = document.querySelector("#crumb-page");
 const publicShell = document.querySelector("#public-shell");
 const appShell = document.querySelector(".app-shell");
+
+// Give data and explanation cards their own independent expand/collapse control.
+function enhanceInformationCards(root = content) {
+  if (!root) return;
+  root.querySelectorAll(".metric-card, .panel:not(.cx-form):not(.tax-panel):not(.phone-collapsible), .inventory-summary-card, .achievement-card, .phone-collapsible").forEach(card => {
+    if (card.matches(".phone-collapsible")) {
+      if (!card.dataset.collapseInitialized) {
+        const expanded = !window.matchMedia("(max-width: 760px)").matches;
+        card.classList.toggle("phone-expanded", expanded);
+        const toggle = card.querySelector(".phone-panel-toggle");
+        if (toggle) {
+          toggle.setAttribute("aria-expanded", String(expanded));
+          toggle.setAttribute("aria-label", expanded ? "Collapse section details" : "Expand section details");
+          toggle.textContent = expanded ? "Hide" : "Show";
+        }
+        card.dataset.collapseInitialized = "true";
+      }
+      return;
+    }
+
+    if (!card.dataset.cardCollapsible) {
+      let heading = card.querySelector(":scope > .panel-heading, :scope > .metric-heading");
+      if (!heading) {
+        const label = card.querySelector(":scope > .inventory-label");
+        const title = label || card.querySelector(":scope > h2, :scope > h3");
+        if (!title) return;
+        heading = document.createElement("div");
+        heading.className = "card-collapse-heading";
+        title.before(heading);
+        heading.append(title);
+      }
+      const name = (heading.querySelector("h1, h2, h3")?.textContent || heading.textContent || "Information").trim().replace(/\s+/g, " ");
+      const toggle = document.createElement("button");
+      toggle.className = "card-collapse-toggle";
+      toggle.type = "button";
+      toggle.dataset.cardCollapseToggle = "";
+      toggle.setAttribute("aria-expanded", "true");
+      toggle.setAttribute("aria-label", `Collapse ${name}`);
+      toggle.title = `Collapse ${name}`;
+      toggle.innerHTML = '<span aria-hidden="true">⌃</span>';
+      const metricSymbol = heading.querySelector(".metric-symbol");
+      if (metricSymbol) metricSymbol.before(toggle);
+      else heading.append(toggle);
+      heading.dataset.cardCollapseHeading = "";
+      card.dataset.cardCollapsible = "true";
+    }
+
+    const heading = card.querySelector(":scope > [data-card-collapse-heading], :scope > .panel-heading, :scope > .metric-heading");
+    card.querySelectorAll(":scope > *").forEach(child => {
+      if (child === heading) return;
+      child.dataset.cardCollapsibleBody = "true";
+      child.hidden = card.classList.contains("card-is-collapsed");
+    });
+  });
+}
+
+function toggleInformationCard(card, expanded) {
+  card.classList.toggle("card-is-collapsed", !expanded);
+  card.querySelectorAll(":scope > [data-card-collapsible-body]").forEach(child => { child.hidden = !expanded; });
+  const toggle = card.querySelector(":scope > [data-card-collapse-heading] [data-card-collapse-toggle], :scope > .panel-heading [data-card-collapse-toggle], :scope > .metric-heading [data-card-collapse-toggle]");
+  if (!toggle) return;
+  const name = (toggle.getAttribute("aria-label") || "Information").replace(/^(Collapse|Expand)\s+/i, "");
+  toggle.setAttribute("aria-expanded", String(expanded));
+  toggle.setAttribute("aria-label", `${expanded ? "Collapse" : "Expand"} ${name}`);
+  toggle.title = `${expanded ? "Collapse" : "Expand"} ${name}`;
+  toggle.innerHTML = `<span aria-hidden="true">${expanded ? "⌃" : "⌄"}</span>`;
+}
 const profileStorageKey = "netraos-profile-v1";
 const sessionStorageKey = "netraos-local-session-v1";
 const settingsStorageKey = "netraos-settings-v1";
 const securityAuditStorageKey = "netraos-security-audit-v1";
+const cashflowChartCollapsedKey = "netraos-dashboard-cashflow-collapsed-v1";
 const termsVersion = "2026-10-10";
 let autoLockTimer = 0;
 let backupPromptTimer = 0;
@@ -358,7 +426,6 @@ const questStorageKey = "netraos-quests-v1";
 const achievementStorageKey = "netraos-achievements-v1";
 const reportPeriodStorageKey = "netraos-report-period-v1";
 const currencyStorageKey = "netraos-currency-v1";
-const savingsProjectionStorageKey = "netraos-savings-projection-v1";
 const privacyModeStorageKey = "netraos-privacy-mode-v1";
 const currencyAmountPattern = /(?:KSh|USh|TSh|KES|USD|EUR|GBP|UGX|TZS|[$€£])\s*[+-]?\s*\d[\d,]*(?:\.\d+)?/i;
 // Supported display currencies and the locale used to format each currency.
@@ -472,7 +539,7 @@ function getCashflowStatus(totals) {
 
 function renderCashflowStatus(totals) {
   const status = getCashflowStatus(totals);
-  return `<aside class="cashflow-status ${status.tone}" role="status" aria-live="polite"><span class="cashflow-status-icon" aria-hidden="true">${status.tone === "is-positive" ? "✓" : status.tone === "is-warning" ? "!" : status.tone === "is-caution" ? "↗" : "i"}</span><span><strong>${status.title}</strong><small>${status.detail}</small></span></aside>`;
+  return `<aside class="cashflow-status ${status.tone}" data-cashflow-status><button class="cashflow-status-trigger" type="button" data-cashflow-insight-toggle aria-expanded="false" aria-controls="cashflow-insight-detail"><span class="cashflow-status-icon" aria-hidden="true">✦</span><span><strong>Money pulse</strong><small>Hover or tap to reveal</small></span><span class="cashflow-status-chevron" aria-hidden="true">⌄</span></button><div class="cashflow-status-detail ${status.tone}" id="cashflow-insight-detail"><strong>${status.title}</strong><small>${status.detail}</small></div></aside>`;
 }
 
 // Read and save the browser-local profile and preference settings.
@@ -1013,7 +1080,7 @@ function showPublicPage(page = "landing") {
               <div class="floating-note floating-note-bottom"><span>↗</span><div><small>YOUR NEXT MOVE</small><strong>Progress, at your pace</strong></div></div>
             </div>
           </section>
-          <section class="landing-feature-strip" id="features" aria-label="NetraOS features"><article><span>◉</span><div><strong>Balance sheet</strong><small>Assets, debts, cash, and net worth</small></div></article><article><span>▣</span><div><strong>Mobile money</strong><small>Track M-Pesa alongside your assets</small></div></article><article><span>⇄</span><div><strong>Multi-currency</strong><small>Switch currencies with manual rates</small></div></article><article><span>↗</span><div><strong>Monthly plan</strong><small>Income, budgets, and spending</small></div></article><article><span>⌁</span><div><strong>What-if projections</strong><small>Compound savings with inflation options</small></div></article><article><span>％</span><div><strong>Kenya tax calculator</strong><small>Estimate take-home pay</small></div></article><article><span>◎</span><div><strong>Quests & milestones</strong><small>Follow goals and celebrate progress</small></div></article><article><span>◈</span><div><strong>Privacy & exports</strong><small>Mask amounts and download polished PDFs</small></div></article></section>
+          <section class="landing-feature-strip" id="features" aria-label="NetraOS features"><article><span>◉</span><div><strong>Balance sheet</strong><small>Assets, debts, cash, and net worth</small></div></article><article><span>▣</span><div><strong>Mobile money</strong><small>Track M-Pesa alongside your assets</small></div></article><article><span>⇄</span><div><strong>Multi-currency</strong><small>Switch currencies with manual rates</small></div></article><article><span>↗</span><div><strong>Monthly plan</strong><small>Income, budgets, and spending</small></div></article><article><span>％</span><div><strong>Kenya tax calculator</strong><small>Estimate take-home pay</small></div></article><article><span>◎</span><div><strong>Quests & milestones</strong><small>Follow goals and celebrate progress</small></div></article><article><span>◈</span><div><strong>Privacy & exports</strong><small>Mask amounts and download polished PDFs</small></div></article></section>
           <section class="landing-deep-dive" id="about"><div class="landing-deep-copy"><div class="landing-eyebrow"><i></i> A BETTER VIEW, STEP BY STEP</div><h2>From the big picture<br>to your next move.</h2><p>Bring your financial basics together, then build from there. NetraOS keeps the essentials close without making money management feel like another job.</p><ul><li><i>✓</i> See bank, cash, and M-Pesa balances together</li><li><i>✓</i> Switch display currency using rates you manage</li><li><i>✓</i> Project compounding savings month by month</li><li><i>✓</i> Keep amounts private and export a polished PDF</li></ul><button class="public-primary" type="button" data-public-action="signup">Build your financial picture <span>↗</span></button></div><div class="insight-collage"><article class="insight-card insight-progress"><div class="insight-card-head"><span><small>QUEST PROGRESS</small><strong>Emergency fund</strong></span><i>◈</i></div><div class="insight-progress-line"><span></span></div><div class="insight-card-foot"><small>One goal at a time</small><strong>0%</strong></div></article><article class="insight-card insight-rate"><small>SAVINGS RATE</small><strong>0<span>%</span></strong><div class="insight-sparkline"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>Calculated from your monthly plan</small></article><article class="insight-card insight-budget"><i>▤</i><small>MONTHLY BUDGET</small><strong>KSh 0</strong><span>Set your first budget line</span></article><article class="insight-card insight-note"><span>✳</span><p>Your plan should work for your life—not the other way around.</p></article></div></section>
           ${renderLandingFaq()}
           <section class="landing-contact" id="contact" aria-labelledby="landing-contact-title">
@@ -1471,7 +1538,6 @@ function updateDashboardQuests() {
   }
   if (badge) badge.textContent = quests.length;
   updateDashboardOnboarding();
-  updateSavingsProjection();
 }
 
 function updateDashboardOnboarding() {
@@ -1558,7 +1624,6 @@ function updateCurrencySwitcher() {
   const details = displayCurrencies[currency];
   button.querySelector(".currency-select-label").textContent = currency === "KES" ? "KSh" : currency;
   button.setAttribute("aria-label", `Display currency: ${details.name}`);
-  updateSavingsProjection();
 }
 
 function formatKsh(amount) {
@@ -1634,208 +1699,6 @@ function initializePrivacyMode() {
     event.preventDefault();
     setPrivacyMode(!appShell.classList.contains("privacy-mode"));
   });
-}
-
-// Projection helpers model monthly contributions, compound returns, and inflation.
-function getSavingsProjectionState() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(savingsProjectionStorageKey) || "{}");
-    const savedContribution = Number(saved.contribution ?? 5000);
-    const savedReturn = Number(saved.annualReturn ?? 5);
-    const savedInflation = Number(saved.inflationRate ?? 5);
-    return {
-      contribution: Number.isFinite(savedContribution) ? Math.max(0, Math.min(50000, Math.round(savedContribution / 5000) * 5000)) : 5000,
-      annualReturn: Number.isFinite(savedReturn) ? Math.max(0, Math.min(12, Math.round(savedReturn))) : 5,
-      inflationRate: Number.isFinite(savedInflation) ? Math.max(0, Math.min(15, Math.round(savedInflation * 2) / 2)) : 5,
-      inflationAdjusted: Boolean(saved.inflationAdjusted),
-      years: [1, 3, 5].includes(Number(saved.years)) ? Number(saved.years) : 3,
-      minimized: Boolean(saved.minimized)
-    };
-  } catch {
-    return { contribution: 5000, annualReturn: 5, inflationRate: 5, inflationAdjusted: false, years: 3, minimized: false };
-  }
-}
-
-function updateProjectionInspection(chart, index) {
-  const samples = chart?.projectionSamples;
-  if (!samples?.length) return;
-  const sampleIndex = Math.max(0, Math.min(samples.length - 1, Number(index) || 0));
-  const sample = samples[sampleIndex];
-  const hitArea = chart.querySelector(".projection-hit-area");
-  const cursorLine = chart.querySelector("#projection-cursor-line");
-  const cursorPoint = chart.querySelector("#projection-cursor-point");
-  if (hitArea) {
-    hitArea.setAttribute("aria-valuemax", String(samples.length - 1));
-    hitArea.setAttribute("aria-valuenow", String(sampleIndex));
-    hitArea.setAttribute("aria-valuetext", sample.label);
-  }
-  if (cursorLine) {
-    cursorLine.setAttribute("x1", sample.x.toFixed(1));
-    cursorLine.setAttribute("x2", sample.x.toFixed(1));
-  }
-  if (cursorPoint) {
-    cursorPoint.setAttribute("cx", sample.x.toFixed(1));
-    cursorPoint.setAttribute("cy", sample.y.toFixed(1));
-  }
-  const panel = chart.closest(".projection-panel");
-  if (!panel) return;
-  const period = panel.querySelector("[data-projection-insight-period]");
-  const balance = panel.querySelector("[data-projection-insight-balance]");
-  const contributions = panel.querySelector("[data-projection-insight-contributions]");
-  const growth = panel.querySelector("[data-projection-insight-growth]");
-  if (period) period.textContent = sample.label;
-  if (balance) balance.textContent = formatKsh(sample.balance);
-  if (contributions) contributions.textContent = formatKsh(sample.contributions);
-  if (growth) growth.textContent = formatKsh(sample.balance - sample.contributions);
-}
-
-function updateSavingsProjection(changedInput = null, selectedYears = null, changes = null) {
-  const panel = document.querySelector(".projection-panel");
-  if (!panel) return;
-  const contributionInput = panel.querySelector("#projection-contribution");
-  const returnInput = panel.querySelector("#projection-return");
-  const inflationInput = panel.querySelector("#projection-inflation");
-  if (!contributionInput || !returnInput || !inflationInput) return;
-  const state = getSavingsProjectionState();
-  if (changedInput?.dataset.projectionInput === "contribution") state.contribution = Number(contributionInput.value) || 0;
-  if (changedInput?.dataset.projectionInput === "returnRate") state.annualReturn = Number(returnInput.value) || 0;
-  if (changedInput?.dataset.projectionInput === "inflationRate") state.inflationRate = Number(inflationInput.value) || 0;
-  if (changes && typeof changes === "object") Object.assign(state, changes);
-  if ([1, 3, 5].includes(Number(selectedYears))) state.years = Number(selectedYears);
-  contributionInput.value = String(state.contribution);
-  returnInput.value = String(state.annualReturn);
-  inflationInput.value = String(state.inflationRate);
-  try {
-    localStorage.setItem(savingsProjectionStorageKey, JSON.stringify(state));
-  } catch {
-    // Keep the simulator usable when browser storage is unavailable.
-  }
-
-  const contributionValue = panel.querySelector("#projection-contribution-value");
-  const returnValue = panel.querySelector("#projection-return-value");
-  const inflationValue = panel.querySelector("#projection-inflation-value");
-  const minimumValue = panel.querySelector("[data-projection-min]");
-  const maximumValue = panel.querySelector("[data-projection-max]");
-  if (contributionValue) contributionValue.textContent = formatKsh(state.contribution);
-  if (returnValue) returnValue.textContent = `${state.annualReturn}%`;
-  if (inflationValue) inflationValue.textContent = `${state.inflationRate}%`;
-  const inflationToggle = panel.querySelector("[data-projection-inflation-toggle]");
-  if (inflationToggle) inflationToggle.setAttribute("aria-checked", String(state.inflationAdjusted));
-  const inflationControl = panel.querySelector("[data-projection-inflation-control]");
-  if (inflationControl) inflationControl.hidden = !state.inflationAdjusted;
-  panel.classList.toggle("is-collapsed", state.minimized);
-  const projectionBody = panel.querySelector("[data-projection-body]");
-  if (projectionBody) projectionBody.hidden = state.minimized;
-  const collapseToggle = panel.querySelector("[data-projection-toggle]");
-  if (collapseToggle) {
-    collapseToggle.setAttribute("aria-expanded", String(!state.minimized));
-    collapseToggle.setAttribute("aria-label", state.minimized ? "Expand projections" : "Minimize projections");
-    const toggleLabel = collapseToggle.querySelector("[data-projection-toggle-label]");
-    if (toggleLabel) toggleLabel.textContent = state.minimized ? "Expand" : "Minimize";
-    const toggleIcon = collapseToggle.querySelector(".projection-collapse-icon");
-    if (toggleIcon) toggleIcon.textContent = state.minimized ? "+" : "−";
-  }
-  const balanceLabel = panel.querySelector("#projection-balance-label");
-  if (balanceLabel) balanceLabel.textContent = state.inflationAdjusted ? "BALANCE IN TODAY’S MONEY" : "PROJECTED BALANCE";
-  if (minimumValue) minimumValue.textContent = formatKsh(0);
-  if (maximumValue) maximumValue.textContent = formatKsh(50000);
-  panel.querySelectorAll("[data-projection-years]").forEach(button => {
-    const selected = Number(button.dataset.projectionYears) === state.years;
-    button.setAttribute("aria-pressed", String(selected));
-  });
-
-  const quests = getQuests();
-  const startingBalance = quests.reduce((sum, quest) => sum + Math.max(0, Number(quest.current) || 0), 0);
-  const plannedMonthlySavings = getPowerUpData().budgets
-    .filter(item => item.category === "Savings & investing")
-    .reduce((sum, item) => sum + Math.max(0, Number(item.amount) || 0), 0);
-  const monthlyContribution = plannedMonthlySavings + state.contribution;
-  const plannedSavingsValue = panel.querySelector("#projection-planned-savings-value");
-  const totalMonthlyValue = panel.querySelector("#projection-monthly-total-value");
-  if (plannedSavingsValue) plannedSavingsValue.textContent = formatKsh(plannedMonthlySavings);
-  if (totalMonthlyValue) totalMonthlyValue.textContent = formatKsh(monthlyContribution);
-  const months = state.years * 12;
-  const monthlyRate = Math.pow(1 + state.annualReturn / 100, 1 / 12) - 1;
-  const inflationMonthlyRate = Math.pow(1 + state.inflationRate / 100, 1 / 12) - 1;
-  const growthRate = state.inflationAdjusted ? (1 + monthlyRate) / (1 + inflationMonthlyRate) - 1 : monthlyRate;
-  let balance = startingBalance;
-  let totalContributions = startingBalance;
-  const monthlyValues = [{ month: 0, balance, contributions: totalContributions }];
-  for (let month = 1; month <= months; month += 1) {
-    const contribution = state.inflationAdjusted ? monthlyContribution / Math.pow(1 + inflationMonthlyRate, month) : monthlyContribution;
-    balance = balance * (1 + growthRate) + contribution;
-    totalContributions += contribution;
-    monthlyValues.push({ month, balance, contributions: totalContributions });
-  }
-  const startValue = panel.querySelector("#projection-start-value");
-  const projectedValue = panel.querySelector("#projection-balance");
-  const growthValue = panel.querySelector("#projection-growth");
-  const horizonLabel = panel.querySelector("#projection-end-label");
-  const linePath = panel.querySelector("#projection-line");
-  const areaPath = panel.querySelector("#projection-area");
-  const point = panel.querySelector("#projection-point");
-  const chart = panel.querySelector(".projection-chart");
-  const granularityLabel = panel.querySelector("#projection-granularity");
-  if (startValue) startValue.textContent = formatKsh(startingBalance);
-  if (projectedValue) projectedValue.textContent = formatKsh(balance);
-  if (growthValue) growthValue.textContent = formatKsh(balance - totalContributions);
-  if (horizonLabel) horizonLabel.textContent = `${state.years} ${state.years === 1 ? "year" : "years"}`;
-  if (granularityLabel) granularityLabel.textContent = state.years === 1 ? "Monthly points" : "Yearly points";
-
-  const chartLeft = 38, chartRight = 620, chartTop = 28, chartBottom = 184;
-  const sampleMonths = state.years === 1
-    ? monthlyValues.map(value => value.month)
-    : Array.from({ length: state.years + 1 }, (_, year) => year * 12);
-  const projectionSamples = sampleMonths.map((month, index) => {
-    const value = monthlyValues[month];
-    const x = chartLeft + (index / (sampleMonths.length - 1)) * (chartRight - chartLeft);
-    return {
-      ...value,
-      x,
-      y: 0,
-      label: month === 0 ? "Today" : state.years === 1 ? `Month ${month}` : `Year ${month / 12}`
-    };
-  });
-  if (chart) {
-    chart.projectionSamples = projectionSamples;
-    if (!chart.dataset.projectionInteractive) {
-      chart.dataset.projectionInteractive = "true";
-      chart.addEventListener("pointermove", event => {
-        const bounds = chart.getBoundingClientRect();
-        if (!bounds.width) return;
-        const progress = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
-        updateProjectionInspection(chart, Math.round(progress * (chart.projectionSamples.length - 1)));
-      });
-      chart.addEventListener("pointerleave", () => updateProjectionInspection(chart, chart.projectionSamples.length - 1));
-      chart.querySelector(".projection-hit-area")?.addEventListener("keydown", event => {
-        const hitArea = event.currentTarget;
-        const current = Number(hitArea.getAttribute("aria-valuenow")) || 0;
-        let next = current;
-        if (event.key === "ArrowRight" || event.key === "ArrowUp") next += 1;
-        else if (event.key === "ArrowLeft" || event.key === "ArrowDown") next -= 1;
-        else if (event.key === "Home") next = 0;
-        else if (event.key === "End") next = chart.projectionSamples.length - 1;
-        else return;
-        event.preventDefault();
-        updateProjectionInspection(chart, next);
-      });
-    }
-  }
-  const maxSampleBalance = Math.max(1, ...projectionSamples.map(sample => sample.balance)) * 1.08;
-  projectionSamples.forEach(sample => {
-    sample.y = chartBottom - (sample.balance / maxSampleBalance) * (chartBottom - chartTop);
-  });
-  const points = projectionSamples.map((sample, index) => {
-    return `${index ? "L" : "M"}${sample.x.toFixed(1)} ${sample.y.toFixed(1)}`;
-  }).join(" ");
-  if (linePath) linePath.setAttribute("d", points);
-  if (areaPath) areaPath.setAttribute("d", `${points} L${chartRight} ${chartBottom} L${chartLeft} ${chartBottom} Z`);
-  if (point) {
-    point.setAttribute("cx", String(chartRight));
-    point.setAttribute("cy", projectionSamples[projectionSamples.length - 1].y.toFixed(1));
-  }
-  updateProjectionInspection(chart, projectionSamples.length - 1);
-  if (chart) chart.setAttribute("aria-label", `Projected savings grow from ${formatKsh(startingBalance)} to ${formatKsh(balance)} over ${state.years} ${state.years === 1 ? "year" : "years"}, with an assumed ${state.annualReturn}% annual return${state.inflationAdjusted ? ` and ${state.inflationRate}% inflation, shown in today’s money` : ""}.`);
 }
 
 // Format base KSh values without converting them to the selected display currency.
@@ -1997,6 +1860,7 @@ function renderAccountRows(entries) {
             })()}
           </span>
           <strong class="inventory-account-amount">${formatKsh(entry.amount)}</strong>
+          <button class="inventory-row-edit" type="button" data-edit-entry="${escapeHTML(entry.id)}" aria-label="Edit ${escapeHTML(entry.name)}" title="Edit item">Edit</button>
           <button class="inventory-delete" type="button" data-delete-entry="${escapeHTML(entry.id)}" aria-label="Delete ${escapeHTML(entry.name)}" title="Delete item">×</button>
         </div>`).join("")}
     </div>`;
@@ -2038,22 +1902,24 @@ function renderInventoryPage() {
       </section>
 
       <section class="inventory-columns" aria-label="Assets and liabilities">
-        <article class="panel inventory-list-panel">
+        <article class="panel inventory-list-panel phone-collapsible">
           <div class="panel-heading">
             <div><div class="section-kicker">WHAT YOU OWN</div><h2>Assets</h2></div>
+            <button class="phone-panel-toggle" type="button" aria-expanded="false">Show</button>
             <button class="inventory-add-small" type="button" data-inventory-action="add-asset">＋ Add asset</button>
           </div>
-          <div class="inventory-rows">${renderInventoryRows("asset", assetCategories)}</div>
-          <div class="inventory-panel-total"><span>Total assets</span><strong>${formatKsh(totals.assets)}</strong></div>
+          <div class="phone-collapsible-content"><div class="inventory-rows">${renderInventoryRows("asset", assetCategories)}</div>
+          <div class="inventory-panel-total"><span>Total assets</span><strong>${formatKsh(totals.assets)}</strong></div></div>
         </article>
 
-        <article class="panel inventory-list-panel">
+        <article class="panel inventory-list-panel phone-collapsible">
           <div class="panel-heading">
             <div><div class="section-kicker">WHAT YOU OWE</div><h2>Liabilities</h2></div>
+            <button class="phone-panel-toggle" type="button" aria-expanded="false">Show</button>
             <button class="inventory-add-small" type="button" data-inventory-action="add-liability">＋ Add liability</button>
           </div>
-          <div class="inventory-rows">${renderInventoryRows("liability", liabilityCategories)}</div>
-          <div class="inventory-panel-total"><span>Total liabilities</span><strong>${formatKsh(totals.liabilities)}</strong></div>
+          <div class="phone-collapsible-content"><div class="inventory-rows">${renderInventoryRows("liability", liabilityCategories)}</div>
+          <div class="inventory-panel-total"><span>Total liabilities</span><strong>${formatKsh(totals.liabilities)}</strong></div></div>
         </article>
       </section>
 
@@ -2220,6 +2086,7 @@ function reportMonthLabel() {
 function refreshFinancialPage() {
   if (crumb.textContent === "Dashboard") {
     content.innerHTML = dashboardMarkup;
+    restoreCashflowChartState();
     updateDashboardWelcome();
     updateDashboardInventorySummary();
     updateDashboardPowerUpSummary();
@@ -2233,7 +2100,8 @@ function refreshFinancialPage() {
 }
 
 // Dialog builders collect or edit financial records without leaving the current page.
-function openInventoryDialog(action) {
+function openInventoryDialog(action, editId = null) {
+  const editing = editId ? getInventoryEntries().find(item => item.id === editId) : null;
   const fixedType = action === "add-asset"
     ? "asset"
     : action === "add-liability"
@@ -2261,7 +2129,7 @@ function openInventoryDialog(action) {
       <header class="inventory-dialog-heading">
         <div>
           <span class="section-kicker">YOUR BALANCE SHEET</span>
-          <h2>Add an inventory item</h2>
+          <h2>${editing ? "Edit inventory item" : "Add an inventory item"}</h2>
         </div>
         <button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button>
       </header>
@@ -2314,7 +2182,7 @@ function openInventoryDialog(action) {
       </div>
       <footer class="inventory-dialog-actions">
         <button class="inventory-cancel" type="button">Cancel</button>
-        <button class="inventory-submit" type="submit">Save item</button>
+        <button class="inventory-submit" type="submit">${editing ? "Save changes" : "Save item"}</button>
       </footer>
     </form>`;
 
@@ -2346,10 +2214,34 @@ function openInventoryDialog(action) {
     dialog.querySelector(".asset-fields").hidden = isLiability;
     applyAssetDefaults();
     dialog.querySelector("#inventory-amount-label").textContent = isLiability ? "Current outstanding principal (KSh)" : "Current balance (KSh)";
-    dialog.querySelector("h2").textContent = isLiability ? "Add a liability" : "Add an inventory item";
+    dialog.querySelector("h2").textContent = editing ? "Edit " + (isLiability ? "liability" : "asset") : isLiability ? "Add a liability" : "Add an inventory item";
   }
 
   refreshCategories();
+  if (editing) {
+    form.elements.type.value = editing.type;
+    refreshCategories();
+    form.elements.name.value = editing.name || "";
+    form.elements.category.value = editing.category || "";
+    form.elements.amount.value = editing.amount ?? "";
+    form.elements.mobileType.value = editing.mobileType || "Mobile wallet";
+    form.elements.mobileReference.value = editing.mobileReference || "";
+    form.elements.notes.value = editing.notes || "";
+    if (editing.loan) {
+      form.elements.lenderType.value = editing.loan.lenderType || lenderTypes[0];
+      form.elements.interestRate.value = editing.loan.interestRate ?? "";
+      form.elements.rateType.value = editing.loan.rateType || interestRateTypes[0];
+      form.elements.minInstallment.value = editing.loan.minInstallment ?? "";
+      form.elements.tenureMonths.value = editing.loan.tenureMonths ?? "";
+      form.elements.payoffDate.value = editing.loan.payoffDate || "";
+    }
+    if (editing.returns) {
+      form.elements.grossRate.value = editing.returns.grossRate ?? "";
+      form.elements.taxTreatment.value = editing.returns.taxFree ? "exempt" : "taxable";
+      form.elements.compounding.value = editing.returns.compounding || compoundingFrequencies[0];
+      form.elements.liquidity.value = editing.returns.liquidity || liquidityTiers[0];
+    }
+  }
   typeSelect?.addEventListener("change", refreshCategories);
   categorySelect.addEventListener("change", () => {
     dialog.querySelector(".mobile-money-fields").hidden = categorySelect.value !== "Mobile money";
@@ -2417,8 +2309,8 @@ function openInventoryDialog(action) {
     }
 
     const entries = getInventoryEntries();
-    entries.push({
-      id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    const updatedEntry = {
+      id: editing?.id || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       type: entryType,
       name,
       category: String(formData.get("category")),
@@ -2428,7 +2320,10 @@ function openInventoryDialog(action) {
       notes: String(formData.get("notes") || "").trim(),
       ...(loan ? { loan } : {}),
       ...(returns ? { returns } : {})
-    });
+    };
+    const existingIndex = entries.findIndex(entry => entry.id === updatedEntry.id);
+    if (existingIndex >= 0) entries[existingIndex] = updatedEntry;
+    else entries.push(updatedEntry);
 
     try {
       saveInventoryEntries(entries);
@@ -2440,7 +2335,7 @@ function openInventoryDialog(action) {
     dialog.close();
     dialog.remove();
     content.innerHTML = renderInventoryPage();
-    showToast(`${name} added to your inventory.`);
+    showToast(editing ? `${name} updated.` : `${name} added to your inventory.`);
   });
 
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
@@ -2448,7 +2343,10 @@ function openInventoryDialog(action) {
   dialog.querySelector('input[name="name"]').focus();
 }
 
-function openPowerUpDialog(kind) {
+function openPowerUpDialog(kind, editId = null) {
+  const dataAtOpen = getPowerUpData();
+  const targetList = kind === "income" ? "incomes" : kind === "spending" ? "spending" : "budgets";
+  const editing = editId ? dataAtOpen[targetList].find(item => item.id === editId) : null;
   const isIncome = kind === "income";
   const isSpending = kind === "spending";
   const dialog = document.createElement("dialog");
@@ -2458,7 +2356,7 @@ function openPowerUpDialog(kind) {
       <header class="inventory-dialog-heading">
         <div>
           <span class="section-kicker">${isIncome ? "MONEY COMING IN" : isSpending ? "MONEY SPENT" : "MONTHLY PLAN"}</span>
-          <h2>${isIncome ? "Add an income source" : isSpending ? "Record monthly spending" : "Add a budget line"}</h2>
+          <h2>${editing ? "Edit " + (isIncome ? "income source" : isSpending ? "spending" : "budget line") : isIncome ? "Add an income source" : isSpending ? "Record monthly spending" : "Add a budget line"}</h2>
         </div>
         <button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button>
       </header>
@@ -2486,12 +2384,19 @@ function openPowerUpDialog(kind) {
       </div>
       <footer class="inventory-dialog-actions">
         <button class="inventory-cancel" type="button">Cancel</button>
-        <button class="inventory-submit" type="submit">Save ${isIncome ? "income" : isSpending ? "spending" : "budget"}</button>
+        <button class="inventory-submit" type="submit">${editing ? "Save changes" : "Save " + (isIncome ? "income" : isSpending ? "spending" : "budget")}</button>
       </footer>
     </form>`;
 
   document.body.append(dialog);
   const form = dialog.querySelector(".inventory-form");
+  if (editing) {
+    form.elements.name.value = editing.name || "";
+    if (form.elements.category) form.elements.category.value = editing.category || budgetCategories[0];
+    if (form.elements.month) form.elements.month.value = editing.month || getReportMonth();
+    form.elements.amount.value = editing.amount ?? "";
+    form.elements.notes.value = editing.notes || "";
+  }
   dialog.querySelector(".inventory-dialog-close").addEventListener("click", () => dialog.close());
   dialog.querySelector(".inventory-cancel").addEventListener("click", () => dialog.close());
   dialog.addEventListener("click", event => {
@@ -2506,14 +2411,15 @@ function openPowerUpDialog(kind) {
 
     const data = getPowerUpData();
     const entry = {
-      id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      id: editing?.id || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       name,
       amount,
       notes: String(formData.get("notes") || "").trim()
     };
-    if (isIncome) data.incomes.push(entry);
-    else if (isSpending) data.spending.push({ ...entry, month: String(formData.get("month") || getReportMonth()), category: String(formData.get("category")) });
-    else data.budgets.push({ ...entry, category: String(formData.get("category")) });
+    const savedEntry = isIncome ? entry : isSpending ? { ...entry, month: String(formData.get("month") || getReportMonth()), category: String(formData.get("category")) } : { ...entry, category: String(formData.get("category")) };
+    const entryIndex = data[targetList].findIndex(item => item.id === savedEntry.id);
+    if (entryIndex >= 0) data[targetList][entryIndex] = savedEntry;
+    else data[targetList].push(savedEntry);
 
     try {
       savePowerUpData(data);
@@ -2524,7 +2430,7 @@ function openPowerUpDialog(kind) {
 
     dialog.close();
     refreshFinancialPage();
-    showToast(isSpending ? `${name} recorded as monthly spending.` : `${name} added to your monthly plan.`);
+    showToast(editing ? `${name} updated.` : isSpending ? `${name} recorded as monthly spending.` : `${name} added to your monthly plan.`);
   });
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   dialog.showModal();
@@ -2849,6 +2755,23 @@ function renderAchievementsPage() {
     ${renderAppFooter()}`;
 }
 
+function setCashflowChartCollapsed(collapsed) {
+  const panel = document.querySelector(".cashflow-panel");
+  const chartContent = panel?.querySelector(".cashflow-content");
+  const toggle = panel?.querySelector("[data-cashflow-toggle]");
+  if (!panel || !chartContent || !toggle) return;
+  chartContent.hidden = collapsed;
+  panel.classList.toggle("is-collapsed", collapsed);
+  toggle.setAttribute("aria-expanded", String(!collapsed));
+  toggle.innerHTML = `${collapsed ? "Show" : "Hide"} chart <span aria-hidden="true">${collapsed ? "⌄" : "⌃"}</span>`;
+  try { localStorage.setItem(cashflowChartCollapsedKey, String(collapsed)); } catch { /* Keep the current view when storage is unavailable. */ }
+}
+
+function restoreCashflowChartState() {
+  let collapsed = false;
+  try { collapsed = localStorage.getItem(cashflowChartCollapsedKey) === "true"; } catch { /* Use the expanded default. */ }
+  setCashflowChartCollapsed(collapsed);
+}
 // Select a page, refresh its data, and update the active tab and URL.
 function showPage(page) {
   navItems.forEach(item => {
@@ -2860,6 +2783,7 @@ function showPage(page) {
   if (page === "Dashboard") {
     window.location.hash = "dashboard";
     content.innerHTML = dashboardMarkup;
+    restoreCashflowChartState();
     updateDashboardWelcome();
     updateDashboardInventorySummary();
     updateDashboardPowerUpSummary();
@@ -2936,6 +2860,7 @@ function renderPowerUpPage() {
             ${item.notes ? `<small>${escapeHTML(item.notes)}</small>` : ""}
           </span>
           <strong class="power-row-amount">${formatKsh(item.amount)}<small>/ month</small></strong>
+          <button class="inventory-row-edit" type="button" data-edit-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit income">Edit</button>
           <button class="inventory-delete" type="button" data-delete-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete income">×</button>
         </div>`).join("")
     : `<div class="power-empty">No income sources yet. Add your monthly income to get started.</div>`;
@@ -2948,6 +2873,7 @@ function renderPowerUpPage() {
             <small>${escapeHTML(item.category)}${item.notes ? " · " + escapeHTML(item.notes) : ""}</small>
           </span>
           <strong class="power-row-amount">${formatKsh(item.amount)}<small>/ month</small></strong>
+          <button class="inventory-row-edit" type="button" data-edit-power-item="budget" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit budget line">Edit</button>
           <button class="inventory-delete" type="button" data-delete-power-item="budget" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete budget line">×</button>
         </div>`).join("")
     : `<div class="power-empty">No budget lines yet. Add a monthly plan for your spending.</div>`;
@@ -2960,6 +2886,7 @@ function renderPowerUpPage() {
             <small>${escapeHTML(item.category)} · ${escapeHTML(item.month || monthKey())}${item.notes ? " · " + escapeHTML(item.notes) : ""}</small>
           </span>
           <strong class="power-row-amount">${formatKsh(item.amount)}</strong>
+          <button class="inventory-row-edit" type="button" data-edit-power-item="spending" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit spending item">Edit</button>
           <button class="inventory-delete" type="button" data-delete-power-item="spending" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete spending item">×</button>
         </div>`).join("")
     : `<div class="power-empty">No spending recorded for ${getReportPeriod().toLowerCase()}. Add an expense for ${reportMonthLabel()}.</div>`;
@@ -3008,31 +2935,34 @@ function renderPowerUpPage() {
       ${renderTaxWidget()}
 
       <section class="inventory-columns power-columns" aria-label="Income and monthly budget">
-        <article class="panel power-list-panel">
+        <article class="panel power-list-panel phone-collapsible">
           <div class="panel-heading">
             <div><div class="section-kicker">MONEY COMING IN</div><h2>Income sources</h2></div>
+            <button class="phone-panel-toggle" type="button" aria-expanded="false">Show</button>
             <button class="inventory-add-small" type="button" data-power-action="income">＋ Add income</button>
           </div>
-          <div class="power-rows">${incomeRows}</div>
-          <div class="inventory-panel-total"><span>Total monthly income</span><strong>${formatKsh(totals.income)}</strong></div>
+          <div class="phone-collapsible-content"><div class="power-rows">${incomeRows}</div>
+          <div class="inventory-panel-total"><span>Total monthly income</span><strong>${formatKsh(totals.income)}</strong></div></div>
         </article>
 
-        <article class="panel power-list-panel">
+        <article class="panel power-list-panel phone-collapsible">
           <div class="panel-heading">
             <div><div class="section-kicker">MONEY WITH A JOB</div><h2>Monthly budget</h2></div>
+            <button class="phone-panel-toggle" type="button" aria-expanded="false">Show</button>
             <button class="inventory-add-small" type="button" data-power-action="budget">＋ Add budget</button>
           </div>
-          <div class="power-rows">${budgetRows}</div>
-          <div class="inventory-panel-total"><span>Total planned budget</span><strong>${formatKsh(totals.budget)}</strong></div>
+          <div class="phone-collapsible-content"><div class="power-rows">${budgetRows}</div>
+          <div class="inventory-panel-total"><span>Total planned budget</span><strong>${formatKsh(totals.budget)}</strong></div></div>
         </article>
 
-        <article class="panel power-list-panel">
+        <article class="panel power-list-panel phone-collapsible">
           <div class="panel-heading">
             <div><div class="section-kicker">MONEY SPENT</div><h2>Monthly spending</h2></div>
+            <button class="phone-panel-toggle" type="button" aria-expanded="false">Show</button>
             <button class="inventory-add-small" type="button" data-power-action="spending">＋ Add spending</button>
           </div>
-          <div class="power-rows">${spendingRows}</div>
-          <div class="inventory-panel-total"><span>Total monthly spending</span><strong>${formatKsh(totals.spending)}</strong></div>
+          <div class="phone-collapsible-content"><div class="power-rows">${spendingRows}</div>
+          <div class="inventory-panel-total"><span>Total monthly spending</span><strong>${formatKsh(totals.spending)}</strong></div></div>
         </article>
       </section>
     </section>
@@ -3259,37 +3189,6 @@ function syncTaxPanel(panel, state, source) {
   panel.querySelector(".tax-field-label").textContent = taxFieldLabel(state.mode);
   panel.querySelector(".tax-results").innerHTML = panel.classList.contains("tax-compact") ? renderTaxCompactResults(p) : renderTaxResults(p);
 }
-
-// Recalculate projection values as users adjust savings, returns, or inflation.
-document.addEventListener("input", event => {
-  const projectionInput = event.target.closest?.("[data-projection-input]");
-  if (projectionInput) updateSavingsProjection(projectionInput);
-});
-
-// Handle projection minimize, inflation adjustment, and time-horizon controls.
-document.addEventListener("click", event => {
-  const projectionToggle = event.target.closest?.("[data-projection-toggle]");
-  if (projectionToggle) {
-    const state = getSavingsProjectionState();
-    updateSavingsProjection(null, null, { minimized: !state.minimized });
-    return;
-  }
-  const inflationToggle = event.target.closest?.("[data-projection-inflation-toggle]");
-  if (inflationToggle) {
-    const state = getSavingsProjectionState();
-    updateSavingsProjection(null, null, { inflationAdjusted: !state.inflationAdjusted });
-    return;
-  }
-  const horizonButton = event.target.closest?.("[data-projection-years]");
-  if (!horizonButton) return;
-  const panel = horizonButton.closest(".projection-panel");
-  if (!panel) return;
-  panel.querySelectorAll("[data-projection-years]").forEach(button => {
-    const selected = button === horizonButton;
-    button.setAttribute("aria-pressed", String(selected));
-  });
-  updateSavingsProjection(null, Number(horizonButton.dataset.projectionYears));
-});
 
 // Keep the expanded and compact tax widgets synced while a user edits an input.
 document.addEventListener("input", event => {
@@ -5175,6 +5074,20 @@ document.addEventListener("submit", async event => {
 // Route clicks for app actions, dialog controls, profile menus, and theme/privacy toggles.
 document.addEventListener("click", event => {
   const target = event.target;
+  const insight = target.closest?.("[data-cashflow-status]");
+  const insightToggle = target.closest?.("[data-cashflow-insight-toggle]");
+  document.querySelectorAll(".cashflow-status.is-open").forEach(openInsight => {
+    if (openInsight !== insight) {
+      openInsight.classList.remove("is-open");
+      openInsight.querySelector("[data-cashflow-insight-toggle]")?.setAttribute("aria-expanded", "false");
+    }
+  });
+  if (insightToggle && insight) {
+    const isOpen = insight.classList.toggle("is-open");
+    insightToggle.setAttribute("aria-expanded", String(isOpen));
+    return;
+  }
+  if (insight) return;
   const homeLink = target.closest("[data-home-link]");
   if (homeLink) {
     event.preventDefault();
@@ -5306,6 +5219,12 @@ document.addEventListener("click", event => {
     openMenu(button, choices);
     return;
   }
+  if (button.matches("[data-cashflow-toggle]")) {
+    const panel = button.closest(".cashflow-panel");
+    const chartContent = panel?.querySelector(".cashflow-content");
+    if (chartContent) setCashflowChartCollapsed(!chartContent.hidden);
+    return;
+  }
   if (button.matches(".more-button")) {
     openMenu(button, [
       { label: "View details", action: "details" },
@@ -5332,6 +5251,23 @@ document.addEventListener("click", event => {
   }
   if (button.matches("[data-power-action]")) {
     openPowerUpDialog(button.dataset.powerAction);
+    return;
+  }
+  if (button.matches("[data-edit-power-item]")) {
+    openPowerUpDialog(button.dataset.editPowerItem, button.dataset.itemId);
+    return;
+  }
+  if (button.matches("[data-edit-entry]")) {
+    const entry = getInventoryEntries().find(item => item.id === button.dataset.editEntry);
+    if (entry) openInventoryDialog(entry.type === "asset" ? "add-asset" : "add-liability", entry.id);
+    return;
+  }
+  if (button.matches(".phone-panel-toggle")) {
+    const panel = button.closest(".phone-collapsible");
+    const expanded = panel.classList.toggle("phone-expanded");
+    button.setAttribute("aria-expanded", String(expanded));
+    button.setAttribute("aria-label", expanded ? "Collapse section details" : "Expand section details");
+    button.textContent = expanded ? "Hide" : "Show";
     return;
   }
   if (button.matches("[data-delete-power-item]")) {
@@ -5441,7 +5377,26 @@ document.addEventListener("keydown", event => {
   if (event.key === "Escape") closePopover();
 });
 
+document.addEventListener("click", event => {
+  const toggle = event.target.closest?.("[data-card-collapse-toggle]");
+  if (toggle && content.contains(toggle)) {
+    const card = toggle.closest("[data-card-collapsible]");
+    if (card) toggleInformationCard(card, toggle.getAttribute("aria-expanded") !== "true");
+    return;
+  }
+  const heading = event.target.closest?.("[data-card-collapse-heading], .panel-heading, .metric-heading");
+  if (!heading || !content.contains(heading) || event.target.closest("button, a, input, select, textarea, [contenteditable='true']")) return;
+  const card = heading.parentElement;
+  if (card?.dataset.cardCollapsible === "true") {
+    const toggleButton = card.querySelector("[data-card-collapse-toggle]");
+    toggleInformationCard(card, toggleButton?.getAttribute("aria-expanded") !== "true");
+  }
+});
+
 // Initialize preferences and summaries before restoring any local session.
+enhanceInformationCards(content);
+const informationCardObserver = new MutationObserver(() => enhanceInformationCards(content));
+informationCardObserver.observe(content, { childList: true, subtree: true });
 updateDateSwitcher();
 initializePrivacyMode();
 const copyrightYear = document.querySelector("#footer-copyright-year");
@@ -5452,7 +5407,6 @@ updateDashboardPowerUpSummary();
 updateDashboardQuests();
 updateCurrencySwitcher();
 applyStoredSettings();
-updateSavingsProjection();
 let hasLocalSession = false;
 try {
   hasLocalSession = localStorage.getItem(sessionStorageKey) === "active" && Boolean(getStoredProfile());
@@ -5480,6 +5434,8 @@ if (hasLocalSession && !["terms", "privacy"].includes(initialPage)) {
 } else {
   showPublicPage("landing");
 }
+
+if (!appShell.hidden) restoreCashflowChartState();
 
 // The app uses required browser storage, but currently sets no cookies or analytics.
 const cookieConsentStorageKey = "netraos-cookie-consent-v1";

@@ -302,10 +302,14 @@
                     Cash flow
                   </h2>
                 </div>
-                <button class="more-button" aria-label="More options" aria-haspopup="menu" aria-expanded="false">
-                  •••
-                </button>
+                <div class="cashflow-heading-actions">
+                  <button class="chart-collapse-toggle" type="button" data-cashflow-toggle aria-expanded="true" aria-controls="cashflow-content">Hide chart <span aria-hidden="true">⌃</span></button>
+                  <button class="more-button" aria-label="More options" aria-haspopup="menu" aria-expanded="false">
+                    •••
+                  </button>
+                </div>
               </div>
+              <div id="cashflow-content" class="cashflow-content">
               <div class="chart-legend">
                 <span><i class="legend-income"></i>Income</span>
                 <span><i class="legend-expense"></i>Expenses</span>
@@ -373,6 +377,7 @@
                   </div>
                 </div>
               </div>
+              </div>
             </article>
             <article class="panel allocation-panel">
               <div class="panel-heading">
@@ -425,93 +430,6 @@
                 </div>
               </div>
             </article>
-          </section>
-          <!-- Interactive what-if savings simulator with contribution, return, inflation, and duration controls. -->
-          <section class="panel projection-panel" aria-labelledby="projection-title">
-            <div class="projection-heading">
-              <div>
-                <div class="section-kicker">A LOOK AHEAD</div>
-                <h2 id="projection-title">What if you saved more?</h2>
-                <p>See how extra savings on top of your monthly plan could grow over time.</p>
-              </div>
-              <div class="projection-heading-actions">
-                <span class="projection-tag">MINI SIMULATOR</span>
-                <button class="projection-collapse-button" type="button" data-projection-toggle aria-expanded="true" aria-controls="projection-body" aria-label="Minimize projections">
-                  <span data-projection-toggle-label>Minimize</span><span class="projection-collapse-icon" aria-hidden="true">−</span>
-                </button>
-              </div>
-            </div>
-            <div class="projection-body" id="projection-body" data-projection-body>
-              <div class="projection-layout">
-              <div class="projection-controls">
-                <label class="projection-control" for="projection-contribution">
-                  <span>Extra monthly savings</span>
-                  <output id="projection-contribution-value" for="projection-contribution">KSh 5,000</output>
-                </label>
-                <input class="projection-range" id="projection-contribution" data-projection-input="contribution" type="range" min="0" max="50000" step="5000" value="5000" aria-label="Extra monthly savings amount" />
-                <div class="projection-range-ends"><span data-projection-min>KSh 0</span><span data-projection-max>KSh 50,000</span></div>
-                <div class="projection-savings-baseline"><span>Planned savings <strong id="projection-planned-savings-value">KSh 0</strong></span><span>Total per month <strong id="projection-monthly-total-value">KSh 5,000</strong></span></div>
-
-                <label class="projection-control projection-return-control" for="projection-return">
-                  <span>Assumed annual return</span>
-                  <output id="projection-return-value" for="projection-return">5%</output>
-                </label>
-                <input class="projection-range projection-return-range" id="projection-return" data-projection-input="returnRate" type="range" min="0" max="12" step="1" value="5" aria-label="Assumed annual return percentage" />
-                <div class="projection-range-ends"><span>0%</span><span>12%</span></div>
-
-                <div class="projection-inflation-row">
-                  <span>Adjust for inflation</span>
-                  <button class="projection-switch" type="button" role="switch" data-projection-inflation-toggle aria-checked="false" aria-label="Adjust projection for inflation">
-                    <span aria-hidden="true"></span>
-                  </button>
-                </div>
-                <div class="projection-inflation-control" data-projection-inflation-control hidden>
-                  <label class="projection-control" for="projection-inflation">
-                    <span>Assumed annual inflation</span>
-                    <output id="projection-inflation-value" for="projection-inflation">5%</output>
-                  </label>
-                  <input class="projection-range projection-inflation-range" id="projection-inflation" data-projection-input="inflationRate" type="range" min="0" max="15" step="0.5" value="5" aria-label="Assumed annual inflation percentage" />
-                  <div class="projection-range-ends"><span>0%</span><span>15%</span></div>
-                </div>
-
-                <div class="projection-control projection-horizon-label"><span>Project for</span></div>
-                <div class="projection-horizons" role="group" aria-label="Projection time period">
-                  <button type="button" data-projection-years="1" aria-pressed="false">1 year</button>
-                  <button type="button" data-projection-years="3" aria-pressed="true">3 years</button>
-                  <button type="button" data-projection-years="5" aria-pressed="false">5 years</button>
-                </div>
-                <div class="projection-start">Starting balance from active quests <strong id="projection-start-value">KSh 0</strong></div>
-              </div>
-              <div class="projection-chart-column">
-                <div class="projection-results">
-                  <div><span id="projection-balance-label">PROJECTED BALANCE</span><strong id="projection-balance" aria-live="polite">KSh 0</strong></div>
-                  <div><span>GROWTH FROM RETURNS</span><strong id="projection-growth">KSh 0</strong></div>
-                </div>
-                <svg class="projection-chart" viewBox="0 0 640 220" role="group" aria-label="Interactive savings projection chart">
-                  <defs>
-                    <linearGradient id="projection-fill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0" stop-color="#13875f" stop-opacity=".22"/>
-                      <stop offset="1" stop-color="#13875f" stop-opacity="0"/>
-                    </linearGradient>
-                  </defs>
-                  <path class="projection-gridline" d="M38 28H620 M38 80H620 M38 132H620 M38 184H620"/>
-                  <path id="projection-area" class="projection-area" d=""/>
-                  <path id="projection-line" class="projection-line" d=""/>
-                  <line id="projection-cursor-line" class="projection-cursor-line" x1="620" y1="28" x2="620" y2="184"/>
-                  <circle id="projection-cursor-point" class="projection-cursor-point" cx="620" cy="184" r="6"/>
-                  <circle id="projection-point" class="projection-point" cx="38" cy="184" r="5"/>
-                  <rect class="projection-hit-area" x="38" y="20" width="582" height="172" tabindex="0" role="slider" aria-label="Explore projection timeline" aria-valuemin="0" aria-valuemax="36" aria-valuenow="36" aria-valuetext="Year 3"/>
-                </svg>
-                <div class="projection-insight" data-projection-insight aria-live="polite">
-                  <span data-projection-insight-period>Year 3</span>
-                  <span>Balance <strong data-projection-insight-balance>KSh 0</strong></span>
-                  <span>Principal <strong data-projection-insight-contributions>KSh 0</strong></span>
-                  <span>Growth <strong data-projection-insight-growth>KSh 0</strong></span>
-                </div>
-                <div class="projection-axis-labels"><span>Now</span><span id="projection-granularity">Yearly points</span><span id="projection-end-label">3 years</span></div>
-              </div>
-              <p class="projection-note">Illustration only. Assumes steady annual return and inflation rates compounded monthly; actual results vary.</p>
-            </div>
           </section>
           <!-- Current quest progress and recent financial activity. -->
           <section class="bottom-grid">
