@@ -2287,7 +2287,7 @@ h1 em {
   min-height: 30px;
   margin: 0 0 16px;
   color: #79837d;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -3722,8 +3722,19 @@ body.auth-view {
   border-radius: 8px;
   background: #fff6f4;
   color: #a74d45;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
+}
+
+.auth-error.success {
+  border-color: #cce5d4;
+  background: #f1faf4;
+  color: #276544;
+}
+body.theme-dark #public-shell .auth-error.success {
+  border-color: #345b43;
+  background: #19271e;
+  color: #b0e0bf;
 }
 
 .auth-switch {
@@ -7278,6 +7289,10 @@ body.theme-dark .security-lock-error { color: #ffb7a7 !important; }
 body.theme-dark .settings-import-drop { border-color: #4b5b50; background: #202a24; color: #e2eae4; }
 body.theme-dark .settings-import-drop span { color: #aab6ad; }
 body.theme-dark .settings-import-drop:hover { border-color: #69bd91; background: #26372c; }
+.auth-reset-password { display: block; justify-self: end; margin: -6px 0 0; padding: 4px 0; border: 0; background: transparent; color: #14734f; font: 600 12px var(--sans); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.auth-reset-password:hover { text-decoration-thickness: 2px; }
+.auth-reset-password:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 3px; }
+body.theme-dark #public-shell .auth-reset-password { color: #92d4ad; }
 
 /* ==========================================================================
    Dark-mode fixes

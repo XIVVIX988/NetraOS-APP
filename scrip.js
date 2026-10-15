@@ -187,7 +187,7 @@ window.addEventListener("beforeinstallprompt", event => {
 // FAQ knowledge base shown on the landing page. Answers describe what this version actually does.
 const faqCategories = [
   { id: "security", label: "System & Security", items: [
-    { q: "Where is my financial data stored? Is NetraOS safe?", a: "NetraOS is <b>Private by Design</b>. Your income, balances, plans and goals are stored in your own browser's local storage on this device. This version does not send your financial records to a central server, so there is no cloud copy to leak. The trade-off is that clearing site data or switching browsers removes your vault, so keep a backup.", action: { label: "Open Settings", target: "Settings" } },
+    { q: "Where is my financial data stored? Is NetraOS safe?", a: "NetraOS keeps a working copy in this browser and syncs your account data to Supabase when you are signed in and online. Database row-level security restricts account records to their owner. Keep a separate backup and protect access to your email and device.", action: { label: "Open Settings", target: "Settings" } },
     { q: "Does NetraOS link directly to my bank account or M-Pesa?", a: "No. You enter or update balances and income yourself. NetraOS never asks for online-banking passwords, API keys or M-Pesa credentials, so your real accounts stay isolated from it." },
     { q: "What is the Privacy Shield, and how do I use it?", a: "The Privacy Shield is a toggle for viewing your numbers in public. Click the eye icon in the top bar, or press <kbd>Shift</kbd> + <kbd>S</kbd>, and every currency figure is masked until you switch it off again. You can change the shortcut to <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>, or turn it off, in Settings.", action: { label: "Open Settings", target: "Settings" } }
   ]},
@@ -206,7 +206,7 @@ const faqCategories = [
   ]},
   { id: "data", label: "Backup & Maintenance", items: [
     { q: "How do I transfer my NetraOS data to a new laptop or phone?", a: "Open Settings and choose <b>Download all data (JSON)</b> and save the file. On the new device open NetraOS, go to Settings and use <b>Restore a JSON backup</b> to bring everything back. A CSV export is available too, and a monthly backup reminder can be switched on.", action: { label: "Open Settings", target: "Settings" } },
-    { q: "How do I completely wipe my data from the app?", a: "In Settings use the red <b>Factory reset · Clear all NetraOS data</b> button. After two confirmation prompts NetraOS removes its profiles, records, plans, goals and settings from this browser. It cannot be undone, so download a backup first.", action: { label: "Open Settings", target: "Settings" } }
+    { q: "How do I completely wipe my data from the app?", a: "In Settings use <b>Factory reset · Clear all NetraOS data</b>. Confirm your account password and the deletion prompt. This removes synced NetraOS records and the local device copy, but leaves your Supabase sign-in identity. Download a backup first; deletion cannot be undone.", action: { label: "Open Settings", target: "Settings" } }
   ]}
 ];
 
@@ -636,7 +636,7 @@ function applyStoredSettings() {
 function getSecurityAuditLog() {
   try {
     const entries = JSON.parse(localStorage.getItem(securityAuditStorageKey) || "[]");
-    return Array.isArray(entries) ? entries.filter(item => item && typeof item === "object" && typeof item.action === "string" && Number.isFinite(Date.parse(item.at))) : [];
+    return Array.isArray(entries) ? entries.filter(item => item && typeof item === "object" && typeof item.id === "string" && typeof item.name === "string" && ["asset", "liability"].includes(item.type)) : [];
   } catch {
     return [];
   }
@@ -920,15 +920,15 @@ function renderLegalPage(page) {
   const content = isTerms ? `
     <h2>Using NetraOS</h2><p>NetraOS is a personal finance organization tool. It is not a bank, lender, tax agent, investment adviser, or provider of financial, legal, or tax advice. You are responsible for decisions made using the app.</p>
     <h2>Estimates and financial information</h2><p>Calculators and projections are estimates for planning only. Tax, PAYE, NSSF, SHIF and other statutory figures may change and may not reflect your circumstances. Verify current requirements with the relevant official authority or a qualified professional before acting.</p>
-    <h2>Your records and device</h2><p>You retain ownership of the financial information you enter. In this version, records are stored in this browser on this device. Keep your own backups and protect access to your device and browser profile. Clearing browser data can permanently remove these records.</p>
+    <h2>Your records and account</h2><p>You retain ownership of the financial information you enter. NetraOS keeps a browser copy for local-first use and syncs account records with Supabase when you are signed in and online. Supabase stores the account database in the project region selected by its owner. Keep backups and protect access to your email and devices.</p>
     <h2>Acceptable use</h2><p>Do not use the app to disrupt or compromise it, automate scraping, reverse engineer it, or access another person's data without permission.</p>
-    <h2>Availability</h2><p>This preview is provided as-is and may change. No financial data is synced to a NetraOS account server in this version.</p>` : `
-    <h2>Information stored</h2><p>NetraOS currently saves your profile, financial entries, preferences, and a limited local security activity log in browser storage on this device. This version does not set cookies, use an account server, sync to the cloud, or collect telemetry.</p>
+    <h2>Availability</h2><p>This app is provided as-is and may change. Account sign-in and sync depend on the connected Supabase project and an internet connection. Local copies remain available on devices where you have already signed in.</p>` : `
+    <h2>Information stored</h2><p>NetraOS stores your profile, financial records, preferences, consent choices, and limited security activity in the browser and in your Supabase account. Authentication passwords and sessions are managed by Supabase Auth. The app does not currently collect performance telemetry. Browser copies are used for local-first operation; clearing browser data removes that device copy, while account data remains until deleted from the account.</p>
     <h2>Storage and security limits</h2><p>Browser storage is not encrypted by this app. A person with access to this browser profile may be able to read its contents. The optional PIN locks the visible workspace only; it does not encrypt records. HTTPS and security headers depend on the website host and are not configured by this app's source.</p>
-    <h2>Sharing and third parties</h2><p>NetraOS does not sell or rent your financial records, use ad networks for them, or send them to a NetraOS server. This version collects no error reports or analytics. If you choose to open email, telephone, or WhatsApp links, those services handle the information you share with them. Google Fonts may be loaded by the page and can receive a request from your browser.</p>
-    <h2>Your choices</h2><p>You can review, export, correct, or clear the information held in this browser using the app's profile, download, and storage controls. Clearing app data removes the local profile and financial records from this browser. This does not erase exported copies or information held by third-party services.</p>
+    <h2>Sharing and third parties</h2><p>NetraOS does not sell or rent your financial records or use ad networks for them. When signed in and online, records are sent to the Supabase project connected to this app for account storage and synchronization. Supabase processes that data under the project owner's configuration and selected region. This version collects no performance telemetry. If you open email, telephone, or WhatsApp links, those services handle information you share with them. Google Fonts may be loaded by the page and can receive a request from your browser.</p>
+    <h2>Your choices</h2><p>You can review and export your records in Settings, correct profile and financial details, or use Factory reset to delete the synced NetraOS database records and clear this device's app data. Factory reset does not delete the Supabase Auth identity. Clearing browser site data removes only the local device copy, not account records or exported backups.</p>
     <h2>Contact</h2><p>For privacy questions, contact <a href="mailto:support@netraos.io">support@netraos.io</a>.</p>`;
-  return `<main class="legal-page"><header class="public-header"><a class="public-brand" href="#home" data-public-action="landing" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a><button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button></header><article class="legal-card"><div class="section-kicker">NETRAOS · ${isTerms ? "TERMS" : "PRIVACY"}</div><h1>${title}.</h1><p class="legal-updated">Last updated October 10, 2026</p>${content}<a class="public-primary legal-back" href="#signup" data-public-action="signup">Continue to signup <span>↗</span></a></article><footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><a href="#privacy" data-public-action="privacy">Privacy</a>${renderSocialLinks("footer-social-links public-social-links")}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer></main>`;
+  return `<main class="legal-page"><header class="public-header"><a class="public-brand" href="#home" data-public-action="landing" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a><button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button></header><article class="legal-card"><div class="section-kicker">NETRAOS · ${isTerms ? "TERMS" : "PRIVACY"}</div><h1>${title}.</h1><p class="legal-updated">Last updated October 15, 2026</p>${content}<a class="public-primary legal-back" href="#signup" data-public-action="signup">Continue to signup <span>↗</span></a></article><footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><a href="#privacy" data-public-action="privacy">Privacy</a>${renderSocialLinks("footer-social-links public-social-links")}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer></main>`;
 }
 
 const phoneIntroStorageKey = "netraos-phone-intro-seen-v1";
@@ -960,7 +960,7 @@ function showPhoneWelcome() {
   document.body.classList.remove("public-view");
   document.body.classList.add("auth-view", "phone-entry-view");
   window.location.hash = "welcome";
-  publicShell.innerHTML = '<main class="phone-entry phone-entry-welcome">' + renderFluidArt() + '<section class="phone-welcome-copy"><span class="phone-entry-kicker">YOUR FINANCIAL OPERATING SYSTEM</span><h1>See your money<br><em>with more clarity.</em></h1><p>Bring your balances, monthly plan, and goals together in one private workspace on this device.</p></section><div class="phone-entry-actions"><button class="public-primary" type="button" data-public-action="signup">Create an account</button><button class="phone-entry-secondary" type="button" data-public-action="login">Sign in</button><button class="phone-entry-tour" type="button" data-phone-replay-intro>Take a quick tour</button></div><p class="phone-entry-note">Your records stay in this browser. Download a backup any time.</p></main>';
+  publicShell.innerHTML = '<main class="phone-entry phone-entry-welcome">' + renderFluidArt() + '<section class="phone-welcome-copy"><span class="phone-entry-kicker">YOUR FINANCIAL OPERATING SYSTEM</span><h1>See your money<br><em>with more clarity.</em></h1><p>Bring your balances, monthly plan, and goals together in one private workspace.</p></section><div class="phone-entry-actions"><button class="public-primary" type="button" data-public-action="signup">Create an account</button><button class="phone-entry-secondary" type="button" data-public-action="login">Sign in</button><button class="phone-entry-tour" type="button" data-phone-replay-intro>Take a quick tour</button></div><p class="phone-entry-note">Your account syncs when you’re online. Download a backup any time.</p></main>';
   publicShell.querySelector("[data-phone-replay-intro]")?.addEventListener("click", showPhoneIntro);
 }
 
@@ -1116,7 +1116,7 @@ function showPublicPage(page = "landing") {
               <h1>See your money<br>with <em>new clarity.</em></h1>
               <p>NetraOS turns scattered balances and plans into one clear picture—so your next financial move feels easier to make.</p>
               <div class="landing-actions"><button class="public-primary" type="button" data-public-action="signup">Get started <span>↗</span></button><a class="landing-text-link" href="#features">Explore the system <span>↓</span></a></div>
-              <div class="landing-assurance landing-assurance-v2"><span>✳</span><div><strong>Private by design</strong><small>Your preview data stays in this browser.</small></div></div>
+              <div class="landing-assurance landing-assurance-v2"><span>✳</span><div><strong>Private by design</strong><small>Your data is protected by account-level database access rules.</small></div></div>
             </div>
             <div class="landing-visual" aria-label="Illustrative NetraOS dashboard preview">
               <div class="landing-orbit orbit-one"></div><div class="landing-orbit orbit-two"></div>
@@ -1166,22 +1166,49 @@ function showPublicPage(page = "landing") {
           <div class="auth-content">
           <div class="section-kicker">${isSignup ? "START WITH A CLEAR PICTURE" : "WELCOME BACK"}</div>
           <h1>${isSignup ? "Create your account." : "Log in to NetraOS."}</h1>
-          <p class="auth-description">${isSignup ? "Set up your local profile and start organizing your finances." : "Continue to your financial command center."}</p>
+          <p class="auth-description">${isSignup ? "Create your account and start organizing your finances." : "Continue to your financial command center."}</p>
           <form class="auth-form" data-auth-form="${isSignup ? "signup" : "login"}" novalidate>
             ${isSignup ? `<label class="inventory-form-field"><span>Full name</span><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your full name" required></label>` : ""}
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
             <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" minlength="8" placeholder="At least 8 characters" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>` : ""}
-            <div class="auth-error" role="alert" hidden></div>
-            <button class="public-primary auth-submit" type="submit">${isSignup ? "Create local profile" : "Log in"}${isSignup ? "" : " <span>↗</span>"}</button>
+            ${isSignup ? "" : '<button class="auth-reset-password" type="button" data-password-reset>Forgot your password?</button>'}
+            <div class="auth-error" role="status" aria-live="polite" hidden></div>
+            <button class="public-primary auth-submit" type="submit">${isSignup ? "Create account" : "Log in"}${isSignup ? "" : " <span>↗</span>"}</button>
           </form>
-          <p class="auth-switch">${isSignup ? "Already have a local profile?" : "New to NetraOS?"} <button type="button" data-public-action="${isSignup ? "login" : "signup"}">${isSignup ? "Log in" : "Create an account"}</button></p>
-          <p class="auth-preview-note">This local profile is stored in this browser. Login uses a password verifier and an email code; connect the email verification service before using login codes outside local preview.</p>
+          <p class="auth-switch">${isSignup ? "Already have an account?" : "New to NetraOS?"} <button type="button" data-public-action="${isSignup ? "login" : "signup"}">${isSignup ? "Log in" : "Create an account"}</button></p>
+          <p class="auth-preview-note">Your email and password protect sign-in. Confirmation and password-reset links arrive by email, and records sync when you’re online. An extra sign-in code isn’t part of this version.</p>
           </div>
         </section>
       </div>`;
   }
   applyStoredSettings();
+}
+
+function showPasswordResetForm() {
+  if (document.querySelector("dialog[data-password-reset-dialog]")) return;
+  const dialog = document.createElement("dialog");
+  dialog.className = "inventory-dialog";
+  dialog.dataset.passwordResetDialog = "";
+  dialog.innerHTML = `<form class="inventory-form" novalidate><header class="inventory-dialog-heading"><div><span class="section-kicker">ACCOUNT SECURITY</span><h2>Choose a new password</h2></div></header><div class="inventory-form-fields"><p class="reset-copy">Your reset link is verified. A new password with at least 8 characters is needed.</p><label class="inventory-form-field"><span>New password</span><input name="password" type="password" minlength="8" autocomplete="new-password" required></label><p class="reset-status" role="status" aria-live="polite"></p></div><footer class="inventory-dialog-actions"><button class="inventory-submit" type="submit">Save password</button></footer></form>`;
+  document.body.append(dialog);
+  const form = dialog.querySelector("form");
+  const status = dialog.querySelector(".reset-status");
+  dialog.addEventListener("cancel", event => event.preventDefault());
+  dialog.addEventListener("submit", async event => {
+    event.preventDefault();
+    const password = String(form.elements.password.value || "");
+    if (password.length < 8) { status.textContent = "A password with at least 8 characters is needed."; status.classList.add("error"); return; }
+    const result = await window.NetraSupabase.updatePassword(password);
+    if (result.error) { status.textContent = friendlyAuthMessage(result.error, "We couldn’t update your password just now. Please try again."); status.classList.add("error"); return; }
+    await window.NetraSupabase.signOut();
+    dialog.close();
+    showPublicPage("login");
+    showToast("Your password has been updated. You can sign in with it now.");
+  });
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.showModal();
+  form.elements.password.focus();
 }
 
 // Build profile and settings screens from the current browser-local preferences.
@@ -1205,10 +1232,10 @@ function renderProfilePage() {
           <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" maxlength="120" value="${escapeHTML(profile.email || "")}" required></label>
           <label class="inventory-form-field"><span>Sex <small>Optional</small></span><select name="sex"><option value="">Prefer not to say</option><option value="female" ${profile.sex === "female" ? "selected" : ""}>Female</option><option value="male" ${profile.sex === "male" ? "selected" : ""}>Male</option><option value="intersex" ${profile.sex === "intersex" ? "selected" : ""}>Intersex</option><option value="other" ${profile.sex === "other" ? "selected" : ""}>Other</option></select></label>
           <label class="inventory-form-field"><span>Date of birth <small>Optional</small></span><input name="dateOfBirth" type="date" max="${maxDate}" value="${escapeHTML(profile.dateOfBirth || "")}"></label>
-          <div class="account-form-actions"><span>Saved in this browser</span><button class="inventory-submit" type="submit">Save changes</button></div>
+          <div class="account-form-actions settings-actions"><span>Saved on this device; syncs when online</span><button class="inventory-submit" type="submit">Save changes</button></div>
         </form>
       </section>
-      <section class="account-notice"><span>i</span><p>This is a local profile for the app preview. NetraOS currently has no account server or cloud sync.</p></section>
+      <section class="account-notice"><span>i</span><p>Your profile is synced to your Supabase account when you’re online. The app also keeps a working copy in this browser.</p></section>
     </section>
     ${renderAppFooter()}`;
 }
@@ -1226,7 +1253,7 @@ function renderSettingsPage() {
   try { privacyEnabled = localStorage.getItem(privacyModeStorageKey) === "true"; } catch { /* Use the visible default when storage is unavailable. */ }
   return `
     <section class="account-page">
-      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> APP PREFERENCES</div><h1>Make it yours.</h1><p class="welcome-sub">Choose how NetraOS behaves in this browser.</p></div></header>
+      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> APP PREFERENCES</div><h1>Make it yours.</h1><p class="welcome-sub">Choose how NetraOS behaves across your signed-in devices.</p></div></header>
       <form class="settings-form" data-account-form="settings">
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">GENERAL &amp; LOCALIZATION</div><h2>Regional preferences</h2></div></div>
           <label class="settings-field"><span><strong>Default display currency</strong><small>Set a manual KSh exchange rate before selecting another currency.</small></span>${settingsDropdown("displayCurrency", currencyState.active, `${displayCurrencies[currencyState.active].symbol} · ${displayCurrencies[currencyState.active].name}`, "Choose display currency")}</label>
@@ -1242,7 +1269,7 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Monthly plan</strong><small>Saved as a preference; this preview does not send notifications.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
         </section>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">PRIVACY &amp; SECURITY</div><h2>Session protection</h2></div></div>
-          <p class="settings-disclosure">Financial records are stored in this browser and are not encrypted by the app. A PIN can lock the visible workspace after inactivity; it does not encrypt stored data. HTTPS and security headers are controlled by the hosting platform.</p>
+          <p class="settings-disclosure">NetraOS keeps a browser copy and syncs your account records to Supabase when online. The inactivity PIN is a device-side convenience and does not encrypt stored data. HTTPS and security headers are controlled by the hosting platform.</p>
           <label class="settings-field"><span><strong>Privacy Shield</strong><small>Mask currency amounts in the app header or with the shortcut.</small></span><input name="privacyShield" type="checkbox" ${privacyEnabled ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Privacy Shield shortcut</strong><small>Keyboard shortcut to toggle amount masking.</small></span><select name="privacyShortcut"><option value="Shift+S" ${settings.privacyShortcut === "Shift+S" ? "selected" : ""}>Shift + S</option><option value="Alt+Shift+S" ${settings.privacyShortcut === "Alt+Shift+S" ? "selected" : ""}>Alt + Shift + S</option><option value="Off" ${settings.privacyShortcut === "Off" ? "selected" : ""}>Off</option></select></label>
           <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a local four-digit PIN.</small></span><select name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Never</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
@@ -1263,7 +1290,7 @@ function renderSettingsPage() {
           <div class="settings-pin-fields"><label class="inventory-form-field"><span>Personal relief per month (KSh)</span><input name="personalRelief" type="number" min="0" step="100" value="${settings.personalRelief}"></label><label class="inventory-form-field"><span>Insurance relief per month (KSh)</span><input name="insuranceRelief" type="number" min="0" step="100" value="${settings.insuranceRelief}"></label><label class="inventory-form-field"><span>Other tax relief per month (KSh)</span><input name="customRelief" type="number" min="0" step="100" value="${settings.customRelief}"></label></div>
         </section>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">STORAGE &amp; PRIVACY</div><h2>Your browser data</h2></div></div>
-          <p class="settings-disclosure">Essential browser storage keeps your profile, financial records, and settings on this device. This app currently sets no cookies. Optional performance telemetry is not collected; this preference is saved for future use only.</p>
+          <p class="settings-disclosure">Browser storage keeps a working copy and Supabase Auth keeps your sign-in session. Account data syncs to the connected Supabase project when online. This app currently sets no analytics cookies and collects no performance telemetry.</p>
           <label class="settings-field"><span><strong>Allow optional performance telemetry</strong><small>No telemetry is currently collected by this version.</small></span><input name="performanceTelemetryConsent" type="checkbox" ${settings.performanceTelemetryConsent ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Monthly backup reminder</strong><small>Remind you in this browser to download a local backup.</small></span><input name="monthlyBackupPrompt" type="checkbox" ${settings.monthlyBackupPrompt ? "checked" : ""}></label>
           <div class="settings-inline-actions"><button class="secondary-button" type="button" data-cookie-manage>Manage cookie preferences</button><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button></div>
@@ -1278,7 +1305,7 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Quest completion sounds</strong><small>Play a short sound when a quest is completed.</small></span><input name="questSounds" type="checkbox" ${settings.questSounds ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Quest completion animations</strong><small>Show the milestone celebration animation.</small></span><input name="questAnimations" type="checkbox" ${settings.questAnimations ? "checked" : ""}></label>
         </section>
-        <div class="settings-actions"><span>Preferences save to this browser.</span><button class="inventory-submit" type="submit">Save changes</button></div>
+        <div class="settings-actions"><span>Saved on this device; syncs when online.</span><button class="inventory-submit" type="submit">Save changes</button></div>
       </form>
     </section>
     ${renderAppFooter()}`;
@@ -1336,10 +1363,10 @@ function showShortcutPrompt() {
         <button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button>
       </header>
       <p class="shortcut-install-copy">${canInstall
-        ? "Install NetraOS for quick access from your home screen or apps list. Your data stays in this browser."
+        ? "Install NetraOS for quick access from your home screen or apps list. Your browser keeps a working copy and syncs account data when online."
         : isPhone
-          ? "For quicker access, open your browser menu and choose “Add to Home Screen” or “Install app”. Your data stays in this browser."
-          : "For quicker access, open your browser menu and choose “Install NetraOS” or “Create shortcut”. Your data stays in this browser."}</p>
+          ? "For quicker access, open your browser menu and choose “Add to Home Screen” or “Install app”. Your browser keeps a working copy and syncs account data when online."
+          : "For quicker access, open your browser menu and choose “Install NetraOS” or “Create shortcut”. Your browser keeps a working copy and syncs account data when online."}</p>
       <footer class="inventory-dialog-actions">
         <button class="inventory-cancel" type="button">Maybe later</button>
         ${canInstall ? '<button class="inventory-submit" type="button" data-shortcut-install>Install app</button>' : ""}
@@ -1808,7 +1835,7 @@ function openCurrencyRatesDialog(requestedCurrency = "") {
         <div><span class="section-kicker">LOCAL DISPLAY SETTINGS</span><h2>Exchange rates</h2></div>
         <button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button>
       </header>
-      <p class="currency-rate-note">Enter how many Kenyan shillings equal one unit of each currency. Values stay in this browser; the app uses these rates for display only.</p>
+      <p class="currency-rate-note">Enter how many Kenyan shillings equal one unit of each currency. The app syncs these display-only rates to your account when online.</p>
       <div class="inventory-form-fields">
         ${Object.entries(displayCurrencies).filter(([code]) => code !== "KES").map(([code, currency]) => `
           <label class="inventory-form-field"><span>${currency.name} (${code})</span><input name="rate-${code}" type="number" min="0.000001" step="any" inputmode="decimal" placeholder="KSh per 1 ${code}" value="${state.rates[code] || ""}" ${requestedCurrency === code ? "required" : ""}></label>
@@ -3699,7 +3726,7 @@ function downloadAllLocalData(format) {
   const data = {};
   for (let index = 0; index < localStorage.length; index += 1) {
     const key = localStorage.key(index);
-    if (!key?.startsWith("netraos-")) continue;
+    if (!key?.startsWith("netraos-") || key.startsWith("netraos-sync-baseline-v1-")) continue;
     const value = localStorage.getItem(key);
     try { data[key] = JSON.parse(value); } catch { data[key] = value; }
   }
@@ -3779,6 +3806,7 @@ function maskEmail(email) {
 }
 
 async function requestEmailChallenge(to, purpose) {
+  if (window.NetraSupabase?.enabled) throw new Error("PIN recovery email codes are not set up yet. Supabase can verify your account email, but this custom challenge needs a server email function.");
   if (EMAIL_AUTH_ENDPOINT) {
     const response = await fetch(EMAIL_AUTH_ENDPOINT, {
       method: "POST",
@@ -3895,7 +3923,7 @@ function showEmailCodeChallenge({ email, purpose, title, description, onVerified
       verifyButton.hidden = false;
       demoBox.hidden = !pending.demo;
       if (pending.demo) demoBox.innerHTML = `<b>Preview only:</b> no email service is connected. Your local test code is <strong>${pending.code}</strong>.`;
-      setStatus(pending.demo ? "This local preview does not send email." : "Code sent. Check your inbox and spam folder.");
+      setStatus(pending.demo ? "This is a local preview, so no email was sent. The temporary code is shown above." : "Your code is on its way. It may take a few minutes to arrive, and could land in spam.");
       form.elements.code.value = "";
       form.elements.code.focus();
       let seconds = RESET_RESEND_SECONDS;
@@ -3907,7 +3935,7 @@ function showEmailCodeChallenge({ email, purpose, title, description, onVerified
       tick();
       resendTimer = window.setInterval(tick, 1000);
     } catch (error) {
-      setStatus(error.message || "Unable to send the code.", true);
+      setStatus(friendlyAuthMessage(error, "We couldn’t send a code just now. Another try in a little while may help."), true);
       sendButton.disabled = false;
     }
   });
@@ -3916,15 +3944,15 @@ function showEmailCodeChallenge({ email, purpose, title, description, onVerified
     event.preventDefault();
     if (!pending) return;
     const code = String(form.elements.code.value || "").trim();
-    if (!/^[0-9]{6}$/.test(code)) { setStatus("Enter the 6-digit code.", true); return; }
+    if (!/^[0-9]{6}$/.test(code)) { setStatus("That code should be 6 digits. The code in your email may be worth checking.", true); return; }
     verifyButton.disabled = true;
     setStatus("Verifying code…");
     try {
-      if (!await confirmEmailChallenge(pending, code, purpose)) { setStatus("That code is not correct. Try again.", true); verifyButton.disabled = false; return; }
+      if (!await confirmEmailChallenge(pending, code, purpose)) { setStatus("That code didn’t match. The email code may be worth checking.", true); verifyButton.disabled = false; return; }
       close();
       await onVerified();
     } catch (error) {
-      setStatus(error.message || "Unable to verify that code.", true);
+      setStatus(friendlyAuthMessage(error, "We couldn’t verify that code just now. Another try may help."), true);
       verifyButton.disabled = false;
     }
   });
@@ -3991,6 +4019,7 @@ function showPinRecoveryForm() {
 }
 
 async function sendResetCodeEmail(to, code) {
+  if (window.NetraSupabase?.enabled) throw new Error("Factory-reset verification email is not set up yet. No preview code was generated or sent.");
   if (EMAIL_CODE_ENDPOINT) {
     const response = await fetch(EMAIL_CODE_ENDPOINT, {
       method: "POST",
@@ -4025,6 +4054,10 @@ function performFactoryReset() {
 }
 
 function clearAllLocalData() {
+  if (window.NetraSupabase?.enabled) {
+    showCloudFactoryReset();
+    return;
+  }
   const profile = getStoredProfile();
   const email = String(profile?.email || "").trim();
   if (!email.includes("@")) {
@@ -4089,12 +4122,12 @@ function clearAllLocalData() {
       dialog.querySelector("[data-reset-step-copy]").innerHTML = `Enter the 6-digit code${result.demo ? "" : ` we sent to <b>${escapeHTML(maskEmail(email))}</b>`}. It expires in 10 minutes.`;
       demoBox.hidden = !result.demo;
       if (result.demo) demoBox.innerHTML = `<b>Preview mode:</b> no email service is connected here, so your code is <strong>${code}</strong>. On a live site this code is emailed instead.`;
-      setStatus(result.demo ? "" : "Code sent. Check your inbox and spam folder.");
+      setStatus(result.demo ? "" : "Your code is on its way. It may take a few minutes to arrive, and could land in spam.");
       form.elements.code.value = "";
       form.elements.code.focus();
       startCooldown();
     } catch (error) {
-      setStatus(error.message || "Unable to send the code.", true);
+      setStatus(friendlyAuthMessage(error, "We couldn’t send a code just now. Please try again in a little while."), true);
       sendButton.disabled = false;
     }
   });
@@ -4121,6 +4154,40 @@ function clearAllLocalData() {
   dialog.querySelector(".inventory-cancel").addEventListener("click", close);
   dialog.addEventListener("close", () => { window.clearInterval(resendTimer); dialog.remove(); }, { once: true });
   dialog.showModal();
+}
+
+function showCloudFactoryReset() {
+  const dialog = document.createElement("dialog");
+  dialog.className = "inventory-dialog";
+  dialog.innerHTML = `<form class="inventory-form" novalidate><header class="inventory-dialog-heading"><div><span class="section-kicker">ACCOUNT SECURITY</span><h2>Clear NetraOS account data</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header><div class="inventory-form-fields"><p class="reset-copy">This permanently deletes synced profiles, records, plans, goals, settings, and activity for this account, and clears this device. Your Supabase Auth sign-in account will remain; this action does not delete that identity. Download a backup first.</p><label class="inventory-form-field"><span>Confirm your account password</span><input name="password" type="password" autocomplete="current-password" required></label><p class="reset-status" role="alert" aria-live="polite"></p></div><footer class="inventory-dialog-actions"><button class="inventory-cancel" type="button">Cancel</button><button class="inventory-submit danger" type="submit">Delete synced data</button></footer></form>`;
+  document.body.append(dialog);
+  const form = dialog.querySelector("form");
+  const status = dialog.querySelector(".reset-status");
+  const close = () => dialog.close();
+  dialog.querySelector(".inventory-dialog-close").addEventListener("click", close);
+  dialog.querySelector(".inventory-cancel").addEventListener("click", close);
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const password = String(form.elements.password.value || "");
+    const user = await window.NetraSupabase.getUser();
+    if (!user?.email || !password) { status.textContent = "Enter your password to continue."; return; }
+    if (!window.confirm("Delete all synced NetraOS data for this account and clear this device? This cannot be undone.")) return;
+    form.querySelector('[type="submit"]').disabled = true;
+    status.textContent = "Verifying and deleting account data…";
+    const verified = await window.NetraSupabase.signIn(user.email, password);
+    if (verified.error) { form.querySelector('[type="submit"]').disabled = false; status.textContent = "The password could not be verified."; return; }
+    try {
+      await window.NetraSupabase.deleteCloudData();
+      dialog.close();
+      performFactoryReset();
+    } catch (error) {
+      form.querySelector('[type="submit"]').disabled = false;
+      status.textContent = error.message || "Unable to delete account data.";
+    }
+  });
+  dialog.showModal();
+  form.elements.password.focus();
 }
 
 // Download financial data as a plain CSV file.
@@ -4774,6 +4841,7 @@ function handleMenuChoice(action) {
   if (action === "sign-out") {
     localStorage.removeItem(sessionStorageKey);
     window.clearTimeout(autoLockNudgeTimer);
+    if (window.NetraSupabase?.enabled) window.NetraSupabase.signOut().catch(error => console.warn("Supabase sign-out failed:", error.message));
     showPublicPage("landing");
     return;
   }
@@ -4919,6 +4987,35 @@ phoneNavQuery.addEventListener("change", event => {
 new MutationObserver(() => { if (appShell.hidden) setNavDrawer(false, { restoreFocus: false }); })
   .observe(appShell, { attributes: true, attributeFilter: ["hidden"] });
 
+function friendlyAuthMessage(error, fallback = "We couldn’t complete that just now. This may work again in a little while.") {
+  const message = String(error?.message || error || "").toLowerCase();
+  if (/email.*rate limit|rate limit.*email|over_email_send_rate_limit/.test(message)) {
+    return "We’ve sent several account emails recently, so delivery is paused for a little while. We should be able to send another in about an hour.";
+  }
+  if (/rate limit exceeded|429|too many requests/.test(message)) {
+    return "There have been several attempts in a short time, so we’ve paused this for a little while. Another try soon may work.";
+  }
+  if (/invalid login credentials|invalid.*credentials/.test(message)) {
+    return "Those sign-in details didn’t match an account. The email and password are worth checking, and “Forgot your password?” is there if you need a reset link.";
+  }
+  if (/email not confirmed|email.*not.*confirm/.test(message)) {
+    return "This email still needs confirmation. The link may be in your inbox or spam folder. An expired link can be requested again after the email limit resets.";
+  }
+  if (/user already registered|already.*registered|already.*exists/.test(message)) {
+    return "There’s already an account with this email. Signing in or using “Forgot your password?” should get you back in.";
+  }
+  if (/weak password|password.*too short/.test(message)) {
+    return "A password with at least 8 characters is needed.";
+  }
+  if (/failed to fetch|network|load failed|fetch error/.test(message)) {
+    return "We couldn’t reach the sign-in service just now. A connection check and another try may help.";
+  }
+  if (/sign-in succeeded|could not load your account/.test(message)) {
+    return "You’re signed in, but your account data didn’t load just now. Your saved information is still here; another try in a little while may help.";
+  }
+  return fallback;
+}
+
 // Handle local sign-in, profile edits, settings, and financial record submissions.
 document.addEventListener("submit", async event => {
   const form = event.target;
@@ -4932,35 +5029,76 @@ document.addEventListener("submit", async event => {
     const error = form.querySelector(".auth-error");
     const fail = message => {
       error.textContent = message;
+      error.classList.remove("success");
       error.hidden = false;
     };
     if (!email.includes("@") || password.length < 8) {
-      fail("Enter a valid email and a password with at least 8 characters.");
+      fail("A valid email address and a password with at least 8 characters are needed.");
+      return;
+    }
+
+    if (window.NETRAOS_SUPABASE_CONFIG && !window.NetraSupabase?.enabled) {
+      fail("We couldn’t connect to the sign-in service just now. A connection check and another try may help.");
+      return;
+    }
+
+    if (window.NetraSupabase?.enabled) {
+      const isSignup = form.dataset.authForm === "signup";
+      const name = String(formData.get("name") || "").trim();
+      if (isSignup && name.length < 2) { fail("The name you’d like associated with your account is needed."); return; }
+      if (isSignup && !formData.has("acceptTerms")) { fail("Please accept the Terms of Service and acknowledge the Privacy Policy to create your account."); return; }
+      try {
+        if (isSignup) {
+          const termsAcceptedAt = new Date().toISOString();
+          const result = await window.NetraSupabase.signUp(email, password, { full_name: name, terms_version: termsVersion, terms_accepted_at: termsAcceptedAt });
+          if (result.error) throw result.error;
+          const profile = { name, email, username: "", termsVersion, termsAcceptedAt };
+          if (!result.data.session) {
+            error.textContent = `A confirmation email is on its way to ${email}. The link in it will finish setting up your account; you can return here to sign in afterward.`;
+            error.classList.add("success");
+            error.hidden = false;
+            return;
+          }
+          await window.NetraSupabase.bootstrap();
+          showPreferredNamePrompt(profile);
+          return;
+        }
+        const result = await window.NetraSupabase.signIn(email, password);
+        if (result.error) throw result.error;
+        const profile = await window.NetraSupabase.bootstrap();
+        if (!profile) throw new Error("Sign-in succeeded, but NetraOS could not load your account.");
+        if (!profile.username) showPreferredNamePrompt(profile);
+        else enterApp(profile);
+      } catch (authError) {
+        fail(friendlyAuthMessage(authError, isSignup
+          ? "We couldn’t finish setting up your account just now. This may work again in a little while."
+          : "We couldn’t sign you in just now. Another try or the password-reset link may help."));
+      }
       return;
     }
 
     if (form.dataset.authForm === "signup") {
       const name = String(formData.get("name") || "").trim();
       if (name.length < 2) {
-        fail("Enter your name to create a profile.");
+        fail("The name you’d like associated with your profile is needed.");
         return;
       }
       if (!formData.has("acceptTerms")) {
-        fail("Please agree to the Terms of Service before creating your local profile.");
+        fail("Creating a profile requires accepting the Terms of Service and acknowledging the Privacy Policy.");
         return;
       }
       const currentProfile = getStoredProfile();
       if (currentProfile && String(currentProfile.email || "").toLowerCase() !== email) {
-        fail("This browser already has a local profile. Log in with its email instead.");
+      fail("This browser already has a local profile. Its saved email address is the one to use when signing in.");
         return;
       }
       if (currentProfile?.passwordHash) {
-        fail("A local profile already uses this email. Log in instead.");
+      fail("A local profile already uses this email. The Log in option will take you back to it.");
         return;
       }
       let passwordVerifier;
       try { passwordVerifier = await createLocalPasswordVerifier(password); }
-      catch { fail("Secure password storage is unavailable in this browser context."); return; }
+      catch { fail("We couldn’t set up your password securely in this browser. Please try another browser or device."); return; }
       const profile = {
         ...(currentProfile || {}),
         name,
@@ -4974,7 +5112,7 @@ document.addEventListener("submit", async event => {
           email,
           purpose: "account-upgrade",
           title: "Verify your email",
-          description: "This existing local profile needs email verification before password sign-in can be enabled.",
+          description: "We found this profile on your device. Verify your email to finish connecting it to an account.",
           onVerified: () => showPreferredNamePrompt(profile)
         });
         return;
@@ -4983,7 +5121,7 @@ document.addEventListener("submit", async event => {
         email,
         purpose: "account-signup",
         title: "Verify your email",
-        description: "Enter the email code to finish creating your account.",
+        description: "We’ll use this code to finish setting up your account.",
         onVerified: () => showPreferredNamePrompt(profile)
       });
       return;
@@ -4991,22 +5129,22 @@ document.addEventListener("submit", async event => {
 
     const profile = getStoredProfile();
     if (!profile || String(profile.email || "").toLowerCase() !== email) {
-      fail("No local profile matches that email. Create an account in this browser first.");
+      fail("We couldn’t find a profile for that email in this browser. If this is your first time here, you can create a profile.");
       return;
     }
     if (!profile.passwordHash || !profile.passwordSalt) {
-      fail("This older local profile needs a password update. Choose Create an account and verify this email to upgrade it.");
+      fail("This profile uses an older sign-in method. Please create an account and confirm your email to finish upgrading it.");
       return;
     }
     let passwordMatches = false;
     try { passwordMatches = await verifyLocalPassword(password, profile); }
-    catch { fail("Secure password verification is unavailable in this browser context."); return; }
-    if (!passwordMatches) { fail("That password does not match this local profile."); return; }
+    catch { fail("We couldn’t verify your password securely in this browser. Another browser or device may help."); return; }
+    if (!passwordMatches) { fail("That password didn’t match this local profile. Please try again."); return; }
     showEmailCodeChallenge({
       email,
       purpose: "login-two-factor",
       title: "Verify your sign-in",
-      description: "Enter the email code to finish signing in.",
+      description: "We’ll use this code to finish signing you in.",
       onVerified: () => enterApp(profile)
     });
   }
@@ -5039,6 +5177,13 @@ document.addEventListener("submit", async event => {
       dateOfBirth: String(formData.get("dateOfBirth") || ""),
       image
     };
+    if (window.NetraSupabase?.enabled) {
+      const authUser = await window.NetraSupabase.getUser();
+      if (authUser?.email?.toLowerCase() !== profile.email.toLowerCase()) {
+        showToast("Change the account email through Supabase Auth email verification before saving it here.");
+        return;
+      }
+    }
     if (profile.name.length < 2 || !profile.username || profile.username.length > 40 || !profile.email.includes("@") || (profile.dateOfBirth && profile.dateOfBirth > localDateValue())) {
       showToast(profile.dateOfBirth > localDateValue()
         ? "Date of birth cannot be in the future."
@@ -5052,7 +5197,7 @@ document.addEventListener("submit", async event => {
       if (profilePreviewUrl) URL.revokeObjectURL(profilePreviewUrl);
       profilePreviewUrl = "";
       showPage("Profile");
-      showToast("Profile saved in this browser.");
+      showToast(window.NetraSupabase?.enabled ? "Profile saved; cloud sync queued." : "Profile saved in this browser.");
     } catch {
       showToast("Unable to save the profile.");
     }
@@ -5166,6 +5311,18 @@ document.addEventListener("click", event => {
     event.preventDefault();
     if (!appShell.hidden) showPage("Dashboard");
     else showPublicPage("landing");
+    return;
+  }
+  const passwordReset = target.closest("[data-password-reset]");
+  if (passwordReset) {
+    const form = passwordReset.closest(".auth-content")?.querySelector("[data-auth-form]");
+    const email = String(form?.elements.email.value || "").trim().toLowerCase();
+    if (!email.includes("@")) { showToast("Your account email is needed for a reset link. It can be added above whenever you’re ready."); form?.elements.email.focus(); return; }
+    if (!window.NetraSupabase?.enabled) { showToast("Password reset isn’t available just now because the sign-in service couldn’t connect. It may work again in a little while."); return; }
+    window.NetraSupabase.resetPassword(email).then(({ error }) => {
+      if (error) showToast(friendlyAuthMessage(error, "We couldn’t send a reset link just now. Another try in a little while may help."));
+      else showToast("If there’s an account for that email, a password reset link is on its way. It may take a few minutes to arrive.");
+    }).catch(error => showToast(friendlyAuthMessage(error, "We couldn’t send a reset link just now. Another try in a little while may help.")));
     return;
   }
   const publicLink = target.closest("[data-public-action]");
@@ -5496,10 +5653,8 @@ updateCurrencySwitcher();
 applyStoredSettings();
 let hasLocalSession = false;
 try {
-  hasLocalSession = localStorage.getItem(sessionStorageKey) === "active" && Boolean(getStoredProfile());
-} catch {
-  hasLocalSession = false;
-}
+  hasLocalSession = !window.NetraSupabase?.enabled && localStorage.getItem(sessionStorageKey) === "active" && Boolean(getStoredProfile());
+} catch { hasLocalSession = false; }
 if (hasLocalSession && !["terms", "privacy"].includes(initialPage)) {
   appShell.hidden = false;
   publicShell.hidden = true;
@@ -5524,6 +5679,52 @@ if (hasLocalSession && !["terms", "privacy"].includes(initialPage)) {
 
 if (!appShell.hidden) restoreCashflowChartState();
 
+window.addEventListener("netraos-auth-event", event => {
+  if (event.detail?.event === "PASSWORD_RECOVERY") showPasswordResetForm();
+});
+if (window.NETRAOS_LAST_AUTH_EVENT === "PASSWORD_RECOVERY") showPasswordResetForm();
+window.addEventListener("netraos-cloud-refresh", () => {
+  if (appShell.hidden || !crumb.textContent) return;
+  if (content.querySelector(".settings-form, .account-form")) return;
+  applyStoredSettings();
+  updateCurrencySwitcher();
+  setProfileName(getStoredProfile()?.username || getStoredProfile()?.name || "Jordan Davis");
+  applyProfileAvatar();
+  showPage(crumb.textContent);
+});
+window.addEventListener("netraos-sync-error", () => {
+  if (!appShell.hidden) showToast(navigator.onLine
+    ? "Saved on this device; cloud sync will retry. Check the Supabase setup if this continues."
+    : "Saved on this device; cloud sync will resume when you’re online.");
+});
+
+// Supabase Auth, not the old browser-only flag, authorizes a cloud account.
+if (window.NetraSupabase?.enabled && !["terms", "privacy"].includes(initialPage)) {
+  window.NetraSupabase.getSession().then(async ({ data, error }) => {
+    if (error) throw error;
+    if (!data.session) return;
+    const profile = await window.NetraSupabase.bootstrap();
+    if (!profile) return;
+    appShell.hidden = false;
+    publicShell.hidden = true;
+    saveStoredProfile(profile);
+    applyProfileAvatar();
+    const page = initialPage && initialPage !== "dashboard"
+      ? navItems.find(item => item.dataset.page.toLowerCase() === initialPage)?.dataset.page || "Dashboard"
+      : "Dashboard";
+    showPage(page);
+    scheduleAutoLock();
+    maybePromptForBackup();
+    scheduleAutoLockNudge();
+    showCookieBanner();
+    if (!profile.username) showPreferredNamePrompt(profile);
+  }).catch(error => {
+    console.error("Unable to restore the Supabase session:", error);
+    showPublicPage("login");
+    showToast("We couldn’t connect to your account right now. Please check your connection; we’ll try again when you’re back online.");
+  });
+}
+
 // The app uses required browser storage, but currently sets no cookies or analytics.
 const cookieConsentStorageKey = "netraos-cookie-consent-v1";
 function saveCookiePreferences(analytics) {
@@ -5547,7 +5748,7 @@ function openCookiePreferences() {
   dialog.className = "cookie-dialog";
   dialog.dataset.cookieDialog = "";
   dialog.setAttribute("aria-labelledby", "cookie-dialog-title");
-  dialog.innerHTML = `<form method="dialog"><div class="section-kicker">PRIVACY PREFERENCES</div><h2 id="cookie-dialog-title">Manage your choices</h2><p>NetraOS currently uses no cookies or analytics. Your profile and app records stay in required browser storage on this device.</p><label class="cookie-choice"><span><strong>Essential browser storage</strong><small>Always on · Needed to save your local profile, records, and preferences.</small></span><input type="checkbox" checked disabled aria-label="Essential browser storage is always on"></label><label class="cookie-choice"><span><strong>Future performance telemetry</strong><small>Not collected in this version. Save your choice for when this feature is introduced.</small></span><input name="analytics" type="checkbox" ${analytics ? "checked" : ""}></label><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-cancel>Cancel</button><button type="submit" class="cookie-button">Save preferences</button></div></form>`;
+  dialog.innerHTML = `<form method="dialog"><div class="section-kicker">PRIVACY PREFERENCES</div><h2 id="cookie-dialog-title">Manage your choices</h2><p>NetraOS uses essential browser storage and Supabase Auth session storage. Account data syncs to your Supabase project when online. This version collects no analytics.</p><label class="cookie-choice"><span><strong>Essential browser and session storage</strong><small>Always on · Keeps this device’s working copy and your sign-in session.</small></span><input type="checkbox" checked disabled aria-label="Essential browser and session storage are always on"></label><label class="cookie-choice"><span><strong>Future performance telemetry</strong><small>Not collected in this version. Save your choice for when this feature is introduced.</small></span><input name="analytics" type="checkbox" ${analytics ? "checked" : ""}></label><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-cancel>Cancel</button><button type="submit" class="cookie-button">Save preferences</button></div></form>`;
   document.body.append(dialog);
   dialog.querySelector("[data-cookie-cancel]").addEventListener("click", () => dialog.close());
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
@@ -5573,7 +5774,7 @@ function showCookieBanner() {
   banner.className = "cookie-banner";
   banner.dataset.cookieBanner = "";
   banner.setAttribute("aria-label", "Cookie and browser storage notice");
-  banner.innerHTML = `<div class="cookie-banner-copy"><strong>Your privacy matters</strong><p>NetraOS uses required browser storage for your local profile and records. This version sets no cookies and collects no analytics.</p></div><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-manage>Manage</button><button type="button" class="cookie-button" data-cookie-accept>Accept</button></div>`;
+  banner.innerHTML = `<div class="cookie-banner-copy"><strong>Your privacy matters</strong><p>NetraOS uses essential browser storage and Supabase Auth session storage. Account data syncs to your Supabase project when online. This version collects no analytics.</p></div><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-manage>Manage</button><button type="button" class="cookie-button" data-cookie-accept>Accept</button></div>`;
   document.body.append(banner);
   banner.querySelector("[data-cookie-accept]").addEventListener("click", () => {
     try {
