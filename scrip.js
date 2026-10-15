@@ -568,6 +568,36 @@ async function createLocalPinVerifier(pin) {
   return { localPinSalt: salt, localPinHash: await deriveLocalPinHash(pin, salt) };
 }
 
+async function verifyLocalPin(pin, settings = getStoredSettings()) {
+  if (!settings.localPinHash || !settings.localPinSalt) return false;
+  const candidate = await deriveLocalPinHash(pin, settings.localPinSalt);
+  let difference = candidate.length ^ settings.localPinHash.length;
+  for (let index = 0; index < candidate.length; index += 1) difference |= candidate.charCodeAt(index) ^ (settings.localPinHash.charCodeAt(index) || 0);
+  return difference === 0;
+}
+
+async function deriveLocalPasswordHash(password, saltBase64) {
+  if (!globalThis.crypto?.subtle) throw new Error("Secure browser cryptography is unavailable.");
+  const saltBytes = Uint8Array.from(atob(saltBase64), character => character.charCodeAt(0));
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  const result = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: saltBytes, iterations: 210000, hash: "SHA-256" }, key, 256);
+  return Array.from(new Uint8Array(result), byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function createLocalPasswordVerifier(password) {
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  const salt = btoa(Array.from(saltBytes, byte => String.fromCharCode(byte)).join(""));
+  return { passwordSalt: salt, passwordHash: await deriveLocalPasswordHash(password, salt) };
+}
+
+async function verifyLocalPassword(password, profile) {
+  if (!profile?.passwordHash || !profile.passwordSalt) return false;
+  const candidate = await deriveLocalPasswordHash(password, profile.passwordSalt);
+  let difference = candidate.length ^ profile.passwordHash.length;
+  for (let index = 0; index < candidate.length; index += 1) difference |= candidate.charCodeAt(index) ^ (profile.passwordHash.charCodeAt(index) || 0);
+  return difference === 0;
+}
+
 // Lock the visible workspace after inactivity when a local PIN and timeout are configured.
 function scheduleAutoLock() {
   window.clearTimeout(autoLockTimer);
@@ -961,7 +991,7 @@ function showPublicPage(page = "landing") {
             <button class="public-primary auth-submit" type="submit">${isSignup ? "Create local profile" : "Log in"}${isSignup ? "" : " <span>↗</span>"}</button>
           </form>
           <p class="auth-switch">${isSignup ? "Already have a local profile?" : "New to NetraOS?"} <button type="button" data-public-action="${isSignup ? "login" : "signup"}">${isSignup ? "Log in" : "Create an account"}</button></p>
-          <p class="auth-preview-note">Local prototype: sign-in information is not sent to a server. Passwords are not stored; this page does not provide production authentication.</p>
+          <p class="auth-preview-note">This local profile is stored in this browser. Login uses a password verifier and an email code; connect the email verification service before using login codes outside local preview.</p>
         </section>
       </div>`;
   }
@@ -1024,7 +1054,9 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Privacy Shield shortcut</strong><small>Keyboard shortcut to toggle amount masking.</small></span><select name="privacyShortcut"><option value="Shift+S" ${settings.privacyShortcut === "Shift+S" ? "selected" : ""}>Shift + S</option><option value="Alt+Shift+S" ${settings.privacyShortcut === "Alt+Shift+S" ? "selected" : ""}>Alt + Shift + S</option><option value="Off" ${settings.privacyShortcut === "Off" ? "selected" : ""}>Off</option></select></label>
           <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a local four-digit PIN.</small></span><select name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Never</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
           <div class="autolock-options" data-autolock-options ${settings.lockTimeoutMinutes ? "" : "hidden"}>
+            ${settings.localPinHash ? '<label class="inventory-form-field"><span>Current four-digit PIN <small>Required to change or remove your PIN</small></span><input name="currentPin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4"></label>' : ""}
             <div class="settings-pin-fields"><label class="inventory-form-field"><span>New four-digit PIN <small>Leave blank to keep the current PIN</small></span><input name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label><label class="inventory-form-field"><span>Confirm PIN</span><input name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label></div>
+            ${settings.localPinHash ? '<button class="secondary-button pin-recovery-button" type="button" data-pin-recovery>Forgot your current PIN?</button>' : ""}
             <label class="settings-field"><span><strong>Remove current PIN</strong><small>Turns off the local screen lock.</small></span><input name="clearPin" type="checkbox"></label>
           </div>
           <div class="settings-audit"><strong>Recent local security activity</strong>${getSecurityAuditLog().length ? `<ul>${getSecurityAuditLog().slice(0, 8).map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.at).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>No activity recorded yet.</p>`}</div>
@@ -3672,10 +3704,14 @@ async function restoreLocalData(file) {
 }
 
 // Erase this app's own browser keys and cookie names, without touching other site data.
-// Factory reset is protected by a one-time code sent to the registered email address.
-// Delivery needs an email service: set EMAIL_CODE_ENDPOINT to a URL that accepts
-// POST {to, subject, code, purpose, expiresInMinutes} and sends the message.
+// Code delivery needs an email service. Auth and PIN recovery use a server-verified
+// challenge endpoint; factory reset retains its send-only endpoint contract.
+// EMAIL_CODE_ENDPOINT accepts POST {to,subject,code,purpose,expiresInMinutes}.
 const EMAIL_CODE_ENDPOINT = "";
+// Configure window.NETRAOS_EMAIL_AUTH_ENDPOINT before this file loads. The endpoint
+// accepts POST {action:"send",to,purpose,expiresInMinutes} -> {challengeId}, then
+// POST {action:"verify",challengeId,code,purpose} -> {verified:true|false}.
+const EMAIL_AUTH_ENDPOINT = window.NETRAOS_EMAIL_AUTH_ENDPOINT || "";
 const RESET_CODE_TTL_MS = 10 * 60 * 1000;
 const RESET_CODE_MAX_ATTEMPTS = 5;
 const RESET_RESEND_SECONDS = 60;
@@ -3687,6 +3723,178 @@ function isLocalPreviewHost() {
 function maskEmail(email) {
   const [user = "", domain = ""] = String(email).split("@");
   return `${user.slice(0, 1)}${"•".repeat(Math.max(2, Math.min(6, user.length - 1)))}@${domain}`;
+}
+
+async function requestEmailChallenge(to, purpose) {
+  if (EMAIL_AUTH_ENDPOINT) {
+    const response = await fetch(EMAIL_AUTH_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "send", to, purpose, expiresInMinutes: RESET_CODE_TTL_MS / 60000 })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.challengeId) throw new Error(result.message || "The email service could not send a code. Try again shortly.");
+    return { challengeId: result.challengeId, demo: false };
+  }
+  if (isLocalPreviewHost()) {
+    const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, "0");
+    const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+    const salt = btoa(Array.from(saltBytes, byte => String.fromCharCode(byte)).join(""));
+    return { code, salt, hash: await deriveLocalPinHash(code, salt), expires: Date.now() + RESET_CODE_TTL_MS, attempts: 0, demo: true };
+  }
+  throw new Error("Email verification is not configured for this app yet.");
+}
+
+async function confirmEmailChallenge(pending, code, purpose) {
+  if (pending.demo) {
+    if (Date.now() > pending.expires) throw new Error("That code has expired. Send a new one.");
+    pending.attempts += 1;
+    if (pending.attempts > RESET_CODE_MAX_ATTEMPTS) throw new Error("Too many incorrect attempts. Send a new code.");
+    return (await deriveLocalPinHash(code, pending.salt)) === pending.hash;
+  }
+  const response = await fetch(EMAIL_AUTH_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "verify", challengeId: pending.challengeId, code, purpose })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.message || "Unable to verify that code. Try again.");
+  return result.verified === true;
+}
+
+function showEmailCodeChallenge({ email, purpose, title, description, onVerified }) {
+  let pending = null;
+  let resendTimer = 0;
+  const dialog = document.createElement("dialog");
+  dialog.className = "inventory-dialog";
+  dialog.setAttribute("aria-labelledby", "email-code-title");
+  dialog.innerHTML = `
+    <form class="inventory-form" novalidate>
+      <header class="inventory-dialog-heading"><div><span class="section-kicker">EMAIL SECURITY CHECK</span><h2 id="email-code-title">${escapeHTML(title)}</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header>
+      <div class="inventory-form-fields">
+        <p class="reset-copy">${escapeHTML(description)} A code will be sent to <b>${escapeHTML(maskEmail(email))}</b>.</p>
+        <div class="reset-demo" data-email-code-demo hidden></div>
+        <label class="inventory-form-field" data-email-code-field hidden><span>Verification code</span><input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="6-digit code" required></label>
+        <p class="reset-status" role="status" aria-live="polite" data-email-code-status></p>
+      </div>
+      <footer class="inventory-dialog-actions"><button class="inventory-cancel" type="button">Cancel</button><button class="inventory-submit" type="button" data-email-code-send>Send code</button><button class="inventory-submit" type="submit" data-email-code-verify hidden>Verify code</button></footer>
+    </form>`;
+  document.body.append(dialog);
+  const form = dialog.querySelector("form");
+  const sendButton = dialog.querySelector("[data-email-code-send]");
+  const verifyButton = dialog.querySelector("[data-email-code-verify]");
+  const codeField = dialog.querySelector("[data-email-code-field]");
+  const status = dialog.querySelector("[data-email-code-status]");
+  const demoBox = dialog.querySelector("[data-email-code-demo]");
+  const setStatus = (message, error = false) => { status.textContent = message; status.classList.toggle("error", error); };
+  const close = () => { window.clearInterval(resendTimer); pending = null; dialog.close(); };
+  dialog.querySelector(".inventory-dialog-close").addEventListener("click", close);
+  dialog.querySelector(".inventory-cancel").addEventListener("click", close);
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.showModal();
+
+  sendButton.addEventListener("click", async () => {
+    sendButton.disabled = true;
+    setStatus("Sending code…");
+    try {
+      pending = await requestEmailChallenge(email, purpose);
+      codeField.hidden = false;
+      verifyButton.hidden = false;
+      demoBox.hidden = !pending.demo;
+      if (pending.demo) demoBox.innerHTML = `<b>Preview only:</b> no email service is connected. Your local test code is <strong>${pending.code}</strong>.`;
+      setStatus(pending.demo ? "This local preview does not send email." : "Code sent. Check your inbox and spam folder.");
+      form.elements.code.value = "";
+      form.elements.code.focus();
+      let seconds = RESET_RESEND_SECONDS;
+      const tick = () => {
+        sendButton.textContent = seconds > 0 ? `Resend code (${seconds}s)` : "Resend code";
+        if (seconds <= 0) { window.clearInterval(resendTimer); sendButton.disabled = false; }
+        seconds -= 1;
+      };
+      tick();
+      resendTimer = window.setInterval(tick, 1000);
+    } catch (error) {
+      setStatus(error.message || "Unable to send the code.", true);
+      sendButton.disabled = false;
+    }
+  });
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!pending) return;
+    const code = String(form.elements.code.value || "").trim();
+    if (!/^[0-9]{6}$/.test(code)) { setStatus("Enter the 6-digit code.", true); return; }
+    verifyButton.disabled = true;
+    setStatus("Verifying code…");
+    try {
+      if (!await confirmEmailChallenge(pending, code, purpose)) { setStatus("That code is not correct. Try again.", true); verifyButton.disabled = false; return; }
+      close();
+      await onVerified();
+    } catch (error) {
+      setStatus(error.message || "Unable to verify that code.", true);
+      verifyButton.disabled = false;
+    }
+  });
+}
+
+function showPinRecovery() {
+  const email = String(getStoredProfile()?.email || "").trim();
+  if (!email.includes("@")) { showToast("Add an email address to your local profile before resetting this PIN."); return; }
+  showEmailCodeChallenge({
+    email,
+    purpose: "pin-recovery",
+    title: "Reset your inactivity PIN",
+    description: "Verify your email to choose a new four-digit PIN.",
+    onVerified: showPinRecoveryForm
+  });
+}
+
+function showPinRecoveryForm() {
+  const dialog = document.createElement("dialog");
+  dialog.className = "inventory-dialog";
+  dialog.setAttribute("aria-labelledby", "pin-recovery-title");
+  dialog.innerHTML = `
+    <form class="inventory-form" novalidate>
+      <header class="inventory-dialog-heading"><div><span class="section-kicker">PIN RECOVERY</span><h2 id="pin-recovery-title">Choose a new PIN</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header>
+      <div class="inventory-form-fields"><p class="reset-copy">Set a new four-digit PIN for your inactivity lock.</p>
+        <label class="inventory-form-field"><span>New four-digit PIN</span><input name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4" required></label>
+        <label class="inventory-form-field"><span>Confirm new PIN</span><input name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4" required></label>
+        <p class="reset-status" role="status" aria-live="polite" data-pin-recovery-status></p>
+      </div>
+      <footer class="inventory-dialog-actions"><button class="inventory-cancel" type="button">Cancel</button><button class="inventory-submit" type="submit">Save new PIN</button></footer>
+    </form>`;
+  document.body.append(dialog);
+  const form = dialog.querySelector("form");
+  const status = dialog.querySelector("[data-pin-recovery-status]");
+  const close = () => dialog.close();
+  dialog.querySelector(".inventory-dialog-close").addEventListener("click", close);
+  dialog.querySelector(".inventory-cancel").addEventListener("click", close);
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.showModal();
+  form.elements.newPin.focus();
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const pin = String(form.elements.newPin.value || "");
+    if (!/^[0-9]{4}$/.test(pin) || pin !== form.elements.confirmPin.value) {
+      status.textContent = "Enter and confirm the same four-digit PIN.";
+      status.classList.add("error");
+      return;
+    }
+    try {
+      const settings = getStoredSettings();
+      Object.assign(settings, await createLocalPinVerifier(pin), { localPinLength: 4 });
+      localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
+      recordSecurityAudit("Reset local inactivity PIN by email verification");
+      close();
+      applyStoredSettings();
+      showPage("Settings");
+      scheduleAutoLock();
+      showToast("Your inactivity PIN has been reset.");
+    } catch {
+      status.textContent = "Unable to save the new PIN in this browser.";
+      status.classList.add("error");
+    }
+  });
 }
 
 async function sendResetCodeEmail(to, code) {
@@ -4639,9 +4847,34 @@ document.addEventListener("submit", async event => {
         fail("This browser already has a local profile. Log in with its email instead.");
         return;
       }
-      const profile = currentProfile && String(currentProfile.email || "").toLowerCase() === email
-        ? { ...currentProfile, name, email, termsVersion, termsAcceptedAt: new Date().toISOString() }
-        : { name, email, termsVersion, termsAcceptedAt: new Date().toISOString() };
+      if (currentProfile?.passwordHash) {
+        fail("A local profile already uses this email. Log in instead.");
+        return;
+      }
+      let passwordVerifier;
+      try { passwordVerifier = await createLocalPasswordVerifier(password); }
+      catch { fail("Secure password storage is unavailable in this browser context."); return; }
+      const profile = {
+        ...(currentProfile || {}),
+        name,
+        email,
+        ...passwordVerifier,
+        termsVersion,
+        termsAcceptedAt: new Date().toISOString()
+      };
+      if (currentProfile) {
+        showEmailCodeChallenge({
+          email,
+          purpose: "account-upgrade",
+          title: "Verify your email",
+          description: "This existing local profile needs email verification before password sign-in can be enabled.",
+          onVerified: () => {
+            try { saveStoredProfile(profile); enterApp(profile); }
+            catch { fail("Unable to save a local profile. Check browser storage settings."); }
+          }
+        });
+        return;
+      }
       try {
         saveStoredProfile(profile);
       } catch {
@@ -4657,7 +4890,21 @@ document.addEventListener("submit", async event => {
       fail("No local profile matches that email. Create an account in this browser first.");
       return;
     }
-    enterApp(profile);
+    if (!profile.passwordHash || !profile.passwordSalt) {
+      fail("This older local profile needs a password update. Choose Create an account and verify this email to upgrade it.");
+      return;
+    }
+    let passwordMatches = false;
+    try { passwordMatches = await verifyLocalPassword(password, profile); }
+    catch { fail("Secure password verification is unavailable in this browser context."); return; }
+    if (!passwordMatches) { fail("That password does not match this local profile."); return; }
+    showEmailCodeChallenge({
+      email,
+      purpose: "login-two-factor",
+      title: "Verify your sign-in",
+      description: "Enter the email code to finish signing in.",
+      onVerified: () => enterApp(profile)
+    });
   }
 
   if (form.matches("[data-account-form='profile']")) {
@@ -4749,6 +4996,17 @@ document.addEventListener("submit", async event => {
     if (settings.monthlyBackupPrompt && !previousSettings.monthlyBackupPrompt) settings.lastBackupPromptAt = new Date().toISOString();
     const newPin = String(formData.get("newPin") || "");
     const confirmPin = String(formData.get("confirmPin") || "");
+    const changingExistingPin = Boolean(previousSettings.localPinHash && (formData.has("clearPin") || newPin || confirmPin));
+    if (changingExistingPin) {
+      const currentPin = String(formData.get("currentPin") || "");
+      let currentPinMatches = false;
+      try { currentPinMatches = await verifyLocalPin(currentPin, previousSettings); } catch { /* Treat unavailable crypto as an invalid confirmation. */ }
+      if (!currentPinMatches) {
+        showToast("Enter your current PIN to change or remove it, or use Forgot your current PIN.");
+        form.querySelector('input[name="currentPin"]')?.focus();
+        return;
+      }
+    }
     if (formData.has("clearPin")) {
       settings.localPinSalt = "";
       settings.localPinHash = "";
@@ -4874,6 +5132,10 @@ document.addEventListener("click", event => {
   }
   const button = target.closest("button");
   if (!button) return;
+  if (button.matches("[data-pin-recovery]")) {
+    showPinRecovery();
+    return;
+  }
   if (button.matches("[data-settings-action]")) {
     if (button.dataset.settingsAction === "export-json") downloadAllLocalData("json");
     else if (button.dataset.settingsAction === "export-csv") downloadAllLocalData("csv");
