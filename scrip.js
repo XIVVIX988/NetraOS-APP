@@ -1033,13 +1033,13 @@ function showPublicPage(page = "landing") {
     const isSignup = page === "signup";
     publicShell.innerHTML = `
       <div class="auth-page">
+        <div class="auth-fluid-art" aria-hidden="true">
+          <span class="fluid-shape fluid-shape-a"></span><span class="fluid-shape fluid-shape-b"></span><span class="fluid-shape fluid-shape-c"></span><span class="fluid-shape fluid-shape-d"></span><span class="fluid-shape fluid-shape-e"></span><span class="fluid-shape fluid-shape-f"></span><span class="fluid-shape fluid-shape-g"></span>
+          <svg class="auth-network-lines" viewBox="0 0 1200 560" preserveAspectRatio="xMidYMin slice"><path d="M105 288 238 187 348 254 492 119 622 203 760 121 875 210 1036 126M238 187l-24 157 134-90 144 146 130-197 138 173 115-166 161 176M348 254l-34 175 178-29 134 113 130-140 138 63 142-82"/><path class="network-wire" d="m492 119 38-65 85 12 7 137M875 210l35 140 126 0 36 103M214 344l-68 52 19 77 149-44"/><circle cx="105" cy="288" r="5"/><circle cx="238" cy="187" r="6"/><circle cx="348" cy="254" r="4"/><circle cx="492" cy="119" r="5"/><circle cx="622" cy="203" r="4"/><circle cx="760" cy="121" r="6"/><circle cx="875" cy="210" r="5"/><circle cx="1036" cy="126" r="4"/><circle cx="622" cy="429" r="5"/><circle cx="910" cy="350" r="4"/><circle cx="1061" cy="350" r="5"/><circle cx="165" cy="473" r="4"/><path class="network-hex" d="m530 44 21 12v24l-21 12-21-12V56zM1060 332l16 9v19l-16 9-16-9v-19zM163 456l18 10v20l-18 10-18-10v-20z"/></svg>
+          <i class="fluid-speck speck-one"></i><i class="fluid-speck speck-two"></i><i class="fluid-speck speck-three"></i><i class="fluid-speck speck-four"></i>
+        </div>
         <button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button>
         <section class="auth-card">
-          <header class="auth-visual-header">
-            <span class="auth-orb auth-orb-one" aria-hidden="true"></span><span class="auth-orb auth-orb-two" aria-hidden="true"></span><span class="auth-orb auth-orb-three" aria-hidden="true"></span><span class="auth-orb auth-orb-four" aria-hidden="true"></span>
-            <div class="auth-visual-copy"><span>YOUR FINANCIAL OPERATING SYSTEM</span><p>See your money<br><strong>with more clarity.</strong></p></div>
-            <span class="auth-header-glint" aria-hidden="true">✳</span>
-          </header>
           <div class="auth-content">
           <div class="section-kicker">${isSignup ? "START WITH A CLEAR PICTURE" : "WELCOME BACK"}</div>
           <h1>${isSignup ? "Create your account." : "Log in to NetraOS."}</h1>
