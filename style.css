@@ -8286,13 +8286,10 @@ body.theme-dark #public-shell .phone-entry-welcome > .auth-fluid-art { filter: s
   .quest-metrics > span { min-width: 0; }
 
   /* settings: switch rows */
-  .settings-field { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; }
-  .settings-field > span { flex: 1 1 60%; min-width: 0; }
   .settings-field input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 46px; height: 27px; margin: 0; border-radius: 99px; background: var(--line); border: 0; cursor: pointer; transition: background .18s ease; }
   .settings-field input[type="checkbox"]::after { content: ""; position: absolute; top: 3px; left: 3px; width: 21px; height: 21px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #0003; transition: transform .18s ease; }
   .settings-field input[type="checkbox"]:checked { background: var(--green); }
   .settings-field input[type="checkbox"]:checked::after { transform: translateX(19px); }
-  .settings-field select, .settings-field input[type="number"] { flex: 1 1 100%; max-width: none; }
 
   /* sticky save bar for Profile + Settings */
   .account-form-actions, .settings-actions { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 20; padding: 10px 12px; border: 1px solid var(--line); border-radius: 26px; background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(10px); box-shadow: 0 8px 24px #0001; }
@@ -8339,4 +8336,64 @@ body.theme-dark #public-shell .phone-entry-welcome > .auth-fluid-art { filter: s
   .app-shell .cashflow-panel .y-labels { font-size: 8px; min-width: 48px; }
   .app-shell .cashflow-panel .bar-group { width: 12%; }
   .app-shell .cashflow-panel .x-labels { font-size: 9px; }
+}
+
+
+/* ===== Settings on phones: one consistent row pattern, readable type, thumb-sized controls ===== */
+@media (max-width: 760px) {
+  .settings-form { gap: 12px; }
+  .app-shell .settings-panel { padding: 18px 18px 8px; }
+  .settings-panel .panel-heading { margin-bottom: 4px; }
+  .settings-panel > .settings-disclosure { margin: 10px 0 4px; padding: 12px 14px; border-radius: 12px; background: var(--panel-2); font-size: 12.5px; }
+
+  /* row = text on the left, switch on the right; wide controls drop to their own full-width line */
+  .app-shell .settings-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 16px; min-height: 0; padding: 15px 0; border-top: 1px solid var(--line); }
+  .app-shell .settings-panel .panel-heading + .settings-field, .app-shell .settings-panel .panel-heading + .settings-disclosure + .settings-field { border-top: 1px solid var(--line); margin-top: 8px; }
+  .settings-field > span { grid-column: 1; gap: 3px; }
+  .settings-field > span strong { font: 650 14px var(--sans); color: var(--text); }
+  .settings-field > span small { font: 400 12px/1.45 var(--sans); color: var(--muted); }
+  .settings-field > input[type="checkbox"] { grid-column: 2; grid-row: 1; justify-self: end; }
+  .app-shell .settings-panel .settings-field > select,
+  .settings-field > .payday-input { grid-column: 1 / -1; width: 100%; max-width: none; }
+  .app-shell .settings-panel .settings-field > select { min-height: 46px; padding: 0 14px; border-radius: 12px; background-color: var(--panel-2); border: 1px solid var(--line); color: var(--text); font: 500 14px var(--sans); }
+  .settings-field .payday-input { display: flex; }
+  .settings-panel .settings-field .payday-input input[type="number"] { width: 84px; min-height: 46px; border-radius: 12px; font-size: 14px; background: var(--panel-2); color: var(--text); }
+  .settings-field .payday-input em { font-size: 13px; }
+  .settings-field input[type="checkbox"] { width: 50px; height: 30px; }
+  .settings-field input[type="checkbox"]::after { width: 24px; height: 24px; }
+  .settings-field input[type="checkbox"]:checked::after { transform: translateX(20px); }
+
+  /* action buttons become tidy full-width list rows */
+  .settings-inline-actions { flex-direction: column; gap: 8px; margin: 14px 0 6px; }
+  .settings-inline-actions > button { position: relative; width: 100%; min-height: 48px; padding: 0 40px 0 16px; border-radius: 12px; text-align: left; font: 600 14px var(--sans); }
+  .settings-inline-actions > button:not(.danger-button)::after { content: ""; position: absolute; right: 16px; top: 50%; width: 7px; height: 7px; border: solid currentColor; border-width: 2px 2px 0 0; transform: translateY(-50%) rotate(45deg); opacity: .5; }
+  .settings-inline-actions .danger-button { margin-top: 10px; text-align: center; padding: 0 16px; }
+  .settings-import-drop { margin: 12px 0 6px; padding: 16px; border-radius: 14px; }
+  .settings-import-drop strong { font-size: 14px; }
+  .settings-import-drop span { font-size: 12.5px; }
+  .settings-import-drop input::file-selector-button { margin-right: 10px; padding: 8px 14px; border: 0; border-radius: 99px; background: color-mix(in srgb, var(--green) 14%, var(--panel)); color: var(--green); font: 600 12px var(--sans); }
+
+  /* PIN + tax relief inputs */
+  .settings-pin-fields { grid-template-columns: 1fr; gap: 12px; padding: 12px 0 6px; }
+  .settings-pin-fields .inventory-form-field input { min-height: 46px; border-radius: 12px; font-size: 14px; }
+  .settings-pin-fields .inventory-form-field > span { font-size: 13px; }
+  .settings-panel .pin-recovery-button { width: 100%; min-height: 44px; margin: 4px 0 8px; }
+
+  /* security activity */
+  .settings-audit { margin-top: 6px; padding: 16px 0 12px; font-size: 14px; }
+  .settings-audit-heading { flex-direction: column; align-items: stretch; gap: 12px; }
+  .settings-audit-export { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  .settings-audit-export label { grid-column: 1 / -1; }
+  .settings-audit-export select { min-height: 44px; border-radius: 12px; }
+  .settings-audit-export button { min-height: 44px; border-radius: 12px; }
+
+  /* theme accent preview */
+  .accent-preview { margin: 0 0 12px; padding: 12px 14px; border-radius: 12px; flex-wrap: nowrap; align-items: center; }
+  .accent-preview-sample { margin-left: auto; }
+  .settings-panel .settings-footer-links, .settings-panel > p:last-child a { font-size: 13px; }
+}
+@media (max-width: 760px) {
+  .settings-audit-export button { border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font: 600 13px var(--sans); }
+  .settings-pin-fields .inventory-form-field > span { color: var(--text); font-weight: 600; }
+  .accent-preview { padding-left: 18px; }
 }
