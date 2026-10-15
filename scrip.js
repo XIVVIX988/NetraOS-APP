@@ -47,7 +47,18 @@ const appShell = document.querySelector(".app-shell");
 // Give data and explanation cards their own independent expand/collapse control.
 function enhanceInformationCards(root = content) {
   if (!root) return;
-  root.querySelectorAll(".metric-card, .panel:not(.cx-form):not(.tax-panel):not(.phone-collapsible), .inventory-summary-card, .achievement-card, .phone-collapsible").forEach(card => {
+  const page = crumb?.textContent?.trim() || "Dashboard";
+  const selectors = {
+    Dashboard: ".cashflow-panel, .allocation-panel, .quests-panel",
+    Inventory: ".inventory-list-panel, .inventory-accounts",
+    "Power-Up": ".power-list-panel",
+    Quests: ".milestones-engine, .quest-page-panel",
+    Stats: ".stats-panel",
+    Settings: ".settings-panel"
+  };
+  const selector = selectors[page];
+  if (!selector) return;
+  root.querySelectorAll(selector).forEach(card => {
     if (card.matches(".phone-collapsible")) {
       if (!card.dataset.collapseInitialized) {
         const expanded = !window.matchMedia("(max-width: 760px)").matches;
@@ -496,50 +507,6 @@ function getPowerUpReportTotals() {
   const reportIncome = income * reportMonths;
   const reportBudget = budget * reportMonths;
   return { income, budget, spending, surplus: income - budget, reportMonths, reportIncome, reportBudget, cashAfterSpending: reportIncome - spending, budgetRemaining: reportBudget - spending };
-}
-
-function getCashflowStatus(totals) {
-  const period = getReportPeriod().toLowerCase();
-  if (totals.reportIncome <= 0) {
-    return {
-      tone: totals.spending > 0 || totals.reportBudget > 0 ? "is-warning" : "is-neutral",
-      title: "Add income to check your cash flow",
-      detail: totals.spending > 0
-        ? `${formatKsh(totals.spending)} spent this ${period}, but no income is recorded to compare it with. Your planned budget is ${formatKsh(totals.reportBudget)}.`
-        : `Record monthly income to compare your ${period} budget and spending against what you make.`
-    };
-  }
-  if (totals.spending > totals.reportIncome) {
-    return {
-      tone: "is-warning",
-      title: "Spending is higher than income",
-      detail: `You spent ${formatKsh(totals.spending)} against ${formatKsh(totals.reportIncome)} income this ${period} — ${formatKsh(totals.spending - totals.reportIncome)} over. Planned budget: ${formatKsh(totals.reportBudget)}.`
-    };
-  }
-  if (totals.reportBudget > totals.reportIncome) {
-    return {
-      tone: "is-warning",
-      title: "Your budget is higher than income",
-      detail: `You planned ${formatKsh(totals.reportBudget)} against ${formatKsh(totals.reportIncome)} income this ${period}, an over-allocation of ${formatKsh(totals.reportBudget - totals.reportIncome)}. Recorded spending is ${formatKsh(totals.spending)}.`
-    };
-  }
-  if (totals.reportBudget > 0 && totals.spending > totals.reportBudget) {
-    return {
-      tone: "is-caution",
-      title: "Spending is over budget but within income",
-      detail: `You are ${formatKsh(totals.spending - totals.reportBudget)} over your planned budget, with ${formatKsh(totals.cashAfterSpending)} of income remaining after recorded spending.`
-    };
-  }
-  return {
-    tone: "is-positive",
-    title: "Income covers your spending",
-    detail: `${formatKsh(totals.cashAfterSpending)} remains after ${period} spending. Your planned budget is ${formatKsh(totals.reportBudget)} against ${formatKsh(totals.reportIncome)} income.`
-  };
-}
-
-function renderCashflowStatus(totals) {
-  const status = getCashflowStatus(totals);
-  return `<aside class="cashflow-status ${status.tone}" data-cashflow-status><button class="cashflow-status-trigger" type="button" data-cashflow-insight-toggle aria-expanded="false" aria-controls="cashflow-insight-detail"><span class="cashflow-status-icon" aria-hidden="true">✦</span><span><strong>Money pulse</strong><small>Hover or tap to reveal</small></span><span class="cashflow-status-chevron" aria-hidden="true">⌄</span></button><div class="cashflow-status-detail ${status.tone}" id="cashflow-insight-detail"><strong>${status.title}</strong><small>${status.detail}</small></div></aside>`;
 }
 
 // Read and save the browser-local profile and preference settings.
@@ -1192,7 +1159,7 @@ function renderProfilePage() {
           <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" maxlength="120" value="${escapeHTML(profile.email || "")}" required></label>
           <label class="inventory-form-field"><span>Sex <small>Optional</small></span><select name="sex"><option value="">Prefer not to say</option><option value="female" ${profile.sex === "female" ? "selected" : ""}>Female</option><option value="male" ${profile.sex === "male" ? "selected" : ""}>Male</option><option value="intersex" ${profile.sex === "intersex" ? "selected" : ""}>Intersex</option><option value="other" ${profile.sex === "other" ? "selected" : ""}>Other</option></select></label>
           <label class="inventory-form-field"><span>Date of birth <small>Optional</small></span><input name="dateOfBirth" type="date" max="${maxDate}" value="${escapeHTML(profile.dateOfBirth || "")}"></label>
-          <div class="account-form-actions"><span>Saved in this browser</span><button class="inventory-submit" type="submit">Save changes</button></div>
+          <div class="account-form-actions settings-actions"><span>Saved in this browser</span><button class="inventory-submit" type="submit">Save changes</button></div>
         </form>
       </section>
       <section class="account-notice"><span>i</span><p>This is a local profile for the app preview. NetraOS currently has no account server or cloud sync.</p></section>
@@ -2074,9 +2041,6 @@ function updateDashboardPowerUpSummary() {
     if (progress) progress.style.width = `${totals.reportBudget > 0 ? Math.min(100, (totals.spending / totals.reportBudget) * 100) : 0}%`;
   }
 
-  const statusSlot = document.querySelector("[data-cashflow-status]");
-  if (statusSlot) statusSlot.innerHTML = renderCashflowStatus(totals);
-
   updateDashboardCashflowChart(totals);
 }
 
@@ -2719,7 +2683,6 @@ function renderStatsPage() {
         <article class="inventory-summary-card"><span class="inventory-label">PERIOD SPENDING</span><strong>${formatKsh(totals.spending)}</strong><span class="inventory-note">${reportSpending.length} recorded ${reportSpending.length === 1 ? "expense" : "expenses"}</span></article>
         <article class="inventory-summary-card"><span class="inventory-label">AFTER SPENDING</span><strong>${formatKsh(totals.cashAfterSpending)}</strong><span class="inventory-note">${savingsRate}% of period income</span></article>
       </section>
-      ${renderCashflowStatus(totals)}
       <section class="stats-panels">
         <article class="panel stats-panel">
           <div class="panel-heading"><div><div class="section-kicker">${escapeHTML(getReportPeriod().toUpperCase())} OVERVIEW</div><h2>Income &amp; outflow</h2></div><span class="inventory-account-count">${escapeHTML(reportMonthLabel())}</span></div>
@@ -2977,7 +2940,6 @@ function renderPowerUpPage() {
         </article>
       </section>
 
-      ${renderCashflowStatus(totals)}
 
       ${renderTaxWidget()}
 
@@ -5114,20 +5076,6 @@ document.addEventListener("submit", async event => {
 // Route clicks for app actions, dialog controls, profile menus, and theme/privacy toggles.
 document.addEventListener("click", event => {
   const target = event.target;
-  const insight = target.closest?.("[data-cashflow-status]");
-  const insightToggle = target.closest?.("[data-cashflow-insight-toggle]");
-  document.querySelectorAll(".cashflow-status.is-open").forEach(openInsight => {
-    if (openInsight !== insight) {
-      openInsight.classList.remove("is-open");
-      openInsight.querySelector("[data-cashflow-insight-toggle]")?.setAttribute("aria-expanded", "false");
-    }
-  });
-  if (insightToggle && insight) {
-    const isOpen = insight.classList.toggle("is-open");
-    insightToggle.setAttribute("aria-expanded", String(isOpen));
-    return;
-  }
-  if (insight) return;
   const homeLink = target.closest("[data-home-link]");
   if (homeLink) {
     event.preventDefault();
