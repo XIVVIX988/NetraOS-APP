@@ -44,31 +44,61 @@ const crumb = document.querySelector("#crumb-page");
 const publicShell = document.querySelector("#public-shell");
 const appShell = document.querySelector(".app-shell");
 
+// Shared icons. Inline SVG is centred by the button's own grid, unlike the old text arrows (⌃ ⌄).
+const chevronIcon = '<svg class="chev-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>';
+const plusIcon = '<svg class="plus-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg>';
+const phoneQuery = window.matchMedia("(max-width: 760px)");
+
+// Phone only: which cards on each page may collapse. Anything not listed stays open with no toggle.
+// "all" means every card on that page. Desktop keeps its existing behaviour.
+const phoneCollapseRules = {
+  Dashboard: ["cash flow", "asset allocation", "active quests"],
+  Inventory: ["assets", "liabilities", "accounts"],
+  "Power-Up": ["income sources", "monthly budget", "monthly spending"],
+  Quests: ["progress & pace", "active quests"],
+  Stats: ["income & outflow", "budget vs. actual", "asset mix", "quest progress"],
+  Achievements: [],
+  Contact: [],
+  Profile: [],
+  Settings: "all"
+};
+
+function cardTitle(card) {
+  const source = card.querySelector(":scope > .panel-heading h2, :scope > [data-card-collapse-heading] h2, :scope > h2, :scope > h3");
+  if (!source) return "";
+  const clone = source.cloneNode(true);
+  clone.querySelectorAll(".count-badge, small, .inventory-account-count").forEach(extra => extra.remove());
+  return clone.textContent.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function cardCollapsesOnPhone(card) {
+  const rule = phoneCollapseRules[crumb.textContent.trim()];
+  if (rule === "all") return true;
+  if (!Array.isArray(rule)) return false;
+  return rule.includes(cardTitle(card));
+}
+
+function setPhoneToggleState(card, expanded) {
+  card.classList.toggle("phone-expanded", expanded);
+  const toggle = card.querySelector(".phone-panel-toggle");
+  if (!toggle) return;
+  toggle.setAttribute("aria-expanded", String(expanded));
+  toggle.setAttribute("aria-label", expanded ? "Collapse section details" : "Expand section details");
+  const text = toggle.querySelector(".toggle-text");
+  if (text) text.textContent = expanded ? "Hide" : "Show";
+}
+
 // Give data and explanation cards their own independent expand/collapse control.
 function enhanceInformationCards(root = content) {
   if (!root) return;
-  const page = crumb?.textContent?.trim() || "Dashboard";
-  const selectors = {
-    Dashboard: ".cashflow-panel, .allocation-panel, .quests-panel",
-    Inventory: ".inventory-list-panel, .inventory-accounts",
-    "Power-Up": ".power-list-panel",
-    Quests: ".milestones-engine, .quest-page-panel",
-    Stats: ".stats-panel",
-    Settings: ".settings-panel"
-  };
-  const selector = selectors[page];
-  if (!selector) return;
-  root.querySelectorAll(selector).forEach(card => {
+  const phone = phoneQuery.matches;
+  root.querySelectorAll(".metric-card, .panel:not(.cx-form):not(.tax-panel):not(.phone-collapsible), .inventory-summary-card, .achievement-card, .phone-collapsible").forEach(card => {
+    const allowedOnPhone = cardCollapsesOnPhone(card);
+    card.dataset.phoneCollapse = allowedOnPhone ? "yes" : "no";
+
     if (card.matches(".phone-collapsible")) {
       if (!card.dataset.collapseInitialized) {
-        const expanded = !window.matchMedia("(max-width: 760px)").matches;
-        card.classList.toggle("phone-expanded", expanded);
-        const toggle = card.querySelector(".phone-panel-toggle");
-        if (toggle) {
-          toggle.setAttribute("aria-expanded", String(expanded));
-          toggle.setAttribute("aria-label", expanded ? "Collapse section details" : "Expand section details");
-          toggle.textContent = expanded ? "Hide" : "Show";
-        }
+        setPhoneToggleState(card, !phone);
         card.dataset.collapseInitialized = "true";
       }
       return;
@@ -93,13 +123,23 @@ function enhanceInformationCards(root = content) {
       toggle.setAttribute("aria-expanded", "true");
       toggle.setAttribute("aria-label", `Collapse ${name}`);
       toggle.title = `Collapse ${name}`;
-      toggle.innerHTML = '<span aria-hidden="true">⌃</span>';
+      toggle.innerHTML = chevronIcon;
       const metricSymbol = heading.querySelector(".metric-symbol");
       if (metricSymbol) metricSymbol.before(toggle);
       else heading.append(toggle);
       heading.dataset.cardCollapseHeading = "";
       card.dataset.cardCollapsible = "true";
+      // Settings is long, so on a phone only its first section starts open.
+      if (phone && allowedOnPhone && crumb.textContent.trim() === "Settings" && card !== root.querySelector(".settings-panel")) {
+        card.classList.add("card-is-collapsed");
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.setAttribute("aria-label", `Expand ${name}`);
+        toggle.title = `Expand ${name}`;
+      }
     }
+
+    // A card that may not collapse on a phone is always shown open, even if it was closed on a wider screen.
+    if (phone && !allowedOnPhone && card.classList.contains("card-is-collapsed")) toggleInformationCard(card, true);
 
     const heading = card.querySelector(":scope > [data-card-collapse-heading], :scope > .panel-heading, :scope > .metric-heading");
     card.querySelectorAll(":scope > *").forEach(child => {
@@ -119,7 +159,6 @@ function toggleInformationCard(card, expanded) {
   toggle.setAttribute("aria-expanded", String(expanded));
   toggle.setAttribute("aria-label", `${expanded ? "Collapse" : "Expand"} ${name}`);
   toggle.title = `${expanded ? "Collapse" : "Expand"} ${name}`;
-  toggle.innerHTML = `<span aria-hidden="true">${expanded ? "⌃" : "⌄"}</span>`;
 }
 const profileStorageKey = "netraos-profile-v1";
 const sessionStorageKey = "netraos-local-session-v1";
@@ -510,6 +549,12 @@ function getPowerUpReportTotals() {
 }
 
 // Read and save the browser-local profile and preference settings.
+function setAccent(accent) {
+  const value = ["emerald", "amber", "matrix", "blue"].includes(accent) ? accent : "emerald";
+  appShell.dataset.accent = value;
+  document.documentElement.dataset.accent = value;
+}
+
 function getStoredProfile() {
   try {
     return JSON.parse(localStorage.getItem(profileStorageKey) || "null");
@@ -572,7 +617,7 @@ function applyStoredSettings() {
   document.body.classList.toggle("theme-dark", settings.darkMode);
   appShell.classList.toggle("theme-dark", settings.darkMode);
   publicShell.classList.toggle("theme-dark", settings.darkMode);
-  appShell.dataset.accent = settings.accentProfile;
+  setAccent(settings.accentProfile);
   appShell.classList.toggle("hide-xp-points", !settings.showXpPoints);
   appShell.classList.toggle("disable-quest-animations", !settings.questAnimations || settings.reduceMotion);
   document.querySelectorAll("[data-theme-toggle]").forEach(themeToggle => {
@@ -1159,7 +1204,7 @@ function renderProfilePage() {
           <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" maxlength="120" value="${escapeHTML(profile.email || "")}" required></label>
           <label class="inventory-form-field"><span>Sex <small>Optional</small></span><select name="sex"><option value="">Prefer not to say</option><option value="female" ${profile.sex === "female" ? "selected" : ""}>Female</option><option value="male" ${profile.sex === "male" ? "selected" : ""}>Male</option><option value="intersex" ${profile.sex === "intersex" ? "selected" : ""}>Intersex</option><option value="other" ${profile.sex === "other" ? "selected" : ""}>Other</option></select></label>
           <label class="inventory-form-field"><span>Date of birth <small>Optional</small></span><input name="dateOfBirth" type="date" max="${maxDate}" value="${escapeHTML(profile.dateOfBirth || "")}"></label>
-          <div class="account-form-actions settings-actions"><span>Saved in this browser</span><button class="inventory-submit" type="submit">Save changes</button></div>
+          <div class="account-form-actions"><span>Saved in this browser</span><button class="inventory-submit" type="submit">Save changes</button></div>
         </form>
       </section>
       <section class="account-notice"><span>i</span><p>This is a local profile for the app preview. NetraOS currently has no account server or cloud sync.</p></section>
@@ -1890,7 +1935,7 @@ function renderInventoryPage() {
           <p class="welcome-sub">One clear view of what you own, what you owe, and your net worth.</p>
         </div>
         <button class="inventory-action" type="button" data-inventory-action="add-account">
-          <span aria-hidden="true">＋</span> Add an account
+          ${plusIcon} Add an account
         </button>
       </header>
 
@@ -1916,8 +1961,8 @@ function renderInventoryPage() {
         <article class="panel inventory-list-panel phone-collapsible">
           <div class="panel-heading">
             <div><div class="section-kicker">WHAT YOU OWN</div><h2>Assets</h2></div>
-            <button class="phone-panel-toggle" type="button" aria-expanded="false">Show</button>
-            <button class="inventory-add-small" type="button" data-inventory-action="add-asset">＋ Add asset</button>
+            <button class="phone-panel-toggle" type="button" aria-expanded="false" aria-label="Expand section details"><span class="toggle-text">Show</span>${chevronIcon}</button>
+            <button class="inventory-add-small" type="button" data-inventory-action="add-asset" aria-label="Add asset">${plusIcon}<span class="add-label">Add asset</span></button>
           </div>
           <div class="phone-collapsible-content"><div class="inventory-rows">${renderInventoryRows("asset", assetCategories)}</div>
           <div class="inventory-panel-total"><span>Total assets</span><strong>${formatKsh(totals.assets)}</strong></div></div>
@@ -1926,8 +1971,8 @@ function renderInventoryPage() {
         <article class="panel inventory-list-panel phone-collapsible">
           <div class="panel-heading">
             <div><div class="section-kicker">WHAT YOU OWE</div><h2>Liabilities</h2></div>
-            <button class="phone-panel-toggle" type="button" aria-expanded="false">Show</button>
-            <button class="inventory-add-small" type="button" data-inventory-action="add-liability">＋ Add liability</button>
+            <button class="phone-panel-toggle" type="button" aria-expanded="false" aria-label="Expand section details"><span class="toggle-text">Show</span>${chevronIcon}</button>
+            <button class="inventory-add-small" type="button" data-inventory-action="add-liability" aria-label="Add liability">${plusIcon}<span class="add-label">Add liability</span></button>
           </div>
           <div class="phone-collapsible-content"><div class="inventory-rows">${renderInventoryRows("liability", liabilityCategories)}</div>
           <div class="inventory-panel-total"><span>Total liabilities</span><strong>${formatKsh(totals.liabilities)}</strong></div></div>
@@ -1984,7 +2029,7 @@ function updateDashboardInventorySummary() {
 
   const donut = document.querySelector(".donut");
   if (donut && totals.assets > 0) {
-    const colors = ["#11845e", "#55a985", "#95c6aa", "#c9e2d3"];
+    const colors = ["oklch(.54 .11 var(--accent-hue))", "oklch(.68 .10 var(--accent-hue))", "oklch(.79 .07 var(--accent-hue))", "oklch(.89 .04 var(--accent-hue))"];
     let position = 0;
     const stops = allocations.map((allocation, index) => {
       const start = position;
@@ -2459,7 +2504,7 @@ function renderQuestsPage() {
           <p class="welcome-sub">Keep up to four active quests in motion. Update the amount saved to see your progress.</p>
         </div>
         <button class="inventory-action" type="button" data-quest-action="add" ${canAddQuest ? "" : "disabled"}>
-          <span aria-hidden="true">＋</span> Add a quest
+          ${plusIcon} Add a quest
         </button>
       </header>
       <section class="inventory-summary quest-summary" aria-label="Quest summary">
@@ -2767,6 +2812,8 @@ function setCashflowChartCollapsed(collapsed) {
   const chartContent = panel?.querySelector(".cashflow-content");
   const toggle = panel?.querySelector("[data-cashflow-toggle]");
   if (!panel || !chartContent || !toggle) return;
+  // On phones the card's own chevron collapses the whole panel, so the saved desktop choice is not applied.
+  if (phoneQuery.matches) { chartContent.hidden = false; panel.classList.remove("is-collapsed"); return; }
   chartContent.hidden = collapsed;
   panel.classList.toggle("is-collapsed", collapsed);
   toggle.setAttribute("aria-expanded", String(!collapsed));
@@ -2782,7 +2829,7 @@ function restoreCashflowChartState() {
 // Select a page, refresh its data, and update the active tab and URL.
 function showPage(page) {
   if (crumb.textContent === "Settings" && page !== "Settings") {
-    appShell.dataset.accent = getStoredSettings().accentProfile;
+    setAccent(getStoredSettings().accentProfile);
   }
   navItems.forEach(item => {
     const selected = item.dataset.page === page;
@@ -2913,7 +2960,7 @@ function renderPowerUpPage() {
           <p class="welcome-sub">Build a monthly plan around the income you have and the priorities you choose.</p>
         </div>
         <button class="inventory-action" type="button" data-power-action="income">
-          <span aria-hidden="true">＋</span> Add income
+          ${plusIcon} Add income
         </button>
       </header>
 
@@ -2940,15 +2987,14 @@ function renderPowerUpPage() {
         </article>
       </section>
 
-
       ${renderTaxWidget()}
 
       <section class="inventory-columns power-columns" aria-label="Income and monthly budget">
         <article class="panel power-list-panel phone-collapsible">
           <div class="panel-heading">
             <div><div class="section-kicker">MONEY COMING IN</div><h2>Income sources</h2></div>
-            <button class="phone-panel-toggle" type="button" aria-expanded="false">Show</button>
-            <button class="inventory-add-small" type="button" data-power-action="income">＋ Add income</button>
+            <button class="phone-panel-toggle" type="button" aria-expanded="false" aria-label="Expand section details"><span class="toggle-text">Show</span>${chevronIcon}</button>
+            <button class="inventory-add-small" type="button" data-power-action="income" aria-label="Add income">${plusIcon}<span class="add-label">Add income</span></button>
           </div>
           <div class="phone-collapsible-content"><div class="power-rows">${incomeRows}</div>
           <div class="inventory-panel-total"><span>Total monthly income</span><strong>${formatKsh(totals.income)}</strong></div></div>
@@ -2957,8 +3003,8 @@ function renderPowerUpPage() {
         <article class="panel power-list-panel phone-collapsible">
           <div class="panel-heading">
             <div><div class="section-kicker">MONEY WITH A JOB</div><h2>Monthly budget</h2></div>
-            <button class="phone-panel-toggle" type="button" aria-expanded="false">Show</button>
-            <button class="inventory-add-small" type="button" data-power-action="budget">＋ Add budget</button>
+            <button class="phone-panel-toggle" type="button" aria-expanded="false" aria-label="Expand section details"><span class="toggle-text">Show</span>${chevronIcon}</button>
+            <button class="inventory-add-small" type="button" data-power-action="budget" aria-label="Add budget">${plusIcon}<span class="add-label">Add budget</span></button>
           </div>
           <div class="phone-collapsible-content"><div class="power-rows">${budgetRows}</div>
           <div class="inventory-panel-total"><span>Total planned budget</span><strong>${formatKsh(totals.budget)}</strong></div></div>
@@ -2967,8 +3013,8 @@ function renderPowerUpPage() {
         <article class="panel power-list-panel phone-collapsible">
           <div class="panel-heading">
             <div><div class="section-kicker">MONEY SPENT</div><h2>Monthly spending</h2></div>
-            <button class="phone-panel-toggle" type="button" aria-expanded="false">Show</button>
-            <button class="inventory-add-small" type="button" data-power-action="spending">＋ Add spending</button>
+            <button class="phone-panel-toggle" type="button" aria-expanded="false" aria-label="Expand section details"><span class="toggle-text">Show</span>${chevronIcon}</button>
+            <button class="inventory-add-small" type="button" data-power-action="spending" aria-label="Add spending">${plusIcon}<span class="add-label">Add spending</span></button>
           </div>
           <div class="phone-collapsible-content"><div class="power-rows">${spendingRows}</div>
           <div class="inventory-panel-total"><span>Total monthly spending</span><strong>${formatKsh(totals.spending)}</strong></div></div>
@@ -2997,7 +3043,7 @@ const KE_TAX = {
     { upTo: Infinity, rate: 0.35 }
   ]
 };
-const taxColors = { net: "#13875f", paye: "#d8b451", nssf: "#2f6f8f", shif: "#c0584a", ahl: "#7a6bb0" };
+const taxColors = { net: "var(--green)", paye: "#d8b451", nssf: "#2f6f8f", shif: "#c0584a", ahl: "#7a6bb0" };
 
 // Calculate monthly take-home pay after statutory deductions and progressive PAYE.
 function computeKenyaPayroll(grossInput) {
@@ -3069,7 +3115,7 @@ function taxRing(fraction, radius, stroke, color) {
   const size = (radius + stroke) * 2;
   return `<svg viewBox="0 0 ${size} ${size}" aria-hidden="true" focusable="false">
     <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" fill="none" stroke="#e8ece9" stroke-width="${stroke}"></circle>
-    <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${filled.toFixed(2)} ${circumference.toFixed(2)}" transform="rotate(-90 ${size / 2} ${size / 2})"></circle>
+    <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" fill="none" style="stroke:${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${filled.toFixed(2)} ${circumference.toFixed(2)}" transform="rotate(-90 ${size / 2} ${size / 2})"></circle>
   </svg>`;
 }
 
@@ -5257,10 +5303,7 @@ document.addEventListener("click", event => {
   }
   if (button.matches(".phone-panel-toggle")) {
     const panel = button.closest(".phone-collapsible");
-    const expanded = panel.classList.toggle("phone-expanded");
-    button.setAttribute("aria-expanded", String(expanded));
-    button.setAttribute("aria-label", expanded ? "Collapse section details" : "Expand section details");
-    button.textContent = expanded ? "Hide" : "Show";
+    setPhoneToggleState(panel, !panel.classList.contains("phone-expanded"));
     return;
   }
   if (button.matches("[data-delete-power-item]")) {
@@ -5317,7 +5360,7 @@ document.addEventListener("change", event => {
   const input = event.target;
   if (input instanceof HTMLSelectElement && input.name === "accentProfile") {
     const names = { emerald: "Emerald Terminal", amber: "Cyber Amber", matrix: "Matrix Green", blue: "Classic Blue" };
-    appShell.dataset.accent = input.value;
+    setAccent(input.value);
     const previewName = input.form?.querySelector("[data-accent-preview-name]");
     if (previewName) previewName.textContent = names[input.value] || names.emerald;
     return;
@@ -5383,7 +5426,7 @@ document.addEventListener("click", event => {
   const heading = event.target.closest?.("[data-card-collapse-heading], .panel-heading, .metric-heading");
   if (!heading || !content.contains(heading) || event.target.closest("button, a, input, select, textarea, [contenteditable='true']")) return;
   const card = heading.parentElement;
-  if (card?.dataset.cardCollapsible === "true") {
+  if (card?.dataset.cardCollapsible === "true" && !(phoneQuery.matches && card.dataset.phoneCollapse === "no")) {
     const toggleButton = card.querySelector("[data-card-collapse-toggle]");
     toggleInformationCard(card, toggleButton?.getAttribute("aria-expanded") !== "true");
   }
@@ -5391,6 +5434,11 @@ document.addEventListener("click", event => {
 
 // Initialize preferences and summaries before restoring any local session.
 enhanceInformationCards(content);
+phoneQuery.addEventListener("change", () => {
+  enhanceInformationCards(content);
+  content.querySelectorAll(".phone-collapsible").forEach(panel => setPhoneToggleState(panel, !phoneQuery.matches));
+  restoreCashflowChartState();
+});
 const informationCardObserver = new MutationObserver(() => enhanceInformationCards(content));
 informationCardObserver.observe(content, { childList: true, subtree: true });
 updateDateSwitcher();
