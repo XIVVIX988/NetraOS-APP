@@ -691,7 +691,7 @@ function recordSecurityAudit(action) {
 }
 
 
-// Password fields: typed text stays visible for a few seconds, and the eye button shows or hides it on demand.
+// Password fields stay masked while typing; only the explicit eye control reveals them.
 const PASSWORD_REVEAL_MS = 3000;
 const passwordRevealTimers = new WeakMap();
 
@@ -707,17 +707,6 @@ function setPasswordVisible(input, visible, pinned) {
   }
 }
 
-document.addEventListener("input", event => {
-  const input = event.target;
-  if (!(input instanceof HTMLInputElement) || !input.closest(".password-field")) return;
-  const toggle = input.closest(".password-field").querySelector("[data-password-toggle]");
-  if (toggle?.getAttribute("aria-pressed") === "true") return;
-  window.clearTimeout(passwordRevealTimers.get(input));
-  if (!input.value) { setPasswordVisible(input, false); return; }
-  setPasswordVisible(input, true);
-  passwordRevealTimers.set(input, window.setTimeout(() => setPasswordVisible(input, false), PASSWORD_REVEAL_MS));
-});
-
 document.addEventListener("click", event => {
   const toggle = event.target.closest("[data-password-toggle]");
   if (!toggle) return;
@@ -725,6 +714,9 @@ document.addEventListener("click", event => {
   window.clearTimeout(passwordRevealTimers.get(input));
   const pin = toggle.getAttribute("aria-pressed") !== "true";
   setPasswordVisible(input, pin, pin);
+  if (pin) {
+    passwordRevealTimers.set(input, window.setTimeout(() => setPasswordVisible(input, false, false), PASSWORD_REVEAL_MS));
+  }
   input.focus();
 });
 

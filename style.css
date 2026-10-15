@@ -7656,6 +7656,8 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
 .password-field { position: relative; display: block; }
 .password-field input { width: 100%; box-sizing: border-box; padding-right: 46px; }
 .password-toggle { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #668071; cursor: pointer; transition: background .15s, color .15s; }
+.password-field input[type="password"]::-ms-reveal,
+.password-field input[type="password"]::-ms-clear { display: none; }
 .password-toggle:hover { background: #eef3ef; color: #187653; }
 .password-toggle:focus-visible { outline: 2px solid #187653; outline-offset: 1px; }
 .password-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
