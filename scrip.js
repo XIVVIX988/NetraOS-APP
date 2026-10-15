@@ -1050,7 +1050,7 @@ function showPublicPage(page = "landing") {
           <h1>${isSignup ? "Create your account." : "Log in to NetraOS."}</h1>
           <p class="auth-description">${isSignup ? "Set up your local profile and start organizing your finances." : "Continue to your financial command center."}</p>
           <form class="auth-form" data-auth-form="${isSignup ? "signup" : "login"}" novalidate>
-            ${isSignup ? `<label class="inventory-form-field"><span>Full name</span><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your full name" required></label><label class="inventory-form-field"><span>Username</span><input name="username" type="text" autocomplete="nickname" minlength="2" maxlength="24" pattern="[A-Za-z0-9_ ]{2,24}" placeholder="John Doe" aria-describedby="signup-username-hint" required><small id="signup-username-hint">2–24 letters, numbers, spaces, or underscores</small></label>` : ""}
+            ${isSignup ? `<label class="inventory-form-field"><span>Full name</span><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your full name" required></label>` : ""}
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
             <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" minlength="8" placeholder="At least 8 characters" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>` : ""}
@@ -1069,7 +1069,7 @@ function showPublicPage(page = "landing") {
 // Build profile and settings screens from the current browser-local preferences.
 function renderProfilePage() {
   const profile = getStoredProfile() || { name: document.body.dataset.userName || "Jordan Davis", email: "" };
-  const username = String(profile.username || profile.name.split(/\s+/)[0] || "user").toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24) || "user";
+  const username = String(profile.username || profile.name.split(/\s+/)[0] || "");
   const initials = profile.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
   const photo = profile.image
     ? `<img src="${escapeHTML(profile.image)}" alt="Profile photo">`
@@ -1077,13 +1077,13 @@ function renderProfilePage() {
   const maxDate = localDateValue();
   return `
     <section class="account-page">
-      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> YOUR ACCOUNT</div><h1>Your profile.</h1><p class="welcome-sub">Choose the username NetraOS uses to address you and manage your profile details.</p></div></header>
+      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> YOUR ACCOUNT</div><h1>Your profile.</h1><p class="welcome-sub">Choose the name NetraOS should use to address you and manage your profile details.</p></div></header>
       <section class="panel account-panel">
-        <div class="profile-summary"><span class="profile-initials profile-photo-preview">${photo}</span><div><strong>${escapeHTML(profile.username ? `@${profile.username}` : profile.name)}</strong><small>${escapeHTML(profile.name)} · ${escapeHTML(profile.email || "No email added")}</small></div></div>
+        <div class="profile-summary"><span class="profile-initials profile-photo-preview">${photo}</span><div><strong>${escapeHTML(profile.username || profile.name)}</strong><small>${escapeHTML(profile.name)} · ${escapeHTML(profile.email || "No email added")}</small></div></div>
         <form class="account-form" data-account-form="profile">
           <div class="inventory-form-field profile-photo-field"><label for="profile-photo-input"><span>Profile image <small>Optional · PNG, JPEG, or WebP up to 5 MB</small></span></label><input id="profile-photo-input" name="photo" type="file" accept="image/png,image/jpeg,image/webp"><button class="profile-photo-remove" type="button" data-remove-profile-image>Remove image</button></div>
           <label class="inventory-form-field"><span>Full name</span><input name="name" type="text" maxlength="80" value="${escapeHTML(profile.name)}" required></label>
-          <label class="inventory-form-field"><span>Username</span><input name="username" type="text" autocomplete="nickname" minlength="2" maxlength="24" pattern="[A-Za-z0-9_ ]{2,24}" value="${escapeHTML(username)}" required><small>Shown in greetings · letters, numbers, spaces, and underscores</small></label>
+          <label class="inventory-form-field"><span>Preferred name</span><input name="username" type="text" autocomplete="nickname" maxlength="40" value="${escapeHTML(username)}" required><small>Shown in greetings</small></label>
           <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" maxlength="120" value="${escapeHTML(profile.email || "")}" required></label>
           <label class="inventory-form-field"><span>Sex <small>Optional</small></span><select name="sex"><option value="">Prefer not to say</option><option value="female" ${profile.sex === "female" ? "selected" : ""}>Female</option><option value="male" ${profile.sex === "male" ? "selected" : ""}>Male</option><option value="intersex" ${profile.sex === "intersex" ? "selected" : ""}>Intersex</option><option value="other" ${profile.sex === "other" ? "selected" : ""}>Other</option></select></label>
           <label class="inventory-form-field"><span>Date of birth <small>Optional</small></span><input name="dateOfBirth" type="date" max="${maxDate}" value="${escapeHTML(profile.dateOfBirth || "")}"></label>
@@ -1179,6 +1179,7 @@ function enterApp(profile) {
   maybePromptForBackup();
   scheduleAutoLockNudge({ force: true });
   scheduleShortcutPrompt();
+  showCookieBanner();
 }
 
 function scheduleShortcutPrompt() {
@@ -3842,6 +3843,45 @@ async function confirmEmailChallenge(pending, code, purpose) {
   return result.verified === true;
 }
 
+function showPreferredNamePrompt(profile) {
+  const dialog = document.createElement("dialog");
+  dialog.className = "inventory-dialog";
+  dialog.setAttribute("aria-labelledby", "preferred-name-title");
+  dialog.innerHTML = `
+    <form class="inventory-form" novalidate>
+      <header class="inventory-dialog-heading"><div><span class="section-kicker">A QUICK HELLO</span><h2 id="preferred-name-title">Welcome to NetraOS</h2></div></header>
+      <div class="inventory-form-fields">
+        <p class="reset-copy">What name do you prefer being called?</p>
+        <label class="inventory-form-field"><span>Your preferred name</span><input name="preferredName" type="text" autocomplete="nickname" maxlength="40" placeholder="The name you go by" required></label>
+        <p class="reset-status" role="alert" aria-live="polite" data-preferred-name-error></p>
+      </div>
+      <footer class="inventory-dialog-actions"><button class="inventory-submit" type="submit">Continue</button></footer>
+    </form>`;
+  document.body.append(dialog);
+  const form = dialog.querySelector("form");
+  const error = dialog.querySelector("[data-preferred-name-error]");
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const preferredName = String(form.elements.preferredName.value || "").trim().replace(/\s+/g, " ");
+    if (!preferredName) {
+      error.textContent = "Enter the name you’d like us to use.";
+      form.elements.preferredName.focus();
+      return;
+    }
+    const completedProfile = { ...profile, username: preferredName };
+    try {
+      saveStoredProfile(completedProfile);
+      enterApp(completedProfile);
+      dialog.close();
+    } catch {
+      error.textContent = "Unable to save your profile. Check browser storage and try again.";
+    }
+  });
+  dialog.addEventListener("cancel", event => event.preventDefault());
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.showModal();
+  form.elements.preferredName.focus();
+}
 function showEmailCodeChallenge({ email, purpose, title, description, onVerified }) {
   let pending = null;
   let resendTimer = 0;
@@ -4915,14 +4955,8 @@ document.addEventListener("submit", async event => {
 
     if (form.dataset.authForm === "signup") {
       const name = String(formData.get("name") || "").trim();
-      const username = String(formData.get("username") || "").trim();
       if (name.length < 2) {
         fail("Enter your name to create a profile.");
-        return;
-      }
-      const displayUsername = username.replace(/\s+/g, " ");
-      if (!/^[A-Za-z0-9_ ]{2,24}$/.test(displayUsername)) {
-        fail("Choose a username with 2–24 letters, numbers, spaces, or underscores.");
         return;
       }
       if (!formData.has("acceptTerms")) {
@@ -4944,7 +4978,6 @@ document.addEventListener("submit", async event => {
       const profile = {
         ...(currentProfile || {}),
         name,
-        username: displayUsername,
         email,
         ...passwordVerifier,
         termsVersion,
@@ -4956,10 +4989,7 @@ document.addEventListener("submit", async event => {
           purpose: "account-upgrade",
           title: "Verify your email",
           description: "This existing local profile needs email verification before password sign-in can be enabled.",
-          onVerified: () => {
-            try { saveStoredProfile(profile); enterApp(profile); }
-            catch { fail("Unable to save a local profile. Check browser storage settings."); }
-          }
+          onVerified: () => showPreferredNamePrompt(profile)
         });
         return;
       }
@@ -4968,10 +4998,7 @@ document.addEventListener("submit", async event => {
         purpose: "account-signup",
         title: "Verify your email",
         description: "Enter the email code to finish creating your account.",
-        onVerified: () => {
-          try { saveStoredProfile(profile); enterApp(profile); }
-          catch { fail("Unable to save a local profile. Check browser storage settings."); }
-        }
+        onVerified: () => showPreferredNamePrompt(profile)
       });
       return;
     }
@@ -5026,10 +5053,10 @@ document.addEventListener("submit", async event => {
       dateOfBirth: String(formData.get("dateOfBirth") || ""),
       image
     };
-    if (profile.name.length < 2 || !/^[A-Za-z0-9_ ]{2,24}$/.test(profile.username) || !profile.email.includes("@") || (profile.dateOfBirth && profile.dateOfBirth > localDateValue())) {
+    if (profile.name.length < 2 || !profile.username || profile.username.length > 40 || !profile.email.includes("@") || (profile.dateOfBirth && profile.dateOfBirth > localDateValue())) {
       showToast(profile.dateOfBirth > localDateValue()
         ? "Date of birth cannot be in the future."
-        : "Enter a valid name, username, and email address.");
+        : "Enter a valid full name, preferred name, and email address.");
       return;
     }
     try {
@@ -5344,7 +5371,7 @@ document.addEventListener("click", event => {
   if (button.matches(".profile-button")) {
     const profile = getStoredProfile();
     openMenu(button, [
-      { label: profile?.username ? `@${profile.username}` : profile?.name || "Your profile", action: "profile" },
+      { label: profile?.username || profile?.name || "Your profile", action: "profile" },
       { label: "Settings", action: "settings" },
       { label: "Sign out", action: "sign-out" }
     ]);
@@ -5495,6 +5522,7 @@ function openCookiePreferences() {
 }
 
 function showCookieBanner() {
+  if (appShell.hidden || document.querySelector("[data-cookie-banner]")) return;
   try {
     if (localStorage.getItem(cookieConsentStorageKey)) return;
   } catch { /* Still show the notice when storage is unavailable. */ }
@@ -5517,4 +5545,4 @@ function showCookieBanner() {
 document.addEventListener("click", event => {
   if (event.target.closest("[data-cookie-manage]")) openCookiePreferences();
 });
-showCookieBanner();
+if (!appShell.hidden) showCookieBanner();
