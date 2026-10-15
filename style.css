@@ -8309,3 +8309,34 @@ body.theme-dark #public-shell .phone-entry-welcome > .auth-fluid-art { filter: s
 .app-shell.theme-dark .metric-symbol, .app-shell.theme-dark .metric-symbol.green, .app-shell.theme-dark .metric-symbol.coral,
 .app-shell.theme-dark .metric-inline-action, .app-shell.theme-dark .inventory-empty-icon, .app-shell.theme-dark .dashboard-tax-arrow { background: color-mix(in srgb, var(--green) 16%, var(--panel)); border-color: color-mix(in srgb, var(--green) 30%, var(--line)); color: var(--green); }
 .app-shell.theme-dark .positive-pill { background: color-mix(in srgb, var(--green) 16%, var(--panel)); color: var(--green); }
+
+/* ===== Cash flow card v2: hero net figure, accent bars, highlighted current month ===== */
+.app-shell .cashflow-panel { background: radial-gradient(120% 70% at 100% 0%, color-mix(in srgb, var(--green) 9%, transparent), transparent 60%), var(--panel); }
+.app-shell .cashflow-panel .chart-legend { flex-wrap: wrap; gap: 8px; margin-top: 14px; color: var(--muted); font: 600 11px var(--sans); }
+.app-shell .cashflow-panel .chart-legend > span:not(.chart-total) { gap: 7px; padding: 6px 11px; border: 1px solid var(--line); border-radius: 99px; background: color-mix(in srgb, var(--panel-2) 70%, transparent); }
+.app-shell .cashflow-panel .chart-legend i { width: 9px; height: 9px; border-radius: 50%; }
+.app-shell .cashflow-panel .legend-income { background: var(--green); }
+.app-shell .cashflow-panel .legend-expense { background: color-mix(in srgb, var(--text) 30%, var(--panel)); }
+.app-shell .cashflow-panel .chart-total { order: -1; flex: 1 0 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 4px; font: 600 10px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.app-shell .cashflow-panel .chart-total strong { text-transform: none; color: var(--green); font: 800 26px var(--display); letter-spacing: -.03em; }
+.app-shell .cashflow-panel .chart-wrap { height: 190px; margin-top: 16px; }
+.app-shell .cashflow-panel .y-labels { width: auto; min-width: 54px; padding-right: 8px; color: var(--muted); font: 500 9px var(--mono); white-space: nowrap; }
+.app-shell .cashflow-panel .grid-lines i { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.app-shell .cashflow-panel .grid-lines i:last-child { border-top-color: var(--line); }
+.app-shell .cashflow-panel .chart-bars { inset: 0 4px 24px 4px; }
+.app-shell .cashflow-panel .bar-group { width: 11%; gap: 4px; border-radius: 10px 10px 0 0; }
+.app-shell .cashflow-panel .bar { width: min(14px, 42%); min-height: 5px; border-radius: 7px 7px 2px 2px; }
+.app-shell .cashflow-panel .bar.income { background: linear-gradient(180deg, color-mix(in srgb, var(--green) 62%, #fff), var(--green)); }
+.app-shell .cashflow-panel .bar.expense { background: linear-gradient(180deg, color-mix(in srgb, var(--text) 24%, var(--panel)), color-mix(in srgb, var(--text) 38%, var(--panel))); }
+.app-shell .cashflow-panel .bar-group:not(.current) .bar { opacity: .35; }
+.app-shell .cashflow-panel .bar-group.current { background: linear-gradient(180deg, color-mix(in srgb, var(--green) 14%, transparent), color-mix(in srgb, var(--green) 3%, transparent)); }
+.app-shell .cashflow-panel .bar-group.current::after { display: none; }
+.app-shell .cashflow-panel .bar-group.current .income { box-shadow: 0 6px 14px color-mix(in srgb, var(--green) 35%, transparent); }
+.app-shell .cashflow-panel .x-labels { color: var(--muted); font: 500 10px var(--sans); }
+.app-shell .cashflow-panel .x-labels span:last-child { color: var(--green); font-weight: 700; }
+@media (max-width: 760px) {
+  .app-shell .cashflow-panel .chart-wrap { height: 170px; }
+  .app-shell .cashflow-panel .y-labels { font-size: 8px; min-width: 48px; }
+  .app-shell .cashflow-panel .bar-group { width: 12%; }
+  .app-shell .cashflow-panel .x-labels { font-size: 9px; }
+}
