@@ -1035,7 +1035,12 @@ function showPublicPage(page = "landing") {
       <div class="auth-page">
         <button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button>
         <section class="auth-card">
-          <button class="public-brand auth-brand" type="button" data-public-action="landing" aria-label="Back to NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></button>
+          <header class="auth-visual-header">
+            <span class="auth-orb auth-orb-one" aria-hidden="true"></span><span class="auth-orb auth-orb-two" aria-hidden="true"></span><span class="auth-orb auth-orb-three" aria-hidden="true"></span><span class="auth-orb auth-orb-four" aria-hidden="true"></span>
+            <div class="auth-visual-copy"><span>YOUR FINANCIAL OPERATING SYSTEM</span><p>See your money<br><strong>with more clarity.</strong></p></div>
+            <span class="auth-header-glint" aria-hidden="true">✳</span>
+          </header>
+          <div class="auth-content">
           <div class="section-kicker">${isSignup ? "START WITH A CLEAR PICTURE" : "WELCOME BACK"}</div>
           <h1>${isSignup ? "Create your account." : "Log in to NetraOS."}</h1>
           <p class="auth-description">${isSignup ? "Set up your local profile and start organizing your finances." : "Continue to your financial command center."}</p>
@@ -1049,6 +1054,7 @@ function showPublicPage(page = "landing") {
           </form>
           <p class="auth-switch">${isSignup ? "Already have a local profile?" : "New to NetraOS?"} <button type="button" data-public-action="${isSignup ? "login" : "signup"}">${isSignup ? "Log in" : "Create an account"}</button></p>
           <p class="auth-preview-note">This local profile is stored in this browser. Login uses a password verifier and an email code; connect the email verification service before using login codes outside local preview.</p>
+          </div>
         </section>
       </div>`;
   }
