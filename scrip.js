@@ -623,17 +623,55 @@ function applyStoredSettings() {
 function getSecurityAuditLog() {
   try {
     const entries = JSON.parse(localStorage.getItem(securityAuditStorageKey) || "[]");
-    return Array.isArray(entries) ? entries : [];
+    return Array.isArray(entries) ? entries.filter(item => item && typeof item === "object" && typeof item.action === "string" && Number.isFinite(Date.parse(item.at))) : [];
   } catch {
     return [];
   }
 }
 
+function getAuditPeriodStart(period, now = new Date()) {
+  const start = new Date(now);
+  if (period === "24h") start.setHours(start.getHours() - 24);
+  else if (period === "7d") start.setDate(start.getDate() - 7);
+  else if (["1m", "6m", "12m"].includes(period)) {
+    const months = { "1m": 1, "6m": 6, "12m": 12 }[period];
+    const day = start.getDate();
+    start.setDate(1);
+    start.setMonth(start.getMonth() - months);
+    start.setDate(Math.min(day, new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate()));
+  }
+  else return null;
+  return start;
+}
+
+function downloadSecurityAudit(period) {
+  const labels = { "24h": "24 hours", "7d": "7 days", "1m": "1 month", "6m": "6 months", "12m": "12 months" };
+  const start = getAuditPeriodStart(period);
+  if (!start) return;
+  const end = new Date();
+  const rows = getSecurityAuditLog()
+    .map(item => ({ ...item, timestamp: Date.parse(item.at) }))
+    .filter(item => Number.isFinite(item.timestamp) && item.timestamp >= start.getTime() && item.timestamp <= end.getTime())
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .map(item => [item.action, new Date(item.timestamp).toISOString()]);
+  const csvEscape = value => `"${String(value ?? "").replace(/"/g, '""')}"`;
+  const csv = [["Activity", "Date and time"], ...rows].map(row => row.map(csvEscape).join(",")).join("\r\n");
+  saveFile(`netraos-security-activity-last-${period}.csv`, "\uFEFF" + csv, "text/csv;charset=utf-8");
+  recordSecurityAudit(`Downloaded local security activity (last ${labels[period]})`);
+  showToast(`${rows.length} security ${rows.length === 1 ? "activity" : "activities"} downloaded.`);
+}
+
 function recordSecurityAudit(action) {
   try {
     const entries = getSecurityAuditLog();
-    entries.unshift({ action, at: new Date().toISOString() });
-    localStorage.setItem(securityAuditStorageKey, JSON.stringify(entries.slice(0, 50)));
+    const now = new Date();
+    entries.unshift({ action, at: now.toISOString() });
+    const retentionStart = getAuditPeriodStart("12m", now).getTime();
+    const retained = entries
+      .filter(item => Number.isFinite(Date.parse(item.at)) && Date.parse(item.at) >= retentionStart)
+      .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+      .slice(0, 2000);
+    localStorage.setItem(securityAuditStorageKey, JSON.stringify(retained));
   } catch {
     // Audit history is a convenience and must never block an app action.
   }
@@ -1166,6 +1204,11 @@ function renderSettingsPage() {
   const settings = getStoredSettings();
   const currencyState = getCurrencyState();
   const fiscalMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const recentAudit = getSecurityAuditLog()
+    .map(item => ({ ...item, timestamp: Date.parse(item.at) }))
+    .filter(item => Number.isFinite(item.timestamp))
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 3);
   let privacyEnabled = false;
   try { privacyEnabled = localStorage.getItem(privacyModeStorageKey) === "true"; } catch { /* Use the visible default when storage is unavailable. */ }
   return `
@@ -1196,7 +1239,7 @@ function renderSettingsPage() {
             ${settings.localPinHash ? '<button class="secondary-button pin-recovery-button" type="button" data-pin-recovery>Forgot your current PIN?</button>' : ""}
             <label class="settings-field"><span><strong>Remove current PIN</strong><small>Turns off the local screen lock.</small></span><input name="clearPin" type="checkbox"></label>
           </div>
-          <div class="settings-audit"><strong>Recent local security activity</strong>${getSecurityAuditLog().length ? `<ul>${getSecurityAuditLog().slice(0, 8).map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.at).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>No activity recorded yet.</p>`}</div>
+          <div class="settings-audit"><div class="settings-audit-heading"><strong>Recent local security activity</strong><div class="settings-audit-export"><label for="security-audit-period">Download range</label><select id="security-audit-period" data-security-audit-period><option value="24h">Last 24 hours</option><option value="7d">Last 7 days</option><option value="1m">Last 1 month</option><option value="6m">Last 6 months</option><option value="12m">Last 12 months</option></select><button type="button" class="secondary-button" data-security-audit-download>Download list</button></div></div>${recentAudit.length ? `<ul>${recentAudit.map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.timestamp).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>No activity recorded yet.</p>`}</div>
         </section>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">LOCAL TAX &amp; DEDUCTIONS</div><h2>Kenya statutory estimates</h2></div></div>
           <p class="settings-disclosure">These switches change the local calculator estimate only. Relief amounts are subtracted directly from estimated PAYE, up to the tax before relief. Verify current statutory requirements before relying on a result.</p>
@@ -1216,7 +1259,8 @@ function renderSettingsPage() {
           <p class="legal-links"><a href="#terms" data-public-action="terms">Terms of Service</a><a href="#privacy" data-public-action="privacy">Privacy Policy</a></p>
         </section>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">CUSTOMIZATION &amp; GAMIFICATION</div><h2>System preferences</h2></div></div>
-          <label class="settings-field"><span><strong>Theme accent</strong><small>Choose the color profile used across the workspace.</small></span><select name="accentProfile"><option value="emerald" ${settings.accentProfile === "emerald" ? "selected" : ""}>Emerald Terminal</option><option value="amber" ${settings.accentProfile === "amber" ? "selected" : ""}>Cyber Amber</option><option value="matrix" ${settings.accentProfile === "matrix" ? "selected" : ""}>Matrix Green</option><option value="blue" ${settings.accentProfile === "blue" ? "selected" : ""}>Classic Blue</option></select></label>
+          <label class="settings-field"><span><strong>Theme accent</strong><small>Changes the selected navigation, buttons, chart highlights, and other highlights. Preview updates immediately; save Settings to keep it.</small></span><select name="accentProfile"><option value="emerald" ${settings.accentProfile === "emerald" ? "selected" : ""}>Emerald Terminal</option><option value="amber" ${settings.accentProfile === "amber" ? "selected" : ""}>Cyber Amber</option><option value="matrix" ${settings.accentProfile === "matrix" ? "selected" : ""}>Matrix Green</option><option value="blue" ${settings.accentProfile === "blue" ? "selected" : ""}>Classic Blue</option></select></label>
+          <div class="accent-preview" data-accent-preview aria-live="polite"><span class="accent-preview-swatch" aria-hidden="true"></span><span class="accent-preview-copy"><strong data-accent-preview-name>${escapeHTML({ emerald: "Emerald Terminal", amber: "Cyber Amber", matrix: "Matrix Green", blue: "Classic Blue" }[settings.accentProfile])}</strong><small>Live accent preview</small></span><span class="accent-preview-sample">Example action</span></div>
           <label class="settings-field"><span><strong>Show XP Points</strong><small>Show quest status badges and XP-style progress labels.</small></span><input name="showXpPoints" type="checkbox" ${settings.showXpPoints ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Quest completion sounds</strong><small>Play a short sound when a quest is completed.</small></span><input name="questSounds" type="checkbox" ${settings.questSounds ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Quest completion animations</strong><small>Show the milestone celebration animation.</small></span><input name="questAnimations" type="checkbox" ${settings.questAnimations ? "checked" : ""}></label>
@@ -1315,7 +1359,7 @@ function showShortcutPrompt() {
 function getInventoryEntries() {
   try {
     const entries = JSON.parse(localStorage.getItem(inventoryStorageKey) || "[]");
-    return Array.isArray(entries) ? entries : [];
+    return Array.isArray(entries) ? entries.filter(item => item && typeof item === "object" && typeof item.action === "string" && Number.isFinite(Date.parse(item.at))) : [];
   } catch {
     return [];
   }
@@ -2774,6 +2818,9 @@ function restoreCashflowChartState() {
 }
 // Select a page, refresh its data, and update the active tab and URL.
 function showPage(page) {
+  if (crumb.textContent === "Settings" && page !== "Settings") {
+    appShell.dataset.accent = getStoredSettings().accentProfile;
+  }
   navItems.forEach(item => {
     const selected = item.dataset.page === page;
     item.classList.toggle("active", selected);
@@ -3481,13 +3528,6 @@ function collectDashboardRows() {
 
     if (label && value) {
       rows.push(["Quest: " + label, value]);
-    }
-  });
-  document.querySelectorAll(".activity-row").forEach(item => {
-    const label = item.querySelector("strong")?.innerText.trim();
-    const value = item.querySelector(".activity-amount")?.innerText.trim();
-    if (label && value) {
-      rows.push(["Activity: " + label, value]);
     }
   });
   return rows;
@@ -5164,6 +5204,11 @@ document.addEventListener("click", event => {
   }
   const button = target.closest("button");
   if (!button) return;
+  if (button.matches("[data-security-audit-download]")) {
+    const period = button.closest(".settings-audit")?.querySelector("[data-security-audit-period]")?.value;
+    downloadSecurityAudit(period);
+    return;
+  }
   if (button.matches("[data-pin-recovery]")) {
     showPinRecovery();
     return;
@@ -5313,10 +5358,6 @@ document.addEventListener("click", event => {
     ]);
     return;
   }
-  if (button.matches(".activity-link")) {
-    showToast("Activity history will appear when an account is connected.");
-    return;
-  }
   if (button.matches(".empty-action")) {
     showToast("This section is ready for your financial data.");
     return;
@@ -5326,6 +5367,13 @@ document.addEventListener("click", event => {
 // Validate profile image uploads and show a local preview before saving the profile.
 document.addEventListener("change", event => {
   const input = event.target;
+  if (input instanceof HTMLSelectElement && input.name === "accentProfile") {
+    const names = { emerald: "Emerald Terminal", amber: "Cyber Amber", matrix: "Matrix Green", blue: "Classic Blue" };
+    appShell.dataset.accent = input.value;
+    const previewName = input.form?.querySelector("[data-accent-preview-name]");
+    if (previewName) previewName.textContent = names[input.value] || names.emerald;
+    return;
+  }
   if (input instanceof HTMLSelectElement && input.name === "lockTimeoutMinutes") {
     const autoLockOptions = input.form?.querySelector("[data-autolock-options]");
     const isNever = Number(input.value) === 0;

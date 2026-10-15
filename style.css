@@ -836,14 +836,14 @@ h1 em {
 .alloc-other {
   background: #55574d;
 }
-/* Quests, recent activity, and footer */
+/* Quests and footer */
 .bottom-grid {
   display: grid;
-  grid-template-columns: minmax(0,1.25fr) minmax(350px,1fr);
+  grid-template-columns: minmax(0,1fr);
   gap: 13px;
   margin-top: 14px;
 }
-.quests-panel,.activity-panel {
+.quests-panel {
   min-height: 250px;
 }
 .count-badge {
@@ -7164,6 +7164,11 @@ body.theme-dark .theme-toggle[aria-pressed="true"] svg {
 .settings-pin-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 8px 0; }
 .settings-pin-fields .inventory-form-field { margin: 0; }
 .settings-audit { padding-top: 14px; border-top: 1px solid #e6ebe7; color: #35463b; font-size: 13px; }
+.settings-audit-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px 18px; flex-wrap: wrap; }
+.settings-audit-export { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.settings-audit-export label { color: #65736a; font-size: 12px; }
+.settings-audit-export select { min-height: 38px; padding: 8px 10px; border: 1px solid #d9e1db; border-radius: 9px; background: #fff; color: #28382e; font: inherit; font-size: 12px; }
+.settings-audit-export button { min-height: 38px; padding: 8px 12px; }
 .settings-audit ul { display: grid; gap: 8px; padding: 0; margin: 12px 0 0; list-style: none; }
 .settings-audit li { display: flex; justify-content: space-between; gap: 16px; color: #65736a; }
 .settings-audit time { flex: 0 0 auto; font-size: 12px; }
@@ -7243,6 +7248,8 @@ body.theme-dark #public-shell .legal-card p, body.theme-dark #public-shell .term
 body.theme-dark #public-shell .legal-card a:not(.public-primary), body.theme-dark #public-shell .terms-consent a { color: #a6d3b5; }
 body.theme-dark .settings-disclosure, body.theme-dark .settings-audit li { color: #aab6ad; }
 body.theme-dark .settings-audit { border-color: #344139; color: #e0e8e2; }
+body.theme-dark .settings-audit-export label { color: #aab6ad; }
+body.theme-dark .settings-audit-export select { border-color: #46534a; background: #1d2821; color: #e8eee9; }
 body.theme-dark .settings-panel .settings-field select { border-color: #46534a; background: #1d2821; color: #e8eee9; }
 body.theme-dark .settings-inline-actions button { border-color: #435148; background: #202b24; color: #e0e8e2; }
 body.theme-dark .settings-inline-actions button:hover { background: #2b3a30; }
@@ -8203,3 +8210,51 @@ body.theme-dark .cashflow-status-detail.is-positive { border-color: #365343; bac
 body.theme-dark .cashflow-status.is-warning, body.theme-dark .cashflow-status.is-caution, body.theme-dark .cashflow-status.is-neutral, body.theme-dark .cashflow-status.is-positive { border: 0; background: transparent; color: #e8eee9; }
 body.theme-dark .cashflow-status .cashflow-status-trigger .cashflow-status-icon { background: #294835; color: #a6d3b5; }
 body.theme-dark .cashflow-status .cashflow-status-trigger small { color: #aab6ad; }
+
+/* Make the selected accent easy to see across the app, not only on native checkboxes. */
+.app-shell[data-accent] .nav-item.active { background: var(--green); color: #fff; box-shadow: inset 3px 0 var(--gold-bright); }
+.app-shell[data-accent] .nav-item.active .nav-icon { color: #fff; }
+.app-shell[data-accent] .nav-item:hover,
+.app-shell[data-accent] .top-nav-item:hover { color: var(--green); }
+.app-shell[data-accent] .top-nav-item.active { color: var(--green); box-shadow: inset 0 -2px var(--green); }
+.app-shell[data-accent] .inventory-action:not(.secondary),
+.app-shell[data-accent] .inventory-add-small,
+.app-shell[data-accent] .inventory-submit { border-color: var(--green); background: var(--green); }
+.app-shell[data-accent] .inventory-action:not(.secondary):hover,
+.app-shell[data-accent] .inventory-add-small:hover,
+.app-shell[data-accent] .inventory-submit:hover { border-color: var(--gold-bright); background: var(--gold-bright); }
+.app-shell[data-accent] .metric-symbol,
+.app-shell[data-accent] .metric-symbol.green,
+.app-shell[data-accent] .positive-pill,
+.app-shell[data-accent] .count-badge,
+.app-shell[data-accent] .quest-xp { color: var(--green); }
+.app-shell[data-accent] .thin-progress > span,
+.app-shell[data-accent] .thin-progress .spend-progress,
+.app-shell[data-accent] .mini-bars .bar-current,
+.app-shell[data-accent] .quest-track i { background: var(--green); }
+.app-shell[data-accent] .metric-caption > span,
+.app-shell[data-accent] .metric-caption .under-budget,
+.app-shell[data-accent] .chart-total strong,
+.app-shell[data-accent] .quest-icon.house,
+.app-shell[data-accent] .quest-icon.shield,
+.app-shell[data-accent] .quest-icon.flight { color: var(--green); }
+.app-shell[data-accent] .sparkline svg path:last-of-type { stroke: var(--green); }
+.app-shell[data-accent] .legend-income,
+.app-shell[data-accent] .bar.income,
+.app-shell[data-accent] .bar-group.current .income { background: var(--green); }
+.app-shell[data-accent] .bar.income { background: linear-gradient(180deg, color-mix(in srgb, var(--green) 70%, white), var(--green)); }
+.app-shell[data-accent] .tax-slider { accent-color: var(--green); }
+.app-shell[data-accent] .phone-panel-toggle,
+.app-shell[data-accent] .card-collapse-toggle,
+.app-shell[data-accent] .inventory-row-edit { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); color: var(--green); }
+.app-shell[data-accent] .phone-panel-toggle:hover,
+.app-shell[data-accent] .card-collapse-toggle:hover,
+.app-shell[data-accent] .inventory-row-edit:hover { border-color: var(--green); }
+.accent-preview { display: flex; align-items: center; gap: 11px; margin: -5px 0 8px auto; padding: 9px 12px; border: 1px solid var(--line); border-radius: 11px; background: color-mix(in srgb, var(--green) 5%, var(--panel)); }
+.accent-preview-swatch { width: 18px; height: 18px; flex: 0 0 18px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px color-mix(in srgb, var(--green) 13%, transparent); }
+.accent-preview-copy { display: grid; gap: 2px; }
+.accent-preview-copy strong { color: var(--text); font-size: 12px; }
+.accent-preview-copy small { color: var(--muted); font-size: 10px; }
+.accent-preview-sample { margin-left: auto; padding: 7px 10px; border-radius: 8px; background: var(--green); color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.app-shell.theme-dark .accent-preview { background: color-mix(in srgb, var(--green) 12%, var(--panel)); }
+@media (max-width: 560px) { .accent-preview { align-items: flex-start; flex-wrap: wrap; margin-left: 0; } .accent-preview-sample { margin-left: 29px; } }
