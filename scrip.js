@@ -549,8 +549,9 @@ function getPowerUpReportTotals() {
 }
 
 // Read and save the browser-local profile and preference settings.
+const ACCENT_IDS = ["emerald", "amber", "matrix", "blue", "violet", "coral", "aqua"];
 function setAccent(accent) {
-  const value = ["emerald", "amber", "matrix", "blue"].includes(accent) ? accent : "emerald";
+  const value = ACCENT_IDS.includes(accent) ? accent : "emerald";
   appShell.dataset.accent = value;
   document.documentElement.dataset.accent = value;
 }
@@ -600,7 +601,7 @@ function getStoredSettings() {
       customRelief: Number.isFinite(Number(saved.customRelief)) ? Math.max(0, Number(saved.customRelief)) : 0,
       monthlyBackupPrompt: Boolean(saved.monthlyBackupPrompt),
       lastBackupPromptAt: typeof saved.lastBackupPromptAt === "string" ? saved.lastBackupPromptAt : "",
-      accentProfile: ["emerald", "amber", "matrix", "blue"].includes(saved.accentProfile) ? saved.accentProfile : "emerald",
+      accentProfile: ACCENT_IDS.includes(saved.accentProfile) ? saved.accentProfile : "emerald",
       showXpPoints: saved.showXpPoints !== false,
       questSounds: Boolean(saved.questSounds),
       questAnimations: saved.questAnimations !== false
@@ -1228,9 +1229,9 @@ function renderSettingsPage() {
       <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> APP PREFERENCES</div><h1>Make it yours.</h1><p class="welcome-sub">Choose how NetraOS behaves in this browser.</p></div></header>
       <form class="settings-form" data-account-form="settings">
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">GENERAL &amp; LOCALIZATION</div><h2>Regional preferences</h2></div></div>
-          <label class="settings-field"><span><strong>Default display currency</strong><small>Set a manual KSh exchange rate before selecting another currency.</small></span><select name="displayCurrency">${Object.entries(displayCurrencies).map(([code, currency]) => `<option value="${code}" ${currencyState.active === code ? "selected" : ""} ${currencyState.rates[code] ? "" : "disabled"}>${currency.symbol} · ${currency.name}${currencyState.rates[code] ? "" : " · set rate first"}</option>`).join("")}</select></label>
+          <label class="settings-field"><span><strong>Default display currency</strong><small>Set a manual KSh exchange rate before selecting another currency.</small></span>${settingsDropdown("displayCurrency", currencyState.active, `${displayCurrencies[currencyState.active].symbol} · ${displayCurrencies[currencyState.active].name}`, "Choose display currency")}</label>
           <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="manage-rates">Manage manual exchange rates</button></div>
-          <label class="settings-field"><span><strong>Financial year starts</strong><small>Used to calculate Year to date reports.</small></span><select name="financialYearStartMonth">${fiscalMonths.map((month, index) => `<option value="${index + 1}" ${settings.financialYearStartMonth === index + 1 ? "selected" : ""}>${month}</option>`).join("")}</select></label>
+          <label class="settings-field"><span><strong>Financial year starts</strong><small>Used to calculate Year to date reports.</small></span>${settingsDropdown("financialYearStartMonth", String(settings.financialYearStartMonth), fiscalMonths[settings.financialYearStartMonth - 1] || fiscalMonths[0], "Choose financial year start month")}</label>
           <label class="settings-field"><span><strong>Payday / cycle anchor</strong><small>Type any day from 1 to 31, or pick a suggestion. Shorter months use their last day. Cycle totals and the default spending month start on this day.</small></span><span class="payday-input"><input name="paydayAnchorDay" type="number" min="1" max="31" step="1" inputmode="numeric" list="payday-day-presets" required value="${settings.paydayAnchorDay}" aria-label="Payday, day of the month (1 to 31)"><datalist id="payday-day-presets">${[1, 5, 10, 15, 20, 25, 28].map(day => `<option value="${day}">${ordinalDay(day)} of each month</option>`).join("")}</datalist><em>of each month</em></span></label>
           <label class="settings-field"><span><strong>Dark mode</strong><small>Use a darker color theme across your workspace.</small></span><input name="darkMode" type="checkbox" ${settings.darkMode ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Always show cents</strong><small>Show two decimal places in money amounts.</small></span><input name="alwaysShowCents" type="checkbox" ${settings.alwaysShowCents ? "checked" : ""}></label>
@@ -1271,8 +1272,8 @@ function renderSettingsPage() {
           <p class="legal-links"><a href="#terms" data-public-action="terms">Terms of Service</a><a href="#privacy" data-public-action="privacy">Privacy Policy</a></p>
         </section>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">CUSTOMIZATION &amp; GAMIFICATION</div><h2>System preferences</h2></div></div>
-          <label class="settings-field"><span><strong>Theme accent</strong><small>Changes the selected navigation, buttons, chart highlights, and other highlights. Preview updates immediately; save Settings to keep it.</small></span><select name="accentProfile"><option value="emerald" ${settings.accentProfile === "emerald" ? "selected" : ""}>Emerald Terminal</option><option value="amber" ${settings.accentProfile === "amber" ? "selected" : ""}>Cyber Amber</option><option value="matrix" ${settings.accentProfile === "matrix" ? "selected" : ""}>Matrix Green</option><option value="blue" ${settings.accentProfile === "blue" ? "selected" : ""}>Classic Blue</option></select></label>
-          <div class="accent-preview" data-accent-preview aria-live="polite"><span class="accent-preview-swatch" aria-hidden="true"></span><span class="accent-preview-copy"><strong data-accent-preview-name>${escapeHTML({ emerald: "Emerald Terminal", amber: "Cyber Amber", matrix: "Matrix Green", blue: "Classic Blue" }[settings.accentProfile])}</strong><small>Live accent preview</small></span><span class="accent-preview-sample">Example action</span></div>
+          <label class="settings-field"><span><strong>Theme accent</strong><small>Changes the selected navigation, buttons, chart highlights, and other highlights. Preview updates immediately; save Settings to keep it.</small></span><select name="accentProfile"><option value="emerald" ${settings.accentProfile === "emerald" ? "selected" : ""}>Emerald Terminal</option><option value="amber" ${settings.accentProfile === "amber" ? "selected" : ""}>Cyber Amber</option><option value="matrix" ${settings.accentProfile === "matrix" ? "selected" : ""}>Matrix Green</option><option value="blue" ${settings.accentProfile === "blue" ? "selected" : ""}>Classic Blue</option><option value="violet" ${settings.accentProfile === "violet" ? "selected" : ""}>Electric Violet</option><option value="coral" ${settings.accentProfile === "coral" ? "selected" : ""}>Sunset Coral</option><option value="aqua" ${settings.accentProfile === "aqua" ? "selected" : ""}>Aqua Teal</option></select></label>
+          <div class="accent-preview" data-accent-preview aria-live="polite"><span class="accent-preview-swatch" aria-hidden="true"></span><span class="accent-preview-copy"><strong data-accent-preview-name>${escapeHTML({ emerald: "Emerald Terminal", amber: "Cyber Amber", matrix: "Matrix Green", blue: "Classic Blue", violet: "Electric Violet", coral: "Sunset Coral", aqua: "Aqua Teal" }[settings.accentProfile])}</strong><small>Live accent preview</small></span><span class="accent-preview-sample">Example action</span></div>
           <label class="settings-field"><span><strong>Show XP Points</strong><small>Show quest status badges and XP-style progress labels.</small></span><input name="showXpPoints" type="checkbox" ${settings.showXpPoints ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Quest completion sounds</strong><small>Play a short sound when a quest is completed.</small></span><input name="questSounds" type="checkbox" ${settings.questSounds ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Quest completion animations</strong><small>Show the milestone celebration animation.</small></span><input name="questAnimations" type="checkbox" ${settings.questAnimations ? "checked" : ""}></label>
@@ -1664,6 +1665,36 @@ function updateDateSwitcher(date = new Date()) {
   if (label) label.textContent = formatNavigationMonth(date);
 }
 
+// Custom dropdown for Settings: a button that opens the shared popover menu, plus a hidden input so the
+// form submit handler keeps reading the value by name.
+function settingsDropdown(name, value, label, ariaLabel) {
+  return `<span class="settings-dropdown"><input type="hidden" name="${name}" value="${escapeHTML(String(value))}"><button class="settings-dropdown-button" type="button" data-settings-dropdown="${name}" aria-haspopup="menu" aria-expanded="false" aria-label="${escapeHTML(ariaLabel)}"><span data-settings-dropdown-label>${escapeHTML(label)}</span><svg class="dropdown-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3" /></svg></button></span>`;
+}
+
+function setSettingsDropdown(name, value, label) {
+  const input = document.querySelector(`input[name="${name}"]`);
+  if (!input) return;
+  input.value = String(value);
+  const text = input.parentElement?.querySelector("[data-settings-dropdown-label]");
+  if (text) text.textContent = label;
+}
+
+function settingsDropdownChoices(name) {
+  const fiscal = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const input = document.querySelector(`input[name="${name}"]`);
+  const current = input ? input.value : "";
+  if (name === "financialYearStartMonth") {
+    return fiscal.map((month, index) => ({ label: `${String(index + 1) === current ? "✓ " : ""}${month}`, action: `setting:${name}:${index + 1}` }));
+  }
+  const state = getCurrencyState();
+  const choices = Object.entries(displayCurrencies).map(([code, currency]) => ({
+    label: `${code === current ? "✓ " : ""}${currency.symbol} · ${currency.name}${state.rates[code] ? "" : " · Set rate first"}`,
+    action: `setting:${name}:${code}`
+  }));
+  choices.push({ label: "Manage exchange rates…", action: "currency:rates" });
+  return choices;
+}
+
 function getRecentNavigationMonths(count = 3) {
   const now = new Date();
   return Array.from({ length: count }, (_, offset) => {
@@ -1813,14 +1844,8 @@ function openCurrencyRatesDialog(requestedCurrency = "") {
     dialog.close();
     updateCurrencySwitcher();
     if (crumb.textContent === "Settings") {
-      const currencySelect = document.querySelector('select[name="displayCurrency"]');
-      if (currencySelect) {
-        [...currencySelect.options].forEach(option => {
-          option.disabled = !rates[option.value];
-          if (option.disabled) option.textContent = `${displayCurrencies[option.value].symbol} · ${displayCurrencies[option.value].name} · set rate first`;
-          else option.textContent = `${displayCurrencies[option.value].symbol} · ${displayCurrencies[option.value].name}`;
-        });
-      }
+      const active = getCurrencyState().active;
+      setSettingsDropdown("displayCurrency", active, `${displayCurrencies[active].symbol} · ${displayCurrencies[active].name}`);
     } else showPage(crumb.textContent);
   });
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
@@ -4768,6 +4793,20 @@ function handleMenuChoice(action) {
     showToast("Selected " + date + ".");
     return;
   }
+  if (action.startsWith("setting:")) {
+    const [, name, value] = action.split(":");
+    if (name === "displayCurrency") {
+      if (!getCurrencyState().rates[value]) {
+        openCurrencyRatesDialog(value);
+        return;
+      }
+      setSettingsDropdown(name, value, `${displayCurrencies[value].symbol} · ${displayCurrencies[value].name}`);
+    } else if (name === "financialYearStartMonth") {
+      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      setSettingsDropdown(name, value, months[Number(value) - 1]);
+    }
+    return;
+  }
   if (action === "currency:rates") {
     openCurrencyRatesDialog();
     return;
@@ -4828,7 +4867,7 @@ function setNavDrawer(open, { restoreFocus = true } = {}) {
 // On phones the header's date, currency, privacy and theme buttons live in the sidebar. The real nodes are
 // moved (not cloned) so every querySelector, delegated handler and stored setting keeps working.
 const drawerTools = document.querySelector("[data-drawer-tools]");
-const movableControls = [".date-select", ".currency-select", ".theme-toggle"]
+const movableControls = [".date-select", ".theme-toggle"]
   .map(selector => document.querySelector(`.topbar-actions ${selector}`))
   .filter(Boolean);
 function placeHeaderControls(isPhone) {
@@ -5244,8 +5283,12 @@ document.addEventListener("click", event => {
     ]);
     return;
   }
+  if (button.matches("[data-settings-dropdown]")) {
+    openMenu(button, settingsDropdownChoices(button.dataset.settingsDropdown));
+    return;
+  }
   if (button.matches(".date-select")) {
-    openMenu(button, getRecentNavigationMonths());
+    openMenu(button, getRecentNavigationMonths(12));
     return;
   }
   if (button.matches(".currency-select")) {
@@ -5359,7 +5402,7 @@ document.addEventListener("click", event => {
 document.addEventListener("change", event => {
   const input = event.target;
   if (input instanceof HTMLSelectElement && input.name === "accentProfile") {
-    const names = { emerald: "Emerald Terminal", amber: "Cyber Amber", matrix: "Matrix Green", blue: "Classic Blue" };
+    const names = { emerald: "Emerald Terminal", amber: "Cyber Amber", matrix: "Matrix Green", blue: "Classic Blue", violet: "Electric Violet", coral: "Sunset Coral", aqua: "Aqua Teal" };
     setAccent(input.value);
     const previewName = input.form?.querySelector("[data-accent-preview-name]");
     if (previewName) previewName.textContent = names[input.value] || names.emerald;
