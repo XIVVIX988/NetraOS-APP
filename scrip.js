@@ -231,13 +231,13 @@ function setupLandingScrollEffects() {
 }
 
 const initialProfile = getStoredProfile();
-if (initialProfile?.name) document.body.dataset.userName = initialProfile.name;
+if (initialProfile?.username || initialProfile?.name) document.body.dataset.userName = initialProfile.username || initialProfile.name;
 let dashboardMarkup = content.innerHTML;
 
 // Keep the dashboard greeting and date current, including when the user's name changes.
 function updateDashboardWelcome(date = new Date()) {
   const profile = getStoredProfile();
-  const fullName = (document.body.dataset.userName || profile?.name || "Jordan Davis").trim();
+  const fullName = (document.body.dataset.userName || profile?.username || profile?.name || "Jordan Davis").trim();
   const firstName = fullName.split(/\s+/)[0] || "there";
   const hour = date.getHours();
   const greeting = hour >= 5 && hour < 12
@@ -400,9 +400,9 @@ function spendingForReport(entries) {
     const month = /^\d{4}-\d{2}$/.test(item.month || "") ? item.month : currentMonth;
     if (period === "Year to date") {
       const settings = getStoredSettings();
-      const now = new Date();
-      let fiscalYear = now.getFullYear();
-      if (now.getMonth() + 1 < settings.financialYearStartMonth) fiscalYear -= 1;
+      const currentDate = new Date(`${currentMonth}-01T12:00:00`);
+      let fiscalYear = currentDate.getFullYear();
+      if (currentDate.getMonth() + 1 < settings.financialYearStartMonth) fiscalYear -= 1;
       const fiscalStart = `${fiscalYear}-${String(settings.financialYearStartMonth).padStart(2, "0")}`;
       return month >= fiscalStart && month <= currentMonth;
     }
@@ -410,12 +410,69 @@ function spendingForReport(entries) {
   });
 }
 
+function reportMonthCount() {
+  if (getReportPeriod() !== "Year to date") return 1;
+  const reportDate = new Date(`${getReportMonth()}-01T12:00:00`);
+  const startMonth = getStoredSettings().financialYearStartMonth;
+  let startYear = reportDate.getFullYear();
+  if (reportDate.getMonth() + 1 < startMonth) startYear -= 1;
+  const monthDifference = (reportDate.getFullYear() - startYear) * 12 + reportDate.getMonth() - (startMonth - 1);
+  return Math.max(1, monthDifference + 1);
+}
+
 function getPowerUpReportTotals() {
   const data = getPowerUpData();
   const income = data.incomes.reduce((total, item) => total + Number(item.amount || 0), 0);
   const budget = data.budgets.reduce((total, item) => total + Number(item.amount || 0), 0);
   const spending = spendingForReport(data.spending).reduce((total, item) => total + Number(item.amount || 0), 0);
-  return { income, budget, spending, surplus: income - budget };
+  const reportMonths = reportMonthCount();
+  const reportIncome = income * reportMonths;
+  const reportBudget = budget * reportMonths;
+  return { income, budget, spending, surplus: income - budget, reportMonths, reportIncome, reportBudget, cashAfterSpending: reportIncome - spending, budgetRemaining: reportBudget - spending };
+}
+
+function getCashflowStatus(totals) {
+  const period = getReportPeriod().toLowerCase();
+  if (totals.reportIncome <= 0) {
+    return {
+      tone: totals.spending > 0 || totals.reportBudget > 0 ? "is-warning" : "is-neutral",
+      title: "Add income to check your cash flow",
+      detail: totals.spending > 0
+        ? `${formatKsh(totals.spending)} spent this ${period}, but no income is recorded to compare it with. Your planned budget is ${formatKsh(totals.reportBudget)}.`
+        : `Record monthly income to compare your ${period} budget and spending against what you make.`
+    };
+  }
+  if (totals.spending > totals.reportIncome) {
+    return {
+      tone: "is-warning",
+      title: "Spending is higher than income",
+      detail: `You spent ${formatKsh(totals.spending)} against ${formatKsh(totals.reportIncome)} income this ${period} — ${formatKsh(totals.spending - totals.reportIncome)} over. Planned budget: ${formatKsh(totals.reportBudget)}.`
+    };
+  }
+  if (totals.reportBudget > totals.reportIncome) {
+    return {
+      tone: "is-warning",
+      title: "Your budget is higher than income",
+      detail: `You planned ${formatKsh(totals.reportBudget)} against ${formatKsh(totals.reportIncome)} income this ${period}, an over-allocation of ${formatKsh(totals.reportBudget - totals.reportIncome)}. Recorded spending is ${formatKsh(totals.spending)}.`
+    };
+  }
+  if (totals.reportBudget > 0 && totals.spending > totals.reportBudget) {
+    return {
+      tone: "is-caution",
+      title: "Spending is over budget but within income",
+      detail: `You are ${formatKsh(totals.spending - totals.reportBudget)} over your planned budget, with ${formatKsh(totals.cashAfterSpending)} of income remaining after recorded spending.`
+    };
+  }
+  return {
+    tone: "is-positive",
+    title: "Income covers your spending",
+    detail: `${formatKsh(totals.cashAfterSpending)} remains after ${period} spending. Your planned budget is ${formatKsh(totals.reportBudget)} against ${formatKsh(totals.reportIncome)} income.`
+  };
+}
+
+function renderCashflowStatus(totals) {
+  const status = getCashflowStatus(totals);
+  return `<aside class="cashflow-status ${status.tone}" role="status" aria-live="polite"><span class="cashflow-status-icon" aria-hidden="true">${status.tone === "is-positive" ? "✓" : status.tone === "is-warning" ? "!" : status.tone === "is-caution" ? "↗" : "i"}</span><span><strong>${status.title}</strong><small>${status.detail}</small></span></aside>`;
 }
 
 // Read and save the browser-local profile and preference settings.
@@ -748,7 +805,7 @@ function renderLegalPage(page) {
     <h2>Your records and device</h2><p>You retain ownership of the financial information you enter. In this version, records are stored in this browser on this device. Keep your own backups and protect access to your device and browser profile. Clearing browser data can permanently remove these records.</p>
     <h2>Acceptable use</h2><p>Do not use the app to disrupt or compromise it, automate scraping, reverse engineer it, or access another person's data without permission.</p>
     <h2>Availability</h2><p>This preview is provided as-is and may change. No financial data is synced to a NetraOS account server in this version.</p>` : `
-    <h2>Information stored</h2><p>NetraOS currently saves your profile, financial entries, preferences, and a limited local security activity log in browser storage on this device. The app has no account server, cloud sync, or telemetry collection in this version.</p>
+    <h2>Information stored</h2><p>NetraOS currently saves your profile, financial entries, preferences, and a limited local security activity log in browser storage on this device. This version does not set cookies, use an account server, sync to the cloud, or collect telemetry.</p>
     <h2>Storage and security limits</h2><p>Browser storage is not encrypted by this app. A person with access to this browser profile may be able to read its contents. The optional PIN locks the visible workspace only; it does not encrypt records. HTTPS and security headers depend on the website host and are not configured by this app's source.</p>
     <h2>Sharing and third parties</h2><p>NetraOS does not sell or rent your financial records, use ad networks for them, or send them to a NetraOS server. This version collects no error reports or analytics. If you choose to open email, telephone, or WhatsApp links, those services handle the information you share with them. Google Fonts may be loaded by the page and can receive a request from your browser.</p>
     <h2>Your choices</h2><p>You can review, export, correct, or clear the information held in this browser using the app's profile, download, and storage controls. Clearing app data removes the local profile and financial records from this browser. This does not erase exported copies or information held by third-party services.</p>
@@ -983,7 +1040,7 @@ function showPublicPage(page = "landing") {
           <h1>${isSignup ? "Create your account." : "Log in to NetraOS."}</h1>
           <p class="auth-description">${isSignup ? "Set up your local profile and start organizing your finances." : "Continue to your financial command center."}</p>
           <form class="auth-form" data-auth-form="${isSignup ? "signup" : "login"}" novalidate>
-            ${isSignup ? `<label class="inventory-form-field"><span>Full name</span><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your name" required></label>` : ""}
+            ${isSignup ? `<label class="inventory-form-field"><span>Full name</span><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your full name" required></label><label class="inventory-form-field"><span>Username</span><input name="username" type="text" autocomplete="nickname" minlength="2" maxlength="24" pattern="[A-Za-z0-9_ ]{2,24}" placeholder="John Doe" aria-describedby="signup-username-hint" required><small id="signup-username-hint">2–24 letters, numbers, spaces, or underscores</small></label>` : ""}
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
             <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" minlength="8" placeholder="At least 8 characters" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>` : ""}
@@ -1001,6 +1058,7 @@ function showPublicPage(page = "landing") {
 // Build profile and settings screens from the current browser-local preferences.
 function renderProfilePage() {
   const profile = getStoredProfile() || { name: document.body.dataset.userName || "Jordan Davis", email: "" };
+  const username = String(profile.username || profile.name.split(/\s+/)[0] || "user").toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24) || "user";
   const initials = profile.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
   const photo = profile.image
     ? `<img src="${escapeHTML(profile.image)}" alt="Profile photo">`
@@ -1008,12 +1066,13 @@ function renderProfilePage() {
   const maxDate = localDateValue();
   return `
     <section class="account-page">
-      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> YOUR ACCOUNT</div><h1>Your profile.</h1><p class="welcome-sub">Manage the name and email shown in this local NetraOS profile.</p></div></header>
+      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> YOUR ACCOUNT</div><h1>Your profile.</h1><p class="welcome-sub">Choose the username NetraOS uses to address you and manage your profile details.</p></div></header>
       <section class="panel account-panel">
-        <div class="profile-summary"><span class="profile-initials profile-photo-preview">${photo}</span><div><strong>${escapeHTML(profile.name)}</strong><small>${escapeHTML(profile.email || "No email added")}</small></div></div>
+        <div class="profile-summary"><span class="profile-initials profile-photo-preview">${photo}</span><div><strong>${escapeHTML(profile.username ? `@${profile.username}` : profile.name)}</strong><small>${escapeHTML(profile.name)} · ${escapeHTML(profile.email || "No email added")}</small></div></div>
         <form class="account-form" data-account-form="profile">
           <div class="inventory-form-field profile-photo-field"><label for="profile-photo-input"><span>Profile image <small>Optional · PNG, JPEG, or WebP up to 5 MB</small></span></label><input id="profile-photo-input" name="photo" type="file" accept="image/png,image/jpeg,image/webp"><button class="profile-photo-remove" type="button" data-remove-profile-image>Remove image</button></div>
           <label class="inventory-form-field"><span>Full name</span><input name="name" type="text" maxlength="80" value="${escapeHTML(profile.name)}" required></label>
+          <label class="inventory-form-field"><span>Username</span><input name="username" type="text" autocomplete="nickname" minlength="2" maxlength="24" pattern="[A-Za-z0-9_ ]{2,24}" value="${escapeHTML(username)}" required><small>Shown in greetings · letters, numbers, spaces, and underscores</small></label>
           <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" maxlength="120" value="${escapeHTML(profile.email || "")}" required></label>
           <label class="inventory-form-field"><span>Sex <small>Optional</small></span><select name="sex"><option value="">Prefer not to say</option><option value="female" ${profile.sex === "female" ? "selected" : ""}>Female</option><option value="male" ${profile.sex === "male" ? "selected" : ""}>Male</option><option value="intersex" ${profile.sex === "intersex" ? "selected" : ""}>Intersex</option><option value="other" ${profile.sex === "other" ? "selected" : ""}>Other</option></select></label>
           <label class="inventory-form-field"><span>Date of birth <small>Optional</small></span><input name="dateOfBirth" type="date" max="${maxDate}" value="${escapeHTML(profile.dateOfBirth || "")}"></label>
@@ -1073,7 +1132,7 @@ function renderSettingsPage() {
           <p class="settings-disclosure">Essential browser storage keeps your profile, financial records, and settings on this device. This app currently sets no cookies. Optional performance telemetry is not collected; this preference is saved for future use only.</p>
           <label class="settings-field"><span><strong>Allow optional performance telemetry</strong><small>No telemetry is currently collected by this version.</small></span><input name="performanceTelemetryConsent" type="checkbox" ${settings.performanceTelemetryConsent ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Monthly backup reminder</strong><small>Remind you in this browser to download a local backup.</small></span><input name="monthlyBackupPrompt" type="checkbox" ${settings.monthlyBackupPrompt ? "checked" : ""}></label>
-          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button></div>
+          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-cookie-manage>Manage cookie preferences</button><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button></div>
           <label class="settings-import-drop" data-settings-drop><strong>Restore a JSON backup</strong><span>Choose a file or drop it here. Existing matching NetraOS records will be replaced.</span><input name="backupFile" type="file" accept="application/json,.json" data-settings-import></label>
           <div class="settings-inline-actions"><button class="danger-button" type="button" data-settings-action="clear-data">Factory reset · Clear all NetraOS data</button></div>
           <p class="legal-links"><a href="#terms" data-public-action="terms">Terms of Service</a><a href="#privacy" data-public-action="privacy">Privacy Policy</a></p>
@@ -1098,7 +1157,7 @@ function enterApp(profile) {
     showToast("Unable to start a local session. Browser storage may be disabled.");
     return;
   }
-  setProfileName(profile.name);
+  setProfileName(profile.username || profile.name);
   applyProfileAvatar();
   applyStoredSettings();
   publicShell.hidden = true;
@@ -1155,7 +1214,10 @@ function showShortcutPrompt() {
   dialog.querySelector(".inventory-dialog-close").addEventListener("click", close);
   dialog.querySelector(".inventory-cancel").addEventListener("click", close);
   dialog.addEventListener("click", event => { if (event.target === dialog) close(); });
-  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.addEventListener("close", () => {
+    dialog.remove();
+    showCookieBanner();
+  }, { once: true });
   dialog.querySelector("[data-shortcut-install]")?.addEventListener("click", async event => {
     const installEvent = deferredInstallPrompt;
     if (!installEvent) { close(); return; }
@@ -1202,12 +1264,7 @@ function savePowerUpData(data) {
 }
 
 function getPowerUpTotals() {
-  const data = getPowerUpData();
-  const income = data.incomes.reduce((total, item) => total + Number(item.amount || 0), 0);
-  const budget = data.budgets.reduce((total, item) => total + Number(item.amount || 0), 0);
-  const spending = spendingForReport(data.spending).reduce((total, item) => total + Number(item.amount || 0), 0);
-
-  return { income, budget, spending, surplus: income - budget };
+  return getPowerUpReportTotals();
 }
 
 // Quest helpers load goals, calculate completion, and keep dashboard progress current.
@@ -2052,8 +2109,9 @@ function updateDashboardInventorySummary() {
 }
 
 function updateDashboardPowerUpSummary() {
-  const data = getPowerUpData();
   const totals = getPowerUpReportTotals();
+  const period = getReportPeriod();
+  const periodLabel = period === "Year to date" ? "YTD" : period.toUpperCase();
   const periodButton = document.querySelector(".period-button");
   if (periodButton) periodButton.innerHTML = `${getReportPeriod()} <svg class="dropdown-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3" /></svg>`;
   const metricCards = document.querySelectorAll(".metric-card");
@@ -2062,32 +2120,40 @@ function updateDashboardPowerUpSummary() {
   const spendingCard = metricCards[3];
 
   if (incomeCard) {
-    incomeCard.querySelector(".metric-value").textContent = formatKsh(totals.income);
-    incomeCard.querySelector(".metric-foot .muted").textContent =
-    `${data.incomes.length} monthly ${data.incomes.length === 1 ? "source" : "sources"}`;
+    incomeCard.querySelector(".metric-heading span").textContent = `${periodLabel} INCOME`;
+    incomeCard.querySelector(".metric-value").textContent = formatKsh(totals.reportIncome);
+    incomeCard.querySelector(".metric-foot .muted").textContent = "Recorded income sources";
     incomeCard.querySelector(".metric-trailing").textContent = "TOTAL";
   }
 
-  const savingsRate = totals.income > 0
-    ? Math.round((totals.surplus / totals.income) * 1000) / 10
+  const savingsRate = totals.reportIncome > 0
+    ? Math.round((totals.cashAfterSpending / totals.reportIncome) * 1000) / 10
     : 0;
   if (savingsCard) {
     savingsCard.querySelector(".metric-value").textContent = savingsRate + "%";
-    savingsCard.querySelector(".positive-pill").textContent = "PLAN";
-    savingsCard.querySelector(".muted").textContent = "projected savings rate";
+    savingsCard.querySelector(".positive-pill").textContent = totals.cashAfterSpending < 0 ? "DEFICIT" : "ACTUAL";
+    savingsCard.querySelector(".positive-pill").classList.toggle("is-deficit", totals.cashAfterSpending < 0);
+    savingsCard.querySelector(".muted").textContent = "income less recorded spending";
   }
 
   if (spendingCard) {
+    spendingCard.querySelector(".metric-heading span").textContent = `${periodLabel} SPENDING`;
     spendingCard.querySelector(".metric-value").textContent = formatKsh(totals.spending);
     spendingCard.querySelector(".metric-foot .muted").textContent =
-      `Of ${formatKsh(totals.budget)} budget`;
+      `Of ${formatKsh(totals.reportBudget)} budget`;
     spendingCard.querySelector(".metric-trailing").textContent =
-      `${totals.budget > 0 ? Math.round((totals.spending / totals.budget) * 100) : 0}%`;
+      `${totals.reportBudget > 0 ? Math.round((totals.spending / totals.reportBudget) * 100) : 0}%`;
     spendingCard.querySelector(".metric-caption .under-budget").textContent =
-      formatKsh(totals.budget - totals.spending);
+      formatKsh(Math.abs(totals.cashAfterSpending));
+    const caption = spendingCard.querySelector(".metric-caption");
+    if (caption) caption.lastChild.textContent = totals.cashAfterSpending < 0 ? " over income" : " left after spending";
+    spendingCard.querySelector(".metric-caption .under-budget").classList.toggle("is-deficit", totals.cashAfterSpending < 0);
     const progress = spendingCard.querySelector(".spend-progress");
-    if (progress) progress.style.width = `${totals.budget > 0 ? Math.min(100, (totals.spending / totals.budget) * 100) : 0}%`;
+    if (progress) progress.style.width = `${totals.reportBudget > 0 ? Math.min(100, (totals.spending / totals.reportBudget) * 100) : 0}%`;
   }
+
+  const statusSlot = document.querySelector("[data-cashflow-status]");
+  if (statusSlot) statusSlot.innerHTML = renderCashflowStatus(totals);
 
   updateDashboardCashflowChart(totals);
 }
@@ -2096,7 +2162,7 @@ function updateDashboardCashflowChart(totals = getPowerUpTotals()) {
   const chart = document.querySelector(".cashflow-panel");
   if (!chart) return;
 
-  const maximum = Math.max(totals.income, totals.spending);
+  const maximum = Math.max(totals.reportIncome, totals.spending);
   const scale = maximum > 0
     ? Math.ceil(maximum / (10 ** Math.floor(Math.log10(maximum)))) * (10 ** Math.floor(Math.log10(maximum)))
     : 0;
@@ -2110,7 +2176,7 @@ function updateDashboardCashflowChart(totals = getPowerUpTotals()) {
   });
   groups.forEach(group => {
     const isCurrent = group === currentGroup;
-    const income = isCurrent ? totals.income : 0;
+    const income = isCurrent ? totals.reportIncome : 0;
     const spending = isCurrent ? totals.spending : 0;
     const incomeBar = group.querySelector(".bar.income");
     const spendingBar = group.querySelector(".bar.expense");
@@ -2128,7 +2194,7 @@ function updateDashboardCashflowChart(totals = getPowerUpTotals()) {
   });
   const netValue = chart.querySelector(".chart-total strong");
   if (netValue) {
-    const net = totals.income - totals.spending;
+    const net = totals.cashAfterSpending;
     netValue.textContent = `${net >= 0 ? "+" : "−"}${formatKsh(Math.abs(net))}`;
   }
 }
@@ -2631,12 +2697,12 @@ function renderStatsPage() {
   const totals = getPowerUpTotals();
   const balance = getInventoryTotals();
   const quests = getQuests();
-  const savingsRate = totals.income > 0
-    ? Math.round(((totals.income - totals.spending) / totals.income) * 1000) / 10
+  const savingsRate = totals.reportIncome > 0
+    ? Math.round((totals.cashAfterSpending / totals.reportIncome) * 1000) / 10
     : 0;
   const categories = budgetCategories.map(category => {
     const planned = power.budgets.filter(item => item.category === category)
-      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0) * totals.reportMonths;
     const spent = reportSpending.filter(item => item.category === category)
       .reduce((sum, item) => sum + Number(item.amount || 0), 0);
     return { category, planned, spent };
@@ -2663,10 +2729,10 @@ function renderStatsPage() {
         <strong>${formatKsh(item.value)}</strong>
       </div>`).join("");
   const monthly = [
-    { label: "Monthly income", value: totals.income, color: "income" },
-    { label: "Planned budget", value: totals.budget, color: "planned" },
-    { label: "Monthly spending", value: totals.spending, color: "spent" },
-    { label: "Budget remaining", value: totals.budget - totals.spending, color: "remaining" }
+    { label: "Period income", value: totals.reportIncome, color: "income" },
+    { label: "Period budget", value: totals.reportBudget, color: "planned" },
+    { label: "Period spending", value: totals.spending, color: "spent" },
+    { label: "After spending", value: totals.cashAfterSpending, color: "remaining" }
   ];
   const maxMonthly = Math.max(1, ...monthly.map(item => Math.abs(item.value)));
   const monthlyRows = monthly.map(item => `
@@ -2687,13 +2753,14 @@ function renderStatsPage() {
       </header>
       <section class="inventory-summary stats-summary" aria-label="Financial statistics">
         <article class="inventory-summary-card net-worth-summary"><span class="inventory-label">NET WORTH</span><strong>${formatKsh(balance.netWorth)}</strong><span class="inventory-note">Assets less liabilities</span></article>
-        <article class="inventory-summary-card"><span class="inventory-label">MONTHLY INCOME</span><strong>${formatKsh(totals.income)}</strong><span class="inventory-note">${power.incomes.length} income ${power.incomes.length === 1 ? "source" : "sources"}</span></article>
-        <article class="inventory-summary-card"><span class="inventory-label">MONTHLY SPENDING</span><strong>${formatKsh(totals.spending)}</strong><span class="inventory-note">${power.spending.length} recorded ${power.spending.length === 1 ? "expense" : "expenses"}</span></article>
-        <article class="inventory-summary-card"><span class="inventory-label">SAVINGS RATE</span><strong>${savingsRate}%</strong><span class="inventory-note">Income less recorded spending</span></article>
+        <article class="inventory-summary-card"><span class="inventory-label">PERIOD INCOME</span><strong>${formatKsh(totals.reportIncome)}</strong><span class="inventory-note">${power.incomes.length} income ${power.incomes.length === 1 ? "source" : "sources"}</span></article>
+        <article class="inventory-summary-card"><span class="inventory-label">PERIOD SPENDING</span><strong>${formatKsh(totals.spending)}</strong><span class="inventory-note">${reportSpending.length} recorded ${reportSpending.length === 1 ? "expense" : "expenses"}</span></article>
+        <article class="inventory-summary-card"><span class="inventory-label">AFTER SPENDING</span><strong>${formatKsh(totals.cashAfterSpending)}</strong><span class="inventory-note">${savingsRate}% of period income</span></article>
       </section>
+      ${renderCashflowStatus(totals)}
       <section class="stats-panels">
         <article class="panel stats-panel">
-          <div class="panel-heading"><div><div class="section-kicker">MONTHLY OVERVIEW</div><h2>Income &amp; outflow</h2></div><span class="inventory-account-count">KSh / month</span></div>
+          <div class="panel-heading"><div><div class="section-kicker">${escapeHTML(getReportPeriod().toUpperCase())} OVERVIEW</div><h2>Income &amp; outflow</h2></div><span class="inventory-account-count">${escapeHTML(reportMonthLabel())}</span></div>
           <div class="stats-monthly-list">${monthlyRows}</div>
         </article>
         <article class="panel stats-panel">
@@ -2727,7 +2794,7 @@ function renderAchievementsPage() {
     { id: "monthly-plan", icon: "▤", name: "A plan in place", detail: "Add at least one income source and one budget line.", progress: Math.min(2, Number(power.incomes.length > 0) + Number(power.budgets.length > 0)), target: 2 },
     { id: "spending-tracked", icon: "↗", name: "Spending tracked", detail: "Record your first monthly expense.", progress: power.spending.length > 0 ? 1 : 0, target: 1 },
     { id: "goal-reached", icon: "◎", name: "Quest complete", detail: "Reach the target on any active quest.", progress: highestQuestProgress, target: 100, suffix: "%" },
-    { id: "positive-flow", icon: "⌁", name: "Positive cash flow", detail: "Record monthly income greater than spending.", progress: totals.income > 0 ? Math.max(0, Math.min(100, Math.round(((totals.income - totals.spending) / totals.income) * 100))) : 0, target: 100, suffix: "%", earned: totals.income > 0 && totals.income > totals.spending },
+    { id: "positive-flow", icon: "⌁", name: "Positive cash flow", detail: "Record income greater than spending for the selected period.", progress: totals.reportIncome > 0 ? Math.max(0, Math.min(100, Math.round((totals.cashAfterSpending / totals.reportIncome) * 100))) : 0, target: 100, suffix: "%", earned: totals.reportIncome > 0 && totals.cashAfterSpending > 0 },
     { id: "net-worth-100k", icon: "◇", name: "KSh 100,000 net worth", detail: "Build your net worth to KSh 100,000.", progress: Math.max(0, Math.min(100, Math.round((balance.netWorth / 100000) * 100))), target: 100, suffix: "%", earned: balance.netWorth >= 100000 }
   ];
   const earnedIds = milestones
@@ -2884,8 +2951,8 @@ function renderPowerUpPage() {
           <button class="inventory-delete" type="button" data-delete-power-item="spending" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete spending item">×</button>
         </div>`).join("")
     : `<div class="power-empty">No spending recorded for ${getReportPeriod().toLowerCase()}. Add an expense for ${reportMonthLabel()}.</div>`;
-  const savingsRate = totals.income > 0
-    ? Math.round((totals.surplus / totals.income) * 1000) / 10
+  const savingsRate = totals.reportIncome > 0
+    ? Math.round((totals.cashAfterSpending / totals.reportIncome) * 1000) / 10
     : 0;
 
   return `
@@ -2903,26 +2970,28 @@ function renderPowerUpPage() {
 
       <section class="inventory-summary power-summary" aria-label="Monthly plan summary">
         <article class="inventory-summary-card">
-          <span class="inventory-label">MONTHLY INCOME</span>
-          <strong>${formatKsh(totals.income)}</strong>
+          <span class="inventory-label">PERIOD INCOME</span>
+          <strong>${formatKsh(totals.reportIncome)}</strong>
           <span class="inventory-note">${data.incomes.length} income ${data.incomes.length === 1 ? "source" : "sources"}</span>
         </article>
         <article class="inventory-summary-card">
-          <span class="inventory-label">PLANNED BUDGET</span>
-          <strong>${formatKsh(totals.budget)}</strong>
+          <span class="inventory-label">PERIOD BUDGET</span>
+          <strong>${formatKsh(totals.reportBudget)}</strong>
           <span class="inventory-note">Across ${data.budgets.length} budget ${data.budgets.length === 1 ? "line" : "lines"}</span>
         </article>
         <article class="inventory-summary-card">
-          <span class="inventory-label">MONTHLY SPENDING</span>
+          <span class="inventory-label">PERIOD SPENDING</span>
           <strong>${formatKsh(totals.spending)}</strong>
           <span class="inventory-note">${reportSpending.length} ${getReportPeriod().toLowerCase()} ${reportSpending.length === 1 ? "record" : "records"}</span>
         </article>
         <article class="inventory-summary-card net-worth-summary">
-          <span class="inventory-label">BUDGET REMAINING</span>
-          <strong>${formatKsh(totals.budget - totals.spending)}</strong>
-          <span class="inventory-note">${savingsRate}% projected savings rate</span>
+          <span class="inventory-label">AFTER SPENDING</span>
+          <strong>${formatKsh(totals.cashAfterSpending)}</strong>
+          <span class="inventory-note">${savingsRate}% of period income</span>
         </article>
       </section>
+
+      ${renderCashflowStatus(totals)}
 
       ${renderTaxWidget()}
 
@@ -3693,7 +3762,7 @@ async function restoreLocalData(file) {
     applyStoredSettings();
     setPrivacyMode(localStorage.getItem(privacyModeStorageKey) === "true");
     applyProfileAvatar();
-    setProfileName(getStoredProfile()?.name || "Jordan Davis");
+    setProfileName(getStoredProfile()?.username || getStoredProfile()?.name || "Jordan Davis");
     updateCurrencySwitcher();
     scheduleAutoLock();
     showPage(crumb.textContent);
@@ -3736,7 +3805,7 @@ async function requestEmailChallenge(to, purpose) {
     if (!response.ok || !result.challengeId) throw new Error(result.message || "The email service could not send a code. Try again shortly.");
     return { challengeId: result.challengeId, demo: false };
   }
-  if (isLocalPreviewHost()) {
+  if (isLocalPreviewHost() || !EMAIL_AUTH_ENDPOINT) {
     const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, "0");
     const saltBytes = crypto.getRandomValues(new Uint8Array(16));
     const salt = btoa(Array.from(saltBytes, byte => String.fromCharCode(byte)).join(""));
@@ -3772,7 +3841,7 @@ function showEmailCodeChallenge({ email, purpose, title, description, onVerified
     <form class="inventory-form" novalidate>
       <header class="inventory-dialog-heading"><div><span class="section-kicker">EMAIL SECURITY CHECK</span><h2 id="email-code-title">${escapeHTML(title)}</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header>
       <div class="inventory-form-fields">
-        <p class="reset-copy">${escapeHTML(description)} A code will be sent to <b>${escapeHTML(maskEmail(email))}</b>.</p>
+        <p class="reset-copy">${escapeHTML(description)} ${EMAIL_AUTH_ENDPOINT ? `A code will be sent to <b>${escapeHTML(maskEmail(email))}</b>.` : "A temporary code will be shown here. No email is sent until an email provider is connected."}</p>
         <div class="reset-demo" data-email-code-demo hidden></div>
         <label class="inventory-form-field" data-email-code-field hidden><span>Verification code</span><input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="6-digit code" required></label>
         <p class="reset-status" role="status" aria-live="polite" data-email-code-status></p>
@@ -3786,6 +3855,7 @@ function showEmailCodeChallenge({ email, purpose, title, description, onVerified
   const codeField = dialog.querySelector("[data-email-code-field]");
   const status = dialog.querySelector("[data-email-code-status]");
   const demoBox = dialog.querySelector("[data-email-code-demo]");
+  if (!EMAIL_AUTH_ENDPOINT) sendButton.textContent = "Generate preview code";
   const setStatus = (message, error = false) => { status.textContent = message; status.classList.toggle("error", error); };
   const close = () => { window.clearInterval(resendTimer); pending = null; dialog.close(); };
   dialog.querySelector(".inventory-dialog-close").addEventListener("click", close);
@@ -3807,7 +3877,7 @@ function showEmailCodeChallenge({ email, purpose, title, description, onVerified
       form.elements.code.focus();
       let seconds = RESET_RESEND_SECONDS;
       const tick = () => {
-        sendButton.textContent = seconds > 0 ? `Resend code (${seconds}s)` : "Resend code";
+        sendButton.textContent = seconds > 0 ? `Resend code (${seconds}s)` : (EMAIL_AUTH_ENDPOINT ? "Resend code" : "Generate preview code");
         if (seconds <= 0) { window.clearInterval(resendTimer); sendButton.disabled = false; }
         seconds -= 1;
       };
@@ -4760,7 +4830,7 @@ function setNavDrawer(open, { restoreFocus = true } = {}) {
 // On phones the header's date, currency, privacy and theme buttons live in the sidebar. The real nodes are
 // moved (not cloned) so every querySelector, delegated handler and stored setting keeps working.
 const drawerTools = document.querySelector("[data-drawer-tools]");
-const movableControls = [".date-select", ".currency-select", ".privacy-toggle", ".theme-toggle"]
+const movableControls = [".date-select", ".currency-select", ".theme-toggle"]
   .map(selector => document.querySelector(`.topbar-actions ${selector}`))
   .filter(Boolean);
 function placeHeaderControls(isPhone) {
@@ -4834,8 +4904,14 @@ document.addEventListener("submit", async event => {
 
     if (form.dataset.authForm === "signup") {
       const name = String(formData.get("name") || "").trim();
+      const username = String(formData.get("username") || "").trim();
       if (name.length < 2) {
         fail("Enter your name to create a profile.");
+        return;
+      }
+      const displayUsername = username.replace(/\s+/g, " ");
+      if (!/^[A-Za-z0-9_ ]{2,24}$/.test(displayUsername)) {
+        fail("Choose a username with 2–24 letters, numbers, spaces, or underscores.");
         return;
       }
       if (!formData.has("acceptTerms")) {
@@ -4857,6 +4933,7 @@ document.addEventListener("submit", async event => {
       const profile = {
         ...(currentProfile || {}),
         name,
+        username: displayUsername,
         email,
         ...passwordVerifier,
         termsVersion,
@@ -4875,13 +4952,16 @@ document.addEventListener("submit", async event => {
         });
         return;
       }
-      try {
-        saveStoredProfile(profile);
-      } catch {
-        fail("Unable to save a local profile. Check browser storage settings.");
-        return;
-      }
-      enterApp(profile);
+      showEmailCodeChallenge({
+        email,
+        purpose: "account-signup",
+        title: "Verify your email",
+        description: "Enter the email code to finish creating your account.",
+        onVerified: () => {
+          try { saveStoredProfile(profile); enterApp(profile); }
+          catch { fail("Unable to save a local profile. Check browser storage settings."); }
+        }
+      });
       return;
     }
 
@@ -4929,20 +5009,21 @@ document.addEventListener("submit", async event => {
     const profile = {
       ...existingProfile,
       name: String(formData.get("name") || "").trim(),
+      username: String(formData.get("username") || "").trim().replace(/\s+/g, " "),
       email: String(formData.get("email") || "").trim().toLowerCase(),
       sex: String(formData.get("sex") || ""),
       dateOfBirth: String(formData.get("dateOfBirth") || ""),
       image
     };
-    if (profile.name.length < 2 || !profile.email.includes("@") || (profile.dateOfBirth && profile.dateOfBirth > localDateValue())) {
+    if (profile.name.length < 2 || !/^[A-Za-z0-9_ ]{2,24}$/.test(profile.username) || !profile.email.includes("@") || (profile.dateOfBirth && profile.dateOfBirth > localDateValue())) {
       showToast(profile.dateOfBirth > localDateValue()
         ? "Date of birth cannot be in the future."
-        : "Enter a name and valid email address.");
+        : "Enter a valid name, username, and email address.");
       return;
     }
     try {
       saveStoredProfile(profile);
-      setProfileName(profile.name);
+      setProfileName(profile.username);
       applyProfileAvatar();
       if (profilePreviewUrl) URL.revokeObjectURL(profilePreviewUrl);
       profilePreviewUrl = "";
@@ -5252,7 +5333,7 @@ document.addEventListener("click", event => {
   if (button.matches(".profile-button")) {
     const profile = getStoredProfile();
     openMenu(button, [
-      { label: profile?.name || "Your profile", action: "profile" },
+      { label: profile?.username ? `@${profile.username}` : profile?.name || "Your profile", action: "profile" },
       { label: "Settings", action: "settings" },
       { label: "Sign out", action: "sign-out" }
     ]);
@@ -5361,3 +5442,68 @@ if (hasLocalSession && !["terms", "privacy"].includes(initialPage)) {
 } else {
   showPublicPage("landing");
 }
+
+// The app uses required browser storage, but currently sets no cookies or analytics.
+const cookieConsentStorageKey = "netraos-cookie-consent-v1";
+function saveCookiePreferences(analytics) {
+  const savedAt = new Date().toISOString();
+  localStorage.setItem(cookieConsentStorageKey, JSON.stringify({ necessary: true, analytics: Boolean(analytics), savedAt }));
+  let settings = {};
+  try { settings = JSON.parse(localStorage.getItem(settingsStorageKey) || "{}"); } catch { /* Replace unreadable preferences with a minimal valid settings object. */ }
+  settings.performanceTelemetryConsent = Boolean(analytics);
+  localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
+}
+
+function openCookiePreferences() {
+  document.querySelector("[data-cookie-banner]")?.remove();
+  document.querySelector("[data-cookie-dialog]")?.remove();
+  let analytics = false;
+  try {
+    const consent = JSON.parse(localStorage.getItem(cookieConsentStorageKey) || "null");
+    analytics = consent?.analytics === true;
+  } catch { /* Keep optional telemetry off when saved consent is unavailable. */ }
+  const dialog = document.createElement("dialog");
+  dialog.className = "cookie-dialog";
+  dialog.dataset.cookieDialog = "";
+  dialog.setAttribute("aria-labelledby", "cookie-dialog-title");
+  dialog.innerHTML = `<form method="dialog"><div class="section-kicker">PRIVACY PREFERENCES</div><h2 id="cookie-dialog-title">Manage your choices</h2><p>NetraOS currently uses no cookies or analytics. Your profile and app records stay in required browser storage on this device.</p><label class="cookie-choice"><span><strong>Essential browser storage</strong><small>Always on · Needed to save your local profile, records, and preferences.</small></span><input type="checkbox" checked disabled aria-label="Essential browser storage is always on"></label><label class="cookie-choice"><span><strong>Future performance telemetry</strong><small>Not collected in this version. Save your choice for when this feature is introduced.</small></span><input name="analytics" type="checkbox" ${analytics ? "checked" : ""}></label><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-cancel>Cancel</button><button type="submit" class="cookie-button">Save preferences</button></div></form>`;
+  document.body.append(dialog);
+  dialog.querySelector("[data-cookie-cancel]").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.addEventListener("submit", event => {
+    event.preventDefault();
+    try {
+      saveCookiePreferences(dialog.elements.analytics.checked);
+      dialog.close();
+      showToast("Cookie preferences saved.");
+    } catch {
+      showToast("Unable to save preferences in browser storage.");
+    }
+  });
+  dialog.showModal();
+}
+
+function showCookieBanner() {
+  try {
+    if (localStorage.getItem(cookieConsentStorageKey)) return;
+  } catch { /* Still show the notice when storage is unavailable. */ }
+  const banner = document.createElement("aside");
+  banner.className = "cookie-banner";
+  banner.dataset.cookieBanner = "";
+  banner.setAttribute("aria-label", "Cookie and browser storage notice");
+  banner.innerHTML = `<div class="cookie-banner-copy"><strong>Your privacy matters</strong><p>NetraOS uses required browser storage for your local profile and records. This version sets no cookies and collects no analytics.</p></div><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-manage>Manage</button><button type="button" class="cookie-button" data-cookie-accept>Accept</button></div>`;
+  document.body.append(banner);
+  banner.querySelector("[data-cookie-accept]").addEventListener("click", () => {
+    try {
+      saveCookiePreferences(false);
+      banner.remove();
+    } catch {
+      showToast("Unable to save your choice in browser storage.");
+    }
+  });
+}
+
+document.addEventListener("click", event => {
+  if (event.target.closest("[data-cookie-manage]")) openCookiePreferences();
+});
+showCookieBanner();
