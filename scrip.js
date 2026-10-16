@@ -3612,7 +3612,6 @@ document.addEventListener("pointerdown", event => {
 
 window.addEventListener("resize", closePopover);
 window.addEventListener("scroll", closePopover, { passive: true });
-}
 
 function showToast(message) {
   document.querySelector(".dashboard-toast")?.remove();
