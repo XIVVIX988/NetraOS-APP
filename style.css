@@ -8517,3 +8517,185 @@ body.theme-dark, html.theme-dark { background: #000; }
   #public-shell.theme-dark .landing-download-link > span { background: #1c3325; color: #8ed1aa; }
   #public-shell.theme-dark .landing-feature-strip article:nth-child(3n) { border-right-color: #262626; }
 }
+/* Desktop workspace refresh: persistent branded navigation and a scan-friendly dashboard. */
+.desktop-sidebar { display: none; }
+.dashboard-next-action[hidden] { display: none; }
+
+@media (min-width: 881px) {
+  body { background: #f4f7f5; }
+  .app-shell {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    min-height: 100vh;
+    padding: 0;
+    background: #f4f7f5;
+  }
+  .desktop-sidebar {
+    display: flex;
+    flex: 0 0 230px;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 23px 14px 18px;
+    background: #0d4f46;
+    color: #f3fbf7;
+  }
+  .desktop-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+    margin: 0 6px 28px;
+    color: inherit;
+    text-decoration: none;
+    font: 800 16px/1 var(--display);
+    letter-spacing: .035em;
+  }
+  .desktop-sidebar-brand img { width: 32px; height: 32px; object-fit: contain; }
+  .desktop-sidebar-brand > span > span { color: #9ee2c3; }
+  .desktop-sidebar-nav { display: grid; gap: 5px; }
+  .desktop-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 43px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #d1e7de;
+    text-align: left;
+    font: 600 12px var(--sans);
+    cursor: pointer;
+    transition: background .16s ease, color .16s ease;
+  }
+  .desktop-nav-item > span { display: grid; place-items: center; width: 18px; color: #b5d9cc; font-size: 17px; }
+  .desktop-nav-item:hover { background: #ffffff14; color: white; }
+  .desktop-nav-item.active { background: #13876b; color: white; box-shadow: inset 3px 0 #8ce0bc; }
+  .desktop-nav-item.active > span { color: white; }
+  .desktop-nav-settings { margin-top: 17px; border-top: 1px solid #ffffff25; border-radius: 0 0 9px 9px; padding-top: 10px; }
+  .desktop-sidebar-note {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: auto;
+    padding: 14px 12px;
+    border: 1px solid #ffffff20;
+    border-radius: 10px;
+    color: #d9ece4;
+    font-size: 11px;
+  }
+  .desktop-sidebar-note strong { color: white; font-weight: 700; }
+  .main-panel { flex: 1 1 0; width: 0; min-width: 0; }
+  .app-shell .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    height: 66px;
+    padding: 0 clamp(22px, 3vw, 42px);
+    border: 0;
+    border-bottom: 1px solid #e3ebe6;
+    border-radius: 0;
+    background: #fff;
+    box-shadow: none;
+  }
+  .app-shell .topbar > .top-brand,
+  .app-shell .top-nav,
+  .app-shell .nav-toggle { display: none; }
+  .app-shell .topbar-actions { margin-left: auto; gap: 11px; }
+  .app-shell .profile-button { width: 38px; min-height: 38px; flex-basis: 38px; border-color: #e6ece8; box-shadow: none; }
+  .app-shell .avatar { width: 29px; height: 29px; }
+  .app-shell .content { width: 100%; max-width: 1540px; margin: 0 auto; padding: 26px clamp(22px, 3vw, 42px) 30px; }
+  .app-shell .welcome-row { align-items: flex-end; margin: 0 0 20px; }
+  .app-shell .welcome-row h1 { margin: 8px 0 4px; font-size: clamp(27px, 2.25vw, 34px); line-height: 1.12; letter-spacing: -.045em; }
+  .app-shell .welcome-row h1 br { display: none; }
+  .app-shell .welcome-row h1 em { color: #176d53; font-style: normal; }
+  .app-shell .welcome-sub { margin: 5px 0 0; font-size: 13px; }
+  .app-shell .welcome-actions { gap: 9px; }
+  .app-shell .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 15px; }
+  .app-shell .metric-card {
+    min-height: 133px;
+    padding: 16px;
+    overflow: hidden;
+    border: 1px solid #e3ebe6;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px #173b2707;
+  }
+  .app-shell .networth-card { color: var(--text); background: linear-gradient(140deg, #fff, #f0faf5); }
+  .app-shell .metric-heading { color: #64766d; font-size: 10px; letter-spacing: .06em; }
+  .app-shell .metric-value { margin: 13px 0 8px; color: #124c3e; font-size: clamp(22px, 2vw, 29px); letter-spacing: -.04em; }
+  .app-shell .metric-foot { gap: 6px; font-size: 10px; }
+  .app-shell .sparkline { opacity: .62; }
+  .app-shell .dashboard-grid { grid-template-columns: minmax(0, 1.45fr) minmax(280px, .9fr); gap: 14px; margin: 0 0 14px; }
+  .app-shell .dashboard-grid .panel,
+  .app-shell .bottom-grid .panel {
+    border: 1px solid #e3ebe6;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px #173b2707;
+  }
+  .app-shell .dashboard-grid .panel { min-height: 286px; padding: 17px 18px; }
+  .app-shell .panel-heading { margin-bottom: 14px; }
+  .app-shell .panel-heading h2 { color: #173d32; font-size: 17px; }
+  .app-shell .chart-wrap { min-height: 183px; }
+  .app-shell .chart-main { min-height: 160px; }
+  .app-shell .allocation-body { align-items: center; gap: 12px; }
+  .app-shell .donut-wrap { width: min(48%, 190px); }
+  .app-shell .allocation-legend > div { grid-template-columns: 9px minmax(0, 1fr) auto; gap: 5px 7px; }
+  .app-shell .bottom-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; margin: 0 0 14px; }
+  .app-shell .bottom-grid .panel { padding: 17px 18px; }
+  .app-shell .quest-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: 8px; }
+  .app-shell .quest-row { padding: 11px 10px; border: 1px solid #edf1ee; border-radius: 9px; }
+  .app-shell .dashboard-next-action {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 14px;
+    padding: 14px 16px;
+    border: 1px solid #f1e6c7;
+    border-radius: 12px;
+    background: linear-gradient(100deg, #fff9e8, #fffdf7);
+  }
+  .app-shell .dashboard-next-action[hidden] { display: none; }
+  .next-action-icon { display: grid; flex: 0 0 38px; height: 38px; place-items: center; border-radius: 50%; background: #ffedbd; color: #98711d; font-size: 20px; }
+  .dashboard-next-action > div { min-width: 0; flex: 1; }
+  .dashboard-next-action h2 { margin: 3px 0; color: #33463d; font: 700 13px var(--display); }
+  .dashboard-next-action p { margin: 0; color: #6e776f; font-size: 11px; }
+  .dashboard-next-action button { min-height: 35px; padding: 0 13px; border: 0; border-radius: 7px; background: #116b55; color: white; font: 700 11px var(--sans); cursor: pointer; }
+  .dashboard-tax-slot { margin: 0 0 12px; }
+  .app-shell .page-footer { padding-top: 13px; }
+}
+
+@media (min-width: 881px) and (max-width: 1120px) {
+  .desktop-sidebar { flex-basis: 204px; }
+  .app-shell .topbar { padding-right: 20px; padding-left: 20px; }
+  .app-shell .content { padding-right: 20px; padding-left: 20px; }
+  .app-shell .metrics-grid { gap: 9px; }
+  .app-shell .metric-card { padding: 13px; }
+  .app-shell .dashboard-grid { grid-template-columns: minmax(0, 1.2fr) minmax(260px, .9fr); }
+}
+
+@media (max-width: 880px) {
+  .desktop-sidebar { display: none; }
+  .dashboard-next-action { display: none !important; }
+}
+
+.app-shell.theme-dark .desktop-sidebar { background: #0b302b; }
+.app-shell.theme-dark .desktop-nav-item { color: #bfd6cd; }
+.app-shell.theme-dark .desktop-nav-item.active { background: #116451; color: white; }
+.app-shell.theme-dark .topbar { background: var(--panel); border-color: var(--line); }
+.app-shell.theme-dark .metric-card,
+.app-shell.theme-dark .dashboard-grid .panel,
+.app-shell.theme-dark .bottom-grid .panel { background: var(--panel); border-color: var(--line); }
+.app-shell.theme-dark .networth-card { background: linear-gradient(140deg, var(--panel), #10231a); }
+.app-shell.theme-dark .metric-heading,
+.app-shell.theme-dark .panel-heading h2 { color: var(--text); }
+.app-shell.theme-dark { background: var(--bg); }
+body.theme-dark { background: var(--bg); }
+.app-shell.theme-dark .dashboard-next-action { background: #302b18; border-color: #584a20; }
+.app-shell.theme-dark .dashboard-next-action h2 { color: var(--text); }
+.app-shell.theme-dark .dashboard-next-action p { color: var(--muted); }

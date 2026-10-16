@@ -1737,6 +1737,16 @@ function updateDashboardOnboarding() {
     });
     if (key === "plan" && done) row.setAttribute("aria-label", "Monthly plan complete");
   });
+  const nextAction = document.querySelector("[data-dashboard-next-action]");
+  const topQuest = getMilestonesEngine(quests).top;
+  if (nextAction) {
+    const showNextAction = completed === steps.length && Boolean(topQuest);
+    nextAction.hidden = !showNextAction;
+    if (showNextAction) {
+      nextAction.querySelector("[data-next-action-title]").textContent = `Keep moving on ${topQuest.name}`;
+      nextAction.querySelector("[data-next-action-copy]").textContent = `${formatKsh(Math.max(0, Number(topQuest.target) - Number(topQuest.current || 0)))} remains toward your goal.`;
+    }
+  }
 }
 
 // Currency helpers manage manual exchange rates, switcher labels, and formatted amounts.

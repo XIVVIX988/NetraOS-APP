@@ -69,6 +69,24 @@
         <span class="drawer-tools-label">PREFERENCES</span>
       </div>
     </aside>
+      <!-- Persistent navigation for desktop; phone navigation continues to use the drawer above. -->
+      <aside class="desktop-sidebar" aria-label="Primary navigation">
+        <a class="desktop-sidebar-brand" href="#dashboard" data-home-link aria-label="NetraOS dashboard home">
+          <img src="netraos-logo.svg" alt="" />
+          <span>NETRA<span>OS</span></span>
+        </a>
+        <nav class="desktop-sidebar-nav" aria-label="Primary sections">
+          <button class="desktop-nav-item active" type="button" data-page="Dashboard"><span aria-hidden="true">▦</span>Dashboard</button>
+          <button class="desktop-nav-item" type="button" data-page="Inventory"><span aria-hidden="true">▤</span>Inventory</button>
+          <button class="desktop-nav-item" type="button" data-page="Power-Up"><span aria-hidden="true">ϟ</span>Power-Up &amp; Tax</button>
+          <button class="desktop-nav-item" type="button" data-page="Quests"><span aria-hidden="true">◎</span>Quests</button>
+          <button class="desktop-nav-item" type="button" data-page="Stats"><span aria-hidden="true">▥</span>Stats</button>
+          <button class="desktop-nav-item" type="button" data-page="Achievements"><span aria-hidden="true">♜</span>Achievements</button>
+          <button class="desktop-nav-item" type="button" data-page="Contact"><span aria-hidden="true">✉</span>Contact</button>
+          <button class="desktop-nav-item desktop-nav-settings" type="button" data-page="Settings"><span aria-hidden="true">⚙</span>Settings</button>
+        </nav>
+        <div class="desktop-sidebar-note"><strong>Financial freedom</strong><span>is a journey</span></div>
+      </aside>
       <main class="main-panel">
         <!-- Global header: brand, section navigation, date/currency menus, and quick actions. -->
         <header class="topbar">
@@ -203,20 +221,7 @@
                 KSh 0
               </div>
               <div class="metric-foot">
-                <span class="positive-pill">↗ 0.0%</span>
-                <span class="muted">vs. last month</span>
-              </div>
-              <div class="sparkline" aria-hidden="true">
-                <svg viewBox="0 0 400 72" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="fill" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0" stop-color="#d8b451" stop-opacity=".22" />
-                      <stop offset="1" stop-color="#d8b451" stop-opacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M0 60 H400 V72 H0Z" fill="url(#fill)" />
-                  <path d="M0 60 H400" fill="none" stroke="#d8b451" stroke-width="2.5" />
-                </svg>
+                <span class="muted">Assets minus liabilities</span>
               </div>
             </article>
             <article class="metric-card">
@@ -429,6 +434,11 @@
                 </div>
               </div>
             </article>
+          </section>
+          <section class="dashboard-next-action" data-dashboard-next-action hidden aria-live="polite">
+            <span class="next-action-icon" aria-hidden="true">✦</span>
+            <div><span class="section-kicker">A GOOD NEXT STEP</span><h2 data-next-action-title></h2><p data-next-action-copy></p></div>
+            <button type="button" data-jump="Quests">View quests <span aria-hidden="true">↗</span></button>
           </section>
           <!-- Current quest progress. -->
           <section class="bottom-grid">
