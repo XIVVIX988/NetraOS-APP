@@ -1155,7 +1155,7 @@ function showPublicPage(page = "landing") {
               <div class="landing-eyebrow landing-manifesto" aria-label="Income. Spending. Goals. In one view."><span>Income</span><b>·</b><span>Spending</span><b>·</b><span>Goals</span><strong>In one view</strong></div>
               <h1>See your money<br>with <em>new clarity.</em></h1>
               <p>NetraOS turns scattered balances and plans into one clear picture—so your next financial move feels easier to make.</p>
-              <div class="landing-actions"><button class="public-primary" type="button" data-public-action="signup">Get started <span>↗</span></button><a class="landing-text-link" href="#features">Explore the system <span>↓</span></a></div>
+              <div class="landing-actions"><button class="public-primary" type="button" data-public-action="signup">Get started <span>↗</span></button><a class="landing-text-link" href="https://github.com/XIVVIX988/NetraOS-APP/releases/latest/download/NetraOS-Setup.exe" target="_blank" rel="noopener noreferrer">Download for Windows <span>↗</span></a><a class="landing-text-link" href="#features">Explore the system <span>↓</span></a></div>
               <div class="landing-assurance landing-assurance-v2"><span>✳</span><div><strong>Private by design</strong><small>Your data is protected by account-level database access rules.</small></div></div>
             </div>
             <div class="landing-visual" aria-label="Illustrative NetraOS dashboard preview">

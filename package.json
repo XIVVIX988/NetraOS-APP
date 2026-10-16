@@ -1,0 +1,40 @@
+{
+  "name": "netraos-desktop",
+  "version": "1.0.0",
+  "author": "NetraOS",
+  "private": true,
+  "description": "NetraOS desktop app for Windows",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist:windows": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "43.7.6",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "io.netraos.desktop",
+    "productName": "NetraOS",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "desktop/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": ["nsis"],
+      "artifactName": "NetraOS-Setup.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NetraOS",
+      "runAfterFinish": true
+    }
+  }
+}
