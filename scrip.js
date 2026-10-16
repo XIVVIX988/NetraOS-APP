@@ -1210,7 +1210,7 @@ function showPublicPage(page = "landing") {
           <form class="auth-form" data-auth-form="${isSignup ? "signup" : "login"}" novalidate>
             ${isSignup ? `<label class="inventory-form-field"><span>Full name</span><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your full name" required></label>` : ""}
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
-            <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" minlength="8" placeholder="At least 8 characters" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
+            <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" ${isSignup ? 'minlength="8" placeholder="At least 8 characters"' : 'placeholder="Your password"'} required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>` : ""}
             ${isSignup ? "" : '<button class="auth-reset-password" type="button" data-password-reset>Forgot your password?</button>'}
             <div class="auth-error" role="status" aria-live="polite" hidden></div>
@@ -5072,14 +5072,17 @@ document.addEventListener("submit", async event => {
     const formData = new FormData(form);
     const email = String(formData.get("email") || "").trim().toLowerCase();
     const password = String(formData.get("password") || "");
+    const isSignup = form.dataset.authForm === "signup";
     const error = form.querySelector(".auth-error");
     const fail = message => {
       error.textContent = message;
       error.classList.remove("success");
       error.hidden = false;
     };
-    if (!email.includes("@") || password.length < 8) {
-      fail("A valid email address and a password with at least 8 characters are needed.");
+    if (!email.includes("@") || !password || (isSignup && password.length < 8)) {
+      fail(isSignup
+        ? "A valid email address and a password with at least 8 characters are needed."
+        : "A valid email address and password are needed.");
       return;
     }
 
@@ -5089,7 +5092,6 @@ document.addEventListener("submit", async event => {
     }
 
     if (window.NetraSupabase?.enabled) {
-      const isSignup = form.dataset.authForm === "signup";
       const name = String(formData.get("name") || "").trim();
       if (isSignup && name.length < 2) { fail("The name you’d like associated with your account is needed."); return; }
       if (isSignup && !formData.has("acceptTerms")) { fail("Please accept the Terms of Service and acknowledge the Privacy Policy to create your account."); return; }
