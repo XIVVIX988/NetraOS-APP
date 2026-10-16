@@ -9,7 +9,7 @@ The browser client is configured for project `nqacreyemzoiarnaaska`. The publish
 3. Copy all of `supabase/schema.sql` into the query editor and click **Run**.
 4. Confirm the tables appear in **Table Editor** and that Row Level Security is enabled for each.
 
-If the database is already installed, run `supabase/migrations/20261015_require_totp_aal2.sql` in the SQL Editor after deploying the updated app. This makes the database itself reject account-data requests until the authenticator code has been verified.
+If you previously applied `supabase/migrations/20261015_require_totp_aal2.sql`, run `supabase/migrations/20261015_remove_totp_aal2.sql` in the SQL Editor to restore the standard owner-only policies without an MFA requirement.
 
 The schema stores profile data in `user_profiles`, settings in `user_settings`, and financial records in the individual tables. Supabase Auth owns password hashes, confirmation challenges, password recovery, and session tokens, so those secrets are not duplicated in app tables. The inactivity PIN remains a device-side convenience and is never uploaded.
 
@@ -34,16 +34,14 @@ Use a local web server such as VS Code Live Server at port `5500`; do not open `
 
 1. Reload `http://127.0.0.1:5500/index.html` and create an account with an email you can open.
 2. Follow the Supabase confirmation link, then sign in with your email and password.
-3. On first sign-in, scan the displayed QR code with an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, or another TOTP-compatible app). Enter its six-digit code to finish setup. Keep the authenticator available for future sign-ins.
-4. If this browser already has NetraOS records, accept the import prompt. A local migration backup is retained until the upload finishes successfully.
-5. Add a test record and verify it appears in the matching table in Supabase **Table Editor**.
-6. Sign in on another browser/device, enter the authenticator code, and check that the account data downloads there.
+3. If this browser already has NetraOS records, accept the import prompt. A local migration backup is retained until the upload finishes successfully.
+4. Add a test record and verify it appears in the matching table in Supabase **Table Editor**.
+5. Sign in on another browser/device and check that the account data downloads there.
 
 The app writes locally first and retries cloud sync after connectivity returns. It pulls remote changes every 30 seconds when there are no pending local edits. Rows created on another device since the last pull are merged; for simultaneous edits to the same row, the last successful save wins. JSON/CSV export stays available. **Factory reset** clears the account’s NetraOS database rows and local app data, but leaves the Supabase Auth identity in place.
 
 ## Items that still need configuration before production
 
-- Authenticator-app MFA is required after password sign-in. Each device/browser signs in with the account password, then verifies the current six-digit TOTP code. New accounts enroll an authenticator at first sign-in. Keep access to that authenticator; account recovery for a lost factor must be handled through the Supabase project’s configured recovery process.
 - Email-based PIN recovery is disabled in connected mode until that server-side challenge function exists. The current inactivity PIN is local to each device and is not server-verified.
 - Factory reset deletes account data but does not delete the Supabase Auth identity. Deleting the identity safely needs a protected server function; never use a service-role key from the browser.
 - Confirm the project’s database region, retention, backups, email settings, and production redirect domain in the Supabase Dashboard.

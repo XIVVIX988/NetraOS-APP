@@ -8118,19 +8118,6 @@ body.theme-dark #public-shell .auth-form .inventory-form-field input:focus { bor
 body.theme-dark #public-shell .auth-switch button { color: #92d4ad; }
 body.theme-dark #public-shell .auth-preview-note { border-color: #2b3c32; }
 body.theme-dark #public-shell .auth-page > .auth-back { border-color: #b5ebce80; background: #0f3428a8; color: #d6f4e1; }
-.auth-mfa-page .auth-content { max-height: calc(100dvh - 32px); overflow-y: auto; }
-.mfa-enrollment { margin: 0 0 18px; padding: 14px; border: 1px solid #dce9df; border-radius: 14px; background: #f7fbf8; color: #52685a; font-size: 11px; line-height: 1.55; }
-.mfa-enrollment > p { margin: 10px 0; }
-.mfa-qr { display: block; width: min(190px, 100%); aspect-ratio: 1; object-fit: contain; margin: 0 auto 10px; padding: 8px; border-radius: 10px; background: #fff; }
-.mfa-secret-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px; border: 1px solid #dce9df; border-radius: 9px; background: #fff; }
-.mfa-secret-row code { min-width: 0; overflow-wrap: anywhere; color: #223c2d; font-size: 11px; letter-spacing: .07em; }
-.mfa-secret-row .secondary-button { flex: 0 0 auto; padding: 7px 10px; font-size: 10px; }
-.mfa-form .inventory-form-field input { font-size: 19px; letter-spacing: .3em; text-align: center; }
-.mfa-cancel { display: block; margin: 14px auto 0; border: 0; background: transparent; color: #65746a; font: inherit; font-size: 11px; cursor: pointer; }
-body.theme-dark #public-shell .mfa-enrollment { border-color: #334b3c; background: #111a15; color: #b0c3b7; }
-body.theme-dark #public-shell .mfa-secret-row { border-color: #3a5144; background: #17221b; }
-body.theme-dark #public-shell .mfa-secret-row code { color: #e0ede5; }
-body.theme-dark #public-shell .mfa-cancel { color: #b5c5ba; }
 @media (min-width: 601px) {
   #public-shell .auth-page { align-items: center; padding: 100px 18px 48px; }
   #public-shell .auth-page::before { background: linear-gradient(180deg, #f6fff57a 0%, #effaf2a1 52%, #ffffffa6 100%); }
@@ -8151,8 +8138,6 @@ body.theme-dark #public-shell .mfa-cancel { color: #b5c5ba; }
   #public-shell .auth-page > .auth-back { top: max(14px, env(safe-area-inset-top)); left: 14px; }
   #public-shell .auth-card { border-radius: 20px; }
   #public-shell .auth-content { padding: 23px 21px 22px; }
-  #public-shell .auth-mfa-page { padding-top: max(92px, 12vh); }
-  #public-shell .auth-mfa-page .auth-content { max-height: calc(100dvh - max(92px, 12vh) - 24px); }
 }
 
 

@@ -234,19 +234,6 @@
     enabled: true, client,
     signUp: (email, password, metadata) => client.auth.signUp({ email, password, options: { data: metadata, emailRedirectTo: confirmationRedirectUrl() } }),
     signIn: (email, password) => client.auth.signInWithPassword({ email, password }),
-    listTotpFactors: async () => {
-      const result = await client.auth.mfa.listFactors();
-      if (result.error) throw result.error;
-      return result.data.totp || [];
-    },
-    enrollTotp: params => client.auth.mfa.enroll({ factorType: "totp", friendlyName: params?.friendlyName || "NetraOS authenticator" }),
-    unenrollTotp: factorId => client.auth.mfa.unenroll({ factorId }),
-    verifyTotp: async (factorId, code) => {
-      const challenge = await client.auth.mfa.challenge({ factorId });
-      if (challenge.error) return challenge;
-      return client.auth.mfa.verify({ factorId, challengeId: challenge.data.id, code: String(code).replace(/\s/g, "") });
-    },
-    getAuthenticatorAssuranceLevel: () => client.auth.mfa.getAuthenticatorAssuranceLevel(),
     resetPassword: email => client.auth.resetPasswordForEmail(email, { redirectTo: `${config.authRedirectUrl || `${location.origin}${location.pathname}`}#login` }),
     updatePassword: password => client.auth.updateUser({ password }),
     signOut: options => client.auth.signOut(options),

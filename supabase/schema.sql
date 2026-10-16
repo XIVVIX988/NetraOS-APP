@@ -118,12 +118,11 @@ begin
   foreach t in array array['user_profiles','user_settings','entries','incomes','budget_lines','spending','goals','achievements','currency_rates','tax_profile','audit_log','consents'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists owner_access on public.%I', t);
-    execute format('create policy owner_access on public.%I for all to authenticated using (user_id = (select auth.uid()) and (select auth.jwt() ->> ''aal'') = ''aal2'') with check (user_id = (select auth.uid()) and (select auth.jwt() ->> ''aal'') = ''aal2'')', t);
+    execute format('create policy owner_access on public.%I for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()))', t);
     execute format('grant select, insert, update, delete on public.%I to authenticated', t);
     execute format('revoke all on public.%I from anon', t);
   end loop;
 end $$;
 
--- Auth is managed by Supabase Auth. It owns server sessions, passwords, and
--- authenticator-app TOTP factors. Built-in confirmation and password reset
--- emails are configured under Authentication > Email.
+-- Auth is managed by Supabase Auth. It owns server sessions, passwords,
+-- confirmation challenges, and password recovery.

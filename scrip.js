@@ -1169,7 +1169,7 @@ function showPublicPage(page = "landing") {
             <button class="public-primary auth-submit" type="submit">${isSignup ? "Create account" : "Log in"}${isSignup ? "" : " <span>↗</span>"}</button>
           </form>
           <p class="auth-switch">${isSignup ? "Already have an account?" : "New to NetraOS?"} <button type="button" data-public-action="${isSignup ? "login" : "signup"}">${isSignup ? "Log in" : "Create an account"}</button></p>
-          <p class="auth-preview-note">After confirming your email, you’ll set up an authenticator app. Its six-digit code will be needed each time you sign in.</p>
+          <p class="auth-preview-note">Your email and password protect sign-in. Confirmation and password-reset links arrive by email, and records sync when you’re online.</p>
           </div>
         </section>
       </div>`;
@@ -1201,55 +1201,6 @@ function showPasswordResetForm() {
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   dialog.showModal();
   form.elements.password.focus();
-}
-
-async function completeSupabaseSignIn() {
-  const profile = await window.NetraSupabase.bootstrap();
-  if (!profile) throw new Error("Sign-in succeeded, but NetraOS could not load your account.");
-  if (!profile.username) showPreferredNamePrompt(profile);
-  else enterApp(profile);
-}
-
-function showAuthenticatorGate({ mode, factorId, enrollment, message = "" }) {
-  if (!publicShell || !appShell) return;
-  appShell.hidden = true;
-  publicShell.hidden = false;
-  document.body.classList.remove("phone-entry-view", "public-view");
-  document.body.classList.add("auth-view");
-  window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#mfa`);
-  const setup = mode === "enroll";
-  const qr = enrollment?.totp?.qr_code || "";
-  const secret = enrollment?.totp?.secret || "";
-  publicShell.innerHTML = `<div class="auth-page auth-mfa-page">${renderFluidArt()}<section class="auth-card"><div class="auth-content">
-    <div class="section-kicker">ACCOUNT SECURITY</div>
-    <h1>${setup ? "Set up your authenticator." : "Verify it’s you."}</h1>
-    <p class="auth-description">${setup ? "Add NetraOS to an authenticator app such as Google Authenticator, Microsoft Authenticator, or 1Password. You’ll use its six-digit code each time you sign in." : "Open your authenticator app and enter the current six-digit code for NetraOS."}</p>
-    ${setup ? `<div class="mfa-enrollment"><img class="mfa-qr" src="${escapeHTML(qr)}" alt="QR code for NetraOS authenticator setup"><p>Scan this QR code. If you’re setting up on this same phone, choose the manual setup option in your authenticator and enter the key below.</p><div class="mfa-secret-row"><code data-mfa-secret>${escapeHTML(secret)}</code><button class="secondary-button" type="button" data-mfa-copy>Copy key</button></div></div>` : ""}
-    <form class="auth-form mfa-form" data-mfa-form data-factor-id="${escapeHTML(factorId || enrollment?.id || "")}" novalidate>
-      <label class="inventory-form-field"><span>6-digit authenticator code</span><input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,8}" maxlength="8" placeholder="000000" aria-label="6-digit authenticator code" required></label>
-      <div class="auth-error" role="status" aria-live="polite" ${message ? "" : "hidden"}>${escapeHTML(message)}</div>
-      <button class="public-primary auth-submit" type="submit">${setup ? "Verify and secure account" : "Verify and sign in"}</button>
-    </form>
-    <button class="auth-reset-password mfa-cancel" type="button" data-mfa-cancel>Cancel and return to sign in</button>
-  </div></section></div>`;
-  publicShell.querySelector('[name="code"]')?.focus();
-}
-
-async function routeToAuthenticatorGate() {
-  const factors = await window.NetraSupabase.listTotpFactors();
-  const verified = factors.find(factor => factor.status === "verified");
-  if (verified) {
-    showAuthenticatorGate({ mode: "challenge", factorId: verified.id });
-    return;
-  }
-  // Discard an abandoned, unverified setup so a fresh QR/secret can be shown.
-  for (const factor of factors.filter(item => item.status !== "verified")) {
-    const { error } = await window.NetraSupabase.unenrollTotp(factor.id);
-    if (error) throw error;
-  }
-  const { data, error } = await window.NetraSupabase.enrollTotp();
-  if (error) throw error;
-  showAuthenticatorGate({ mode: "enroll", enrollment: data });
 }
 
 // Build profile and settings screens from the current browser-local preferences.
@@ -5093,19 +5044,23 @@ document.addEventListener("submit", async event => {
           const termsAcceptedAt = new Date().toISOString();
           const result = await window.NetraSupabase.signUp(email, password, { full_name: name, terms_version: termsVersion, terms_accepted_at: termsAcceptedAt });
           if (result.error) throw result.error;
-          const profile = { name, email, username: "", termsVersion, termsAcceptedAt };
           if (!result.data.session) {
             error.textContent = `A confirmation email is on its way to ${email}. The link in it will finish setting up your account; you can return here to sign in afterward.`;
             error.classList.add("success");
             error.hidden = false;
             return;
           }
-          await routeToAuthenticatorGate();
+          const profile = await window.NetraSupabase.bootstrap();
+          if (!profile) throw new Error("Account setup completed, but NetraOS couldn’t load your account.");
+          showPreferredNamePrompt(profile);
           return;
         }
         const result = await window.NetraSupabase.signIn(email, password);
         if (result.error) throw result.error;
-        await routeToAuthenticatorGate();
+        const profile = await window.NetraSupabase.bootstrap();
+        if (!profile) throw new Error("Sign-in succeeded, but NetraOS could not load your account.");
+        if (!profile.username) showPreferredNamePrompt(profile);
+        else enterApp(profile);
       } catch (authError) {
         fail(friendlyAuthMessage(authError, isSignup
           ? "We couldn’t finish setting up your account just now. This may work again in a little while."
@@ -5184,29 +5139,6 @@ document.addEventListener("submit", async event => {
       description: "We’ll use this code to finish signing you in.",
       onVerified: () => enterApp(profile)
     });
-  }
-
-  if (form.matches("[data-mfa-form]")) {
-    event.preventDefault();
-    const code = String(new FormData(form).get("code") || "").replace(/\s/g, "");
-    const error = form.querySelector(".auth-error");
-    const fail = message => { error.textContent = message; error.hidden = false; };
-    if (!/^\d{6}$/.test(code)) { fail("Enter the current six-digit code from your authenticator app."); return; }
-    const submit = form.querySelector('[type="submit"]');
-    submit.disabled = true;
-    try {
-      const { error: verifyError } = await window.NetraSupabase.verifyTotp(form.dataset.factorId, code);
-      if (verifyError) throw verifyError;
-      await completeSupabaseSignIn();
-    } catch (verifyError) {
-      fail(/invalid|expired|verification/.test(String(verifyError?.message || "").toLowerCase())
-        ? "That code couldn’t be verified. Check the time on your phone and try the latest code."
-        : friendlyAuthMessage(verifyError, "We couldn’t verify that code just now. Please try again."));
-      submit.disabled = false;
-      form.elements.code.value = "";
-      form.elements.code.focus();
-    }
-    return;
   }
 
   if (form.matches("[data-account-form='profile']")) {
@@ -5366,20 +5298,6 @@ document.addEventListener("submit", async event => {
 // Route clicks for app actions, dialog controls, profile menus, and theme/privacy toggles.
 document.addEventListener("click", event => {
   const target = event.target;
-  const mfaCancel = target.closest("[data-mfa-cancel]");
-  if (mfaCancel) {
-    window.NetraSupabase.signOut({ scope: "local" }).finally(() => showPublicPage("login"));
-    return;
-  }
-  const mfaCopy = target.closest("[data-mfa-copy]");
-  if (mfaCopy) {
-    const secret = mfaCopy.closest(".mfa-enrollment")?.querySelector("[data-mfa-secret]")?.textContent || "";
-    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(secret)
-      .then(() => showToast("Authenticator setup key copied."))
-      .catch(() => showToast("Select and copy the authenticator setup key."));
-    else showToast("Select and copy the authenticator setup key.");
-    return;
-  }
   const homeLink = target.closest("[data-home-link]");
   if (homeLink) {
     event.preventDefault();
@@ -5787,12 +5705,6 @@ if (window.NetraSupabase?.enabled && !["terms", "privacy"].includes(initialPage)
       return;
     }
     if (!data.session) return;
-    const assurance = await window.NetraSupabase.getAuthenticatorAssuranceLevel();
-    if (assurance.error) throw assurance.error;
-    if (assurance.data.currentLevel !== "aal2") {
-      await routeToAuthenticatorGate();
-      return;
-    }
     const profile = await window.NetraSupabase.bootstrap();
     if (!profile) return;
     appShell.hidden = false;
