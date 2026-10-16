@@ -3750,6 +3750,7 @@ body.theme-dark #public-shell .auth-error.success {
 }
 
 .auth-preview-note {
+  display: none;
   margin: 19px 0 0;
   padding-top: 14px;
   border-top: 1px solid #edf1ee;
@@ -8138,6 +8139,7 @@ body.theme-dark #public-shell .auth-page > .auth-back { border-color: #b5ebce80;
   #public-shell .auth-page > .auth-back { top: max(14px, env(safe-area-inset-top)); left: 14px; }
   #public-shell .auth-card { border-radius: 20px; }
   #public-shell .auth-content { padding: 23px 21px 22px; }
+  #public-shell .auth-preview-note { display: block; }
 }
 
 

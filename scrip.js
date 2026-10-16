@@ -498,38 +498,70 @@ function monthKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function getReportMonth() {
-  const today = new Date();
-  const period = getReportPeriod();
+function paydayDate(year, monthIndex, anchorDay) {
+  const day = Math.min(anchorDay, new Date(year, monthIndex + 1, 0).getDate());
+  return new Date(year, monthIndex, day, 12);
+}
+
+function getCurrentCycleStartDate(date = new Date()) {
   const settings = getStoredSettings();
-  // A payday of 29-31 falls on the last day of shorter months.
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const anchorDay = Math.min(settings.paydayAnchorDay, daysInMonth);
-  const cycleStart = new Date(today.getFullYear(), today.getMonth() - (today.getDate() < anchorDay ? 1 : 0), 1);
-  if (period === "Last month") return monthKey(new Date(cycleStart.getFullYear(), cycleStart.getMonth() - 1, 1));
-  return monthKey(cycleStart);
+  const today = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12);
+  const anchor = paydayDate(today.getFullYear(), today.getMonth(), settings.paydayAnchorDay);
+  return today < anchor
+    ? paydayDate(today.getFullYear(), today.getMonth() - 1, settings.paydayAnchorDay)
+    : anchor;
+}
+
+function getReportCycleBounds(period = getReportPeriod()) {
+  const cycleStart = getCurrentCycleStartDate();
+  const offset = period === "Last month" ? -1 : 0;
+  const cycleMonth = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + offset, 1, 12);
+  const anchorDay = getStoredSettings().paydayAnchorDay;
+  return {
+    start: localDateValue(paydayDate(cycleMonth.getFullYear(), cycleMonth.getMonth(), anchorDay)),
+    end: localDateValue(paydayDate(cycleMonth.getFullYear(), cycleMonth.getMonth() + 1, anchorDay))
+  };
+}
+
+function getDefaultSpendingDate() {
+  const today = localDateValue();
+  const cycle = getReportCycleBounds();
+  if (today >= cycle.start && today < cycle.end) return today;
+  const lastCycleDay = new Date(`${cycle.end}T12:00:00`);
+  lastCycleDay.setDate(lastCycleDay.getDate() - 1);
+  return localDateValue(lastCycleDay);
+}
+
+function getReportMonth() {
+  if (getReportPeriod() === "Year to date") return monthKey();
+  const cycle = getReportCycleBounds();
+  return monthKey(new Date(`${cycle.start}T12:00:00`));
 }
 
 function spendingForReport(entries) {
   const currentMonth = getReportMonth();
   const period = getReportPeriod();
+  const cycle = getReportCycleBounds(period);
   return entries.filter(item => {
-    const month = /^\d{4}-\d{2}$/.test(item.month || "") ? item.month : currentMonth;
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : "";
+    const month = date ? date.slice(0, 7) : /^\d{4}-\d{2}$/.test(item.month || "") ? item.month : currentMonth;
     if (period === "Year to date") {
       const settings = getStoredSettings();
-      const currentDate = new Date(`${currentMonth}-01T12:00:00`);
+      const currentDate = new Date();
       let fiscalYear = currentDate.getFullYear();
       if (currentDate.getMonth() + 1 < settings.financialYearStartMonth) fiscalYear -= 1;
       const fiscalStart = `${fiscalYear}-${String(settings.financialYearStartMonth).padStart(2, "0")}`;
-      return month >= fiscalStart && month <= currentMonth;
+      return month >= fiscalStart && month <= monthKey(currentDate) && (!date || date <= localDateValue(currentDate));
     }
-    return month === getReportMonth();
+    if (date) return date >= cycle.start && date < cycle.end;
+    // Preserve older month-only records; new expenses use exact dates above.
+    return month === monthKey(new Date(`${cycle.start}T12:00:00`));
   });
 }
 
 function reportMonthCount() {
   if (getReportPeriod() !== "Year to date") return 1;
-  const reportDate = new Date(`${getReportMonth()}-01T12:00:00`);
+  const reportDate = new Date();
   const startMonth = getStoredSettings().financialYearStartMonth;
   let startYear = reportDate.getFullYear();
   if (reportDate.getMonth() + 1 < startMonth) startYear -= 1;
@@ -1308,11 +1340,11 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Quest progress</strong><small>Saved as a preference; this preview does not send notifications.</small></span><input name="goalNotifications" type="checkbox" ${settings.goalNotifications ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Monthly plan</strong><small>Saved as a preference; this preview does not send notifications.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
         </section>
-        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">PRIVACY &amp; SECURITY</div><h2>Session protection</h2></div></div>
+        <section class="panel settings-panel" id="autolock-settings" tabindex="-1"><div class="panel-heading"><div><div class="section-kicker">PRIVACY &amp; SECURITY</div><h2>Session protection</h2></div></div>
           <p class="settings-disclosure">NetraOS keeps a browser copy and syncs your account records to Supabase when online. The inactivity PIN is a device-side convenience and does not encrypt stored data. HTTPS and security headers are controlled by the hosting platform.</p>
           <label class="settings-field"><span><strong>Privacy Shield</strong><small>Mask currency amounts in the app header or with the shortcut.</small></span><input name="privacyShield" type="checkbox" ${privacyEnabled ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Privacy Shield shortcut</strong><small>Keyboard shortcut to toggle amount masking.</small></span><select name="privacyShortcut"><option value="Shift+S" ${settings.privacyShortcut === "Shift+S" ? "selected" : ""}>Shift + S</option><option value="Alt+Shift+S" ${settings.privacyShortcut === "Alt+Shift+S" ? "selected" : ""}>Alt + Shift + S</option><option value="Off" ${settings.privacyShortcut === "Off" ? "selected" : ""}>Off</option></select></label>
-          <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a four-digit PIN. This device’s saved PIN also works offline.</small></span><select name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Never</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
+          <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a four-digit PIN. This device’s saved PIN also works offline.</small></span><select id="lock-timeout-minutes" name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Never</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
           <div class="autolock-options" data-autolock-options ${settings.lockTimeoutMinutes ? "" : "hidden"}>
             ${(settings.localPinHash || settings.accountPinEnabled) ? '<label class="inventory-form-field"><span>Current four-digit PIN <small>Required to change or remove your PIN</small></span><input name="currentPin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4"></label>' : ""}
             <div class="settings-pin-fields"><label class="inventory-form-field"><span>New four-digit PIN <small>Leave blank to keep the current PIN</small></span><input name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label><label class="inventory-form-field"><span>Confirm PIN</span><input name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label></div>
@@ -2225,7 +2257,12 @@ function updateDashboardCashflowChart(totals = getPowerUpTotals()) {
 // Refresh the visible financial page after one of its saved records changes.
 function reportMonthLabel() {
   if (getReportPeriod() === "Year to date") return "YTD";
-  return new Date(`${getReportMonth()}-01T12:00:00`).toLocaleDateString(undefined, { month: "short" });
+  const cycle = getReportCycleBounds();
+  const start = new Date(`${cycle.start}T12:00:00`);
+  const end = new Date(`${cycle.end}T12:00:00`);
+  end.setDate(end.getDate() - 1);
+  const format = date => date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `${format(start)}–${format(end)}`;
 }
 
 function refreshFinancialPage() {
@@ -2501,7 +2538,7 @@ function openPowerUpDialog(kind, editId = null) {
       <header class="inventory-dialog-heading">
         <div>
           <span class="section-kicker">${isIncome ? "MONEY COMING IN" : isSpending ? "MONEY SPENT" : "MONTHLY PLAN"}</span>
-          <h2>${editing ? "Edit " + (isIncome ? "income source" : isSpending ? "spending" : "budget line") : isIncome ? "Add an income source" : isSpending ? "Record monthly spending" : "Add a budget line"}</h2>
+          <h2>${editing ? "Edit " + (isIncome ? "income source" : isSpending ? "expense" : "budget line") : isIncome ? "Add an income source" : isSpending ? "Record an expense" : "Add a budget line"}</h2>
         </div>
         <button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button>
       </header>
@@ -2515,11 +2552,11 @@ function openPowerUpDialog(kind, editId = null) {
           <select name="category" required>${budgetCategories.map(category => `<option value="${category}">${category}</option>`).join("")}</select>
         </label>`}
         ${isSpending ? `<label class="inventory-form-field">
-          <span>Month</span>
-          <input name="month" type="month" value="${getReportMonth()}" required>
+          <span>Expense date</span>
+          <input name="date" type="date" value="${getDefaultSpendingDate()}" required>
         </label>` : ""}
         <label class="inventory-form-field">
-          <span>Monthly amount (KSh)</span>
+          <span>${isSpending ? "Amount (KSh)" : "Monthly amount (KSh)"}</span>
           <input name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" required>
         </label>
         <label class="inventory-form-field">
@@ -2538,7 +2575,7 @@ function openPowerUpDialog(kind, editId = null) {
   if (editing) {
     form.elements.name.value = editing.name || "";
     if (form.elements.category) form.elements.category.value = editing.category || budgetCategories[0];
-    if (form.elements.month) form.elements.month.value = editing.month || getReportMonth();
+    if (form.elements.date) form.elements.date.value = editing.date || (editing.month ? `${editing.month}-01` : getDefaultSpendingDate());
     form.elements.amount.value = editing.amount ?? "";
     form.elements.notes.value = editing.notes || "";
   }
@@ -2553,6 +2590,11 @@ function openPowerUpDialog(kind, editId = null) {
     const name = String(formData.get("name") || "").trim();
     const amount = Number(formData.get("amount"));
     if (!name || !Number.isFinite(amount) || amount < 0) return;
+    const expenseDate = String(formData.get("date") || "");
+    if (isSpending && !/^\d{4}-\d{2}-\d{2}$/.test(expenseDate)) {
+      showToast("Choose a valid date for this expense.");
+      return;
+    }
 
     const data = getPowerUpData();
     const entry = {
@@ -2561,7 +2603,7 @@ function openPowerUpDialog(kind, editId = null) {
       amount,
       notes: String(formData.get("notes") || "").trim()
     };
-    const savedEntry = isIncome ? entry : isSpending ? { ...entry, month: String(formData.get("month") || getReportMonth()), category: String(formData.get("category")) } : { ...entry, category: String(formData.get("category")) };
+    const savedEntry = isIncome ? entry : isSpending ? { ...entry, date: expenseDate, month: expenseDate.slice(0, 7), category: String(formData.get("category")) } : { ...entry, category: String(formData.get("category")) };
     const entryIndex = data[targetList].findIndex(item => item.id === savedEntry.id);
     if (entryIndex >= 0) data[targetList][entryIndex] = savedEntry;
     else data[targetList].push(savedEntry);
@@ -2575,7 +2617,7 @@ function openPowerUpDialog(kind, editId = null) {
 
     dialog.close();
     refreshFinancialPage();
-    showToast(editing ? `${name} updated.` : isSpending ? `${name} recorded as monthly spending.` : `${name} added to your monthly plan.`);
+    showToast(editing ? `${name} updated.` : isSpending ? `${name} expense recorded.` : `${name} added to your monthly plan.`);
   });
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   dialog.showModal();
@@ -3032,7 +3074,7 @@ function renderPowerUpPage() {
           <span class="power-row-icon spending-icon">↗</span>
           <span class="power-row-name">
             <strong>${escapeHTML(item.name)}</strong>
-            <small>${escapeHTML(item.category)} · ${escapeHTML(item.month || monthKey())}${item.notes ? " · " + escapeHTML(item.notes) : ""}</small>
+            <small>${escapeHTML(item.category)} · ${escapeHTML(item.date || item.month || monthKey())}${item.notes ? " · " + escapeHTML(item.notes) : ""}</small>
           </span>
           <strong class="power-row-amount">${formatKsh(item.amount)}</strong>
           <button class="inventory-row-edit" type="button" data-edit-power-item="spending" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit spending item">Edit</button>
@@ -3554,11 +3596,22 @@ document.addEventListener("click", event => {
 });
 
 // Shared popover menus and toast messages provide lightweight app feedback.
+let activeMenuTrigger = null;
+
 function closePopover() {
   document.querySelector(".action-popover")?.remove();
-  document
-    .querySelectorAll('[aria-expanded="true"]')
-    .forEach(button => button.setAttribute("aria-expanded", "false"));
+  activeMenuTrigger?.setAttribute("aria-expanded", "false");
+  activeMenuTrigger = null;
+}
+
+document.addEventListener("pointerdown", event => {
+  const menu = document.querySelector(".action-popover");
+  if (!menu || menu.contains(event.target) || activeMenuTrigger?.contains(event.target)) return;
+  closePopover();
+}, true);
+
+window.addEventListener("resize", closePopover);
+window.addEventListener("scroll", closePopover, { passive: true });
 }
 
 function showToast(message) {
@@ -3573,6 +3626,10 @@ function showToast(message) {
 }
 
 function openMenu(button, choices) {
+  if (activeMenuTrigger === button && document.querySelector(".action-popover")) {
+    closePopover();
+    return;
+  }
   closePopover();
   const menu = document.createElement("div");
   menu.className = "action-popover";
@@ -3591,6 +3648,7 @@ function openMenu(button, choices) {
   const top = Math.min(rect.bottom + 8, window.innerHeight - menu.offsetHeight - 12);
   menu.style.left = Math.max(12, left) + "px";
   menu.style.top = Math.max(12, top) + "px";
+  activeMenuTrigger = button;
   button.setAttribute("aria-expanded", "true");
 }
 
@@ -3715,11 +3773,13 @@ function showAutoLockNudge() {
     dialog.remove();
     if (goToSettings) {
       showPage("Settings");
-      window.requestAnimationFrame(() => {
-        const field = document.querySelector('select[name="lockTimeoutMinutes"]');
-        field?.scrollIntoView({ block: "center" });
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+        const section = document.querySelector("#autolock-settings");
+        const field = document.querySelector("#lock-timeout-minutes");
+        section?.scrollIntoView({ block: "start", behavior: "smooth" });
+        section?.focus({ preventScroll: true });
         field?.focus({ preventScroll: true });
-      });
+      }));
     }
   }, { once: true });
   dialog.showModal();
@@ -4079,7 +4139,7 @@ function performFactoryReset() {
     const keys = [];
     for (let index = 0; index < storage.length; index += 1) {
       const key = storage.key(index);
-      if (key?.startsWith("netraos-")) keys.push(key);
+      if (key?.startsWith("netraos-") && !(storage === localStorage && key === cookieConsentStorageKey)) keys.push(key);
     }
     keys.forEach(key => storage.removeItem(key));
   }
@@ -4989,7 +5049,7 @@ function placeHeaderControls(isPhone) {
 }
 placeHeaderControls(phoneNavQuery.matches);
 phoneNavQuery.addEventListener("change", event => placeHeaderControls(event.matches));
-// closePopover() resets every aria-expanded; re-assert the menu button's state after a tool is used.
+// Keep the drawer toggle's state independent from menus opened inside the drawer.
 drawerTools?.addEventListener("click", () => setTimeout(() =>
   navToggle.setAttribute("aria-expanded", String(appShell.classList.contains("drawer-open"))), 0));
 
@@ -5467,8 +5527,6 @@ document.addEventListener("click", event => {
     handleMenuChoice(menuItem.dataset.menuChoice);
     return;
   }
-  const activeMenu = document.querySelector(".action-popover");
-  if (activeMenu && !activeMenu.contains(target)) closePopover();
   const pageLink = target.closest("[data-jump]");
   if (pageLink) {
     event.preventDefault();
@@ -5836,11 +5894,25 @@ if (window.NetraSupabase?.enabled && !["terms", "privacy"].includes(initialPage)
   });
 }
 
-// The app uses required browser storage, but currently sets no cookies or analytics.
+// Bump this only when the cookie/storage notice meaningfully changes.
 const cookieConsentStorageKey = "netraos-cookie-consent-v1";
+const cookieConsentVersion = 1;
+function hasCurrentCookieConsent() {
+  try {
+    const consent = JSON.parse(localStorage.getItem(cookieConsentStorageKey) || "null");
+    if (!consent || consent.necessary !== true || typeof consent.analytics !== "boolean") return false;
+    if (consent.version === cookieConsentVersion) return true;
+    // Preserve choices made before version metadata existed; the notice text has not changed.
+    if (consent.version == null) {
+      localStorage.setItem(cookieConsentStorageKey, JSON.stringify({ ...consent, version: cookieConsentVersion }));
+      return true;
+    }
+  } catch { /* Treat unavailable or unreadable storage as no saved choice. */ }
+  return false;
+}
 function saveCookiePreferences(analytics) {
   const savedAt = new Date().toISOString();
-  localStorage.setItem(cookieConsentStorageKey, JSON.stringify({ necessary: true, analytics: Boolean(analytics), savedAt }));
+  localStorage.setItem(cookieConsentStorageKey, JSON.stringify({ necessary: true, analytics: Boolean(analytics), version: cookieConsentVersion, savedAt }));
   let settings = {};
   try { settings = JSON.parse(localStorage.getItem(settingsStorageKey) || "{}"); } catch { /* Replace unreadable preferences with a minimal valid settings object. */ }
   settings.performanceTelemetryConsent = Boolean(analytics);
@@ -5878,9 +5950,7 @@ function openCookiePreferences() {
 
 function showCookieBanner() {
   if (appShell.hidden || document.querySelector("[data-cookie-banner]")) return;
-  try {
-    if (localStorage.getItem(cookieConsentStorageKey)) return;
-  } catch { /* Still show the notice when storage is unavailable. */ }
+  if (hasCurrentCookieConsent()) return;
   const banner = document.createElement("aside");
   banner.className = "cookie-banner";
   banner.dataset.cookieBanner = "";
