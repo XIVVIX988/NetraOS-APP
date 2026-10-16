@@ -17,6 +17,7 @@ In **Authentication → URL Configuration**:
 
 - Set **Site URL** to `https://xivvix988.github.io/NetraOS-APP/`.
 - Add `https://xivvix988.github.io/NetraOS-APP/**` to **Redirect URLs**.
+- Signup confirmation now returns to `https://xivvix988.github.io/NetraOS-APP/?auth=confirm`, then clears the confirmation session and opens the login page.
 - Keep local development working by also adding `http://127.0.0.1:5500/**` and, if used, `http://localhost:5500/**`.
 
 Signup confirmation and password recovery now return to the published GitHub Pages app. For signups started from the local preview, confirmation still returns to GitHub Pages so users complete authentication on the published app.

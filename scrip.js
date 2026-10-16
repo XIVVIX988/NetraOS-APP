@@ -5637,7 +5637,10 @@ updateDateSwitcher();
 initializePrivacyMode();
 const copyrightYear = document.querySelector("#footer-copyright-year");
 if (copyrightYear) copyrightYear.textContent = String(new Date().getFullYear());
-const initialPage = decodeURIComponent(window.location.hash.slice(1));
+const authQuery = new URLSearchParams(window.location.search);
+const authCallbackParams = new URLSearchParams(window.location.hash.slice(1));
+const confirmationReturn = authQuery.get("auth") === "confirm" || authCallbackParams.get("type") === "signup";
+const initialPage = confirmationReturn ? "login" : decodeURIComponent(window.location.hash.slice(1));
 updateDashboardInventorySummary();
 updateDashboardPowerUpSummary();
 updateDashboardQuests();
@@ -5694,6 +5697,13 @@ window.addEventListener("netraos-sync-error", () => {
 if (window.NetraSupabase?.enabled && !["terms", "privacy"].includes(initialPage)) {
   window.NetraSupabase.getSession().then(async ({ data, error }) => {
     if (error) throw error;
+    if (confirmationReturn) {
+      if (data.session) await window.NetraSupabase.signOut({ scope: "local" });
+      window.history.replaceState(null, "", `${window.location.pathname}#login`);
+      showPublicPage("login");
+      showToast("Your email is confirmed. Your account is ready for sign-in.");
+      return;
+    }
     if (!data.session) return;
     const profile = await window.NetraSupabase.bootstrap();
     if (!profile) return;

@@ -10,6 +10,11 @@
   const client = sdk.createClient(config.url, config.publishableKey, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
+  const confirmationRedirectUrl = () => {
+    const url = new URL(config.authRedirectUrl || `${location.origin}${location.pathname}`, location.href);
+    url.searchParams.set("auth", "confirm");
+    return url.toString();
+  };
   const keys = {
     profile: "netraos-profile-v1", settings: "netraos-settings-v1", inventory: "netraos-inventory-v1",
     power: "netraos-powerup-v1", quests: "netraos-quests-v1", achievements: "netraos-achievements-v1",
@@ -227,11 +232,11 @@
 
   window.NetraSupabase = {
     enabled: true, client,
-    signUp: (email, password, metadata) => client.auth.signUp({ email, password, options: { data: metadata, emailRedirectTo: `${config.authRedirectUrl || `${location.origin}${location.pathname}`}#dashboard` } }),
+    signUp: (email, password, metadata) => client.auth.signUp({ email, password, options: { data: metadata, emailRedirectTo: confirmationRedirectUrl() } }),
     signIn: (email, password) => client.auth.signInWithPassword({ email, password }),
     resetPassword: email => client.auth.resetPasswordForEmail(email, { redirectTo: `${config.authRedirectUrl || `${location.origin}${location.pathname}`}#login` }),
     updatePassword: password => client.auth.updateUser({ password }),
-    signOut: () => client.auth.signOut(),
+    signOut: options => client.auth.signOut(options),
     getSession: () => client.auth.getSession(), getUser: currentUser,
     bootstrap: async () => {
       const user = await currentUser();
