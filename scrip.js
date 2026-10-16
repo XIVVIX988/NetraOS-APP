@@ -1210,7 +1210,7 @@ function showPublicPage(page = "landing") {
           <form class="auth-form" data-auth-form="${isSignup ? "signup" : "login"}" novalidate>
             ${isSignup ? `<label class="inventory-form-field"><span>Full name</span><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your full name" required></label>` : ""}
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
-            <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" minlength="8" placeholder="At least 8 characters" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
+            <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" ${isSignup ? 'minlength="8"' : ""} placeholder="${isSignup ? "At least 8 characters" : "Your password"}" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>` : ""}
             ${isSignup ? "" : '<button class="auth-reset-password" type="button" data-password-reset>Forgot your password?</button>'}
             <div class="auth-error" role="status" aria-live="polite" hidden></div>
@@ -5028,7 +5028,11 @@ new MutationObserver(() => { if (appShell.hidden) setNavDrawer(false, { restoreF
   .observe(appShell, { attributes: true, attributeFilter: ["hidden"] });
 
 function friendlyAuthMessage(error, fallback = "We couldn’t complete that just now. This may work again in a little while.") {
-  const message = String(error?.message || error || "").toLowerCase();
+  const message = [error?.message, error?.code, error?.details, error?.hint, error?.status, error]
+    .filter(value => value !== undefined && value !== null)
+    .map(String)
+    .join(" ")
+    .toLowerCase();
   if (/email.*rate limit|rate limit.*email|over_email_send_rate_limit/.test(message)) {
     return "We’ve sent several account emails recently, so delivery is paused for a little while. We should be able to send another in about an hour.";
   }
@@ -5072,14 +5076,17 @@ document.addEventListener("submit", async event => {
     const formData = new FormData(form);
     const email = String(formData.get("email") || "").trim().toLowerCase();
     const password = String(formData.get("password") || "");
+    const isSignup = form.dataset.authForm === "signup";
     const error = form.querySelector(".auth-error");
     const fail = message => {
       error.textContent = message;
       error.classList.remove("success");
       error.hidden = false;
     };
-    if (!email.includes("@") || password.length < 8) {
-      fail("A valid email address and a password with at least 8 characters are needed.");
+    if (!email.includes("@") || !password || (isSignup && password.length < 8)) {
+      fail(isSignup
+        ? "A valid email address and a password with at least 8 characters are needed."
+        : "A valid email address and password are needed.");
       return;
     }
 
@@ -5089,8 +5096,8 @@ document.addEventListener("submit", async event => {
     }
 
     if (window.NetraSupabase?.enabled) {
-      const isSignup = form.dataset.authForm === "signup";
       const name = String(formData.get("name") || "").trim();
+      let authStage = isSignup ? "sign-up" : "sign-in";
       if (isSignup && name.length < 2) { fail("The name you’d like associated with your account is needed."); return; }
       if (isSignup && !formData.has("acceptTerms")) { fail("Please accept the Terms of Service and acknowledge the Privacy Policy to create your account."); return; }
       try {
@@ -5104,6 +5111,7 @@ document.addEventListener("submit", async event => {
             error.hidden = false;
             return;
           }
+          authStage = "load-account-data";
           const profile = await window.NetraSupabase.bootstrap();
           if (!profile) throw new Error("Account setup completed, but NetraOS couldn’t load your account.");
           showPreferredNamePrompt(profile);
@@ -5111,13 +5119,14 @@ document.addEventListener("submit", async event => {
         }
         const result = await window.NetraSupabase.signIn(email, password);
         if (result.error) throw result.error;
+        authStage = "load-account-data";
         const profile = await window.NetraSupabase.bootstrap();
         if (!profile) throw new Error("Sign-in succeeded, but NetraOS could not load your account.");
         if (!profile.username) showPreferredNamePrompt(profile);
         else enterApp(profile);
       } catch (authError) {
         // Friendly text hides the cause; keep the real error in the console for debugging (no email or password logged).
-        console.error(`[NetraOS] ${isSignup ? "Sign-up" : "Sign-in"} failed:`, { status: authError?.status, code: authError?.code, message: authError?.message || String(authError), details: authError?.details, hint: authError?.hint }, authError);
+        console.error(`[NetraOS] ${authStage} failed:`, { status: authError?.status, code: authError?.code, message: authError?.message || String(authError), details: authError?.details, hint: authError?.hint }, authError);
         fail(friendlyAuthMessage(authError, isSignup
           ? "We couldn’t finish setting up your account just now. This may work again in a little while."
           : "We couldn’t sign you in just now. Another try or the password-reset link may help."));

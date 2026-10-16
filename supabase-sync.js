@@ -214,6 +214,7 @@
     };
     const data = Object.fromEntries(await Promise.all(tables.map(async table => [table, await readTable(table)])));
     const hasData = data.user_settings.length + data.entries.length + data.incomes.length + data.budget_lines.length + data.spending.length + data.goals.length + data.achievements.length + data.currency_rates.length + data.tax_profile.length > 0;
+    const cloudProfile = data.user_profiles[0];
     for (const table of ["entries", "incomes", "budget_lines", "spending", "goals", "audit_log"]) saveBaseline(user.id, table, data[table]);
     saveBaseline(user.id, "achievements", data.achievements, "badge_id");
     saveBaseline(user.id, "currency_rates", data.currency_rates, "currency_code");
@@ -223,7 +224,6 @@
       delete oldProfile.passwordHash;
       delete oldProfile.passwordSalt;
       delete oldProfile.passwordIterations;
-      const cloudProfile = data.user_profiles[0];
       write(keys.profile, cloudProfile
         ? { ...oldProfile, name: cloudProfile.name, email: cloudProfile.email, username: cloudProfile.username, sex: cloudProfile.sex || "", dateOfBirth: cloudProfile.date_of_birth || "", image: cloudProfile.avatar_data || "", termsVersion: cloudProfile.terms_version || "", termsAcceptedAt: cloudProfile.terms_accepted_at || "" }
         : { name: user.user_metadata?.full_name || "", email: user.email || "", username: "", termsVersion: user.user_metadata?.terms_version || "", termsAcceptedAt: user.user_metadata?.terms_accepted_at || "" });
