@@ -7,15 +7,16 @@
     return;
   }
 
-  // Discard refresh tokens persisted by earlier builds that silently restored sessions.
+  // Remove legacy localStorage tokens. Current sessions live in sessionStorage so
+  // refreshing this tab preserves auth without silently signing into a new tab.
   try {
     const projectRef = new URL(config.url).hostname.split(".")[0];
     localStorage.removeItem(`sb-${projectRef}-auth-token`);
-  } catch { /* Session persistence is disabled below even if storage is unavailable. */ }
+  } catch { /* The active session uses sessionStorage below. */ }
 
   const client = sdk.createClient(config.url, config.publishableKey, {
-    // Keep auth in memory for this app run so a new launch always asks for credentials.
-    auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: true }
+    // Preserve auth through reloads in this tab; a fresh tab still requires sign-in.
+    auth: { persistSession: true, storage: window.sessionStorage, autoRefreshToken: true, detectSessionInUrl: true }
   });
   const confirmationRedirectUrl = () => {
     const url = new URL(config.authRedirectUrl || `${location.origin}${location.pathname}`, location.href);

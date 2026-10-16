@@ -91,6 +91,21 @@ function setPhoneToggleState(card, expanded) {
 // Give data and explanation cards their own independent expand/collapse control.
 function enhanceInformationCards(root = content) {
   if (!root) return;
+  if (crumb?.textContent.trim() === "Inventory") {
+    root.querySelectorAll(".card-collapse-toggle, .phone-panel-toggle").forEach(toggle => toggle.remove());
+    root.querySelectorAll("[data-card-collapsible], .card-is-collapsed, .phone-expanded, .phone-collapsible").forEach(card => {
+      card.classList.remove("card-is-collapsed", "phone-expanded", "phone-collapsible");
+      delete card.dataset.cardCollapsible;
+      delete card.dataset.phoneCollapse;
+      delete card.dataset.collapseInitialized;
+      card.querySelectorAll(":scope > [data-card-collapsible-body]").forEach(body => {
+        body.hidden = false;
+        delete body.dataset.cardCollapsibleBody;
+      });
+      card.querySelectorAll(":scope > [data-card-collapse-heading]").forEach(heading => delete heading.dataset.cardCollapseHeading);
+    });
+    return;
+  }
   if (crumb?.textContent.trim() === "Dashboard") {
     root.querySelectorAll(".card-collapse-toggle, .phone-panel-toggle").forEach(toggle => toggle.remove());
     root.querySelectorAll("[data-card-collapsible], .card-is-collapsed, .phone-collapsible").forEach(card => {
@@ -668,6 +683,12 @@ function applyStoredSettings() {
   document.body.classList.toggle("theme-dark", settings.darkMode);
   appShell.classList.toggle("theme-dark", settings.darkMode);
   publicShell.classList.toggle("theme-dark", settings.darkMode);
+  const logoPath = settings.darkMode ? "netraos-logo-dark.svg" : "netraos-logo.svg";
+  document.querySelectorAll("[data-brand-logo]").forEach(logo => {
+    if (logo.getAttribute("src") !== logoPath) logo.setAttribute("src", logoPath);
+  });
+  const favicon = document.querySelector('link[rel="icon"]');
+  if (favicon) favicon.href = `${logoPath}?v=20261016-1`;
   setAccent(settings.accentProfile);
   appShell.classList.toggle("hide-xp-points", !settings.showXpPoints);
   appShell.classList.toggle("disable-quest-animations", !settings.questAnimations || settings.reduceMotion);
@@ -986,7 +1007,8 @@ function compressProfileImage(file) {
 }
 
 function renderBrandMark() {
-  return `<span class="public-brand-mark" aria-hidden="true"><img src="netraos-logo.svg" alt="" /></span>`;
+  const logoPath = getStoredSettings().darkMode ? "netraos-logo-dark.svg" : "netraos-logo.svg";
+  return `<span class="public-brand-mark" aria-hidden="true"><img data-brand-logo src="${logoPath}" alt="" /></span>`;
 }
 
 // Reuse accessible social links and a year-aware copyright across the app footers.
@@ -1397,15 +1419,15 @@ function renderSettingsPage() {
 }
 
 // Start the local session, apply the profile and preferences, and open the dashboard.
-function enterApp(profile) {
+function enterApp(profile, { restoredSession = false, page = "Dashboard" } = {}) {
   localAppSessionActive = true;
   setProfileName(profile.username || profile.name);
   applyProfileAvatar();
   applyStoredSettings();
   publicShell.hidden = true;
   appShell.hidden = false;
-  showPage("Dashboard");
-  recordSecurityAudit("Local profile signed in");
+  showPage(page);
+  if (!restoredSession) recordSecurityAudit("Local profile signed in");
   scheduleAutoLock();
   maybePromptForBackup();
   scheduleAutoLockNudge({ force: true });
@@ -1479,7 +1501,14 @@ function showShortcutPrompt() {
 function getInventoryEntries() {
   try {
     const entries = JSON.parse(localStorage.getItem(inventoryStorageKey) || "[]");
-    return Array.isArray(entries) ? entries.filter(item => item && typeof item === "object" && typeof item.action === "string" && Number.isFinite(Date.parse(item.at))) : [];
+    return Array.isArray(entries) ? entries.filter(item =>
+      item && typeof item === "object" &&
+      ["asset", "liability"].includes(item.type) &&
+      typeof item.name === "string" && item.name.trim() !== "" &&
+      typeof item.category === "string" &&
+      item.amount !== null && item.amount !== "" &&
+      Number.isFinite(Number(item.amount)) && Number(item.amount) >= 0
+    ) : [];
   } catch {
     return [];
   }
@@ -2039,7 +2068,7 @@ function renderAccountRows(entries) {
           <p>Add an account to keep its balance in your financial inventory.</p>
         </div>
         <button class="inventory-action secondary" type="button" data-inventory-action="add-account">
-          Add your first account
+          Add your first item
         </button>
       </div>`;
   }
@@ -2047,7 +2076,7 @@ function renderAccountRows(entries) {
   return `
     <div class="inventory-account-rows">
       ${entries.map(entry => `
-        <div class="inventory-account-row">
+        <div class="inventory-account-row" data-inventory-type="${entry.type}">
           <span class="inventory-row-icon">${entry.type === "asset" ? "◉" : "▤"}</span>
           <span class="inventory-account-name">
             <strong>${escapeHTML(entry.name)}</strong>
@@ -2075,6 +2104,7 @@ function renderAccountRows(entries) {
               </span>`;
             })()}
           </span>
+          <span class="inventory-kind-pill ${entry.type === "asset" ? "is-asset" : "is-liability"}">${entry.type === "asset" ? "Asset" : "Liability"}</span>
           <strong class="inventory-account-amount">${formatKsh(entry.amount)}</strong>
           <button class="inventory-row-edit" type="button" data-edit-entry="${escapeHTML(entry.id)}" aria-label="Edit ${escapeHTML(entry.name)}" title="Edit item">Edit</button>
           <button class="inventory-delete" type="button" data-delete-entry="${escapeHTML(entry.id)}" aria-label="Delete ${escapeHTML(entry.name)}" title="Delete item">×</button>
@@ -2091,11 +2121,11 @@ function renderInventoryPage() {
       <header class="inventory-heading">
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> YOUR BALANCE SHEET</div>
-          <h1>Your financial<br><em>inventory.</em></h1>
-          <p class="welcome-sub">One clear view of what you own, what you owe, and your net worth.</p>
+          <h1>My Inventory</h1>
+          <p class="welcome-sub">Track the assets and liabilities that shape your net worth.</p>
         </div>
         <button class="inventory-action" type="button" data-inventory-action="add-account">
-          ${plusIcon} Add an account
+          <span class="inventory-add-plus" aria-hidden="true">+</span> Add item
         </button>
       </header>
 
@@ -2103,48 +2133,29 @@ function renderInventoryPage() {
         <article class="inventory-summary-card">
           <span class="inventory-label">TOTAL ASSETS</span>
           <strong>${formatKsh(totals.assets)}</strong>
-          <span class="inventory-note">Across all asset categories</span>
         </article>
         <article class="inventory-summary-card">
           <span class="inventory-label">TOTAL LIABILITIES</span>
           <strong>${formatKsh(totals.liabilities)}</strong>
-          <span class="inventory-note">Across all debts and obligations</span>
         </article>
         <article class="inventory-summary-card net-worth-summary">
           <span class="inventory-label">NET WORTH</span>
           <strong>${formatKsh(totals.netWorth)}</strong>
-          <span class="inventory-note">Assets minus liabilities</span>
-        </article>
-      </section>
-
-      <section class="inventory-columns" aria-label="Assets and liabilities">
-        <article class="panel inventory-list-panel phone-collapsible">
-          <div class="panel-heading">
-            <div><div class="section-kicker">WHAT YOU OWN</div><h2>Assets</h2></div>
-            <button class="phone-panel-toggle" type="button" aria-expanded="false" aria-label="Expand section details"><span class="toggle-text">Show</span>${chevronIcon}</button>
-            <button class="inventory-add-small" type="button" data-inventory-action="add-asset" aria-label="Add asset">${plusIcon}<span class="add-label">Add asset</span></button>
-          </div>
-          <div class="phone-collapsible-content"><div class="inventory-rows">${renderInventoryRows("asset", assetCategories)}</div>
-          <div class="inventory-panel-total"><span>Total assets</span><strong>${formatKsh(totals.assets)}</strong></div></div>
-        </article>
-
-        <article class="panel inventory-list-panel phone-collapsible">
-          <div class="panel-heading">
-            <div><div class="section-kicker">WHAT YOU OWE</div><h2>Liabilities</h2></div>
-            <button class="phone-panel-toggle" type="button" aria-expanded="false" aria-label="Expand section details"><span class="toggle-text">Show</span>${chevronIcon}</button>
-            <button class="inventory-add-small" type="button" data-inventory-action="add-liability" aria-label="Add liability">${plusIcon}<span class="add-label">Add liability</span></button>
-          </div>
-          <div class="phone-collapsible-content"><div class="inventory-rows">${renderInventoryRows("liability", liabilityCategories)}</div>
-          <div class="inventory-panel-total"><span>Total liabilities</span><strong>${formatKsh(totals.liabilities)}</strong></div></div>
         </article>
       </section>
 
       <section class="panel inventory-accounts">
         <div class="panel-heading">
-          <div><div class="section-kicker">CONNECTED FINANCES</div><h2>Accounts</h2></div>
+          <div><div class="section-kicker">YOUR FINANCIAL ITEMS</div><h2>All items</h2></div>
           <span class="inventory-account-count">${entries.length} ${entries.length === 1 ? "item" : "items"}</span>
         </div>
+        <div class="inventory-filters" role="group" aria-label="Filter inventory items">
+          <button type="button" class="inventory-filter active" data-inventory-filter="all" aria-pressed="true">All (${entries.length})</button>
+          <button type="button" class="inventory-filter" data-inventory-filter="asset" aria-pressed="false">Assets (${entries.filter(entry => entry.type === "asset").length})</button>
+          <button type="button" class="inventory-filter" data-inventory-filter="liability" aria-pressed="false">Liabilities (${entries.filter(entry => entry.type === "liability").length})</button>
+        </div>
         ${renderAccountRows(entries)}
+        <p class="inventory-filter-empty" data-inventory-filter-empty hidden>No items in this category yet. <button type="button" data-inventory-action="add-account">Add an item</button></p>
       </section>
     </section>
     ${renderAppFooter()}`;
@@ -5738,6 +5749,24 @@ document.addEventListener("click", event => {
     openInventoryDialog(button.dataset.inventoryAction);
     return;
   }
+  if (button.matches("[data-inventory-filter]")) {
+    const filter = button.dataset.inventoryFilter;
+    const section = button.closest(".inventory-accounts");
+    section?.querySelectorAll("[data-inventory-filter]").forEach(option => {
+      const active = option === button;
+      option.classList.toggle("active", active);
+      option.setAttribute("aria-pressed", String(active));
+    });
+    const rows = [...(section?.querySelectorAll(".inventory-account-row") || [])];
+    let visibleCount = 0;
+    rows.forEach(row => {
+      row.hidden = filter !== "all" && row.dataset.inventoryType !== filter;
+      if (!row.hidden) visibleCount += 1;
+    });
+    const empty = section?.querySelector("[data-inventory-filter-empty]");
+    if (empty) empty.hidden = visibleCount !== 0 || rows.length === 0;
+    return;
+  }
   if (button.matches("[data-power-action]")) {
     openPowerUpDialog(button.dataset.powerAction);
     return;
@@ -5899,6 +5928,7 @@ const authCallbackParams = new URLSearchParams(window.location.hash.slice(1));
 const confirmationReturn = authQuery.get("auth") === "confirm" || authCallbackParams.get("type") === "signup";
 const passwordRecoveryReturn = authQuery.get("auth") === "recovery" || authCallbackParams.get("type") === "recovery";
 const initialPage = confirmationReturn ? "dashboard" : passwordRecoveryReturn ? "login" : decodeURIComponent(window.location.hash.slice(1));
+const appRouteByHash = { dashboard: "Dashboard", inventory: "Inventory", "power-up": "Power-Up", quests: "Quests", stats: "Stats", achievements: "Achievements", contact: "Contact", profile: "Profile", settings: "Settings" };
 updateDashboardInventorySummary();
 updateDashboardPowerUpSummary();
 updateDashboardQuests();
@@ -5961,14 +5991,24 @@ if (window.NetraSupabase?.enabled && !["terms", "privacy"].includes(initialPage)
       }
       return;
     }
-    if (!confirmationReturn) return;
-    // The email confirmation callback may itself establish a session. Clear only
-    // that callback session and require the user to enter their password.
-    const { error: signOutError } = await window.NetraSupabase.signOut({ scope: "local" });
-    if (signOutError) console.warn("Unable to clear the email-confirmation session:", signOutError.message);
-    window.history.replaceState(null, "", `${window.location.pathname}#login`);
-    showPublicPage("login");
-    showToast("Your email is confirmed. Please sign in to open your dashboard.");
+    if (confirmationReturn) {
+      // The email confirmation callback may itself establish a session. Clear only
+      // that callback session and require an explicit first sign-in.
+      const { error: signOutError } = await window.NetraSupabase.signOut({ scope: "local" });
+      if (signOutError) console.warn("Unable to clear the email-confirmation session:", signOutError.message);
+      window.history.replaceState(null, "", `${window.location.pathname}#login`);
+      showPublicPage("login");
+      showToast("Your email is confirmed. Please sign in to open your dashboard.");
+      return;
+    }
+
+    // A valid Supabase session in this tab means this is a reload of an
+    // authenticated app. Restore the workspace; never trust the old local flag.
+    if (localAppSessionActive) return;
+    const profile = await window.NetraSupabase.bootstrap();
+    if (!profile) throw new Error("Your session is active, but NetraOS could not load your account.");
+    if (profile.username) enterApp(profile, { restoredSession: true, page: appRouteByHash[initialPage.toLowerCase()] || "Dashboard" });
+    else showPreferredNamePrompt(profile);
   }).catch(error => {
     console.error("Unable to restore the Supabase session:", error);
     showPublicPage("login");

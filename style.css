@@ -8970,3 +8970,63 @@ body.theme-dark { background: var(--bg); }
 .app-shell.theme-dark .chart-label,
 .app-shell.theme-dark .axis-label,
 .app-shell.theme-dark .chart-legend { fill: #c2cec6; color: #c2cec6; }
+
+/* Inventory page follows the same compact hierarchy as the desktop mockup. */
+.app-shell .inventory-heading { align-items: center; margin-bottom: 20px; }
+.app-shell .inventory-heading h1 { margin: 8px 0 5px; font-size: clamp(25px, 2vw, 30px); }
+.app-shell .inventory-heading .welcome-sub { max-width: none; font-size: 12px; }
+.app-shell .inventory-heading .inventory-action { gap: 8px; }
+.app-shell .inventory-add-plus { display: inline-grid; width: 18px; height: 18px; place-items: center; border: 1px solid currentColor; border-radius: 50%; font: 500 15px/1 var(--sans); }
+.app-shell .inventory-summary-card { min-height: 96px; gap: 5px; padding: 16px 18px; }
+.app-shell .inventory-summary-card:nth-child(1) { border-color: #cce8da; background: #f0faf4; }
+.app-shell .inventory-summary-card:nth-child(2) { border-color: #f1d8d8; background: #fff5f4; }
+.app-shell .inventory-summary-card:nth-child(3) { border-color: #cfe7e7; background: #f0f9f9; }
+.app-shell .inventory-summary-card:nth-child(1) strong { color: #147554; }
+.app-shell .inventory-summary-card:nth-child(2) strong { color: #b44242; }
+.app-shell .inventory-summary-card:nth-child(3) strong { color: #146d70; }
+.app-shell .inventory-accounts { margin-top: 16px; padding: 18px 20px; }
+.app-shell .inventory-filters { display: flex; gap: 7px; margin-top: 15px; padding-bottom: 10px; border-bottom: 1px solid #e7ece8; }
+.app-shell .inventory-filter { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 11px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #617168; font: 600 11px var(--sans); cursor: pointer; }
+.app-shell .inventory-filter span { color: #7b8981; font: 10px var(--mono); }
+.app-shell .inventory-filter:hover { background: #f0f6f2; color: #176b50; }
+.app-shell .inventory-filter.active { border-color: #b9dfcc; background: #e8f5ed; color: #116b50; }
+.app-shell .inventory-filter.active span { color: #116b50; }
+.app-shell .inventory-account-rows { margin-top: 0; }
+.app-shell .inventory-account-row { grid-template-columns: 30px minmax(0, 1fr) auto minmax(110px, auto) auto 32px; gap: 12px; min-height: 66px; padding: 7px 4px; border-color: #e7ece8; }
+.app-shell .inventory-account-row:hover { background: #f7faf8; }
+.app-shell .inventory-account-row[hidden] { display: none; }
+.app-shell .inventory-kind-pill { justify-self: start; padding: 4px 8px; border-radius: 20px; font: 600 9px var(--sans); }
+.app-shell .inventory-kind-pill.is-asset { color: #117b59; background: #e3f6ec; }
+.app-shell .inventory-kind-pill.is-liability { color: #b43f43; background: #fff0ef; }
+.app-shell .inventory-account-amount { color: #29342e; font: 600 11px var(--mono); white-space: nowrap; }
+.app-shell .inventory-filter-empty { margin: 12px 0 0; padding: 14px; border-radius: 9px; background: #f6f9f7; color: #66756c; font-size: 11px; }
+.app-shell .inventory-filter-empty[hidden] { display: none; }
+.app-shell .inventory-filter-empty button { margin-left: 4px; padding: 0; border: 0; background: transparent; color: #117b59; font: 700 11px var(--sans); text-decoration: underline; cursor: pointer; }
+.app-shell.theme-dark .inventory-summary-card:nth-child(1) { border-color: #315b47; background: #1b3328; }
+.app-shell.theme-dark .inventory-summary-card:nth-child(2) { border-color: #694241; background: #382624; }
+.app-shell.theme-dark .inventory-summary-card:nth-child(3) { border-color: #315557; background: #1b3032; }
+.app-shell.theme-dark .inventory-summary-card:nth-child(1) strong { color: #93e0b7; }
+.app-shell.theme-dark .inventory-summary-card:nth-child(2) strong { color: #ffaaa0; }
+.app-shell.theme-dark .inventory-summary-card:nth-child(3) strong { color: #8edbdb; }
+.app-shell.theme-dark .inventory-filters { border-color: var(--line); }
+.app-shell.theme-dark .inventory-filter { color: #c4cec7; }
+.app-shell.theme-dark .inventory-filter span { color: #d0d8d2; }
+.app-shell.theme-dark .inventory-filter:hover { background: #2a3830; color: #b5f0ce; }
+.app-shell.theme-dark .inventory-filter.active { border-color: #4e8067; background: #284636; color: #b5f0ce; }
+.app-shell.theme-dark .inventory-filter.active span { color: #b5f0ce; }
+.app-shell.theme-dark .inventory-account-row:hover,
+.app-shell.theme-dark .inventory-filter-empty { background: #222e27; }
+.app-shell.theme-dark .inventory-kind-pill.is-asset { background: #244a37; color: #a4e8c0; }
+.app-shell.theme-dark .inventory-kind-pill.is-liability { background: #512e2d; color: #ffb5ad; }
+.app-shell.theme-dark .inventory-account-amount { color: var(--text); }
+.app-shell.theme-dark .inventory-filter-empty { color: var(--muted); }
+.app-shell.theme-dark .inventory-filter-empty button { color: #a4e8c0; }
+@media (max-width: 760px) {
+  .app-shell .inventory-account-row { grid-template-columns: 26px minmax(0, 1fr) auto auto 32px; gap: 8px; }
+  .app-shell .inventory-kind-pill { grid-column: 2; grid-row: 2; }
+  .app-shell .inventory-account-row .inventory-account-amount { grid-column: 2; grid-row: 3; }
+  .app-shell .inventory-account-row .inventory-row-edit,
+  .app-shell .inventory-account-row .inventory-delete { grid-row: 1; }
+  .app-shell .inventory-account-row .inventory-row-edit { grid-column: 4; }
+  .app-shell .inventory-account-row .inventory-delete { grid-column: 5; }
+}
