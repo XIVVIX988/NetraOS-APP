@@ -33,7 +33,7 @@ Use a local web server such as VS Code Live Server at port `5500`; do not open `
 ## 4. Check the first sync
 
 1. Reload `http://127.0.0.1:5500/index.html` and create an account with an email you can open.
-2. Follow the Supabase confirmation link, then sign in with your email and password.
+2. Follow the Supabase confirmation link. NetraOS keeps the confirmed Supabase session and opens the dashboard automatically; if Supabase doesn’t return a session, sign in with your email and password.
 3. If this browser already has NetraOS records, accept the import prompt. A local migration backup is retained until the upload finishes successfully.
 4. Add a test record and verify it appears in the matching table in Supabase **Table Editor**.
 5. Sign in on another browser/device and check that the account data downloads there.

@@ -4993,6 +4993,12 @@ function friendlyAuthMessage(error, fallback = "We couldn’t complete that just
   if (/email not confirmed|email.*not.*confirm/.test(message)) {
     return "This email still needs confirmation. The link may be in your inbox or spam folder. An expired link can be requested again after the email limit resets.";
   }
+  if (/pgrst205|42p01|could not find the table|relation .* does not exist|schema cache/.test(message)) {
+    return "Your sign-in was accepted, but the NetraOS database tables aren’t available yet. Run supabase/schema.sql in your Supabase project’s SQL Editor, then try again.";
+  }
+  if (/row.level security|permission denied|insufficient privilege|not authorized|42501/.test(message)) {
+    return "Your sign-in was accepted, but a Supabase access policy is blocking account data. If you enabled the old authenticator policy, run supabase/migrations/20261015_remove_totp_aal2.sql in SQL Editor, then try again.";
+  }
   if (/user already registered|already.*registered|already.*exists/.test(message)) {
     return "There’s already an account with this email. Signing in or using “Forgot your password?” should get you back in.";
   }
@@ -5640,7 +5646,7 @@ if (copyrightYear) copyrightYear.textContent = String(new Date().getFullYear());
 const authQuery = new URLSearchParams(window.location.search);
 const authCallbackParams = new URLSearchParams(window.location.hash.slice(1));
 const confirmationReturn = authQuery.get("auth") === "confirm" || authCallbackParams.get("type") === "signup";
-const initialPage = confirmationReturn ? "login" : decodeURIComponent(window.location.hash.slice(1));
+const initialPage = confirmationReturn ? "dashboard" : decodeURIComponent(window.location.hash.slice(1));
 updateDashboardInventorySummary();
 updateDashboardPowerUpSummary();
 updateDashboardQuests();
@@ -5697,16 +5703,17 @@ window.addEventListener("netraos-sync-error", () => {
 if (window.NetraSupabase?.enabled && !["terms", "privacy"].includes(initialPage)) {
   window.NetraSupabase.getSession().then(async ({ data, error }) => {
     if (error) throw error;
-    if (confirmationReturn) {
-      if (data.session) await window.NetraSupabase.signOut({ scope: "local" });
-      window.history.replaceState(null, "", `${window.location.pathname}#login`);
-      showPublicPage("login");
-      showToast("Your email is confirmed. Your account is ready for sign-in.");
+    if (!data.session) {
+      if (confirmationReturn) {
+        window.history.replaceState(null, "", `${window.location.pathname}#login`);
+        showPublicPage("login");
+        showToast("Your email is confirmed. Please sign in to open your dashboard.");
+      }
       return;
     }
-    if (!data.session) return;
     const profile = await window.NetraSupabase.bootstrap();
     if (!profile) return;
+    if (confirmationReturn) window.history.replaceState(null, "", `${window.location.pathname}#dashboard`);
     appShell.hidden = false;
     publicShell.hidden = true;
     saveStoredProfile(profile);
@@ -5719,11 +5726,12 @@ if (window.NetraSupabase?.enabled && !["terms", "privacy"].includes(initialPage)
     maybePromptForBackup();
     scheduleAutoLockNudge();
     showCookieBanner();
+    if (confirmationReturn) showToast("Your email is confirmed. You’re signed in and your dashboard is ready.");
     if (!profile.username) showPreferredNamePrompt(profile);
   }).catch(error => {
     console.error("Unable to restore the Supabase session:", error);
     showPublicPage("login");
-    showToast("We couldn’t connect to your account right now. Please check your connection; we’ll try again when you’re back online.");
+    showToast(friendlyAuthMessage(error, "We couldn’t connect to your account right now. Please check your connection; we’ll try again when you’re back online."));
   });
 }
 
