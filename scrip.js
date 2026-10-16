@@ -52,7 +52,7 @@ const phoneQuery = window.matchMedia("(max-width: 760px)");
 // Phone only: which cards on each page may collapse. Anything not listed stays open with no toggle.
 // "all" means every card on that page. Desktop keeps its existing behaviour.
 const phoneCollapseRules = {
-  Dashboard: ["cash flow", "asset allocation", "active quests"],
+  Dashboard: [],
   Inventory: ["assets", "liabilities", "accounts"],
   "Power-Up": ["income sources", "monthly budget", "monthly spending"],
   Quests: ["progress & pace", "active quests"],
@@ -91,6 +91,21 @@ function setPhoneToggleState(card, expanded) {
 // Give data and explanation cards their own independent expand/collapse control.
 function enhanceInformationCards(root = content) {
   if (!root) return;
+  if (crumb?.textContent.trim() === "Dashboard") {
+    root.querySelectorAll(".card-collapse-toggle, .phone-panel-toggle").forEach(toggle => toggle.remove());
+    root.querySelectorAll("[data-card-collapsible], .card-is-collapsed, .phone-collapsible").forEach(card => {
+      card.classList.remove("card-is-collapsed", "phone-expanded");
+      delete card.dataset.cardCollapsible;
+      delete card.dataset.phoneCollapse;
+      delete card.dataset.collapseInitialized;
+      card.querySelectorAll(":scope > [data-card-collapsible-body]").forEach(body => {
+        body.hidden = false;
+        delete body.dataset.cardCollapsibleBody;
+      });
+      card.querySelectorAll(":scope > [data-card-collapse-heading]").forEach(heading => delete heading.dataset.cardCollapseHeading);
+    });
+    return;
+  }
   const phone = phoneQuery.matches;
   root.querySelectorAll(".metric-card, .panel:not(.cx-form):not(.tax-panel):not(.phone-collapsible), .inventory-summary-card, .achievement-card, .phone-collapsible").forEach(card => {
     const allowedOnPhone = cardCollapsesOnPhone(card);
@@ -162,9 +177,9 @@ function toggleInformationCard(card, expanded) {
 }
 const profileStorageKey = "netraos-profile-v1";
 const sessionStorageKey = "netraos-local-session-v1";
+let localAppSessionActive = false;
 const settingsStorageKey = "netraos-settings-v1";
 const securityAuditStorageKey = "netraos-security-audit-v1";
-const cashflowChartCollapsedKey = "netraos-dashboard-cashflow-collapsed-v1";
 const termsVersion = "2026-10-10";
 let autoLockTimer = 0;
 let backupPromptTimer = 0;
@@ -306,8 +321,7 @@ function setupLandingFaq() {
   }));
   root.querySelectorAll("[data-faq-action]").forEach(button => button.addEventListener("click", () => {
     const target = button.dataset.faqAction;
-    let signedIn = false;
-    try { signedIn = localStorage.getItem(sessionStorageKey) === "active" && Boolean(getStoredProfile()); } catch { signedIn = false; }
+    const signedIn = localAppSessionActive && Boolean(getStoredProfile());
     if (signedIn) {
       document.body.classList.remove("auth-view");
       publicShell.hidden = true;
@@ -829,11 +843,7 @@ function scheduleAutoLock() {
   const settings = getStoredSettings();
   if ((!settings.localPinHash && !settings.accountPinEnabled) || !settings.lockTimeoutMinutes || appShell.hidden) return;
   if (settings.accountPinEnabled && !settings.localPinHash && !navigator.onLine) return;
-  try {
-    if (localStorage.getItem(sessionStorageKey) !== "active") return;
-  } catch {
-    return;
-  }
+  if (!localAppSessionActive) return;
   autoLockTimer = window.setTimeout(lockWorkspace, settings.lockTimeoutMinutes * 60 * 1000);
 }
 
@@ -1249,7 +1259,7 @@ function showPublicPage(page = "landing") {
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>` : ""}
             ${isSignup ? "" : '<button class="auth-reset-password" type="button" data-password-reset>Forgot your password?</button>'}
             <div class="auth-error" role="status" aria-live="polite" hidden></div>
-            <button class="public-primary auth-submit" type="submit">${isSignup ? "Create account" : "Log in"}${isSignup ? "" : " <span>↗</span>"}</button>
+            <button class="public-primary auth-submit" type="submit">${isSignup ? "Create account" : "Log in"}</button>
           </form>
           <p class="auth-switch">${isSignup ? "Already have an account?" : "New to NetraOS?"} <button type="button" data-public-action="${isSignup ? "login" : "signup"}">${isSignup ? "Log in" : "Create an account"}</button></p>
           <p class="auth-preview-note">Your email and password protect sign-in. Confirmation and password-reset links arrive by email, and records sync when you’re online.</p>
@@ -1388,12 +1398,7 @@ function renderSettingsPage() {
 
 // Start the local session, apply the profile and preferences, and open the dashboard.
 function enterApp(profile) {
-  try {
-    localStorage.setItem(sessionStorageKey, "active");
-  } catch {
-    showToast("Unable to start a local session. Browser storage may be disabled.");
-    return;
-  }
+  localAppSessionActive = true;
   setProfileName(profile.username || profile.name);
   applyProfileAvatar();
   applyStoredSettings();
@@ -1740,11 +1745,29 @@ function updateDashboardOnboarding() {
   const nextAction = document.querySelector("[data-dashboard-next-action]");
   const topQuest = getMilestonesEngine(quests).top;
   if (nextAction) {
-    const showNextAction = completed === steps.length && Boolean(topQuest);
-    nextAction.hidden = !showNextAction;
-    if (showNextAction) {
-      nextAction.querySelector("[data-next-action-title]").textContent = `Keep moving on ${topQuest.name}`;
-      nextAction.querySelector("[data-next-action-copy]").textContent = `${formatKsh(Math.max(0, Number(topQuest.target) - Number(topQuest.current || 0)))} remains toward your goal.`;
+    const title = nextAction.querySelector("[data-next-action-title]");
+    const copy = nextAction.querySelector("[data-next-action-copy]");
+    const button = nextAction.querySelector("button[data-jump]");
+    const buttonLabel = nextAction.querySelector("[data-next-action-button-label]");
+    const setAction = (page, label, heading, description) => {
+      if (button) button.dataset.jump = page;
+      if (buttonLabel) buttonLabel.textContent = label;
+      if (title) title.textContent = heading;
+      if (copy) copy.textContent = description;
+    };
+
+    nextAction.hidden = false;
+    if (!stepState.account) {
+      setAction("Inventory", "Add an account", "Add your first account", "Start with a bank, M-Pesa, or cash balance to see your net worth.");
+    } else if (!stepState.goal) {
+      setAction("Quests", "Set a goal", "Choose a savings goal", "Pick a target and track your progress toward it.");
+    } else if (!stepState.income || !stepState.budget) {
+      setAction("Power-Up", "Build your plan", "Build your monthly plan", "Add your income and budget so you can see how much is available to save.");
+    } else if (topQuest) {
+      const remaining = Math.max(0, Number(topQuest.target) - Number(topQuest.current || 0));
+      setAction("Quests", "View goal", `Keep moving on ${topQuest.name}`, `${formatKsh(topQuest.current || 0)} saved of ${formatKsh(topQuest.target)} · ${formatKsh(remaining)} to go.`);
+    } else {
+      setAction("Quests", "Choose a goal", "Your current goals are complete", "Review your milestones or choose a new savings goal.");
     }
   }
 }
@@ -2193,7 +2216,6 @@ function updateDashboardPowerUpSummary() {
   if (incomeCard) {
     incomeCard.querySelector(".metric-heading span").textContent = `${periodLabel} INCOME`;
     incomeCard.querySelector(".metric-value").textContent = formatKsh(totals.reportIncome);
-    incomeCard.querySelector(".metric-foot .muted").textContent = "Recorded income sources";
     incomeCard.querySelector(".metric-trailing").textContent = "TOTAL";
   }
 
@@ -2204,14 +2226,11 @@ function updateDashboardPowerUpSummary() {
     savingsCard.querySelector(".metric-value").textContent = savingsRate + "%";
     savingsCard.querySelector(".positive-pill").textContent = totals.cashAfterSpending < 0 ? "DEFICIT" : "ACTUAL";
     savingsCard.querySelector(".positive-pill").classList.toggle("is-deficit", totals.cashAfterSpending < 0);
-    savingsCard.querySelector(".muted").textContent = "income less recorded spending";
   }
 
   if (spendingCard) {
     spendingCard.querySelector(".metric-heading span").textContent = `${periodLabel} SPENDING`;
     spendingCard.querySelector(".metric-value").textContent = formatKsh(totals.spending);
-    spendingCard.querySelector(".metric-foot .muted").textContent =
-      `Of ${formatKsh(totals.reportBudget)} budget`;
     spendingCard.querySelector(".metric-trailing").textContent =
       `${totals.reportBudget > 0 ? Math.round((totals.spending / totals.reportBudget) * 100) : 0}%`;
     spendingCard.querySelector(".metric-caption .under-budget").textContent =
@@ -2223,48 +2242,91 @@ function updateDashboardPowerUpSummary() {
     if (progress) progress.style.width = `${totals.reportBudget > 0 ? Math.min(100, (totals.spending / totals.reportBudget) * 100) : 0}%`;
   }
 
-  updateDashboardCashflowChart(totals);
+  updateDashboardCashflowChart();
 }
 
-function updateDashboardCashflowChart(totals = getPowerUpTotals()) {
-  const chart = document.querySelector(".cashflow-panel");
+function dashboardCashflowSeries() {
+  const data = getPowerUpData();
+  const monthlyIncome = data.incomes.reduce((total, item) => total + Number(item.amount || 0), 0);
+  const [year, month] = getReportMonth().split("-").map(Number);
+  return Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(year, month - 1 - (5 - index), 1, 12);
+    const key = monthKey(date);
+    const expenses = data.spending
+      .filter(item => {
+        const itemDate = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : "";
+        const itemMonth = itemDate ? itemDate.slice(0, 7) : /^\d{4}-\d{2}$/.test(item.month || "") ? item.month : getReportMonth();
+        return itemMonth === key;
+      })
+      .reduce((total, item) => total + Number(item.amount || 0), 0);
+    return {
+      date,
+      month: date.toLocaleDateString(undefined, { month: "short" }),
+      income: monthlyIncome,
+      expenses,
+      savings: monthlyIncome - expenses
+    };
+  });
+}
+
+function formatCompactKsh(amount) {
+  const currencyState = getCurrencyState();
+  const currency = displayCurrencies[currencyState.active];
+  const converted = Number(amount || 0) / (currencyState.rates[currencyState.active] || 1);
+  const compact = new Intl.NumberFormat(currency.locale, { notation: "compact", maximumFractionDigits: 1 }).format(converted);
+  return `${currency.symbol} ${compact}`;
+}
+
+function updateDashboardCashflowChart() {
+  const chart = document.querySelector(".cashflow-chart");
   if (!chart) return;
+  const grid = chart.querySelector("[data-chart-grid]");
+  const seriesLayer = chart.querySelector("[data-chart-series]");
+  const barsLayer = chart.querySelector("[data-chart-bars]");
+  const labels = chart.querySelector("[data-chart-labels]");
+  if (!grid || !seriesLayer || !barsLayer || !labels) return;
 
-  const maximum = Math.max(totals.reportIncome, totals.spending);
-  const scale = maximum > 0
-    ? Math.ceil(maximum / (10 ** Math.floor(Math.log10(maximum)))) * (10 ** Math.floor(Math.log10(maximum)))
-    : 0;
-  const currentGroup = chart.querySelector(".bar-group.current");
-  const groups = [...chart.querySelectorAll(".bar-group")];
-  const monthLabels = [...chart.querySelectorAll(".x-labels span")];
-  const visibleEnd = new Date(`${getReportMonth()}-01T12:00:00`);
-  monthLabels.forEach((label, index) => {
-    const labelDate = new Date(visibleEnd.getFullYear(), visibleEnd.getMonth() - (monthLabels.length - index - 1), 1);
-    label.textContent = labelDate.toLocaleDateString(undefined, { month: "short" });
-  });
-  groups.forEach(group => {
-    const isCurrent = group === currentGroup;
-    const income = isCurrent ? totals.reportIncome : 0;
-    const spending = isCurrent ? totals.spending : 0;
-    const incomeBar = group.querySelector(".bar.income");
-    const spendingBar = group.querySelector(".bar.expense");
-    if (incomeBar) incomeBar.style.height = `${scale ? (income / scale) * 100 : 0}%`;
-    if (spendingBar) spendingBar.style.height = `${scale ? (spending / scale) * 100 : 0}%`;
-    const month = isCurrent ? reportMonthLabel() : (monthLabels[groups.indexOf(group)]?.textContent || "Month");
-    group.dataset.tooltip = `${month} · Income ${formatKsh(income)} · Spending ${formatKsh(spending)}`;
-    group.title = `${month}: income ${formatKsh(income)}, spending ${formatKsh(spending)}`;
-    group.setAttribute("aria-label", group.title);
-  });
+  const months = dashboardCashflowSeries();
+  const series = [
+    { key: "income", label: "Income", color: "#16a579" },
+    { key: "expenses", label: "Expenses", color: "#f0a744" },
+    { key: "savings", label: "Savings", color: "#4d9ab8" }
+  ];
+  const values = months.flatMap(month => series.map(item => month[item.key]));
+  const minimum = Math.min(0, ...values);
+  const rawMaximum = Math.max(0, ...values);
+  const maximum = rawMaximum === minimum ? minimum + 1 : rawMaximum;
+  const range = maximum - minimum;
+  const xStart = 76;
+  const xEnd = 744;
+  const yStart = 18;
+  const yEnd = 211;
+  const x = index => xStart + (xEnd - xStart) * index / (months.length - 1);
+  const y = value => yEnd - ((value - minimum) / range) * (yEnd - yStart);
+  const tickValues = Array.from({ length: 5 }, (_, index) => maximum - range * index / 4);
 
-  chart.querySelectorAll(".y-labels span").forEach((label, index, labels) => {
-    const value = scale ? scale * (1 - index / (labels.length - 1)) : 0;
-    label.textContent = formatKsh(value);
-  });
-  const netValue = chart.querySelector(".chart-total strong");
-  if (netValue) {
-    const net = totals.cashAfterSpending;
-    netValue.textContent = `${net >= 0 ? "+" : "−"}${formatKsh(Math.abs(net))}`;
-  }
+  grid.innerHTML = tickValues.map(value => {
+    const position = y(value);
+    return `<line class="cashflow-gridline" x1="${xStart}" y1="${position}" x2="${xEnd}" y2="${position}"/><text class="cashflow-axis-label" x="${xStart - 10}" y="${position + 4}" text-anchor="end">${formatCompactKsh(value)}</text>`;
+  }).join("");
+  labels.innerHTML = months.map((month, index) => `<text class="cashflow-month-label" x="${x(index)}" y="${yEnd + 25}" text-anchor="middle">${month.month}</text>`).join("");
+
+  seriesLayer.innerHTML = series.map(item => {
+    const points = months.map((month, index) => `${x(index)},${y(month[item.key])}`);
+    const path = points.map((point, index) => `${index ? "L" : "M"}${point}`).join(" ");
+    const area = `${path} L${x(months.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
+    const dots = months.map((month, index) => `<circle class="cashflow-point ${item.key}" cx="${x(index)}" cy="${y(month[item.key])}" r="3.5"><title>${month.month}: ${item.label} ${formatKsh(month[item.key])}</title></circle>`).join("");
+    return `<path class="cashflow-area ${item.key}" d="${area}" fill="${item.color}"/><path class="cashflow-line ${item.key}" d="${path}" stroke="${item.color}"/>${dots}`;
+  }).join("");
+  const zeroY = y(0);
+  barsLayer.innerHTML = months.map((month, monthIndex) => series.map((item, seriesIndex) => {
+    const valueY = y(month[item.key]);
+    const barY = Math.min(zeroY, valueY);
+    const height = Math.max(1, Math.abs(valueY - zeroY));
+    const barX = x(monthIndex) + (seriesIndex - 1) * 14 - 5;
+    return `<rect class="cashflow-bar ${item.key}" x="${barX}" y="${barY}" width="10" height="${height}" rx="2"><title>${month.month}: ${item.label} ${formatKsh(month[item.key])}</title></rect>`;
+  }).join("")).join("");
+  chart.setAttribute("aria-label", `Last six months. Current recurring monthly income is ${formatKsh(months[months.length - 1].income)}. Recorded spending and remaining income are shown for each month.`);
 }
 
 // Refresh the visible financial page after one of its saved records changes.
@@ -2281,7 +2343,6 @@ function reportMonthLabel() {
 function refreshFinancialPage() {
   if (crumb.textContent === "Dashboard") {
     content.innerHTML = dashboardMarkup;
-    restoreCashflowChartState();
     updateDashboardWelcome();
     updateDashboardInventorySummary();
     updateDashboardPowerUpSummary();
@@ -2954,25 +3015,6 @@ function renderAchievementsPage() {
     ${renderAppFooter()}`;
 }
 
-function setCashflowChartCollapsed(collapsed) {
-  const panel = document.querySelector(".cashflow-panel");
-  const chartContent = panel?.querySelector(".cashflow-content");
-  const toggle = panel?.querySelector("[data-cashflow-toggle]");
-  if (!panel || !chartContent || !toggle) return;
-  // On phones the card's own chevron collapses the whole panel, so the saved desktop choice is not applied.
-  if (phoneQuery.matches) { chartContent.hidden = false; panel.classList.remove("is-collapsed"); return; }
-  chartContent.hidden = collapsed;
-  panel.classList.toggle("is-collapsed", collapsed);
-  toggle.setAttribute("aria-expanded", String(!collapsed));
-  toggle.innerHTML = `${collapsed ? "Show" : "Hide"} chart <span aria-hidden="true">${collapsed ? "⌄" : "⌃"}</span>`;
-  try { localStorage.setItem(cashflowChartCollapsedKey, String(collapsed)); } catch { /* Keep the current view when storage is unavailable. */ }
-}
-
-function restoreCashflowChartState() {
-  let collapsed = false;
-  try { collapsed = localStorage.getItem(cashflowChartCollapsedKey) === "true"; } catch { /* Use the expanded default. */ }
-  setCashflowChartCollapsed(collapsed);
-}
 // Select a page, refresh its data, and update the active tab and URL.
 function showPage(page) {
   if (crumb.textContent === "Settings" && page !== "Settings") {
@@ -2987,7 +3029,6 @@ function showPage(page) {
   if (page === "Dashboard") {
     window.location.hash = "dashboard";
     content.innerHTML = dashboardMarkup;
-    restoreCashflowChartState();
     updateDashboardWelcome();
     updateDashboardInventorySummary();
     updateDashboardPowerUpSummary();
@@ -4951,7 +4992,8 @@ function handleMenuChoice(action) {
     return;
   }
   if (action === "sign-out") {
-    localStorage.removeItem(sessionStorageKey);
+    localAppSessionActive = false;
+    try { localStorage.removeItem(sessionStorageKey); } catch {}
     window.clearTimeout(autoLockNudgeTimer);
     if (window.NetraSupabase?.enabled) window.NetraSupabase.signOut().catch(error => console.warn("Supabase sign-out failed:", error.message));
     showPublicPage("landing");
@@ -5022,6 +5064,67 @@ function handleMenuChoice(action) {
 // Page controls and delegated event handlers connect rendered controls to app actions.
 navItems.forEach(item => {
   item.addEventListener("click", () => showPage(item.dataset.page));
+});
+
+// Search provides quick navigation across the app's main sections.
+const appSearch = document.querySelector("[data-app-search]");
+const appSearchInput = appSearch?.querySelector("[data-app-search-input]");
+const appSearchResults = appSearch?.querySelector(".app-search-results");
+function closeAppSearch() {
+  if (!appSearchInput || !appSearchResults) return;
+  appSearchResults.hidden = true;
+  appSearchInput.setAttribute("aria-expanded", "false");
+}
+function updateAppSearch() {
+  if (!appSearchInput || !appSearchResults) return;
+  const query = appSearchInput.value.trim().toLowerCase();
+  appSearchResults.replaceChildren();
+  if (!query) { closeAppSearch(); return; }
+  const matches = [...document.querySelectorAll(".desktop-sidebar-nav [data-page]")]
+    .map(item => ({ page: item.dataset.page, label: item.textContent.trim().replace(/\s+/g, " ") }))
+    .filter(item => item.label.toLowerCase().includes(query) || item.page.toLowerCase().includes(query));
+  if (matches.length) {
+    matches.forEach(({ page, label }) => {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.className = "app-search-option";
+      option.role = "option";
+      option.dataset.searchPage = page;
+      option.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM14 4h6v5h-6zM14 12h6v8h-6zM4 14h7v6H4z"/></svg>';
+      const text = document.createElement("span");
+      text.textContent = label;
+      option.append(text);
+      appSearchResults.append(option);
+    });
+  } else {
+    const empty = document.createElement("div");
+    empty.className = "app-search-empty";
+    empty.textContent = "No matching sections";
+    appSearchResults.append(empty);
+  }
+  appSearchResults.hidden = false;
+  appSearchInput.setAttribute("aria-expanded", "true");
+}
+appSearchInput?.addEventListener("input", updateAppSearch);
+appSearchInput?.addEventListener("keydown", event => {
+  if (event.key === "Escape") { closeAppSearch(); appSearchInput.blur(); }
+  if (event.key === "Enter") {
+    const first = appSearchResults?.querySelector("[data-search-page]");
+    if (first) { showPage(first.dataset.searchPage); appSearchInput.value = ""; closeAppSearch(); appSearchInput.blur(); }
+  }
+});
+appSearchResults?.addEventListener("click", event => {
+  const option = event.target.closest("[data-search-page]");
+  if (!option) return;
+  showPage(option.dataset.searchPage);
+  appSearchInput.value = "";
+  closeAppSearch();
+});
+document.addEventListener("pointerdown", event => { if (appSearch && !appSearch.contains(event.target)) closeAppSearch(); });
+document.addEventListener("keydown", event => {
+  if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "")) return;
+  event.preventDefault();
+  appSearchInput?.focus();
 });
 
 // Phone sidebar menu: opens from the hamburger, closes on backdrop, Escape, navigation, or leaving phone width.
@@ -5611,12 +5714,6 @@ document.addEventListener("click", event => {
     openMenu(button, choices);
     return;
   }
-  if (button.matches("[data-cashflow-toggle]")) {
-    const panel = button.closest(".cashflow-panel");
-    const chartContent = panel?.querySelector(".cashflow-content");
-    if (chartContent) setCashflowChartCollapsed(!chartContent.hidden);
-    return;
-  }
   if (button.matches(".more-button")) {
     openMenu(button, [
       { label: "View details", action: "details" },
@@ -5790,7 +5887,6 @@ enhanceInformationCards(content);
 phoneQuery.addEventListener("change", () => {
   enhanceInformationCards(content);
   content.querySelectorAll(".phone-collapsible").forEach(panel => setPhoneToggleState(panel, !phoneQuery.matches));
-  restoreCashflowChartState();
 });
 const informationCardObserver = new MutationObserver(() => enhanceInformationCards(content));
 informationCardObserver.observe(content, { childList: true, subtree: true });
@@ -5808,33 +5904,16 @@ updateDashboardPowerUpSummary();
 updateDashboardQuests();
 updateCurrencySwitcher();
 applyStoredSettings();
-let hasLocalSession = false;
-try {
-  hasLocalSession = !window.NetraSupabase?.enabled && localStorage.getItem(sessionStorageKey) === "active" && Boolean(getStoredProfile());
-} catch { hasLocalSession = false; }
-if (hasLocalSession && !["terms", "privacy"].includes(initialPage)) {
-  appShell.hidden = false;
-  publicShell.hidden = true;
-  applyProfileAvatar();
-  if (initialPage && initialPage !== "dashboard") {
-    const match = navItems.find(item => item.dataset.page.toLowerCase() === initialPage);
-    if (match) showPage(match.dataset.page);
-    else if (initialPage === "profile" || initialPage === "settings") {
-      showPage(initialPage === "profile" ? "Profile" : "Settings");
-    }
-  }
-  scheduleAutoLock();
-  maybePromptForBackup();
-  scheduleAutoLockNudge();
-} else if (["login", "signup", "terms", "privacy"].includes(initialPage)) {
+// Remove the legacy persistent local session marker. The workspace only opens after
+// a successful sign-in in this running app instance.
+try { localStorage.removeItem(sessionStorageKey); } catch {}
+if (["login", "signup", "terms", "privacy"].includes(initialPage)) {
   showPublicPage(initialPage);
 } else if (phoneNavQuery.matches) {
   showPhoneSplash();
 } else {
   showPublicPage("landing");
 }
-
-if (!appShell.hidden) restoreCashflowChartState();
 
 window.addEventListener("netraos-auth-event", event => {
   if (event.detail?.event === "PASSWORD_RECOVERY") {
@@ -5882,23 +5961,14 @@ if (window.NetraSupabase?.enabled && !["terms", "privacy"].includes(initialPage)
       }
       return;
     }
-    const profile = await window.NetraSupabase.bootstrap();
-    if (!profile) return;
-    if (confirmationReturn) window.history.replaceState(null, "", `${window.location.pathname}#dashboard`);
-    appShell.hidden = false;
-    publicShell.hidden = true;
-    saveStoredProfile(profile);
-    applyProfileAvatar();
-    const page = initialPage && initialPage !== "dashboard"
-      ? navItems.find(item => item.dataset.page.toLowerCase() === initialPage)?.dataset.page || "Dashboard"
-      : "Dashboard";
-    showPage(page);
-    scheduleAutoLock();
-    maybePromptForBackup();
-    scheduleAutoLockNudge();
-    showCookieBanner();
-    if (confirmationReturn) showToast("Your email is confirmed. You’re signed in and your dashboard is ready.");
-    if (!profile.username) showPreferredNamePrompt(profile);
+    if (!confirmationReturn) return;
+    // The email confirmation callback may itself establish a session. Clear only
+    // that callback session and require the user to enter their password.
+    const { error: signOutError } = await window.NetraSupabase.signOut({ scope: "local" });
+    if (signOutError) console.warn("Unable to clear the email-confirmation session:", signOutError.message);
+    window.history.replaceState(null, "", `${window.location.pathname}#login`);
+    showPublicPage("login");
+    showToast("Your email is confirmed. Please sign in to open your dashboard.");
   }).catch(error => {
     console.error("Unable to restore the Supabase session:", error);
     showPublicPage("login");
