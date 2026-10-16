@@ -186,6 +186,9 @@ window.addEventListener("beforeinstallprompt", event => {
 
 // FAQ knowledge base shown on the landing page. Answers describe what this version actually does.
 const faqCategories = [
+  { id: "about", label: "About NetraOS", items: [
+    { q: "What is NetraOS, and how can it help me?", a: "NetraOS is a personal finance workspace for bringing your assets, debts, income, spending, budgets, and savings goals together. It helps you see your net worth and cash flow, plan what to do with your money, and estimate Kenya take-home pay—all in one place. You enter and manage your figures yourself; NetraOS organizes them so you can make more informed decisions." }
+  ]},
   { id: "security", label: "System & Security", items: [
     { q: "Where is my financial data stored? Is NetraOS safe?", a: "NetraOS keeps a working copy in this browser and syncs your account data to Supabase when you are signed in and online. Database row-level security restricts account records to their owner. Keep a separate backup and protect access to your email and device.", action: { label: "Open Settings", target: "Settings" } },
     { q: "Does NetraOS link directly to my bank account or M-Pesa?", a: "No. You enter or update balances and income yourself. NetraOS never asks for online-banking passwords, API keys or M-Pesa credentials, so your real accounts stay isolated from it." },
