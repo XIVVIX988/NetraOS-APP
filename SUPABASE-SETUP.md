@@ -9,9 +9,11 @@ The browser client is configured for project `nqacreyemzoiarnaaska`. The publish
 3. Copy all of `supabase/schema.sql` into the query editor and click **Run**.
 4. Confirm the tables appear in **Table Editor** and that Row Level Security is enabled for each.
 
+When updating an existing setup, rerun the current `supabase/schema.sql` to add the PIN table and RPC functions. The factory-reset RPC is required by the app’s connected-mode reset flow.
+
 If you previously applied `supabase/migrations/20261015_require_totp_aal2.sql`, run `supabase/migrations/20261015_remove_totp_aal2.sql` in the SQL Editor to restore the standard owner-only policies without an MFA requirement.
 
-The schema stores profile data in `user_profiles`, settings in `user_settings`, and financial records in the individual tables. Supabase Auth owns password hashes, confirmation challenges, password recovery, and session tokens, so those secrets are not duplicated in app tables. The inactivity PIN remains a device-side convenience and is never uploaded.
+The schema stores profile data in `user_profiles`, settings in `user_settings`, and financial records in the individual tables. Supabase Auth owns password hashes, confirmation challenges, password recovery, and session tokens. The local PIN verifier stays on each device; when online, a bcrypt hash in `user_pins` adds account-level verification and a five-attempt, five-minute lockout. Older PINs remain local until the PIN is changed while signed in and online. The new `wipe_my_data()` RPC removes all NetraOS account rows in one transaction while preserving the Supabase Auth identity.
 
 ## 2. Configure Auth URLs and email
 
@@ -19,7 +21,8 @@ In **Authentication → URL Configuration**:
 
 - Set **Site URL** to `https://xivvix988.github.io/NetraOS-APP/`.
 - Add `https://xivvix988.github.io/NetraOS-APP/**` to **Redirect URLs**.
-- Signup confirmation now returns to `https://xivvix988.github.io/NetraOS-APP/?auth=confirm`, then clears the confirmation session and opens the login page.
+- Signup confirmation now returns to `https://xivvix988.github.io/NetraOS-APP/?auth=confirm` and opens the dashboard using the verified session.
+- Password reset links return to `https://xivvix988.github.io/NetraOS-APP/?auth=recovery`, where the verified recovery session opens the new-password form.
 - Keep local development working by also adding `http://127.0.0.1:5500/**` and, if used, `http://localhost:5500/**`.
 
 Signup confirmation and password recovery now return to the published GitHub Pages app. For signups started from the local preview, confirmation still returns to GitHub Pages so users complete authentication on the published app.
@@ -42,7 +45,7 @@ The app writes locally first and retries cloud sync after connectivity returns. 
 
 ## Items that still need configuration before production
 
-- Email-based PIN recovery is disabled in connected mode until that server-side challenge function exists. The current inactivity PIN is local to each device and is not server-verified.
+- Email-based PIN recovery is disabled in connected mode until that server-side challenge function exists. PIN verification uses the account-side lockout when the RPC is installed and the device is online; the local verifier remains available for offline unlocks on devices that have their own PIN.
 - Factory reset deletes account data but does not delete the Supabase Auth identity. Deleting the identity safely needs a protected server function; never use a service-role key from the browser.
 - Confirm the project’s database region, retention, backups, email settings, and production redirect domain in the Supabase Dashboard.
 

@@ -15,6 +15,12 @@
     url.searchParams.set("auth", "confirm");
     return url.toString();
   };
+  const passwordRecoveryRedirectUrl = () => {
+    const url = new URL(config.authRedirectUrl || `${location.origin}${location.pathname}`, location.href);
+    url.searchParams.set("auth", "recovery");
+    url.hash = "";
+    return url.toString();
+  };
   const keys = {
     profile: "netraos-profile-v1", settings: "netraos-settings-v1", inventory: "netraos-inventory-v1",
     power: "netraos-powerup-v1", quests: "netraos-quests-v1", achievements: "netraos-achievements-v1",
@@ -35,10 +41,13 @@
   let syncTimer = 0;
   let syncing = false;
   let pendingSync = false;
+  let wipingCloudData = false;
+  let syncCycle = Promise.resolve();
   let realtime = null;
   let applyingRemote = false;
   let dirtyLocal = false;
   let lastSyncErrorNotice = 0;
+  const PAGE_SIZE = 1000;
 
   function reportSyncError(error) {
     console.warn("NetraOS sync will retry:", error?.message || error);
@@ -89,10 +98,14 @@
   }
 
   async function pushSnapshot(profileOverride) {
-    if (syncing) { pendingSync = true; return; }
+    if (wipingCloudData) return false;
+    if (syncing) { pendingSync = true; return syncCycle; }
     const user = await currentUser();
+    if (wipingCloudData) return false;
     if (!user) return;
     syncing = true;
+    let finishCycle;
+    syncCycle = new Promise(resolve => { finishCycle = resolve; });
     try {
       const profile = profileOverride || local(keys.profile) || {};
       const profileRow = {
@@ -177,7 +190,8 @@
       return true;
     } finally {
       syncing = false;
-      if (pendingSync) { pendingSync = false; schedulePush(); }
+      finishCycle();
+      if (pendingSync && !wipingCloudData) { pendingSync = false; schedulePush(); }
     }
   }
 
@@ -185,10 +199,20 @@
     const user = await currentUser();
     if (!user) throw new Error("Sign in is required to sync this account.");
     const tables = ["user_profiles", "user_settings", "entries", "incomes", "budget_lines", "spending", "goals", "achievements", "currency_rates", "tax_profile", "audit_log", "consents"];
-    const responses = await Promise.all(tables.map(table => client.from(table).select("*").eq("user_id", user.id).is("deleted_at", null)));
-    const failed = responses.find(response => response.error);
-    if (failed) throw failed.error;
-    const data = Object.fromEntries(tables.map((table, index) => [table, responses[index].data || []]));
+    const readTable = async table => {
+      const rows = [];
+      const orderColumn = ({ achievements: "badge_id", currency_rates: "currency_code" })[table]
+        || (["user_profiles", "user_settings", "tax_profile", "consents"].includes(table) ? "" : "id");
+      for (let from = 0; ; from += PAGE_SIZE) {
+        let query = client.from(table).select("*").eq("user_id", user.id).is("deleted_at", null);
+        if (orderColumn) query = query.order(orderColumn, { ascending: true });
+        const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        rows.push(...(data || []));
+        if (!data || data.length < PAGE_SIZE) return rows;
+      }
+    };
+    const data = Object.fromEntries(await Promise.all(tables.map(async table => [table, await readTable(table)])));
     const hasData = data.user_settings.length + data.entries.length + data.incomes.length + data.budget_lines.length + data.spending.length + data.goals.length + data.achievements.length + data.currency_rates.length + data.tax_profile.length > 0;
     for (const table of ["entries", "incomes", "budget_lines", "spending", "goals", "audit_log"]) saveBaseline(user.id, table, data[table]);
     saveBaseline(user.id, "achievements", data.achievements, "badge_id");
@@ -222,6 +246,7 @@
 
   function schedulePush() {
     dirtyLocal = true;
+    if (wipingCloudData) return;
     if (syncTimer) clearTimeout(syncTimer);
     syncTimer = setTimeout(() => pushSnapshot().catch(reportSyncError), 700);
   }
@@ -234,7 +259,7 @@
     enabled: true, client,
     signUp: (email, password, metadata) => client.auth.signUp({ email, password, options: { data: metadata, emailRedirectTo: confirmationRedirectUrl() } }),
     signIn: (email, password) => client.auth.signInWithPassword({ email, password }),
-    resetPassword: email => client.auth.resetPasswordForEmail(email, { redirectTo: `${config.authRedirectUrl || `${location.origin}${location.pathname}`}#login` }),
+    resetPassword: email => client.auth.resetPasswordForEmail(email, { redirectTo: passwordRecoveryRedirectUrl() }),
     updatePassword: password => client.auth.updateUser({ password }),
     signOut: options => client.auth.signOut(options),
     getSession: () => client.auth.getSession(), getUser: currentUser,
@@ -294,11 +319,44 @@
     deleteCloudData: async () => {
       const user = await currentUser();
       if (!user) throw new Error("Sign in to clear synced account data.");
-      for (const table of ["user_profiles", "user_settings", "entries", "incomes", "budget_lines", "spending", "goals", "achievements", "currency_rates", "tax_profile", "audit_log", "consents"]) {
-        const { error } = await client.from(table).delete().eq("user_id", user.id);
+      wipingCloudData = true;
+      if (syncTimer) clearTimeout(syncTimer);
+      syncTimer = 0;
+      pendingSync = false;
+      try {
+        await syncCycle;
+        if (syncTimer) clearTimeout(syncTimer);
+        syncTimer = 0;
+        pendingSync = false;
+        const { error } = await client.rpc("wipe_my_data");
         if (error) throw error;
+        dirtyLocal = false;
+        await client.auth.signOut({ scope: "local" });
+      } catch (error) {
+        wipingCloudData = false;
+        if (dirtyLocal) schedulePush();
+        throw error;
+      } finally {
+        wipingCloudData = false;
       }
-      await client.auth.signOut();
+    },
+    setPin: async pin => {
+      const { error } = await client.rpc("set_pin", { p_pin: pin });
+      if (error && (error.code === "PGRST202" || /function .*set_pin.*not found|could not find the function/i.test(error.message || ""))) return false;
+      if (error) throw error;
+      return true;
+    },
+    clearPin: async () => {
+      const { error } = await client.rpc("clear_pin");
+      if (error && (error.code === "PGRST202" || /function .*clear_pin.*not found|could not find the function/i.test(error.message || ""))) return false;
+      if (error) throw error;
+      return true;
+    },
+    verifyPin: async pin => {
+      const { data, error } = await client.rpc("verify_pin", { p_pin: pin });
+      if (error && (error.code === "PGRST202" || /function .*verify_pin.*not found|could not find the function/i.test(error.message || ""))) return null;
+      if (error) throw error;
+      return data;
     },
     syncNow: pushSnapshot
   };

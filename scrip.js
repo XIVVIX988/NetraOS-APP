@@ -587,7 +587,8 @@ function getStoredSettings() {
       lockTimeoutMinutes: [0, 1, 5, 15].includes(Number(saved.lockTimeoutMinutes)) ? Number(saved.lockTimeoutMinutes) : 0,
       localPinSalt: typeof saved.localPinSalt === "string" ? saved.localPinSalt : "",
       localPinHash: typeof saved.localPinHash === "string" ? saved.localPinHash : "",
-      localPinLength: saved.localPinLength === 4 ? 4 : 6,
+      localPinLength: (saved.accountPinEnabled || saved.localPinLength === 4) ? 4 : 6,
+      accountPinEnabled: Boolean(saved.accountPinEnabled),
       financialYearStartMonth: Math.max(1, Math.min(12, Number(saved.financialYearStartMonth) || 1)),
       paydayAnchorDay: Number.isInteger(Number(saved.paydayAnchorDay)) && Number(saved.paydayAnchorDay) >= 1 && Number(saved.paydayAnchorDay) <= 31 ? Number(saved.paydayAnchorDay) : 1,
       autoLockPromptDismissed: Boolean(saved.autoLockPromptDismissed),
@@ -607,7 +608,7 @@ function getStoredSettings() {
       questAnimations: saved.questAnimations !== false
     };
   } catch {
-    return { alwaysShowCents: false, reduceMotion: false, darkMode: false, goalNotifications: true, monthlyReminders: true, performanceTelemetryConsent: false, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 6, financialYearStartMonth: 1, paydayAnchorDay: 1, autoLockPromptDismissed: false, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "emerald", showXpPoints: true, questSounds: false, questAnimations: true };
+    return { alwaysShowCents: false, reduceMotion: false, darkMode: false, goalNotifications: true, monthlyReminders: true, performanceTelemetryConsent: false, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 6, accountPinEnabled: false, financialYearStartMonth: 1, paydayAnchorDay: 1, autoLockPromptDismissed: false, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "emerald", showXpPoints: true, questSounds: false, questAnimations: true };
   }
 }
 
@@ -743,6 +744,28 @@ async function verifyLocalPin(pin, settings = getStoredSettings()) {
   return difference === 0;
 }
 
+async function verifyWorkspacePin(pin, settings = getStoredSettings()) {
+  const cloud = window.NetraSupabase;
+  if (!cloud?.enabled || !navigator.onLine) return verifyLocalPin(pin, settings);
+  let user;
+  try {
+    user = await cloud.getUser();
+  } catch (error) {
+    if (!navigator.onLine) return verifyLocalPin(pin, settings);
+    throw error;
+  }
+  if (!user) return verifyLocalPin(pin, settings);
+  const result = await cloud.verifyPin(pin);
+  if (!result || result.reason === "no_pin") return verifyLocalPin(pin, settings);
+  if (result.reason === "locked") {
+    const error = new Error("Too many incorrect attempts. The account PIN is temporarily locked.");
+    error.locked = true;
+    error.lockedUntil = result.locked_until;
+    throw error;
+  }
+  return result.ok === true;
+}
+
 async function deriveLocalPasswordHash(password, saltBase64) {
   if (!globalThis.crypto?.subtle) throw new Error("Secure browser cryptography is unavailable.");
   const saltBytes = Uint8Array.from(atob(saltBase64), character => character.charCodeAt(0));
@@ -769,7 +792,8 @@ async function verifyLocalPassword(password, profile) {
 function scheduleAutoLock() {
   window.clearTimeout(autoLockTimer);
   const settings = getStoredSettings();
-  if (!settings.localPinHash || !settings.lockTimeoutMinutes || appShell.hidden) return;
+  if ((!settings.localPinHash && !settings.accountPinEnabled) || !settings.lockTimeoutMinutes || appShell.hidden) return;
+  if (settings.accountPinEnabled && !settings.localPinHash && !navigator.onLine) return;
   try {
     if (localStorage.getItem(sessionStorageKey) !== "active") return;
   } catch {
@@ -781,14 +805,15 @@ function scheduleAutoLock() {
 function lockWorkspace() {
   if (appShell.hidden) return;
   const settings = getStoredSettings();
-  if (!settings.localPinHash || !settings.localPinSalt || !settings.lockTimeoutMinutes) return;
+  if ((!settings.localPinHash && !settings.accountPinEnabled) || !settings.lockTimeoutMinutes) return;
+  if (settings.accountPinEnabled && !settings.localPinHash && !navigator.onLine) return;
   appShell.hidden = true;
   publicShell.hidden = true;
   document.querySelector("#security-lock-screen")?.remove();
   const lockScreen = document.createElement("main");
   lockScreen.id = "security-lock-screen";
   lockScreen.className = "security-lock-screen";
-  lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">NETRAOS · LOCAL SESSION LOCK</span><h1 id="security-lock-title">Your workspace is locked.</h1><p>Enter your ${settings.localPinLength}-digit local PIN to continue. This screen lock does not encrypt browser storage.</p><form><label for="security-unlock-pin">${settings.localPinLength}-digit PIN</label><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${settings.localPinLength}}" maxlength="${settings.localPinLength}" required><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Unlock workspace</button></form></section>`;
+  lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">NETRAOS · SESSION LOCK</span><h1 id="security-lock-title">Your workspace is locked.</h1><p>Enter your ${settings.localPinLength}-digit PIN to continue. This screen lock does not encrypt browser storage.</p><form><label for="security-unlock-pin">${settings.localPinLength}-digit PIN</label><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${settings.localPinLength}}" maxlength="${settings.localPinLength}" required><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Unlock workspace</button></form></section>`;
   document.body.append(lockScreen);
   recordSecurityAudit("Workspace locked after inactivity");
   const form = lockScreen.querySelector("form");
@@ -797,6 +822,11 @@ function lockWorkspace() {
   let attempts = 0;
   form.addEventListener("submit", async event => {
     event.preventDefault();
+    if (settings.accountPinEnabled && !settings.localPinHash && !navigator.onLine) {
+      error.textContent = "Connect to the internet to verify this account PIN.";
+      error.hidden = false;
+      return;
+    }
     if (!new RegExp(`^[0-9]{${settings.localPinLength}}$`).test(pinInput.value)) {
       error.textContent = `Enter the ${settings.localPinLength}-digit PIN.`;
       error.hidden = false;
@@ -804,16 +834,33 @@ function lockWorkspace() {
       return;
     }
     try {
-      const candidate = await deriveLocalPinHash(pinInput.value, settings.localPinSalt);
-      let difference = 0;
-      for (let index = 0; index < candidate.length; index += 1) difference |= candidate.charCodeAt(index) ^ settings.localPinHash.charCodeAt(index);
-      if (difference !== 0) throw new Error("PIN did not match.");
+      if (!await verifyWorkspacePin(pinInput.value, settings)) throw new Error("PIN did not match.");
       lockScreen.remove();
       appShell.hidden = false;
       publicShell.hidden = true;
       recordSecurityAudit("Workspace unlocked");
       scheduleAutoLock();
-    } catch {
+    } catch (pinError) {
+      if (pinError.locked) {
+        const lockedUntil = Date.parse(pinError.lockedUntil || "");
+        const waitMs = Math.max(1000, lockedUntil - Date.now() || 5 * 60 * 1000);
+        error.textContent = pinError.message;
+        error.hidden = false;
+        form.querySelector("button").disabled = true;
+        window.setTimeout(() => {
+          form.querySelector("button").disabled = false;
+          error.hidden = true;
+          pinInput.focus();
+        }, waitMs);
+        return;
+      }
+      if (pinError.message !== "PIN did not match.") {
+        error.textContent = "Unable to verify the account PIN right now. Check your connection and try again.";
+        error.hidden = false;
+        pinInput.value = "";
+        pinInput.focus();
+        return;
+      }
       attempts += 1;
       pinInput.value = "";
       error.textContent = attempts >= 5 ? "Too many attempts. Wait 30 seconds before trying again." : "That PIN did not match. Try again.";
@@ -836,6 +883,7 @@ function lockWorkspace() {
 ["pointerdown", "keydown", "touchstart"].forEach(eventName => {
   document.addEventListener(eventName, scheduleAutoLock, { passive: eventName !== "keydown" });
 });
+window.addEventListener("online", scheduleAutoLock);
 
 // Update the signed-in user's displayed name and refresh the greeting.
 function setProfileName(name) {
@@ -1264,11 +1312,11 @@ function renderSettingsPage() {
           <p class="settings-disclosure">NetraOS keeps a browser copy and syncs your account records to Supabase when online. The inactivity PIN is a device-side convenience and does not encrypt stored data. HTTPS and security headers are controlled by the hosting platform.</p>
           <label class="settings-field"><span><strong>Privacy Shield</strong><small>Mask currency amounts in the app header or with the shortcut.</small></span><input name="privacyShield" type="checkbox" ${privacyEnabled ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Privacy Shield shortcut</strong><small>Keyboard shortcut to toggle amount masking.</small></span><select name="privacyShortcut"><option value="Shift+S" ${settings.privacyShortcut === "Shift+S" ? "selected" : ""}>Shift + S</option><option value="Alt+Shift+S" ${settings.privacyShortcut === "Alt+Shift+S" ? "selected" : ""}>Alt + Shift + S</option><option value="Off" ${settings.privacyShortcut === "Off" ? "selected" : ""}>Off</option></select></label>
-          <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a local four-digit PIN.</small></span><select name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Never</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
+          <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a four-digit PIN. This device’s saved PIN also works offline.</small></span><select name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Never</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
           <div class="autolock-options" data-autolock-options ${settings.lockTimeoutMinutes ? "" : "hidden"}>
-            ${settings.localPinHash ? '<label class="inventory-form-field"><span>Current four-digit PIN <small>Required to change or remove your PIN</small></span><input name="currentPin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4"></label>' : ""}
+            ${(settings.localPinHash || settings.accountPinEnabled) ? '<label class="inventory-form-field"><span>Current four-digit PIN <small>Required to change or remove your PIN</small></span><input name="currentPin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4"></label>' : ""}
             <div class="settings-pin-fields"><label class="inventory-form-field"><span>New four-digit PIN <small>Leave blank to keep the current PIN</small></span><input name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label><label class="inventory-form-field"><span>Confirm PIN</span><input name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label></div>
-            ${settings.localPinHash ? '<button class="secondary-button pin-recovery-button" type="button" data-pin-recovery>Forgot your current PIN?</button>' : ""}
+            ${(settings.localPinHash || settings.accountPinEnabled) ? '<button class="secondary-button pin-recovery-button" type="button" data-pin-recovery>Forgot your current PIN?</button>' : ""}
             <label class="settings-field"><span><strong>Remove current PIN</strong><small>Turns off the local screen lock.</small></span><input name="clearPin" type="checkbox"></label>
           </div>
           <div class="settings-audit"><div class="settings-audit-heading"><strong>Recent local security activity</strong><div class="settings-audit-export"><label for="security-audit-period">Download range</label><select id="security-audit-period" data-security-audit-period><option value="24h">Last 24 hours</option><option value="7d">Last 7 days</option><option value="1m">Last 1 month</option><option value="6m">Last 6 months</option><option value="12m">Last 12 months</option></select><button type="button" class="secondary-button" data-security-audit-download>Download list</button></div></div>${recentAudit.length ? `<ul>${recentAudit.map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.timestamp).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>No activity recorded yet.</p>`}</div>
@@ -3596,7 +3644,7 @@ function saveFile(filename, content, type) {
 
 // Auto-lock counts as set up only when a PIN exists and a timeout is chosen.
 function isAutoLockSetUp(settings = getStoredSettings()) {
-  return Boolean(settings.localPinHash && settings.localPinSalt && settings.lockTimeoutMinutes > 0);
+  return Boolean(((settings.localPinHash && settings.localPinSalt) || settings.accountPinEnabled) && settings.lockTimeoutMinutes > 0);
 }
 
 // Offer auto-lock setup 10 seconds after sign-up/sign-in. A restored session only
@@ -5239,16 +5287,17 @@ document.addEventListener("submit", async event => {
       lockTimeoutMinutes: Number(formData.get("lockTimeoutMinutes") || 0),
       localPinSalt: previousSettings.localPinSalt,
       localPinHash: previousSettings.localPinHash,
-      localPinLength: previousSettings.localPinLength
+      localPinLength: previousSettings.localPinLength,
+      accountPinEnabled: previousSettings.accountPinEnabled
     };
     if (settings.monthlyBackupPrompt && !previousSettings.monthlyBackupPrompt) settings.lastBackupPromptAt = new Date().toISOString();
     const newPin = String(formData.get("newPin") || "");
     const confirmPin = String(formData.get("confirmPin") || "");
-    const changingExistingPin = Boolean(previousSettings.localPinHash && (formData.has("clearPin") || newPin || confirmPin));
+    const changingExistingPin = Boolean((previousSettings.localPinHash || previousSettings.accountPinEnabled) && (formData.has("clearPin") || newPin || confirmPin));
     if (changingExistingPin) {
       const currentPin = String(formData.get("currentPin") || "");
       let currentPinMatches = false;
-      try { currentPinMatches = await verifyLocalPin(currentPin, previousSettings); } catch { /* Treat unavailable crypto as an invalid confirmation. */ }
+      try { currentPinMatches = await verifyWorkspacePin(currentPin, previousSettings); } catch { /* Treat unavailable verification as an invalid confirmation. */ }
       if (!currentPinMatches) {
         showToast("Enter your current PIN to change or remove it, or use Forgot your current PIN.");
         form.querySelector('input[name="currentPin"]')?.focus();
@@ -5272,7 +5321,7 @@ document.addEventListener("submit", async event => {
         return;
       }
     }
-    if (settings.lockTimeoutMinutes && !settings.localPinHash) {
+    if (settings.lockTimeoutMinutes && !settings.localPinHash && !settings.accountPinEnabled && !newPin) {
       showToast("Set a four-digit PIN before enabling auto-lock.");
       return;
     }
@@ -5282,6 +5331,31 @@ document.addEventListener("submit", async event => {
       showToast(`Set a manual exchange rate for ${desiredCurrency} before selecting it.`);
       openCurrencyRatesDialog(desiredCurrency);
       return;
+    }
+    if (formData.has("clearPin") || newPin) {
+      const cloud = window.NetraSupabase;
+      if (cloud?.enabled) {
+        let cloudUser = null;
+        try { cloudUser = await cloud.getUser(); } catch {
+          if (navigator.onLine || previousSettings.accountPinEnabled) {
+            showToast("Unable to check your account session. Try again when connected.");
+            return;
+          }
+        }
+        if (!navigator.onLine && (cloudUser || previousSettings.accountPinEnabled)) {
+          showToast("Connect to the internet before changing this account’s PIN.");
+          return;
+        }
+        if (cloudUser) {
+          try {
+            const supported = formData.has("clearPin") ? await cloud.clearPin() : await cloud.setPin(newPin);
+            settings.accountPinEnabled = !formData.has("clearPin") && supported;
+          } catch {
+            showToast("The account PIN could not be updated. Check your connection and try again.");
+            return;
+          }
+        }
+      }
     }
     currencyState.active = desiredCurrency;
     try {
@@ -5646,7 +5720,8 @@ if (copyrightYear) copyrightYear.textContent = String(new Date().getFullYear());
 const authQuery = new URLSearchParams(window.location.search);
 const authCallbackParams = new URLSearchParams(window.location.hash.slice(1));
 const confirmationReturn = authQuery.get("auth") === "confirm" || authCallbackParams.get("type") === "signup";
-const initialPage = confirmationReturn ? "dashboard" : decodeURIComponent(window.location.hash.slice(1));
+const passwordRecoveryReturn = authQuery.get("auth") === "recovery" || authCallbackParams.get("type") === "recovery";
+const initialPage = confirmationReturn ? "dashboard" : passwordRecoveryReturn ? "login" : decodeURIComponent(window.location.hash.slice(1));
 updateDashboardInventorySummary();
 updateDashboardPowerUpSummary();
 updateDashboardQuests();
@@ -5681,9 +5756,15 @@ if (hasLocalSession && !["terms", "privacy"].includes(initialPage)) {
 if (!appShell.hidden) restoreCashflowChartState();
 
 window.addEventListener("netraos-auth-event", event => {
-  if (event.detail?.event === "PASSWORD_RECOVERY") showPasswordResetForm();
+  if (event.detail?.event === "PASSWORD_RECOVERY") {
+    window.history.replaceState(null, "", `${window.location.pathname}#login`);
+    showPasswordResetForm();
+  }
 });
-if (window.NETRAOS_LAST_AUTH_EVENT === "PASSWORD_RECOVERY") showPasswordResetForm();
+if (window.NETRAOS_LAST_AUTH_EVENT === "PASSWORD_RECOVERY") {
+  window.history.replaceState(null, "", `${window.location.pathname}#login`);
+  showPasswordResetForm();
+}
 window.addEventListener("netraos-cloud-refresh", () => {
   if (appShell.hidden || !crumb.textContent) return;
   if (content.querySelector(".settings-form, .account-form")) return;
@@ -5703,6 +5784,15 @@ window.addEventListener("netraos-sync-error", () => {
 if (window.NetraSupabase?.enabled && !["terms", "privacy"].includes(initialPage)) {
   window.NetraSupabase.getSession().then(async ({ data, error }) => {
     if (error) throw error;
+    if (passwordRecoveryReturn) {
+      window.history.replaceState(null, "", `${window.location.pathname}#login`);
+      if (data.session) showPasswordResetForm();
+      else {
+        showPublicPage("login");
+        showToast("This password reset link may have expired. Request a fresh link and open it on this device.");
+      }
+      return;
+    }
     if (!data.session) {
       if (confirmationReturn) {
         window.history.replaceState(null, "", `${window.location.pathname}#login`);
