@@ -5028,7 +5028,14 @@ new MutationObserver(() => { if (appShell.hidden) setNavDrawer(false, { restoreF
   .observe(appShell, { attributes: true, attributeFilter: ["hidden"] });
 
 function friendlyAuthMessage(error, fallback = "We couldn’t complete that just now. This may work again in a little while.") {
-  const message = String(error?.message || error || "").toLowerCase();
+  // Supabase/PostgREST often puts the actionable failure in `code`, `details`,
+  // or `hint`, rather than in `message` alone. Include those fields so a
+  // database/RLS failure does not get mislabeled as an unexplained login error.
+  const message = [error?.message, error?.code, error?.details, error?.hint, error?.status, error]
+    .filter(value => value !== undefined && value !== null)
+    .map(String)
+    .join(" ")
+    .toLowerCase();
   if (/email.*rate limit|rate limit.*email|over_email_send_rate_limit/.test(message)) {
     return "We’ve sent several account emails recently, so delivery is paused for a little while. We should be able to send another in about an hour.";
   }
@@ -5118,6 +5125,7 @@ document.addEventListener("submit", async event => {
         if (!profile.username) showPreferredNamePrompt(profile);
         else enterApp(profile);
       } catch (authError) {
+        console.error("NetraOS sign-in failed:", authError);
         fail(friendlyAuthMessage(authError, isSignup
           ? "We couldn’t finish setting up your account just now. This may work again in a little while."
           : "We couldn’t sign you in just now. Another try or the password-reset link may help."));
