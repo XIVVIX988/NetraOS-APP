@@ -2049,6 +2049,16 @@ h1 em {
   cursor: pointer;
 }
 
+.plus-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
 .inventory-action {
   min-height: 40px;
   padding: 0 16px;
@@ -2656,6 +2666,16 @@ h1 em {
   font-size: 15px;
 }
 
+.power-row-icon svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .budget-icon {
   background: #f2f5ef;
   color: #647d6c;
@@ -3076,6 +3096,30 @@ h1 em {
   font: 12px var(--sans);
 }
 
+.income-category-select-wrap { position: relative; display: block; color: var(--green, #13875f); }
+.income-category-select-wrap select { padding-left: 42px; }
+.income-category-select-icon {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 13px;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.income-category-select-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .inventory-form-field textarea {
   min-height: 84px;
   padding: 10px 12px;
@@ -3096,6 +3140,29 @@ h1 em {
   font-size: 9px;
   font-weight: 400;
 }
+
+.budget-repeat-field { gap: 8px; }
+.budget-repeat-control {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 56px;
+  padding: 9px 12px;
+  border: 1px solid #dfe7e1;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+.inventory-form-field .budget-repeat-control input[type="checkbox"] {
+  flex: none;
+  width: 18px;
+  min-height: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--green, #13875f);
+}
+.budget-repeat-control > span { display: grid; gap: 3px; }
+.budget-repeat-control strong { color: #26362e; font-size: 11px; }
+.budget-repeat-control small { color: #77847b; font-size: 10px; font-weight: 400; }
 
 .inventory-form-field > strong {
   min-height: 42px;
@@ -7274,6 +7341,9 @@ body.theme-dark .inventory-dialog .inventory-dialog-close { color: #b8c4bb; }
 body.theme-dark .inventory-dialog .inventory-dialog-close:hover { color: var(--text); background: #1a1a1a; }
 body.theme-dark .inventory-dialog .inventory-form-field { color: #b4c0b7; }
 body.theme-dark .inventory-dialog .inventory-form-field > span small { color: #8e9b92; }
+body.theme-dark .inventory-dialog .budget-repeat-control { background: #111814; border-color: #33423a; }
+body.theme-dark .inventory-dialog .budget-repeat-control strong { color: var(--text); }
+body.theme-dark .inventory-dialog .budget-repeat-control small { color: #8e9b92; }
 body.theme-dark .inventory-dialog .inventory-form-field input,
 body.theme-dark .inventory-dialog .inventory-form-field select,
 body.theme-dark .inventory-dialog .inventory-form-field textarea {
@@ -9021,6 +9091,40 @@ body.theme-dark { background: var(--bg); }
 .app-shell.theme-dark .inventory-account-amount { color: var(--text); }
 .app-shell.theme-dark .inventory-filter-empty { color: var(--muted); }
 .app-shell.theme-dark .inventory-filter-empty button { color: #a4e8c0; }
+
+/* Keep primary actions and selected controls aligned with the user's chosen accent. */
+.app-shell[data-accent] .inventory-submit:not(.danger),
+.app-shell[data-accent] .inventory-action:not(.secondary),
+.app-shell[data-accent] .inventory-add-small,
+.app-shell[data-accent] .dashboard-next-action > button,
+.app-shell[data-accent] .public-primary,
+.app-shell[data-accent] .primary-button,
+.app-shell[data-accent] .empty-action {
+  border-color: var(--green);
+  background: var(--green);
+}
+.app-shell[data-accent] .inventory-submit:not(.danger):hover,
+.app-shell[data-accent] .inventory-action:not(.secondary):hover,
+.app-shell[data-accent] .inventory-add-small:hover,
+.app-shell[data-accent] .dashboard-next-action > button:hover,
+.app-shell[data-accent] .public-primary:hover,
+.app-shell[data-accent] .primary-button:hover,
+.app-shell[data-accent] .empty-action:hover {
+  border-color: var(--gold-bright);
+  background: var(--gold-bright);
+}
+.app-shell[data-accent] .inventory-filter.active {
+  border-color: color-mix(in srgb, var(--green) 40%, var(--line));
+  background: color-mix(in srgb, var(--green) 12%, var(--panel));
+  color: var(--green);
+}
+.app-shell[data-accent] .inventory-filter.active span,
+.app-shell[data-accent] .inventory-filter-empty button,
+.app-shell[data-accent] .tax-use-income {
+  color: var(--green);
+}
+.app-shell[data-accent] .tax-use-income { border-color: color-mix(in srgb, var(--green) 35%, var(--line)); }
+.app-shell[data-accent] .tax-use-income:hover { border-color: var(--green); color: var(--gold-bright); }
 @media (max-width: 760px) {
   .app-shell .inventory-account-row { grid-template-columns: 26px minmax(0, 1fr) auto auto 32px; gap: 8px; }
   .app-shell .inventory-kind-pill { grid-column: 2; grid-row: 2; }
@@ -9029,4 +9133,159 @@ body.theme-dark { background: var(--bg); }
   .app-shell .inventory-account-row .inventory-delete { grid-row: 1; }
   .app-shell .inventory-account-row .inventory-row-edit { grid-column: 4; }
   .app-shell .inventory-account-row .inventory-delete { grid-column: 5; }
+}
+
+/* Keep saved inventory rows compact until the user opens an item's details. */
+.app-shell .inventory-account-row,
+.app-shell .inventory-account-row:has(.loan-metrics) {
+  display: block;
+  min-height: 0;
+  padding: 0 4px;
+  border-top: 1px solid var(--line);
+}
+.app-shell .inventory-table-head,
+.app-shell .inventory-row-summary {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.2fr) 78px minmax(130px, 1.2fr) minmax(90px, auto) 72px 32px;
+  align-items: center;
+  gap: 12px;
+}
+.app-shell .inventory-table-head {
+  min-height: 34px;
+  padding: 0 2px;
+  color: var(--muted);
+  font: 600 9px var(--mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.app-shell .inventory-row-summary { min-height: 48px; }
+.app-shell .inventory-summary-item,
+.app-shell .inventory-account-source { min-width: 0; overflow-wrap: anywhere; }
+.app-shell .inventory-summary-item { color: var(--text); font-size: 12px; }
+.app-shell .inventory-account-source { color: var(--muted); font-size: 11px; }
+.app-shell .inventory-status-pill {
+  justify-self: start;
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--green) 11%, var(--panel));
+  color: var(--green);
+  font: 600 9px var(--sans);
+}
+.app-shell .inventory-row-toggle {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  justify-self: end;
+  align-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.app-shell .inventory-row-toggle:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+.app-shell .inventory-row-chevron {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform .16s ease;
+}
+.app-shell .inventory-row-toggle[aria-expanded="true"] .inventory-row-chevron { transform: rotate(180deg); }
+.app-shell .inventory-account-details {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto auto auto;
+  align-items: start;
+  gap: 10px;
+  padding: 5px 4px 13px;
+}
+.app-shell .inventory-account-details[hidden] { display: none; }
+.app-shell .inventory-account-details .inventory-row-icon { grid-column: 1; }
+.app-shell .inventory-account-details .inventory-account-name { grid-column: 2; }
+.app-shell .inventory-detail-type { grid-column: 3; color: var(--muted); font: 10px var(--sans); white-space: nowrap; }
+.app-shell .inventory-account-details .inventory-row-edit { grid-column: 4; }
+.app-shell .inventory-account-details .inventory-delete { grid-column: 5; }
+.app-shell.theme-dark .inventory-row-toggle { color: var(--text); }
+@media (max-width: 760px) {
+  .app-shell .inventory-table-head { display: none; }
+  .app-shell .inventory-row-summary {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px;
+    grid-template-areas: "item item toggle" "account type toggle" "value status toggle";
+    gap: 7px 10px;
+    padding: 10px 2px;
+  }
+  .app-shell .inventory-summary-cell,
+  .app-shell .inventory-kind-pill,
+  .app-shell .inventory-status-pill { display: grid; gap: 3px; }
+  .app-shell .inventory-summary-cell::before,
+  .app-shell .inventory-kind-pill::before,
+  .app-shell .inventory-status-pill::before { content: attr(data-label); color: var(--muted); font: 8px var(--mono); letter-spacing: .035em; text-transform: uppercase; }
+  .app-shell .inventory-summary-item { grid-area: item; }
+  .app-shell .inventory-account-source { grid-area: account; }
+  .app-shell .inventory-account-amount { grid-area: value; }
+  .app-shell .inventory-kind-pill { grid-area: type; justify-self: start; }
+  .app-shell .inventory-status-pill { grid-area: status; justify-self: start; }
+  .app-shell .inventory-row-toggle { grid-area: toggle; align-self: center; }
+  .app-shell .inventory-account-details { grid-template-columns: 26px minmax(0, 1fr) auto auto; gap: 8px; }
+  .app-shell .inventory-detail-type { grid-column: 2; grid-row: 2; }
+  .app-shell .inventory-account-details .inventory-row-edit { grid-column: 3; grid-row: 1; }
+  .app-shell .inventory-account-details .inventory-delete { grid-column: 4; grid-row: 1; }
+}
+
+/* Desktop Power-Up follows the mockup's focused Income / Budget / Calculator flow. */
+.power-desktop-workspace { display: none; }
+.power-mobile-workspace { display: block; }
+@media (min-width: 881px) {
+  .power-desktop-workspace { display: block; }
+  .power-mobile-workspace { display: none; }
+}
+@media (max-width: 880px) {
+  .power-desktop-workspace { display: none; }
+  .power-mobile-workspace { display: block; }
+}
+.power-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+  margin: 2px 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+.power-tabs [role="tab"] {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: 600 12px var(--sans);
+  cursor: pointer;
+}
+.power-tabs [role="tab"]:hover { color: var(--green); }
+.power-tabs [role="tab"][aria-selected="true"] {
+  border-bottom-color: var(--green);
+  color: var(--green);
+}
+.power-tabs [role="tab"]:focus-visible { outline: 2px solid var(--green); outline-offset: -3px; }
+.power-tab-panel[hidden] { display: none !important; }
+.power-desktop-income-layout,
+.power-desktop-budget-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(340px, .95fr);
+  align-items: start;
+  gap: 16px;
+}
+.power-desktop-budget-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.power-desktop-workspace .power-list-panel,
+.power-desktop-workspace .tax-panel { margin: 0; }
+.power-desktop-workspace .tax-panel .tax-body { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.power-desktop-workspace .tax-panel .tax-results { min-width: 0; }
+@media (min-width: 881px) and (max-width: 1080px) {
+  .power-desktop-income-layout,
+  .power-desktop-budget-layout { grid-template-columns: minmax(0, 1fr); }
 }

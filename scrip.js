@@ -43,6 +43,7 @@ const content = document.querySelector("#page-content");
 const crumb = document.querySelector("#crumb-page");
 const publicShell = document.querySelector("#public-shell");
 const appShell = document.querySelector(".app-shell");
+let activePowerTab = "income";
 
 // Shared icons. Inline SVG is centred by the button's own grid, unlike the old text arrows (⌃ ⌄).
 const chevronIcon = '<svg class="chev-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>';
@@ -54,7 +55,7 @@ const phoneQuery = window.matchMedia("(max-width: 760px)");
 const phoneCollapseRules = {
   Dashboard: [],
   Inventory: ["assets", "liabilities", "accounts"],
-  "Power-Up": ["income sources", "monthly budget", "monthly spending"],
+  "Power-Up": [],
   Quests: ["progress & pace", "active quests"],
   Stats: ["income & outflow", "budget vs. actual", "asset mix", "quest progress"],
   Achievements: [],
@@ -110,6 +111,22 @@ function enhanceInformationCards(root = content) {
     root.querySelectorAll(".card-collapse-toggle, .phone-panel-toggle").forEach(toggle => toggle.remove());
     root.querySelectorAll("[data-card-collapsible], .card-is-collapsed, .phone-collapsible").forEach(card => {
       card.classList.remove("card-is-collapsed", "phone-expanded");
+      delete card.dataset.cardCollapsible;
+      delete card.dataset.phoneCollapse;
+      delete card.dataset.collapseInitialized;
+      card.querySelectorAll(":scope > [data-card-collapsible-body]").forEach(body => {
+        body.hidden = false;
+        delete body.dataset.cardCollapsibleBody;
+      });
+      card.querySelectorAll(":scope > [data-card-collapse-heading]").forEach(heading => delete heading.dataset.cardCollapseHeading);
+    });
+    return;
+  }
+  if (crumb?.textContent.trim() === "Power-Up") {
+    root.querySelectorAll(".card-collapse-toggle, .phone-panel-toggle").forEach(toggle => toggle.remove());
+    root.querySelectorAll("[data-card-collapsible], .card-is-collapsed, .phone-expanded, .phone-collapsible").forEach(card => {
+      if (card.matches(".tax-panel")) return;
+      card.classList.remove("card-is-collapsed", "phone-expanded", "phone-collapsible");
       delete card.dataset.cardCollapsible;
       delete card.dataset.phoneCollapse;
       delete card.dataset.collapseInitialized;
@@ -235,7 +252,7 @@ const faqCategories = [
   ]},
   { id: "yield", label: "Assets & Yield", items: [
     { q: "Why should I enter annual return rates (% p.a.) on my asset cards?", a: "A return rate lets each asset card on the Inventory page show its <b>net yield</b> and <b>monthly passive income</b>, so you can see what your money earns and compare it with what your loans cost.", action: { label: "Open Inventory", target: "Inventory" } },
-    { q: "Does NetraOS account for Withholding Tax on investment returns?", a: "Yes. Taxable assets such as money market funds and savings are reduced by the standard 15% withholding tax deducted at source in Kenya, so you see the true net yield. Mark an asset <b>tax-free</b> (for example an infrastructure bond) and no tax is deducted." }
+    { q: "Does NetraOS account for Withholding Tax on investment returns?", a: "Yes. Taxable returns use 15% withholding by default, while SACCO share dividends use 10%. Mark an eligible asset <b>tax-free</b> (for example an infrastructure bond) and no withholding is deducted." }
   ]},
   { id: "data", label: "Backup & Maintenance", items: [
     { q: "How do I transfer my NetraOS data to a new laptop or phone?", a: "Open Settings and choose <b>Download all data (JSON)</b> and save the file. On the new device open NetraOS, go to Settings and use <b>Restore a JSON backup</b> to bring everything back. A CSV export is available too, and a monthly backup reminder can be switched on.", action: { label: "Open Settings", target: "Settings" } },
@@ -420,8 +437,10 @@ const assetCategories = [
   { name: "Mobile money", icon: "◉" },
   { name: "Cash & savings", icon: "◉" },
   { name: "Money market funds", icon: "▥" },
-  { name: "SACCO deposits & shares", icon: "◈" },
-  { name: "Bonds & equities", icon: "▲" },
+  { name: "SACCO deposits", icon: "◈" },
+  { name: "SACCO shares", icon: "◈" },
+  { name: "Bonds", icon: "▤" },
+  { name: "Equities", icon: "▲" },
   { name: "Investments", icon: "▥" },
   { name: "Property & vehicles", icon: "⌂" },
   { name: "Other assets", icon: "◇" }
@@ -468,6 +487,7 @@ function formatLoanTenure(loan) {
 
 // Assets Engine: yield tracking, withholding tax, liquidity tiers and portfolio maths.
 const WITHHOLDING_TAX = 0.15;
+const SACCO_SHARE_WITHHOLDING_TAX = 0.10;
 const compoundingFrequencies = ["Daily", "Monthly", "Quarterly", "Semi-annual", "Annually", "None (simple / dividend)"];
 const liquidityTiers = ["Immediate (T+0)", "High (T+1)", "Medium (coupon / T+3 to T+7)", "Locked (90+ days / collateral)"];
 const assetCategoryDefaults = {
@@ -475,33 +495,67 @@ const assetCategoryDefaults = {
   "Mobile money": { compounding: "None (simple / dividend)", liquidity: liquidityTiers[0] },
   "Cash & savings": { compounding: "Monthly", liquidity: liquidityTiers[1] },
   "Money market funds": { compounding: "Daily", liquidity: liquidityTiers[1] },
+  "SACCO deposits": { compounding: "Annually", liquidity: liquidityTiers[3] },
+  "SACCO shares": { compounding: "Annually", liquidity: liquidityTiers[3] },
   "SACCO deposits & shares": { compounding: "Annually", liquidity: liquidityTiers[3] },
+  "Bonds": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
+  "Equities": { compounding: "Annually", liquidity: liquidityTiers[2] },
   "Bonds & equities": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
   "Investments": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
   "Property & vehicles": { compounding: "None (simple / dividend)", liquidity: liquidityTiers[3] },
   "Other assets": { compounding: "None (simple / dividend)", liquidity: liquidityTiers[2] }
 };
 
-// Per-asset yield: gross rate, net of 15% withholding tax unless tax-free, and monthly income.
+// Per-asset yield: apply the asset's withholding rate and calculate monthly income.
 function getAssetYield(entry) {
   const returns = entry && entry.returns;
   if (!returns || returns.grossRate === null || returns.grossRate === undefined) return null;
   const gross = Number(returns.grossRate);
   if (!Number.isFinite(gross)) return null;
-  const net = returns.taxFree ? gross : gross * (1 - WITHHOLDING_TAX);
-  return { gross, net, taxFree: Boolean(returns.taxFree), monthly: Math.round(Number(entry.amount || 0) * net / 100 / 12) };
+  const taxRate = returns.taxFree ? 0
+    : Number.isFinite(Number(returns.withholdingRate)) ? Number(returns.withholdingRate)
+      : entry.category === "SACCO shares" ? SACCO_SHARE_WITHHOLDING_TAX : WITHHOLDING_TAX;
+  const net = gross * (1 - taxRate);
+  return { gross, net, taxRate, taxFree: taxRate === 0, monthly: Math.round(Number(entry.amount || 0) * net / 100 / 12) };
 }
 
 const budgetCategories = [
   "Housing",
+  "School fees",
   "Food & groceries",
   "Transport",
   "Airtime & bundles",
   "Mobile money fees",
   "Utilities",
-  "Savings & investing",
+  "Loans",
+  "Investments",
+  "Savings",
   "Other"
 ];
+const budgetCategoryIcons = {
+  "Housing": '<svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  "School fees": '<svg viewBox="0 0 24 24"><path d="m2 9 10-5 10 5-10 5L2 9Z"/><path d="M6 11v5c3.5 2.7 8.5 2.7 12 0v-5M22 9v6"/></svg>',
+  "Food & groceries": '<svg viewBox="0 0 24 24"><path d="M4 10h16l-1 10H5L4 10ZM3 10l2-6h14l2 6M9 4v6m6-6v6M9 14v3m6-3v3"/></svg>',
+  "Transport": '<svg viewBox="0 0 24 24"><path d="M5 16 4 9l2-4h12l2 4-1 7M5 16h14M7 16v3m10-3v3M4 9h16M7 13h.01M17 13h.01"/></svg>',
+  "Airtime & bundles": '<svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M10 5h4m-3 13h2"/></svg>',
+  "Mobile money fees": '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 8.5c-.7-.6-1.6-.9-2.7-.9-1.4 0-2.4.7-2.4 1.8 0 2.8 5.2 1 5.2 4 0 1.2-1.1 2-2.7 2-1.1 0-2.2-.4-3-1.1M12 6v12"/></svg>',
+  "Utilities": '<svg viewBox="0 0 24 24"><path d="M13 2 5 13h6l-1 9 9-12h-6z"/></svg>',
+  "Loans": '<svg viewBox="0 0 24 24"><path d="M4 7h16v13H4zM7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2M4 12h16"/><circle cx="12" cy="16" r="1"/></svg>',
+  "Investments": '<svg viewBox="0 0 24 24"><path d="M3 18 9 12l4 3 8-9M15 6h6v6"/><path d="M4 21h16"/></svg>',
+  "Savings": '<svg viewBox="0 0 24 24"><path d="M4 8h15a2 2 0 0 1 2 2v9H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h13M3 8v9a2 2 0 0 0 2 2"/><path d="M16 13h5"/><circle cx="16" cy="13" r=".5"/></svg>',
+  "Other": '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>'
+};
+const incomeCategories = [
+  { label: "Salary", icon: '<svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M9 8V5h6v3M4 12h16M10 12v2h4v-2"/></svg>' },
+  { label: "Freelance", icon: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="12" rx="1.5"/><path d="M2 20h20l-2-4H4l-2 4ZM9 20l1-2h4l1 2"/></svg>' },
+  { label: "Rental property", icon: '<svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>' },
+  { label: "Digital content", icon: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg>' },
+  { label: "Business", icon: '<svg viewBox="0 0 24 24"><path d="M3 10h18l-2-6H5zM5 10v10h14V10M9 20v-6h6v6M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></svg>' },
+  { label: "Investments", icon: '<svg viewBox="0 0 24 24"><path d="M3 18 9 12l4 3 8-9M15 6h6v6"/></svg>' },
+  { label: "Interest", icon: '<svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/><path d="m5 19 14-14"/></svg>' },
+  { label: "Digital products", icon: '<svg viewBox="0 0 24 24"><path d="M5 3h14v18H5zM9 12l3 3 3-3M12 8v7"/></svg>' }
+];
+const incomeCategoryByLabel = Object.fromEntries(incomeCategories.map(category => [category.label, category]));
 const inventoryStorageKey = "netraos-inventory-v1";
 const powerUpStorageKey = "netraos-powerup-v1";
 const questStorageKey = "netraos-quests-v1";
@@ -571,24 +625,51 @@ function getReportMonth() {
 }
 
 function spendingForReport(entries) {
-  const currentMonth = getReportMonth();
   const period = getReportPeriod();
   const cycle = getReportCycleBounds(period);
-  return entries.filter(item => {
+  const currentDate = localDateValue();
+  const settings = getStoredSettings();
+  const today = new Date();
+  let fiscalYear = today.getFullYear();
+  if (today.getMonth() + 1 < settings.financialYearStartMonth) fiscalYear -= 1;
+  const fiscalStart = `${fiscalYear}-${String(settings.financialYearStartMonth).padStart(2, "0")}`;
+  const periodStartMonth = period === "Year to date" ? fiscalStart : monthKey(new Date(`${cycle.start}T12:00:00`));
+  const inReport = item => {
     const date = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : "";
-    const month = date ? date.slice(0, 7) : /^\d{4}-\d{2}$/.test(item.month || "") ? item.month : currentMonth;
+    const month = date ? date.slice(0, 7) : /^\d{4}-\d{2}$/.test(item.month || "") ? item.month : getReportMonth();
     if (period === "Year to date") {
-      const settings = getStoredSettings();
-      const currentDate = new Date();
-      let fiscalYear = currentDate.getFullYear();
-      if (currentDate.getMonth() + 1 < settings.financialYearStartMonth) fiscalYear -= 1;
-      const fiscalStart = `${fiscalYear}-${String(settings.financialYearStartMonth).padStart(2, "0")}`;
-      return month >= fiscalStart && month <= monthKey(currentDate) && (!date || date <= localDateValue(currentDate));
+      return month >= periodStartMonth && month <= monthKey() && (!date || date <= currentDate);
     }
     if (date) return date >= cycle.start && date < cycle.end;
     // Preserve older month-only records; new expenses use exact dates above.
     return month === monthKey(new Date(`${cycle.start}T12:00:00`));
-  });
+  };
+  const dateInMonth = (date, month) => {
+    const [year, monthNumber] = month.split("-").map(Number);
+    const day = Number(date.slice(8, 10));
+    const lastDay = new Date(year, monthNumber, 0).getDate();
+    return `${month}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+  };
+  const occurrences = [];
+  for (const item of entries) {
+    if (item.recurring !== true) {
+      if (inReport(item)) occurrences.push(item);
+      continue;
+    }
+    const startDate = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : /^\d{4}-\d{2}$/.test(item.month || "") ? `${item.month}-01` : "";
+    if (!startDate) continue;
+    const startMonth = startDate.slice(0, 7);
+    const lastMonth = period === "Year to date" ? monthKey() : monthKey(new Date(`${cycle.end}T12:00:00`));
+    if (lastMonth < periodStartMonth) continue;
+    const firstMonth = startMonth > periodStartMonth ? startMonth : periodStartMonth;
+    for (let cursor = new Date(`${firstMonth}-01T12:00:00`); monthKey(cursor) <= lastMonth; cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1, 12)) {
+      const occurrenceDate = dateInMonth(startDate, monthKey(cursor));
+      if (occurrenceDate < startDate || (period === "Year to date" && occurrenceDate > currentDate)) continue;
+      const occurrence = { ...item, date: occurrenceDate, month: occurrenceDate.slice(0, 7) };
+      if (inReport(occurrence)) occurrences.push(occurrence);
+    }
+  }
+  return occurrences;
 }
 
 function reportMonthCount() {
@@ -601,14 +682,38 @@ function reportMonthCount() {
   return Math.max(1, monthDifference + 1);
 }
 
+function budgetAppliesInMonth(item, month = getReportMonth()) {
+  const startMonth = /^\d{4}-\d{2}$/.test(item.startMonth || "") ? item.startMonth : month;
+  if (month < startMonth) return false;
+  // Older budget records have no recurrence flag; preserve their existing monthly behavior.
+  return item.recurring !== false || month === startMonth;
+}
+
+function budgetTotalForMonth(entries, month = getReportMonth(), category = null) {
+  return entries.filter(item => budgetAppliesInMonth(item, month) && (!category || item.category === category))
+    .reduce((total, item) => total + Number(item.amount || 0), 0);
+}
+
+function budgetTotalForReport(entries, category = null) {
+  const months = reportMonthCount();
+  const end = getReportMonth();
+  const endDate = new Date(`${end}-01T12:00:00`);
+  let total = 0;
+  for (let offset = months - 1; offset >= 0; offset -= 1) {
+    const date = new Date(endDate.getFullYear(), endDate.getMonth() - offset, 1, 12);
+    total += budgetTotalForMonth(entries, monthKey(date), category);
+  }
+  return total;
+}
+
 function getPowerUpReportTotals() {
   const data = getPowerUpData();
-  const income = data.incomes.reduce((total, item) => total + Number(item.amount || 0), 0);
-  const budget = data.budgets.reduce((total, item) => total + Number(item.amount || 0), 0);
+  const income = budgetTotalForMonth(data.incomes);
+  const budget = budgetTotalForMonth(data.budgets);
   const spending = spendingForReport(data.spending).reduce((total, item) => total + Number(item.amount || 0), 0);
   const reportMonths = reportMonthCount();
-  const reportIncome = income * reportMonths;
-  const reportBudget = budget * reportMonths;
+  const reportIncome = budgetTotalForReport(data.incomes);
+  const reportBudget = budgetTotalForReport(data.budgets);
   return { income, budget, spending, surplus: income - budget, reportMonths, reportIncome, reportBudget, cashAfterSpending: reportIncome - spending, budgetRemaining: reportBudget - spending };
 }
 
@@ -1523,7 +1628,7 @@ function getPowerUpData() {
     const data = JSON.parse(localStorage.getItem(powerUpStorageKey) || "{}");
     return {
       incomes: Array.isArray(data.incomes) ? data.incomes : [],
-      budgets: Array.isArray(data.budgets) ? data.budgets : [],
+      budgets: Array.isArray(data.budgets) ? data.budgets.map(item => item.category === "Savings & investing" ? { ...item, category: "Savings" } : item) : [],
       spending: Array.isArray(data.spending) ? data.spending : []
     };
   } catch {
@@ -2075,12 +2180,22 @@ function renderAccountRows(entries) {
 
   return `
     <div class="inventory-account-rows">
+      <div class="inventory-table-head" aria-hidden="true"><span>Item</span><span>Type</span><span>Account / Source</span><span>Value</span><span>Status</span><span></span></div>
       ${entries.map(entry => `
         <div class="inventory-account-row" data-inventory-type="${entry.type}">
+          <div class="inventory-row-summary">
+            <strong class="inventory-summary-cell inventory-summary-item" data-label="Item">${escapeHTML(entry.name)}</strong>
+            <span class="inventory-kind-pill ${entry.type === "asset" ? "is-asset" : "is-liability"}" data-label="Type">${entry.type === "asset" ? "Asset" : "Liability"}</span>
+            <span class="inventory-summary-cell inventory-account-source" data-label="Account / Source">${escapeHTML(entry.category)}${entry.mobileType ? ` · ${escapeHTML(entry.mobileType)}` : ""}</span>
+            <strong class="inventory-account-amount inventory-summary-cell" data-label="Value">${formatKsh(entry.amount)}</strong>
+            <span class="inventory-status-pill" data-label="Status">Active</span>
+            <button class="inventory-row-toggle" type="button" data-inventory-toggle aria-expanded="false" aria-label="Show details for ${escapeHTML(entry.name)}">
+              <svg class="inventory-row-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m5 6 3 3 3-3"/></svg>
+            </button>
+          </div>
+          <div class="inventory-account-details" data-inventory-details hidden>
           <span class="inventory-row-icon">${entry.type === "asset" ? "◉" : "▤"}</span>
           <span class="inventory-account-name">
-            <strong>${escapeHTML(entry.name)}</strong>
-            <small>${escapeHTML(entry.category)}${entry.mobileType ? ` · ${escapeHTML(entry.mobileType)}` : ""} · ${entry.type === "asset" ? "Asset" : "Liability"}</small>
             ${entry.mobileReference ? `<small class="inventory-account-notes">${escapeHTML(entry.mobileReference)}</small>` : ""}
             ${entry.notes ? `<small class="inventory-account-notes">${escapeHTML(entry.notes)}</small>` : ""}
             ${entry.loan ? `<span class="loan-metrics">
@@ -2098,16 +2213,16 @@ function renderAccountRows(entries) {
               return `<span class="loan-metrics asset-metrics">
                 <span><small>CATEGORY / LOCATION</small><b>${escapeHTML(entry.category)}</b></span>
                 <span><small>OUTSTANDING BALANCE</small><b>${formatKsh(entry.amount)}</b></span>
-                <span><small>EXPECTED RETURN</small><b>${rate(y.gross)} gross · ${rate(y.net)} net${y.taxFree ? " (tax-free)" : ""}</b></span>
+                <span><small>EXPECTED RETURN</small><b>${rate(y.gross)} gross · ${rate(y.net)} net (${y.taxFree ? "tax-free" : `${Math.round(y.taxRate * 100)}% withholding`})</b></span>
                 <span><small>COMPOUNDING / LIQUIDITY</small><b>${escapeHTML(r.compounding || "Not set")} · ${escapeHTML(r.liquidity || "Not set")}</b></span>
                 <span><small>MONTHLY PASSIVE YIELD</small><b>${formatKsh(y.monthly)}/mo</b></span>
               </span>`;
             })()}
           </span>
-          <span class="inventory-kind-pill ${entry.type === "asset" ? "is-asset" : "is-liability"}">${entry.type === "asset" ? "Asset" : "Liability"}</span>
-          <strong class="inventory-account-amount">${formatKsh(entry.amount)}</strong>
+          <span class="inventory-detail-type">${entry.type === "asset" ? "Asset details" : "Liability details"}</span>
           <button class="inventory-row-edit" type="button" data-edit-entry="${escapeHTML(entry.id)}" aria-label="Edit ${escapeHTML(entry.name)}" title="Edit item">Edit</button>
           <button class="inventory-delete" type="button" data-delete-entry="${escapeHTML(entry.id)}" aria-label="Delete ${escapeHTML(entry.name)}" title="Delete item">×</button>
+          </div>
         </div>`).join("")}
     </div>`;
 }
@@ -2258,11 +2373,11 @@ function updateDashboardPowerUpSummary() {
 
 function dashboardCashflowSeries() {
   const data = getPowerUpData();
-  const monthlyIncome = data.incomes.reduce((total, item) => total + Number(item.amount || 0), 0);
   const [year, month] = getReportMonth().split("-").map(Number);
   return Array.from({ length: 6 }, (_, index) => {
     const date = new Date(year, month - 1 - (5 - index), 1, 12);
     const key = monthKey(date);
+    const monthlyIncome = budgetTotalForMonth(data.incomes, key);
     const expenses = data.spending
       .filter(item => {
         const itemDate = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : "";
@@ -2465,13 +2580,41 @@ function openInventoryDialog(action, editId = null) {
     form.elements.liquidity.value = defaults.liquidity;
   }
 
+  function refreshAssetTaxTreatment() {
+    const taxSelect = form.elements.taxTreatment;
+    const taxLabel = taxSelect?.closest("label")?.querySelector("span");
+    if (!taxSelect) return;
+    if (categorySelect.value === "SACCO shares") {
+      taxSelect.innerHTML = '<option value="sacco-shares">SACCO dividends (10% withholding)</option>';
+      taxSelect.value = "sacco-shares";
+      taxSelect.disabled = true;
+      if (taxLabel) taxLabel.textContent = "Tax on SACCO dividends";
+      return;
+    }
+    const wasSaccoShares = taxSelect.value === "sacco-shares";
+    taxSelect.disabled = false;
+    taxSelect.innerHTML = '<option value="taxable">Taxable (15% withholding)</option><option value="exempt">Tax-free (e.g. infrastructure bond)</option>';
+    if (wasSaccoShares || !["taxable", "exempt"].includes(taxSelect.value)) taxSelect.value = "taxable";
+    if (taxLabel) taxLabel.textContent = "Tax treatment";
+  }
+
   function refreshCategories() {
     // The type is a <select> on "Add an account" but a hidden input on
     // "Add asset" / "Add liability", so read it from whichever exists.
     const entryType = fixedType || typeSelect?.value || "asset";
     const categories = entryType === "liability"
       ? liabilityCategories
-      : assetCategories;
+      : [...assetCategories];
+    const legacyAssetCategory = editing?.type === "asset" && ["SACCO deposits & shares", "Bonds & equities"].includes(editing.category)
+      ? editing.category
+      : "";
+    if (legacyAssetCategory && !categories.some(category => category.name === legacyAssetCategory)) {
+      const afterCategory = legacyAssetCategory === "SACCO deposits & shares" ? "SACCO deposits" : "Equities";
+      categories.splice(assetCategories.findIndex(category => category.name === afterCategory) + 1, 0, {
+        name: legacyAssetCategory,
+        icon: legacyAssetCategory === "Bonds & equities" ? "▲" : "◈"
+      });
+    }
     categorySelect.innerHTML = categories
       .map(category => `<option value="${category.name}">${category.name}</option>`)
       .join("");
@@ -2479,6 +2622,7 @@ function openInventoryDialog(action, editId = null) {
     const isLiability = entryType === "liability";
     dialog.querySelector(".liability-fields").hidden = !isLiability;
     dialog.querySelector(".asset-fields").hidden = isLiability;
+    if (!isLiability) refreshAssetTaxTreatment();
     applyAssetDefaults();
     dialog.querySelector("#inventory-amount-label").textContent = isLiability ? "Current outstanding principal (KSh)" : "Current balance (KSh)";
     dialog.querySelector("h2").textContent = editing ? "Edit " + (isLiability ? "liability" : "asset") : isLiability ? "Add a liability" : "Add an inventory item";
@@ -2490,6 +2634,7 @@ function openInventoryDialog(action, editId = null) {
     refreshCategories();
     form.elements.name.value = editing.name || "";
     form.elements.category.value = editing.category || "";
+    refreshAssetTaxTreatment();
     form.elements.amount.value = editing.amount ?? "";
     form.elements.mobileType.value = editing.mobileType || "Mobile wallet";
     form.elements.mobileReference.value = editing.mobileReference || "";
@@ -2504,7 +2649,7 @@ function openInventoryDialog(action, editId = null) {
     }
     if (editing.returns) {
       form.elements.grossRate.value = editing.returns.grossRate ?? "";
-      form.elements.taxTreatment.value = editing.returns.taxFree ? "exempt" : "taxable";
+      if (editing.category !== "SACCO shares") form.elements.taxTreatment.value = editing.returns.taxFree ? "exempt" : "taxable";
       form.elements.compounding.value = editing.returns.compounding || compoundingFrequencies[0];
       form.elements.liquidity.value = editing.returns.liquidity || liquidityTiers[0];
     }
@@ -2513,6 +2658,7 @@ function openInventoryDialog(action, editId = null) {
   categorySelect.addEventListener("change", () => {
     dialog.querySelector(".mobile-money-fields").hidden = categorySelect.value !== "Mobile money";
     applyAssetDefaults();
+    refreshAssetTaxTreatment();
   });
   dialog.querySelector(".inventory-dialog-close").addEventListener("click", () => dialog.close());
   dialog.querySelector(".inventory-cancel").addEventListener("click", () => dialog.close());
@@ -2566,9 +2712,12 @@ function openInventoryDialog(action, editId = null) {
         return;
       }
       if (grossRate !== null) {
+        const saccoShares = String(formData.get("category")) === "SACCO shares";
+        const taxFree = !saccoShares && formData.get("taxTreatment") === "exempt";
         returns = {
           grossRate,
-          taxFree: formData.get("taxTreatment") === "exempt",
+          taxFree,
+          withholdingRate: saccoShares ? SACCO_SHARE_WITHHOLDING_TAX : taxFree ? 0 : WITHHOLDING_TAX,
           compounding: String(formData.get("compounding") || compoundingFrequencies[0]),
           liquidity: String(formData.get("liquidity") || liquidityTiers[0])
         };
@@ -2632,18 +2781,32 @@ function openPowerUpDialog(kind, editId = null) {
           <span>${isIncome ? "Source name" : isSpending ? "Expense name" : "Budget name"}</span>
           <input name="name" type="text" maxlength="60" placeholder="${isIncome ? "e.g. Salary" : isSpending ? "e.g. Groceries" : "e.g. Rent"}" required>
         </label>
-        ${isIncome ? "" : `<label class="inventory-form-field">
+        ${isIncome ? `<label class="inventory-form-field">
+          <span>Income category</span>
+          <span class="income-category-select-wrap"><span class="income-category-select-icon" aria-hidden="true">${incomeCategories[0].icon}</span><select name="category" required>${incomeCategories.map(category => `<option value="${category.label}">${category.label}</option>`).join("")}</select></span>
+        </label>` : isSpending ? `<label class="inventory-form-field">
           <span>Category</span>
-          <select name="category" required>${budgetCategories.map(category => `<option value="${category}">${category}</option>`).join("")}</select>
+          <span class="income-category-select-wrap budget-category-select-wrap"><span class="income-category-select-icon budget-category-select-icon" aria-hidden="true">${budgetCategoryIcons[budgetCategories[0]]}</span><select name="category" required>${budgetCategories.map(category => `<option value="${category}">${category}</option>`).join("")}</select></span>
+        </label>` : `<label class="inventory-form-field">
+          <span>Category</span>
+          <span class="income-category-select-wrap budget-category-select-wrap"><span class="income-category-select-icon budget-category-select-icon" aria-hidden="true">${budgetCategoryIcons[budgetCategories[0]]}</span><select name="category" required>${budgetCategories.map(category => `<option value="${category}">${category}</option>`).join("")}</select></span>
         </label>`}
         ${isSpending ? `<label class="inventory-form-field">
           <span>Expense date</span>
           <input name="date" type="date" value="${getDefaultSpendingDate()}" required>
+        </label>
+        <label class="inventory-form-field budget-repeat-field">
+          <span>Repeat this expense</span>
+          <span class="budget-repeat-control"><input name="recurring" type="checkbox"><span><strong>Repeat monthly</strong><small>Include this expense in each following month.</small></span></span>
         </label>` : ""}
         <label class="inventory-form-field">
-          <span>${isSpending ? "Amount (KSh)" : "Monthly amount (KSh)"}</span>
+          <span data-income-amount-label>${isIncome ? "Amount per month (KSh)" : "Amount (KSh)"}</span>
           <input name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" required>
         </label>
+        ${!isSpending ? `<label class="inventory-form-field budget-repeat-field">
+          <span>Repeat this ${isIncome ? "income" : "budget"}</span>
+          <span class="budget-repeat-control"><input name="recurring" type="checkbox" checked><span><strong>Repeat monthly</strong><small>${isIncome ? "Include this income in future months automatically." : "Keep this budget in future months automatically."}</small></span></span>
+        </label>` : ""}
         <label class="inventory-form-field">
           <span>Notes <small>Optional</small></span>
           <textarea name="notes" rows="3" maxlength="500" placeholder="Add a note"></textarea>
@@ -2657,12 +2820,41 @@ function openPowerUpDialog(kind, editId = null) {
 
   document.body.append(dialog);
   const form = dialog.querySelector(".inventory-form");
+  const incomeCategorySelect = isIncome ? form.querySelector('select[name="category"]') : null;
+  const budgetCategorySelect = !isIncome ? form.querySelector('select[name="category"]') : null;
+  const incomeRecurrenceToggle = isIncome ? form.querySelector('input[name="recurring"]') : null;
+  const syncIncomeCategoryIcon = () => {
+    const icon = incomeCategoryByLabel[incomeCategorySelect?.value] || incomeCategories[0];
+    const preview = form.querySelector(".income-category-select-icon");
+    if (preview) preview.innerHTML = icon.icon;
+  };
   if (editing) {
     form.elements.name.value = editing.name || "";
-    if (form.elements.category) form.elements.category.value = editing.category || budgetCategories[0];
+    if (form.elements.category) form.elements.category.value = editing.category || (isIncome ? incomeCategories[0].label : budgetCategories[0]);
     if (form.elements.date) form.elements.date.value = editing.date || (editing.month ? `${editing.month}-01` : getDefaultSpendingDate());
     form.elements.amount.value = editing.amount ?? "";
     form.elements.notes.value = editing.notes || "";
+    if (form.elements.recurring) form.elements.recurring.checked = isSpending ? editing.recurring === true : editing.recurring !== false;
+  }
+  const syncIncomeAmountLabel = () => {
+    const label = form.querySelector("[data-income-amount-label]");
+    if (label && isIncome) label.textContent = incomeRecurrenceToggle.checked ? "Amount per month (KSh)" : "One-time amount (KSh)";
+  };
+  if (incomeRecurrenceToggle) {
+    syncIncomeAmountLabel();
+    incomeRecurrenceToggle.addEventListener("change", syncIncomeAmountLabel);
+  }
+  if (incomeCategorySelect) {
+    syncIncomeCategoryIcon();
+    incomeCategorySelect.addEventListener("change", syncIncomeCategoryIcon);
+  }
+  if (budgetCategorySelect) {
+    const syncBudgetCategoryIcon = () => {
+      const preview = form.querySelector(".budget-category-select-icon");
+      if (preview) preview.innerHTML = budgetCategoryIcons[budgetCategorySelect.value] || budgetCategoryIcons.Other;
+    };
+    syncBudgetCategoryIcon();
+    budgetCategorySelect.addEventListener("change", syncBudgetCategoryIcon);
   }
   dialog.querySelector(".inventory-dialog-close").addEventListener("click", () => dialog.close());
   dialog.querySelector(".inventory-cancel").addEventListener("click", () => dialog.close());
@@ -2688,7 +2880,7 @@ function openPowerUpDialog(kind, editId = null) {
       amount,
       notes: String(formData.get("notes") || "").trim()
     };
-    const savedEntry = isIncome ? entry : isSpending ? { ...entry, date: expenseDate, month: expenseDate.slice(0, 7), category: String(formData.get("category")) } : { ...entry, category: String(formData.get("category")) };
+    const savedEntry = isIncome ? { ...entry, category: String(formData.get("category")), recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() } : isSpending ? { ...entry, date: expenseDate, month: expenseDate.slice(0, 7), category: String(formData.get("category")), recurring: formData.has("recurring") } : { ...entry, category: String(formData.get("category")), recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() };
     const entryIndex = data[targetList].findIndex(item => item.id === savedEntry.id);
     if (entryIndex >= 0) data[targetList][entryIndex] = savedEntry;
     else data[targetList].push(savedEntry);
@@ -2891,8 +3083,7 @@ function renderStatsPage() {
     ? Math.round((totals.cashAfterSpending / totals.reportIncome) * 1000) / 10
     : 0;
   const categories = budgetCategories.map(category => {
-    const planned = power.budgets.filter(item => item.category === category)
-      .reduce((sum, item) => sum + Number(item.amount || 0), 0) * totals.reportMonths;
+    const planned = budgetTotalForReport(power.budgets, category);
     const spent = reportSpending.filter(item => item.category === category)
       .reduce((sum, item) => sum + Number(item.amount || 0), 0);
     return { category, planned, spent };
@@ -3103,27 +3294,46 @@ function showPage(page) {
   `;
 }
 
+function renderPowerListPanel(key, heading, kicker, rows, totalLabel, total, phone = false) {
+  return `
+    <article class="panel power-list-panel">
+      <div class="panel-heading">
+        <div><div class="section-kicker">${kicker}</div><h2>${heading}</h2></div>
+        ${phone
+          ? `<button class="inventory-add-small" type="button" data-power-action="${key}" aria-label="Add ${heading.toLowerCase()}">${plusIcon}<span class="add-label">Add ${key}</span></button>`
+          : `<button class="inventory-action" type="button" data-power-action="${key}">${plusIcon} Add ${key}</button>`}
+      </div>
+      <div class="power-list-body">
+        <div class="power-rows">${rows}</div>
+        <div class="inventory-panel-total"><span>${totalLabel}</span><strong>${formatKsh(total)}</strong></div>
+      </div>
+    </article>`;
+}
+
 function renderPowerUpPage() {
   const data = getPowerUpData();
   const reportSpending = spendingForReport(data.spending);
   const totals = getPowerUpReportTotals();
   const incomeRows = data.incomes.length
-    ? data.incomes.map(item => `
+    ? data.incomes.map(item => {
+      const category = incomeCategoryByLabel[item.category];
+      return `
         <div class="power-row">
-          <span class="power-row-icon income-icon">↙</span>
+          <span class="power-row-icon income-icon" aria-hidden="true">${category?.icon || '<svg viewBox="0 0 24 24"><path d="M4 18h16M6 15l4-4 3 3 5-6M15 8h3v3"/></svg>'}</span>
           <span class="power-row-name">
             <strong>${escapeHTML(item.name)}</strong>
-            ${item.notes ? `<small>${escapeHTML(item.notes)}</small>` : ""}
+            <small>${escapeHTML(category?.label || "Income")}${item.notes ? ` · ${escapeHTML(item.notes)}` : ""}</small>
           </span>
-          <strong class="power-row-amount">${formatKsh(item.amount)}<small>/ month</small></strong>
+          <strong class="power-row-amount">${formatKsh(item.amount)}<small>${item.recurring === false ? "one-time" : "/ month"}</small></strong>
           <button class="inventory-row-edit" type="button" data-edit-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit income">Edit</button>
           <button class="inventory-delete" type="button" data-delete-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete income">×</button>
-        </div>`).join("")
+        </div>`;
+    }).join("")
     : `<div class="power-empty">No income sources yet. Add your monthly income to get started.</div>`;
   const budgetRows = data.budgets.length
     ? data.budgets.map(item => `
         <div class="power-row">
-          <span class="power-row-icon budget-icon">▤</span>
+          <span class="power-row-icon budget-icon" aria-hidden="true">${budgetCategoryIcons[item.category] || budgetCategoryIcons.Other}</span>
           <span class="power-row-name">
             <strong>${escapeHTML(item.name)}</strong>
             <small>${escapeHTML(item.category)}${item.notes ? " · " + escapeHTML(item.notes) : ""}</small>
@@ -3136,10 +3346,10 @@ function renderPowerUpPage() {
   const spendingRows = reportSpending.length
     ? reportSpending.map(item => `
         <div class="power-row">
-          <span class="power-row-icon spending-icon">↗</span>
+          <span class="power-row-icon spending-icon" aria-hidden="true">${budgetCategoryIcons[item.category] || budgetCategoryIcons.Other}</span>
           <span class="power-row-name">
             <strong>${escapeHTML(item.name)}</strong>
-            <small>${escapeHTML(item.category)} · ${escapeHTML(item.date || item.month || monthKey())}${item.notes ? " · " + escapeHTML(item.notes) : ""}</small>
+            <small>${escapeHTML(item.category)} · ${escapeHTML(item.date || item.month || monthKey())}${item.recurring ? " · Repeats monthly" : ""}${item.notes ? " · " + escapeHTML(item.notes) : ""}</small>
           </span>
           <strong class="power-row-amount">${formatKsh(item.amount)}</strong>
           <button class="inventory-row-edit" type="button" data-edit-power-item="spending" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit spending item">Edit</button>
@@ -3186,38 +3396,36 @@ function renderPowerUpPage() {
         </article>
       </section>
 
-      ${renderTaxWidget()}
-
-      <section class="inventory-columns power-columns" aria-label="Income and monthly budget">
-        <article class="panel power-list-panel phone-collapsible">
-          <div class="panel-heading">
-            <div><div class="section-kicker">MONEY COMING IN</div><h2>Income sources</h2></div>
-            <button class="phone-panel-toggle" type="button" aria-expanded="false" aria-label="Expand section details"><span class="toggle-text">Show</span>${chevronIcon}</button>
-            <button class="inventory-add-small" type="button" data-power-action="income" aria-label="Add income">${plusIcon}<span class="add-label">Add income</span></button>
+      <section class="power-desktop-workspace" aria-label="Power-Up sections">
+        <div class="power-tabs" role="tablist" aria-label="Power-Up sections" data-power-tablist>
+          <button id="power-tab-income" type="button" role="tab" aria-selected="${activePowerTab === "income"}" aria-controls="power-panel-income" tabindex="${activePowerTab === "income" ? 0 : -1}" data-power-tab="income">Income Streams</button>
+          <button id="power-tab-budget" type="button" role="tab" aria-selected="${activePowerTab === "budget"}" aria-controls="power-panel-budget" tabindex="${activePowerTab === "budget" ? 0 : -1}" data-power-tab="budget">Budget Categories</button>
+          <button id="power-tab-calculator" type="button" role="tab" aria-selected="${activePowerTab === "calculator"}" aria-controls="power-panel-calculator" tabindex="${activePowerTab === "calculator" ? 0 : -1}" data-power-tab="calculator">Take-Home Pay Calculator</button>
+        </div>
+        <section class="power-tab-panel" id="power-panel-income" role="tabpanel" aria-labelledby="power-tab-income" data-power-panel="income" ${activePowerTab !== "income" ? "hidden" : ""}>
+          <div class="power-desktop-income-layout">
+            ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Total monthly income", totals.income)}
+            ${renderTaxWidget(true, "-desktop-income", true)}
           </div>
-          <div class="phone-collapsible-content"><div class="power-rows">${incomeRows}</div>
-          <div class="inventory-panel-total"><span>Total monthly income</span><strong>${formatKsh(totals.income)}</strong></div></div>
-        </article>
-
-        <article class="panel power-list-panel phone-collapsible">
-          <div class="panel-heading">
-            <div><div class="section-kicker">MONEY WITH A JOB</div><h2>Monthly budget</h2></div>
-            <button class="phone-panel-toggle" type="button" aria-expanded="false" aria-label="Expand section details"><span class="toggle-text">Show</span>${chevronIcon}</button>
-            <button class="inventory-add-small" type="button" data-power-action="budget" aria-label="Add budget">${plusIcon}<span class="add-label">Add budget</span></button>
+        </section>
+        <section class="power-tab-panel" id="power-panel-budget" role="tabpanel" aria-labelledby="power-tab-budget" data-power-panel="budget" ${activePowerTab !== "budget" ? "hidden" : ""}>
+          <div class="power-desktop-budget-layout">
+            ${renderPowerListPanel("budget", "Monthly budget", "MONEY WITH A JOB", budgetRows, "Total planned budget", totals.budget)}
+            ${renderPowerListPanel("spending", "Monthly spending", "MONEY SPENT", spendingRows, "Total monthly spending", totals.spending)}
           </div>
-          <div class="phone-collapsible-content"><div class="power-rows">${budgetRows}</div>
-          <div class="inventory-panel-total"><span>Total planned budget</span><strong>${formatKsh(totals.budget)}</strong></div></div>
-        </article>
+        </section>
+        <section class="power-tab-panel" id="power-panel-calculator" role="tabpanel" aria-labelledby="power-tab-calculator" data-power-panel="calculator" ${activePowerTab !== "calculator" ? "hidden" : ""}>
+          ${renderTaxWidget(false, "-desktop-calculator", true)}
+        </section>
+      </section>
 
-        <article class="panel power-list-panel phone-collapsible">
-          <div class="panel-heading">
-            <div><div class="section-kicker">MONEY SPENT</div><h2>Monthly spending</h2></div>
-            <button class="phone-panel-toggle" type="button" aria-expanded="false" aria-label="Expand section details"><span class="toggle-text">Show</span>${chevronIcon}</button>
-            <button class="inventory-add-small" type="button" data-power-action="spending" aria-label="Add spending">${plusIcon}<span class="add-label">Add spending</span></button>
-          </div>
-          <div class="phone-collapsible-content"><div class="power-rows">${spendingRows}</div>
-          <div class="inventory-panel-total"><span>Total monthly spending</span><strong>${formatKsh(totals.spending)}</strong></div></div>
-        </article>
+      <section class="power-mobile-workspace" aria-label="Income and monthly budget">
+        ${renderTaxWidget()}
+        <section class="inventory-columns power-columns" aria-label="Income and monthly budget">
+          ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Total monthly income", totals.income, true)}
+          ${renderPowerListPanel("budget", "Monthly budget", "MONEY WITH A JOB", budgetRows, "Total planned budget", totals.budget, true)}
+          ${renderPowerListPanel("spending", "Monthly spending", "MONEY SPENT", spendingRows, "Total monthly spending", totals.spending, true)}
+        </section>
       </section>
     </section>
     ${renderAppFooter()}`;
@@ -3379,21 +3587,22 @@ function taxFieldLabel(mode) {
   return mode === "net" ? "Monthly take-home (net) pay" : "Monthly gross salary";
 }
 
-function renderTaxWidget(compact = false) {
+function renderTaxWidget(compact = false, idSuffix = "", expandedByDefault = false) {
   const state = getTaxState();
   const p = taxScenario(state);
   const sliderValue = Math.min(state.value, KE_TAX.sliderMax);
-  const inputId = compact ? "tax-amount-compact" : "tax-amount";
+  const inputId = `${compact ? "tax-amount-compact" : "tax-amount"}${idSuffix}`;
+  const bodyId = `${compact ? "tax-body-compact" : "tax-body-full"}${idSuffix}`;
   return `
-    <article class="panel tax-panel tax-collapsed${compact ? " tax-compact" : ""}" data-tax-mode="${state.mode}" aria-label="Gross to net calculator">
+    <article class="panel tax-panel${expandedByDefault ? "" : " tax-collapsed"}${compact ? " tax-compact" : ""}" data-tax-mode="${state.mode}" aria-label="Gross to net calculator">
       <div class="panel-heading">
         <div>
           <div class="section-kicker">${compact ? "KENYA · TAKE-HOME PAY" : "KENYA · PAYE, NSSF, SHIF &amp; HOUSING LEVY"}</div>
           <h2>${compact ? "Take-home calculator" : "Gross-to-net take-home"}</h2>
         </div>
-        <button type="button" class="tax-expand" data-tax-toggle aria-expanded="false" aria-controls="${compact ? "tax-body-compact" : "tax-body-full"}"><span>Show calculator</span><span class="tax-expand-icon" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><path d="m2.5 4.5 3.5 3.5 3.5-3.5" /></svg></span></button>
+        <button type="button" class="tax-expand" data-tax-toggle aria-expanded="${expandedByDefault}" aria-controls="${bodyId}"><span>${expandedByDefault ? "Hide calculator" : "Show calculator"}</span><span class="tax-expand-icon" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><path d="m2.5 4.5 3.5 3.5 3.5-3.5" /></svg></span></button>
       </div>
-      <div class="tax-body" id="${compact ? "tax-body-compact" : "tax-body-full"}">
+      <div class="tax-body" id="${bodyId}">
         <div class="tax-toggle" role="group" aria-label="Calculate from">
           <button type="button" class="${state.mode === "gross" ? "active" : ""}" data-tax-mode-btn="gross" aria-pressed="${state.mode === "gross"}">Gross → Net</button>
           <button type="button" class="${state.mode === "net" ? "active" : ""}" data-tax-mode-btn="net" aria-pressed="${state.mode === "net"}">Net → Gross</button>
@@ -3444,6 +3653,46 @@ function syncTaxPanel(panel, state, source) {
   panel.querySelector(".tax-results").innerHTML = panel.classList.contains("tax-compact") ? renderTaxCompactResults(p) : renderTaxResults(p);
 }
 
+function syncAllTaxPanels(state, sourcePanel = null, sourceElement = null) {
+  document.querySelectorAll(".tax-panel").forEach(panel => {
+    panel.dataset.taxMode = state.mode;
+    panel.querySelectorAll("[data-tax-mode-btn]").forEach(button => {
+      const active = button.dataset.taxModeBtn === state.mode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    syncTaxPanel(panel, state, panel === sourcePanel ? sourceElement : null);
+  });
+}
+
+document.addEventListener("click", event => {
+  const tab = event.target.closest("[data-power-tab]");
+  if (!tab) return;
+  const workspace = tab.closest(".power-desktop-workspace");
+  if (!workspace) return;
+  const selected = tab.dataset.powerTab;
+  activePowerTab = selected;
+  workspace.querySelectorAll("[data-power-tab]").forEach(button => {
+    const active = button === tab;
+    button.setAttribute("aria-selected", String(active));
+    button.tabIndex = active ? 0 : -1;
+  });
+  workspace.querySelectorAll("[data-power-panel]").forEach(panel => {
+    panel.hidden = panel.dataset.powerPanel !== selected;
+  });
+});
+
+document.addEventListener("keydown", event => {
+  const tab = event.target.closest("[data-power-tab]");
+  if (!tab || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  const tabs = [...tab.closest("[data-power-tablist]").querySelectorAll("[data-power-tab]")];
+  const index = tabs.indexOf(tab);
+  const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+  event.preventDefault();
+  tabs[next].focus();
+  tabs[next].click();
+});
+
 // Keep the expanded and compact tax widgets synced while a user edits an input.
 document.addEventListener("input", event => {
   const el = event.target;
@@ -3453,7 +3702,7 @@ document.addEventListener("input", event => {
   const digits = el.classList.contains("tax-slider") ? el.value : el.value.replace(/\D/g, "");
   const state = { mode: panel.dataset.taxMode === "net" ? "net" : "gross", value: Math.min(Number(digits) || 0, 99999999) };
   saveTaxState(state);
-  syncTaxPanel(panel, state, el);
+  syncAllTaxPanels(state, panel, el);
 });
 
 // Handle tax-widget collapse, gross/net mode changes, and income shortcuts.
@@ -3477,14 +3726,8 @@ document.addEventListener("click", event => {
     if (mode === current.mode) return;
     const p = taxScenario(current);
     const state = { mode, value: mode === "net" ? p.net : p.gross };
-    panel.dataset.taxMode = mode;
-    panel.querySelectorAll("[data-tax-mode-btn]").forEach(button => {
-      const active = button === modeButton;
-      button.classList.toggle("active", active);
-      button.setAttribute("aria-pressed", String(active));
-    });
     saveTaxState(state);
-    syncTaxPanel(panel, state, null);
+    syncAllTaxPanels(state, panel, null);
     return;
   }
 
@@ -3495,7 +3738,7 @@ document.addEventListener("click", event => {
   }
   const state = { mode: current.mode, value: logged };
   saveTaxState(state);
-  syncTaxPanel(panel, state, null);
+  syncAllTaxPanels(state, panel, null);
 });
 
 function renderTaxCompactResults(p) {
@@ -4452,7 +4695,7 @@ function downloadPDF() {
   const power = getPowerUpData();
   const reportSpending = spendingForReport(power.spending);
   const sum = list => list.reduce((total, item) => total + Number(item.amount || 0), 0);
-  const plan = { income: sum(power.incomes), budget: sum(power.budgets), spending: sum(reportSpending) };
+  const plan = { income: budgetTotalForMonth(power.incomes), budget: budgetTotalForMonth(power.budgets), spending: sum(reportSpending) };
   const quests = getQuests();
   const assets = entries.filter(item => item.type === "asset");
   const liabilities = entries.filter(item => item.type === "liability");
@@ -4782,7 +5025,7 @@ function downloadPDF() {
 
   section("INCOME & BUDGET", "Monthly plan lines");
   const planRows = [
-    ...power.incomes.map(item => [item.name, { text: "INCOME", color: C.green, bold: true }, "Monthly source", money(item.amount)]),
+    ...power.incomes.map(item => [item.name, { text: "INCOME", color: C.green, bold: true }, item.recurring === false ? "One-time source" : "Monthly source", money(item.amount)]),
     ...power.budgets.map(item => [item.name, { text: "BUDGET", color: C.blue, bold: true }, item.category, money(item.amount)])
   ];
   if (planRows.length) table([{ label: "ITEM", w: 0.36, bold: true }, { label: "TYPE", w: 0.16 }, { label: "CATEGORY", w: 0.3 }, { label: "MONTHLY AMOUNT", w: 0.18, align: "r", bold: true }], planRows);
@@ -4899,9 +5142,9 @@ function downloadPDF() {
     else tips.push({ p: "GOOD", title: "Keep your savings habit going", detail: `A ${pct(liveSavingsRate)} savings rate is healthy. Consider placing the surplus in an interest-earning account so it works for you.` });
   }
   if (monthlyView) {
-    const over = budgetCategories.map(cat => ({ cat, planned: sum(power.budgets.filter(b => b.category === cat)), spent: sum(reportSpending.filter(e => e.category === cat)) })).filter(r => r.planned > 0 && r.spent > r.planned).sort((a, b) => (b.spent - b.planned) - (a.spent - a.planned));
+    const over = budgetCategories.map(cat => ({ cat, planned: budgetTotalForMonth(power.budgets, getReportMonth(), cat), spent: sum(reportSpending.filter(e => e.category === cat)) })).filter(r => r.planned > 0 && r.spent > r.planned).sort((a, b) => (b.spent - b.planned) - (a.spent - a.planned));
     if (over.length) tips.push({ p: over[0].spent - over[0].planned > plan.income * 0.05 ? "HIGH" : "MEDIUM", title: `Rein in ${over[0].cat}`, detail: `${over[0].cat} ran ${money(over[0].spent - over[0].planned)} over its ${money(over[0].planned)} budget. Set a firm cap, or adjust the budget line so it reflects reality.` });
-    const unbudgeted = budgetCategories.map(cat => ({ cat, planned: sum(power.budgets.filter(b => b.category === cat)), spent: sum(reportSpending.filter(e => e.category === cat)) })).filter(r => r.planned === 0 && r.spent > 0).sort((a, b) => b.spent - a.spent);
+    const unbudgeted = budgetCategories.map(cat => ({ cat, planned: budgetTotalForMonth(power.budgets, getReportMonth(), cat), spent: sum(reportSpending.filter(e => e.category === cat)) })).filter(r => r.planned === 0 && r.spent > 0).sort((a, b) => b.spent - a.spent);
     if (unbudgeted.length) tips.push({ p: "LOW", title: `Budget for ${unbudgeted[0].cat}`, detail: `${money(unbudgeted[0].spent)} was spent on ${unbudgeted[0].cat} with no budget line. Add one so it is planned rather than a surprise.` });
     if (!reportSpending.length && plan.budget > 0) tips.push({ p: "LOW", title: "Log your spending", detail: "No expenses are recorded for this period, so budget tracking is flying blind. Record spending as it happens in Power-Up." });
   }
@@ -5661,6 +5904,18 @@ document.addEventListener("click", event => {
   }
   const button = target.closest("button");
   if (!button) return;
+  if (button.matches("[data-inventory-toggle]")) {
+    const row = button.closest(".inventory-account-row");
+    const details = row?.querySelector("[data-inventory-details]");
+    if (row && details) {
+      const expanded = button.getAttribute("aria-expanded") !== "true";
+      button.setAttribute("aria-expanded", String(expanded));
+      button.setAttribute("aria-label", `${expanded ? "Hide" : "Show"} ${row.dataset.inventoryType === "asset" ? "asset" : "liability"} details for ${row.querySelector(".inventory-account-name strong")?.textContent || "item"}`);
+      details.hidden = !expanded;
+      row.classList.toggle("is-expanded", expanded);
+    }
+    return;
+  }
   if (button.matches("[data-security-audit-download]")) {
     const period = button.closest(".settings-audit")?.querySelector("[data-security-audit-period]")?.value;
     downloadSecurityAudit(period);

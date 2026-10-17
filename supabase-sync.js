@@ -37,6 +37,10 @@
   };
   const local = key => { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } };
   const write = (key, value) => localStorage.setItem(key, JSON.stringify(value));
+  const dirtyStorageKey = "netraos-sync-dirty-v1";
+  const readDirtyMarkers = () => {
+    try { return JSON.parse(localStorage.getItem(dirtyStorageKey) || "{}") || {}; } catch { return {}; }
+  };
   const baselineKey = (userId, table) => `netraos-sync-baseline-v1-${userId}-${table}`;
   const readBaseline = (userId, table, column = "id") => {
     try { return new Set(JSON.parse(localStorage.getItem(baselineKey(userId, table)) || "[]").map(String)); } catch { return new Set(); }
@@ -111,6 +115,7 @@
     const user = await currentUser();
     if (wipingCloudData) return false;
     if (!user) return;
+    const dirtyAtStart = readDirtyMarkers();
     syncing = true;
     let finishCycle;
     syncCycle = new Promise(resolve => { finishCycle = resolve; });
@@ -194,6 +199,13 @@
         result = await client.from("consents").upsert({ user_id: user.id, necessary: true, analytics: Boolean(consent.analytics), saved_at: consent.savedAt || null, updated_at: now(), deleted_at: null }, { onConflict: "user_id" });
         if (result.error) throw result.error;
       }
+      const dirtyNow = readDirtyMarkers();
+      for (const [key, marker] of Object.entries(dirtyAtStart)) {
+        if (dirtyNow[key] === marker) delete dirtyNow[key];
+      }
+      localStorage.setItem(dirtyStorageKey, JSON.stringify(dirtyNow));
+      localStorage.removeItem(`netraos-migration-backup-${user.id}`);
+      localStorage.removeItem(`netraos-migration-declined-${user.id}`);
       dirtyLocal = false;
       return true;
     } finally {
@@ -223,6 +235,31 @@
     const data = Object.fromEntries(await Promise.all(tables.map(async table => [table, await readTable(table)])));
     const hasData = data.user_settings.length + data.entries.length + data.incomes.length + data.budget_lines.length + data.spending.length + data.goals.length + data.achievements.length + data.currency_rates.length + data.tax_profile.length > 0;
     const cloudProfile = data.user_profiles[0];
+    const migrationBackup = local(`netraos-migration-backup-${user.id}`);
+    const localPower = migrationBackup?.[keys.power] || local(keys.power) || { incomes: [], budgets: [], spending: [] };
+    const dirtyMarkers = readDirtyMarkers();
+    const localPowerIsDirty = Boolean(dirtyMarkers[keys.power] || migrationBackup?.[keys.power]);
+    const powerTables = [
+      { table: "incomes", field: "incomes" },
+      { table: "budget_lines", field: "budgets" },
+      { table: "spending", field: "spending" }
+    ];
+    let recoveredLocalPower = false;
+    for (const { table, field } of powerTables) {
+      // A cloud account can have other records while its Power-Up tables are still empty.
+      // Keep browser data in that case, unless this table had synced records before and was cleared.
+      const baseline = readBaseline(user.id, table);
+      const localRows = Array.isArray(localPower[field]) ? localPower[field] : [];
+      const remoteIds = new Set(data[table].map(row => String(row.id)));
+      const unsyncedLocalRows = localRows.filter(item => !baseline.has(String(item.id)) && !remoteIds.has(String(item.id)));
+      if ((localPowerIsDirty || (!data[table].length && !baseline.size)) && localRows.length) {
+        data[table] = localRows.map(item => ({ ...item, details: item }));
+        recoveredLocalPower = true;
+      } else if (unsyncedLocalRows.length) {
+        data[table] = [...data[table], ...unsyncedLocalRows.map(item => ({ ...item, details: item }))];
+        recoveredLocalPower = true;
+      }
+    }
     for (const table of ["entries", "incomes", "budget_lines", "spending", "goals", "audit_log"]) saveBaseline(user.id, table, data[table]);
     saveBaseline(user.id, "achievements", data.achievements, "badge_id");
     saveBaseline(user.id, "currency_rates", data.currency_rates, "currency_code");
@@ -249,7 +286,7 @@
       if (data.consents[0]) write(keys.consent, { necessary: data.consents[0].necessary, analytics: data.consents[0].analytics, savedAt: data.consents[0].saved_at });
       else localStorage.removeItem(keys.consent);
     } finally { applyingRemote = false; }
-    return { hasData, hasProfile: Boolean(cloudProfile), profile: cloudProfile ? { name: cloudProfile.name, email: cloudProfile.email, username: cloudProfile.username, sex: cloudProfile.sex || "", dateOfBirth: cloudProfile.date_of_birth || "", image: cloudProfile.avatar_data || "", termsVersion: cloudProfile.terms_version || "", termsAcceptedAt: cloudProfile.terms_accepted_at || "" } : { name: user.user_metadata?.full_name || "", email: user.email || "", username: "", termsVersion: user.user_metadata?.terms_version || "", termsAcceptedAt: user.user_metadata?.terms_accepted_at || "" } };
+    return { hasData, recoveredLocalPower, hasProfile: Boolean(cloudProfile), profile: cloudProfile ? { name: cloudProfile.name, email: cloudProfile.email, username: cloudProfile.username, sex: cloudProfile.sex || "", dateOfBirth: cloudProfile.date_of_birth || "", image: cloudProfile.avatar_data || "", termsVersion: cloudProfile.terms_version || "", termsAcceptedAt: cloudProfile.terms_accepted_at || "" } : { name: user.user_metadata?.full_name || "", email: user.email || "", username: "", termsVersion: user.user_metadata?.terms_version || "", termsAcceptedAt: user.user_metadata?.terms_accepted_at || "" } };
   }
 
   function schedulePush() {
@@ -278,6 +315,8 @@
       const localProfile = localCandidate?.email?.toLowerCase() === (user.email || "").toLowerCase() ? localCandidate : null;
       const localHasData = hasLocalRecords();
       const backupKey = `netraos-migration-backup-${user.id}`;
+      const declinedKey = `netraos-migration-declined-${user.id}`;
+      let migrationDeclined = localStorage.getItem(declinedKey) === "1";
       const priorBackup = local(backupKey);
       const cachedLocal = Object.fromEntries([keys.inventory, keys.power, keys.quests, keys.achievements, keys.settings, keys.currency, keys.tax, keys.audit, keys.consent].map(key => [key, local(key)]));
       let snapshot;
@@ -289,19 +328,26 @@
         window.dispatchEvent(new CustomEvent("netraos-sync-error"));
         return { ...fallback, id: user.id, email: user.email || fallback.email };
       }
-      const migration = priorBackup || (!snapshot.hasData && localHasData ? cachedLocal : null);
+      const migration = migrationDeclined ? null : priorBackup || (!snapshot.hasData && localHasData ? cachedLocal : null);
       if (migration) {
         write(backupKey, migration);
-        if (window.confirm("Upload the records already saved in this browser to your NetraOS account? A local backup will be kept until the upload succeeds.")) {
+        applyingRemote = true;
+        try {
           Object.entries(migration).forEach(([key, value]) => { if (value !== null) write(key, value); });
+        } finally { applyingRemote = false; }
+        if (window.confirm("Upload the records already saved in this browser to your NetraOS account? A local backup will be kept until the upload succeeds.")) {
           await pushSnapshot(localProfile || { name: user.user_metadata?.full_name || "", email: user.email || "", username: "", termsVersion: user.user_metadata?.terms_version || "", termsAcceptedAt: user.user_metadata?.terms_accepted_at || "" });
           localStorage.removeItem(backupKey);
-        } else if (!snapshot.hasData) {
-          write(keys.inventory, []); write(keys.power, { incomes: [], budgets: [], spending: [] }); write(keys.quests, []); write(keys.achievements, []);
+          localStorage.removeItem(declinedKey);
+        } else {
+          // Declining cloud migration means keep the browser copy; it is not consent to erase it.
+          localStorage.setItem(declinedKey, "1");
+          migrationDeclined = true;
         }
-      } else if (!snapshot.hasData && localProfile) {
+      } else if (!migrationDeclined && !snapshot.hasData && localProfile) {
         await pushSnapshot(localProfile);
       }
+      if (snapshot.recoveredLocalPower && snapshot.hasData && !migrationDeclined) await pushSnapshot(localProfile || undefined);
       if (!window.__netraSyncInterval) {
         window.__netraSyncInterval = window.setInterval(async () => {
           if (!navigator.onLine || syncing) return;
@@ -373,7 +419,12 @@
   const nativeSetItem = Storage.prototype.setItem;
   Storage.prototype.setItem = function (key, value) {
     nativeSetItem.call(this, key, value);
-    if (this === localStorage && !applyingRemote && Object.values(keys).includes(String(key)) && window.NetraSupabase?.enabled) schedulePush();
+    if (this === localStorage && !applyingRemote && Object.values(keys).includes(String(key)) && window.NetraSupabase?.enabled) {
+      const dirty = readDirtyMarkers();
+      dirty[String(key)] = globalThis.crypto?.randomUUID?.() || String(Date.now()) + "-" + Math.random().toString(16).slice(2);
+      try { nativeSetItem.call(localStorage, dirtyStorageKey, JSON.stringify(dirty)); } catch { /* Local data remains saved even if sync metadata cannot be stored. */ }
+      schedulePush();
+    }
   };
   window.addEventListener("online", () => { if (dirtyLocal) schedulePush(); });
   client.auth.onAuthStateChange((event, session) => {
