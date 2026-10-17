@@ -48,6 +48,7 @@ create table if not exists public.entries (
 create table if not exists public.incomes (
   id text not null, user_id uuid not null references auth.users(id) on delete cascade,
   name text not null default '', amount numeric(20,2) not null default 0 check (amount >= 0),
+  category text not null default '', month text not null default '',
   notes text not null default '', details jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(), deleted_at timestamptz,
   primary key (user_id,id)

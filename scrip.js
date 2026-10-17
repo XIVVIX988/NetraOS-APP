@@ -5474,6 +5474,9 @@ function friendlyAuthMessage(error, fallback = "We couldn’t complete that just
   if (/email not confirmed|email.*not.*confirm/.test(message)) {
     return "This email still needs confirmation. The link may be in your inbox or spam folder. An expired link can be requested again after the email limit resets.";
   }
+  if (/pgrst204.*incomes|could not find the '(?:category|month)' column of 'incomes'/.test(message)) {
+    return "Your sign-in succeeded, but the database is missing a column required by NetraOS. Run supabase/migrations/20261016_add_income_category_month.sql in your Supabase project’s SQL Editor, then try again.";
+  }
   if (/pgrst205|42p01|could not find the table|relation .* does not exist|schema cache/.test(message)) {
     return "Your sign-in was accepted, but the NetraOS database tables aren’t available yet. Run supabase/schema.sql in your Supabase project’s SQL Editor, then try again.";
   }
