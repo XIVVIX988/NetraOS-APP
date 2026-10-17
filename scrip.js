@@ -2286,10 +2286,10 @@ function updateDashboardInventorySummary() {
   if (assetTotal) assetTotal.textContent = formatKsh(totals.assets);
 
   const allocations = [
-    { label: "Investments", categories: ["Investments"] },
     { label: "Cash", categories: ["Bank accounts", "Mobile money", "Cash & savings"] },
-    { label: "Retirement", categories: [] },
-    { label: "Other", categories: ["Property & vehicles", "Other assets"] }
+    { label: "Investments", categories: ["Money market funds", "SACCO deposits", "SACCO shares", "SACCO deposits & shares", "Bonds", "Bonds & equities", "Equities", "Investments"] },
+    { label: "Property", categories: ["Property & vehicles"] },
+    { label: "Other", categories: ["Other assets"] }
   ].map(allocation => {
     const value = entries
       .filter(entry => entry.type === "asset" && allocation.categories.includes(entry.category))
@@ -2302,9 +2302,7 @@ function updateDashboardInventorySummary() {
     const allocation = allocations[index];
     if (!allocation) return;
 
-    const value = row.querySelector("strong");
     const share = row.querySelector("small");
-    if (value) value.textContent = formatKsh(allocation.value);
     if (share) {
       const percentage = totals.assets > 0
         ? Math.round((allocation.value / totals.assets) * 100)
@@ -2315,7 +2313,7 @@ function updateDashboardInventorySummary() {
 
   const donut = document.querySelector(".donut");
   if (donut && totals.assets > 0) {
-    const colors = ["oklch(.54 .11 var(--accent-hue))", "oklch(.68 .10 var(--accent-hue))", "oklch(.79 .07 var(--accent-hue))", "oklch(.89 .04 var(--accent-hue))"];
+    const colors = [...document.querySelectorAll(".allocation-legend i")].map(item => getComputedStyle(item).backgroundColor);
     let position = 0;
     const stops = allocations.map((allocation, index) => {
       const start = position;

@@ -804,7 +804,7 @@ h1 em {
 }
 .allocation-legend>div {
   display: grid;
-  grid-template-columns: 9px minmax(67px,1fr) auto 25px;
+  grid-template-columns: 9px minmax(67px,1fr) auto;
   align-items: center;
   gap: 7px;
   font-size: 9px;
@@ -824,18 +824,10 @@ h1 em {
   color: #77786f;
   text-align: right;
 }
-.alloc-invest {
-  background: #d4b14c;
-}
-.alloc-cash {
-  background: #849779;
-}
-.alloc-retire {
-  background: #b6a47a;
-}
-.alloc-other {
-  background: #55574d;
-}
+.alloc-cash { background: #0e9f78; }
+.alloc-invest { background: #5689d6; }
+.alloc-property { background: #eca842; }
+.alloc-other { background: #8b9992; }
 /* Quests and footer */
 .bottom-grid {
   display: grid;
@@ -1263,7 +1255,7 @@ h1 em {
     gap: 10px;
   }
   .allocation-legend>div {
-    grid-template-columns: 8px minmax(56px,1fr) auto 20px;
+    grid-template-columns: 8px minmax(56px,1fr) auto;
     gap: 4px;
     font-size: 8px;
   }
@@ -1804,10 +1796,10 @@ h1 em {
   color: #808a84;
 }
 
-.alloc-invest { background: #11845e; }
-.alloc-cash { background: #55a985; }
-.alloc-retire { background: #95c6aa; }
-.alloc-other { background: #c9e2d3; }
+.alloc-cash { background: #0e9f78; }
+.alloc-invest { background: #5689d6; }
+.alloc-property { background: #eca842; }
+.alloc-other { background: #a9b7b0; }
 
 .count-badge,
 .quest-xp {
