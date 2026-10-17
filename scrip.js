@@ -44,10 +44,14 @@ const crumb = document.querySelector("#crumb-page");
 const publicShell = document.querySelector("#public-shell");
 const appShell = document.querySelector(".app-shell");
 let activePowerTab = "income";
+let activeQuestFilter = "active";
+let activeAchievementFilter = "earned";
+let activeSettingsTab = "profile";
 
 // Shared icons. Inline SVG is centred by the button's own grid, unlike the old text arrows (⌃ ⌄).
 const chevronIcon = '<svg class="chev-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>';
 const plusIcon = '<svg class="plus-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg>';
+const questNavigationIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>';
 const phoneQuery = window.matchMedia("(max-width: 760px)");
 
 // Phone only: which cards on each page may collapse. Anything not listed stays open with no toggle.
@@ -56,7 +60,7 @@ const phoneCollapseRules = {
   Dashboard: [],
   Inventory: ["assets", "liabilities", "accounts"],
   "Power-Up": [],
-  Quests: ["progress & pace", "active quests"],
+  Quests: [],
   Stats: ["income & outflow", "budget vs. actual", "asset mix", "quest progress"],
   Achievements: [],
   Contact: [],
@@ -89,9 +93,45 @@ function setPhoneToggleState(card, expanded) {
   if (text) text.textContent = expanded ? "Hide" : "Show";
 }
 
+function clearInformationCardCollapse(root) {
+  root.querySelectorAll(".card-collapse-toggle, .phone-panel-toggle").forEach(toggle => toggle.remove());
+  root.querySelectorAll("[data-card-collapsible], .card-is-collapsed, .phone-expanded, .phone-collapsible").forEach(card => {
+    card.classList.remove("card-is-collapsed", "phone-expanded", "phone-collapsible");
+    delete card.dataset.cardCollapsible;
+    delete card.dataset.phoneCollapse;
+    delete card.dataset.collapseInitialized;
+    card.querySelectorAll(":scope > [data-card-collapsible-body]").forEach(body => {
+      body.hidden = false;
+      delete body.dataset.cardCollapsibleBody;
+    });
+    card.querySelectorAll(":scope > [data-card-collapse-heading]").forEach(heading => delete heading.dataset.cardCollapseHeading);
+  });
+  root.querySelectorAll(".card-collapse-heading").forEach(heading => heading.replaceWith(...heading.childNodes));
+}
+
 // Give data and explanation cards their own independent expand/collapse control.
 function enhanceInformationCards(root = content) {
   if (!root) return;
+  if (crumb?.textContent.trim() === "Quests") {
+    clearInformationCardCollapse(root);
+    return;
+  }
+  if (crumb?.textContent.trim() === "Stats") {
+    clearInformationCardCollapse(root);
+    return;
+  }
+  if (crumb?.textContent.trim() === "Achievements") {
+    clearInformationCardCollapse(root);
+    return;
+  }
+  if (crumb?.textContent.trim() === "Contact") {
+    clearInformationCardCollapse(root);
+    return;
+  }
+  if (crumb?.textContent.trim() === "Settings") {
+    clearInformationCardCollapse(root);
+    return;
+  }
   if (crumb?.textContent.trim() === "Inventory") {
     root.querySelectorAll(".card-collapse-toggle, .phone-panel-toggle").forEach(toggle => toggle.remove());
     root.querySelectorAll("[data-card-collapsible], .card-is-collapsed, .phone-expanded, .phone-collapsible").forEach(card => {
@@ -212,6 +252,7 @@ const sessionStorageKey = "netraos-local-session-v1";
 let localAppSessionActive = false;
 const settingsStorageKey = "netraos-settings-v1";
 const securityAuditStorageKey = "netraos-security-audit-v1";
+const notificationStorageKey = "netraos-in-app-notifications-v1";
 const termsVersion = "2026-10-10";
 let autoLockTimer = 0;
 let backupPromptTimer = 0;
@@ -364,6 +405,37 @@ function setupLandingFaq() {
       showToast(`Create your free vault to open ${target}.`);
     }
   }));
+}
+
+// Contact FAQs use the same one-at-a-time hover/click accordion interaction.
+function setupContactFaq() {
+  const root = content?.querySelector(".cx-faq");
+  if (!root) return;
+  const items = [...root.querySelectorAll("[data-contact-faq-item]")];
+  const hoverCapable = window.matchMedia("(hover: hover) and (pointer: fine)");
+  const timers = new WeakMap();
+  const setOpen = (item, open) => {
+    item.classList.toggle("is-open", open);
+    item.querySelector(".faq-q")?.setAttribute("aria-expanded", String(open));
+  };
+  const schedule = (item, open, delay) => {
+    window.clearTimeout(timers.get(item));
+    timers.set(item, window.setTimeout(() => {
+      if (open) items.forEach(other => { if (other !== item) setOpen(other, false); });
+      setOpen(item, open);
+    }, delay));
+  };
+
+  items.forEach(item => {
+    item.addEventListener("mouseenter", () => { if (hoverCapable.matches) schedule(item, true, 70); });
+    item.addEventListener("mouseleave", () => { if (hoverCapable.matches) schedule(item, false, 140); });
+    item.querySelector(".faq-q")?.addEventListener("click", () => {
+      window.clearTimeout(timers.get(item));
+      const open = !item.classList.contains("is-open");
+      if (open) items.forEach(other => { if (other !== item) setOpen(other, false); });
+      setOpen(item, open);
+    });
+  });
 }
 
 // Add scroll reveals and show the landing page's back-to-top control when needed.
@@ -561,6 +633,8 @@ const powerUpStorageKey = "netraos-powerup-v1";
 const questStorageKey = "netraos-quests-v1";
 const achievementStorageKey = "netraos-achievements-v1";
 const reportPeriodStorageKey = "netraos-report-period-v1";
+const statsSnapshotStorageKey = "netraos-stats-networth-snapshots-v1";
+let statsRangeMonths = 6;
 const currencyStorageKey = "netraos-currency-v1";
 const privacyModeStorageKey = "netraos-privacy-mode-v1";
 const currencyAmountPattern = /(?:KSh|USh|TSh|KES|USD|EUR|GBP|UGX|TZS|[$€£])\s*[+-]?\s*\d[\d,]*(?:\.\d+)?/i;
@@ -723,6 +797,19 @@ function setAccent(accent) {
   const value = ACCENT_IDS.includes(accent) ? accent : "emerald";
   appShell.dataset.accent = value;
   document.documentElement.dataset.accent = value;
+  const styles = getComputedStyle(appShell);
+  const popupAccent = styles.getPropertyValue("--green").trim();
+  const popupAccentStrong = styles.getPropertyValue("--gold-bright").trim();
+  const hex = popupAccent.match(/^#([\da-f]{3}|[\da-f]{6})$/i)?.[1];
+  const rgb = hex
+    ? (hex.length === 3 ? [...hex].map(channel => parseInt(channel + channel, 16)) : [0, 2, 4].map(offset => parseInt(hex.slice(offset, offset + 2), 16)))
+    : popupAccent.match(/[\d.]+/g)?.slice(0, 3).map(Number);
+  const luminance = rgb?.length === 3
+    ? rgb.map(channel => { const normalized = channel / 255; return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4; }).reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0)
+    : 0;
+  document.documentElement.style.setProperty("--app-popup-accent", popupAccent || "#168660");
+  document.documentElement.style.setProperty("--app-popup-accent-strong", popupAccentStrong || popupAccent || "#087953");
+  document.documentElement.style.setProperty("--app-popup-accent-foreground", luminance > 0.4 ? "#102018" : "#ffffff");
 }
 
 function getStoredProfile() {
@@ -746,12 +833,16 @@ function ordinalDay(day) {
 function getStoredSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(settingsStorageKey) || "{}");
+    const themeMode = ["light", "dark", "system"].includes(saved.themeMode) ? saved.themeMode : saved.darkMode ? "dark" : "light";
     return {
       alwaysShowCents: Boolean(saved.alwaysShowCents),
       reduceMotion: Boolean(saved.reduceMotion),
-      darkMode: Boolean(saved.darkMode),
+      themeMode,
+      darkMode: themeMode === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : themeMode === "dark",
       goalNotifications: saved.goalNotifications !== false,
       monthlyReminders: saved.monthlyReminders !== false,
+      debtNotifications: saved.debtNotifications !== false,
+      budgetNotifications: saved.budgetNotifications !== false,
       performanceTelemetryConsent: Boolean(saved.performanceTelemetryConsent),
       lockTimeoutMinutes: [0, 1, 5, 15].includes(Number(saved.lockTimeoutMinutes)) ? Number(saved.lockTimeoutMinutes) : 0,
       localPinSalt: typeof saved.localPinSalt === "string" ? saved.localPinSalt : "",
@@ -777,7 +868,7 @@ function getStoredSettings() {
       questAnimations: saved.questAnimations !== false
     };
   } catch {
-    return { alwaysShowCents: false, reduceMotion: false, darkMode: false, goalNotifications: true, monthlyReminders: true, performanceTelemetryConsent: false, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 6, accountPinEnabled: false, financialYearStartMonth: 1, paydayAnchorDay: 1, autoLockPromptDismissed: false, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "emerald", showXpPoints: true, questSounds: false, questAnimations: true };
+    return { alwaysShowCents: false, reduceMotion: false, themeMode: "light", darkMode: false, goalNotifications: true, monthlyReminders: true, debtNotifications: true, budgetNotifications: true, performanceTelemetryConsent: false, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 6, accountPinEnabled: false, financialYearStartMonth: 1, paydayAnchorDay: 1, autoLockPromptDismissed: false, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "emerald", showXpPoints: true, questSounds: false, questAnimations: true };
   }
 }
 
@@ -802,8 +893,8 @@ function applyStoredSettings() {
     themeToggle.setAttribute("aria-label", settings.darkMode ? "Enable light mode" : "Enable dark mode");
     themeToggle.title = settings.darkMode ? "Enable light mode" : "Enable dark mode";
   });
-  const darkModeInput = document.querySelector('input[name="darkMode"]');
-  if (darkModeInput) darkModeInput.checked = settings.darkMode;
+  const themeModeInput = document.querySelector('[name="themeMode"]');
+  if (themeModeInput) themeModeInput.value = settings.themeMode;
   const privacyInput = document.querySelector('input[name="privacyShield"]');
   if (privacyInput) privacyInput.checked = document.body.classList.contains("privacy-mode");
 }
@@ -984,6 +1075,7 @@ function lockWorkspace() {
   const lockScreen = document.createElement("main");
   lockScreen.id = "security-lock-screen";
   lockScreen.className = "security-lock-screen";
+  lockScreen.dataset.accent = appShell.dataset.accent || "emerald";
   lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">NETRAOS · SESSION LOCK</span><h1 id="security-lock-title">Your workspace is locked.</h1><p>Enter your ${settings.localPinLength}-digit PIN to continue. This screen lock does not encrypt browser storage.</p><form><label for="security-unlock-pin">${settings.localPinLength}-digit PIN</label><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${settings.localPinLength}}" maxlength="${settings.localPinLength}" required><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Unlock workspace</button></form></section>`;
   document.body.append(lockScreen);
   recordSecurityAudit("Workspace locked after inactivity");
@@ -1381,6 +1473,7 @@ function showPublicPage(page = "landing") {
           <p class="auth-description">${isSignup ? "Create your account and start organizing your finances." : "Continue to your financial command center."}</p>
           <form class="auth-form" data-auth-form="${isSignup ? "signup" : "login"}" novalidate>
             ${isSignup ? `<label class="inventory-form-field"><span>Full name</span><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your full name" required></label>` : ""}
+            ${isSignup ? `<label class="inventory-form-field"><span>Phone number <small>Optional</small></span><input name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="e.g. +254 712 345 678"></label>` : ""}
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
             <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" ${isSignup ? 'minlength="8"' : ""} placeholder="${isSignup ? "At least 8 characters" : "Your password"}" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>` : ""}
@@ -1442,8 +1535,9 @@ function renderProfilePage() {
           <label class="inventory-form-field"><span>Full name</span><input name="name" type="text" maxlength="80" value="${escapeHTML(profile.name)}" required></label>
           <label class="inventory-form-field"><span>Preferred name</span><input name="username" type="text" autocomplete="nickname" maxlength="40" value="${escapeHTML(username)}" required><small>Shown in greetings</small></label>
           <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" maxlength="120" value="${escapeHTML(profile.email || "")}" required></label>
+          <label class="inventory-form-field"><span>Phone number <small>Optional</small></span><input name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="e.g. +254 712 345 678" value="${escapeHTML(profile.phone || "")}"></label>
           <label class="inventory-form-field"><span>Sex <small>Optional</small></span><select name="sex"><option value="">Prefer not to say</option><option value="female" ${profile.sex === "female" ? "selected" : ""}>Female</option><option value="male" ${profile.sex === "male" ? "selected" : ""}>Male</option><option value="intersex" ${profile.sex === "intersex" ? "selected" : ""}>Intersex</option><option value="other" ${profile.sex === "other" ? "selected" : ""}>Other</option></select></label>
-          <label class="inventory-form-field"><span>Date of birth <small>Optional</small></span><input name="dateOfBirth" type="date" max="${maxDate}" value="${escapeHTML(profile.dateOfBirth || "")}"></label>
+          <label class="inventory-form-field profile-dob-field"><span>Date of birth <small>Optional</small></span><span class="profile-date-control"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><input name="dateOfBirth" type="date" max="${maxDate}" value="${escapeHTML(profile.dateOfBirth || "")}" aria-describedby="profile-dob-help"></span><small id="profile-dob-help" class="profile-dob-help">Choose a date from the calendar. Future dates aren’t allowed.</small></label>
           <div class="account-form-actions settings-actions"><span>Saved on this device; syncs when online</span><button class="inventory-submit" type="submit">Save changes</button></div>
         </form>
       </section>
@@ -1455,6 +1549,11 @@ function renderProfilePage() {
 function renderSettingsPage() {
   const settings = getStoredSettings();
   const currencyState = getCurrencyState();
+  const profile = getStoredProfile() || { name: document.body.dataset.userName || "Jordan Davis", email: "" };
+  const username = String(profile.username || profile.name.split(/\s+/)[0] || "");
+  const initials = profile.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
+  const photo = profile.image ? `<img src="${escapeHTML(profile.image)}" alt="Profile photo">` : `<span>${escapeHTML(initials)}</span>`;
+  const maxDate = localDateValue();
   const fiscalMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const recentAudit = getSecurityAuditLog()
     .map(item => ({ ...item, timestamp: Date.parse(item.at) }))
@@ -1463,25 +1562,36 @@ function renderSettingsPage() {
     .slice(0, 3);
   let privacyEnabled = false;
   try { privacyEnabled = localStorage.getItem(privacyModeStorageKey) === "true"; } catch { /* Use the visible default when storage is unavailable. */ }
+  const settingsTabs = [
+    ["profile", "Profile"], ["privacy", "Privacy"], ["appearance", "Appearance"], ["currency", "Currency"], ["backups", "Backups"]
+  ];
   return `
-    <section class="account-page">
-      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> APP PREFERENCES</div><h1>Make it yours.</h1><p class="welcome-sub">Choose how NetraOS behaves across your signed-in devices.</p></div></header>
-      <form class="settings-form" data-account-form="settings">
-        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">GENERAL &amp; LOCALIZATION</div><h2>Regional preferences</h2></div></div>
-          <label class="settings-field"><span><strong>Default display currency</strong><small>Set a manual KSh exchange rate before selecting another currency.</small></span>${settingsDropdown("displayCurrency", currencyState.active, `${displayCurrencies[currencyState.active].symbol} · ${displayCurrencies[currencyState.active].name}`, "Choose display currency")}</label>
-          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="manage-rates">Manage manual exchange rates</button></div>
-          <label class="settings-field"><span><strong>Financial year starts</strong><small>Used to calculate Year to date reports.</small></span>${settingsDropdown("financialYearStartMonth", String(settings.financialYearStartMonth), fiscalMonths[settings.financialYearStartMonth - 1] || fiscalMonths[0], "Choose financial year start month")}</label>
-          <label class="settings-field"><span><strong>Payday / cycle anchor</strong><small>Type any day from 1 to 31, or pick a suggestion. Shorter months use their last day. Cycle totals and the default spending month start on this day.</small></span><span class="payday-input"><input name="paydayAnchorDay" type="number" min="1" max="31" step="1" inputmode="numeric" list="payday-day-presets" required value="${settings.paydayAnchorDay}" aria-label="Payday, day of the month (1 to 31)"><datalist id="payday-day-presets">${[1, 5, 10, 15, 20, 25, 28].map(day => `<option value="${day}">${ordinalDay(day)} of each month</option>`).join("")}</datalist><em>of each month</em></span></label>
-          <label class="settings-field"><span><strong>Dark mode</strong><small>Use a darker color theme across your workspace.</small></span><input name="darkMode" type="checkbox" ${settings.darkMode ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Always show cents</strong><small>Show two decimal places in money amounts.</small></span><input name="alwaysShowCents" type="checkbox" ${settings.alwaysShowCents ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Reduce motion</strong><small>Use fewer animation and hover effects.</small></span><input name="reduceMotion" type="checkbox" ${settings.reduceMotion ? "checked" : ""}></label>
+    <section class="account-page settings-page">
+      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> APP PREFERENCES</div><h1>Make it yours.</h1><p class="welcome-sub">Manage your profile, privacy, appearance, and financial preferences.</p></div></header>
+      <div class="settings-tabs" role="tablist" aria-label="Settings categories">
+        ${settingsTabs.map(([id, label]) => `<button class="settings-tab${activeSettingsTab === id ? " is-active" : ""}" id="settings-tab-${id}" type="button" role="tab" aria-selected="${activeSettingsTab === id}" aria-controls="settings-panel-${id}" data-settings-tab="${id}">${label}</button>`).join("")}
+      </div>
+      <section class="settings-tab-panel settings-profile-tab" id="settings-panel-profile" role="tabpanel" aria-labelledby="settings-tab-profile" data-settings-panel="profile" tabindex="0" ${activeSettingsTab === "profile" ? "" : "hidden"}>
+        <section class="panel settings-panel settings-profile-panel">
+          <div class="panel-heading"><div><div class="section-kicker">YOUR ACCOUNT</div><h2>Profile information</h2></div></div>
+          <div class="profile-summary"><span class="profile-initials profile-photo-preview">${photo}</span><div><strong>${escapeHTML(profile.username || profile.name)}</strong><small>${escapeHTML(profile.name)} · ${escapeHTML(profile.email || "No email added")}</small></div></div>
+          <form class="account-form settings-profile-form" data-account-form="profile">
+            <div class="inventory-form-field profile-photo-field settings-profile-photo-field"><label for="profile-photo-input"><span>Profile photo <small>Optional · PNG, JPEG, or WebP up to 5 MB</small></span></label><input id="profile-photo-input" name="photo" type="file" accept="image/png,image/jpeg,image/webp"><button class="inventory-submit profile-photo-choose" type="button" data-choose-profile-image>Choose photo</button></div>
+            <label class="inventory-form-field"><span>Full name</span><input name="name" type="text" maxlength="80" value="${escapeHTML(profile.name)}" required></label>
+            <label class="inventory-form-field"><span>Preferred name</span><input name="username" type="text" autocomplete="nickname" maxlength="40" value="${escapeHTML(username)}" required><small>Shown in greetings</small></label>
+            <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" maxlength="120" value="${escapeHTML(profile.email || "")}" required></label>
+            <label class="inventory-form-field"><span>Phone number <small>Optional</small></span><input name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="e.g. +254 712 345 678" value="${escapeHTML(profile.phone || "")}"></label>
+            <label class="inventory-form-field"><span>Sex <small>Optional</small></span><select name="sex"><option value="">Prefer not to say</option><option value="female" ${profile.sex === "female" ? "selected" : ""}>Female</option><option value="male" ${profile.sex === "male" ? "selected" : ""}>Male</option><option value="intersex" ${profile.sex === "intersex" ? "selected" : ""}>Intersex</option><option value="other" ${profile.sex === "other" ? "selected" : ""}>Other</option></select></label>
+            <label class="inventory-form-field profile-dob-field"><span>Date of birth <small>Optional</small></span><span class="profile-date-control"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><input name="dateOfBirth" type="date" max="${maxDate}" value="${escapeHTML(profile.dateOfBirth || "")}" aria-describedby="profile-dob-help"></span><small id="profile-dob-help" class="profile-dob-help">Choose a date from the calendar. Future dates aren’t allowed.</small></label>
+            <div class="account-form-actions settings-actions"><span>Saved on this device; syncs when online.</span><button class="inventory-submit" type="submit">Save profile</button></div>
+          </form>
         </section>
-        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">REMINDER PREFERENCES</div><h2>What to keep an eye on</h2></div></div>
-          <label class="settings-field"><span><strong>Quest progress</strong><small>Saved as a preference; this preview does not send notifications.</small></span><input name="goalNotifications" type="checkbox" ${settings.goalNotifications ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Monthly plan</strong><small>Saved as a preference; this preview does not send notifications.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
-        </section>
+        <section class="account-notice"><span>i</span><p>Your profile is synced to your Supabase account when you’re online. The app also keeps a working copy in this browser.</p></section>
+      </section>
+      <form class="settings-form" data-account-form="settings" ${activeSettingsTab === "profile" ? "hidden" : ""}>
+        <section class="settings-tab-panel" id="settings-panel-privacy" role="tabpanel" aria-labelledby="settings-tab-privacy" data-settings-panel="privacy" tabindex="0" ${activeSettingsTab === "privacy" ? "" : "hidden"}>
         <section class="panel settings-panel" id="autolock-settings" tabindex="-1"><div class="panel-heading"><div><div class="section-kicker">PRIVACY &amp; SECURITY</div><h2>Session protection</h2></div></div>
-          <p class="settings-disclosure">NetraOS keeps a browser copy and syncs your account records to Supabase when online. The inactivity PIN is a device-side convenience and does not encrypt stored data. HTTPS and security headers are controlled by the hosting platform.</p>
+          <p class="settings-disclosure">The inactivity PIN is a device-side convenience and does not encrypt stored data.</p>
           <label class="settings-field"><span><strong>Privacy Shield</strong><small>Mask currency amounts in the app header or with the shortcut.</small></span><input name="privacyShield" type="checkbox" ${privacyEnabled ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Privacy Shield shortcut</strong><small>Keyboard shortcut to toggle amount masking.</small></span><select name="privacyShortcut"><option value="Shift+S" ${settings.privacyShortcut === "Shift+S" ? "selected" : ""}>Shift + S</option><option value="Alt+Shift+S" ${settings.privacyShortcut === "Alt+Shift+S" ? "selected" : ""}>Alt + Shift + S</option><option value="Off" ${settings.privacyShortcut === "Off" ? "selected" : ""}>Off</option></select></label>
           <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a four-digit PIN. This device’s saved PIN also works offline.</small></span><select id="lock-timeout-minutes" name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Never</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
@@ -1493,6 +1603,32 @@ function renderSettingsPage() {
           </div>
           <div class="settings-audit"><div class="settings-audit-heading"><strong>Recent local security activity</strong><div class="settings-audit-export"><label for="security-audit-period">Download range</label><select id="security-audit-period" data-security-audit-period><option value="24h">Last 24 hours</option><option value="7d">Last 7 days</option><option value="1m">Last 1 month</option><option value="6m">Last 6 months</option><option value="12m">Last 12 months</option></select><button type="button" class="secondary-button" data-security-audit-download>Download list</button></div></div>${recentAudit.length ? `<ul>${recentAudit.map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.timestamp).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>No activity recorded yet.</p>`}</div>
         </section>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">REMINDERS</div><h2>What to keep an eye on</h2></div></div>
+          <label class="settings-field"><span><strong>Quest milestones</strong><small>In-app notices for quest progress milestones and completions.</small></span><input name="goalNotifications" type="checkbox" ${settings.goalNotifications ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Income plan updates</strong><small>In-app reminders after an income source is added or changed.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Debt payoff</strong><small>In-app notices when a liability is marked as paid off.</small></span><input name="debtNotifications" type="checkbox" ${settings.debtNotifications ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Spending shortfall</strong><small>In-app notices if recorded spending moves above planned income.</small></span><input name="budgetNotifications" type="checkbox" ${settings.budgetNotifications ? "checked" : ""}></label>
+        </section>
+        </section>
+        <section class="settings-tab-panel" id="settings-panel-appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" data-settings-panel="appearance" tabindex="0" ${activeSettingsTab === "appearance" ? "" : "hidden"}>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">LOOK &amp; FEEL</div><h2>Appearance</h2></div></div>
+          <label class="settings-field"><span><strong>Theme</strong><small>Choose light, dark, or follow your device setting.</small></span><select name="themeMode"><option value="light" ${settings.themeMode === "light" ? "selected" : ""}>Light</option><option value="dark" ${settings.themeMode === "dark" ? "selected" : ""}>Dark</option><option value="system" ${settings.themeMode === "system" ? "selected" : ""}>System</option></select></label>
+          <label class="settings-field"><span><strong>Theme accent</strong><small>Updates navigation, buttons, icons, and highlights immediately.</small></span><select name="accentProfile"><option value="emerald" ${settings.accentProfile === "emerald" ? "selected" : ""}>Emerald Terminal</option><option value="amber" ${settings.accentProfile === "amber" ? "selected" : ""}>Cyber Amber</option><option value="matrix" ${settings.accentProfile === "matrix" ? "selected" : ""}>Matrix Green</option><option value="blue" ${settings.accentProfile === "blue" ? "selected" : ""}>Classic Blue</option><option value="violet" ${settings.accentProfile === "violet" ? "selected" : ""}>Electric Violet</option><option value="coral" ${settings.accentProfile === "coral" ? "selected" : ""}>Sunset Coral</option><option value="aqua" ${settings.accentProfile === "aqua" ? "selected" : ""}>Aqua Teal</option></select></label>
+          <div class="accent-preview" data-accent-preview aria-live="polite"><span class="accent-preview-swatch" aria-hidden="true"></span><span class="accent-preview-copy"><strong data-accent-preview-name>${escapeHTML({ emerald: "Emerald Terminal", amber: "Cyber Amber", matrix: "Matrix Green", blue: "Classic Blue", violet: "Electric Violet", coral: "Sunset Coral", aqua: "Aqua Teal" }[settings.accentProfile])}</strong><small>Live accent preview</small></span><span class="accent-preview-sample">Example action</span></div>
+          <label class="settings-field"><span><strong>Always show cents</strong><small>Show two decimal places in money amounts.</small></span><input name="alwaysShowCents" type="checkbox" ${settings.alwaysShowCents ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Reduce motion</strong><small>Use fewer animations and hover effects.</small></span><input name="reduceMotion" type="checkbox" ${settings.reduceMotion ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Show XP points</strong><small>Show quest status badges and XP-style progress labels.</small></span><input name="showXpPoints" type="checkbox" ${settings.showXpPoints ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Quest completion sounds</strong><small>Play a short sound when a quest is completed.</small></span><input name="questSounds" type="checkbox" ${settings.questSounds ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Quest completion animations</strong><small>Show the milestone celebration animation.</small></span><input name="questAnimations" type="checkbox" ${settings.questAnimations ? "checked" : ""}></label>
+        </section>
+        </section>
+        <section class="settings-tab-panel" id="settings-panel-currency" role="tabpanel" aria-labelledby="settings-tab-currency" data-settings-panel="currency" tabindex="0" ${activeSettingsTab === "currency" ? "" : "hidden"}>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">CURRENCY &amp; LOCALIZATION</div><h2>Regional preferences</h2></div></div>
+          <label class="settings-field"><span><strong>Default display currency</strong><small>Set a manual KSh exchange rate before selecting another currency.</small></span>${settingsDropdown("displayCurrency", currencyState.active, `${displayCurrencies[currencyState.active].symbol} · ${displayCurrencies[currencyState.active].name}`, "Choose display currency")}</label>
+          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="manage-rates">Manage manual exchange rates</button></div>
+          <label class="settings-field"><span><strong>Financial year starts</strong><small>Used to calculate Year to date reports.</small></span>${settingsDropdown("financialYearStartMonth", String(settings.financialYearStartMonth), fiscalMonths[settings.financialYearStartMonth - 1] || fiscalMonths[0], "Choose financial year start month")}</label>
+          <label class="settings-field"><span><strong>Payday / cycle anchor</strong><small>Type any day from 1 to 31, or pick a suggestion. Shorter months use their last day. Cycle totals and the default spending month start on this day.</small></span><span class="payday-input"><input name="paydayAnchorDay" type="number" min="1" max="31" step="1" inputmode="numeric" list="payday-day-presets" required value="${settings.paydayAnchorDay}" aria-label="Payday, day of the month (1 to 31)"><datalist id="payday-day-presets">${[1, 5, 10, 15, 20, 25, 28].map(day => `<option value="${day}">${ordinalDay(day)} of each month</option>`).join("")}</datalist><em>of each month</em></span></label>
+        </section>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">LOCAL TAX &amp; DEDUCTIONS</div><h2>Kenya statutory estimates</h2></div></div>
           <p class="settings-disclosure">These switches change the local calculator estimate only. Relief amounts are subtracted directly from estimated PAYE, up to the tax before relief. Verify current statutory requirements before relying on a result.</p>
           <label class="settings-field"><span><strong>PAYE income tax</strong><small>Apply the progressive PAYE estimate.</small></span><input name="taxPaye" type="checkbox" ${settings.taxPaye ? "checked" : ""}></label>
@@ -1501,7 +1637,9 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Affordable Housing Levy</strong><small>Apply the in-app 1.5% estimate.</small></span><input name="taxAhl" type="checkbox" ${settings.taxAhl ? "checked" : ""}></label>
           <div class="settings-pin-fields"><label class="inventory-form-field"><span>Personal relief per month (KSh)</span><input name="personalRelief" type="number" min="0" step="100" value="${settings.personalRelief}"></label><label class="inventory-form-field"><span>Insurance relief per month (KSh)</span><input name="insuranceRelief" type="number" min="0" step="100" value="${settings.insuranceRelief}"></label><label class="inventory-form-field"><span>Other tax relief per month (KSh)</span><input name="customRelief" type="number" min="0" step="100" value="${settings.customRelief}"></label></div>
         </section>
-        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">STORAGE &amp; PRIVACY</div><h2>Your browser data</h2></div></div>
+        </section>
+        <section class="settings-tab-panel" id="settings-panel-backups" role="tabpanel" aria-labelledby="settings-tab-backups" data-settings-panel="backups" tabindex="0" ${activeSettingsTab === "backups" ? "" : "hidden"}>
+        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">BACKUP &amp; DATA</div><h2>Your browser data</h2></div></div>
           <p class="settings-disclosure">Browser storage keeps a working copy and Supabase Auth keeps your sign-in session. Account data syncs to the connected Supabase project when online. This app currently sets no analytics cookies and collects no performance telemetry.</p>
           <label class="settings-field"><span><strong>Allow optional performance telemetry</strong><small>No telemetry is currently collected by this version.</small></span><input name="performanceTelemetryConsent" type="checkbox" ${settings.performanceTelemetryConsent ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Monthly backup reminder</strong><small>Remind you in this browser to download a local backup.</small></span><input name="monthlyBackupPrompt" type="checkbox" ${settings.monthlyBackupPrompt ? "checked" : ""}></label>
@@ -1510,17 +1648,46 @@ function renderSettingsPage() {
           <div class="settings-inline-actions"><button class="danger-button" type="button" data-settings-action="clear-data">Factory reset · Clear all NetraOS data</button></div>
           <p class="legal-links"><a href="#terms" data-public-action="terms">Terms of Service</a><a href="#privacy" data-public-action="privacy">Privacy Policy</a></p>
         </section>
-        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">CUSTOMIZATION &amp; GAMIFICATION</div><h2>System preferences</h2></div></div>
-          <label class="settings-field"><span><strong>Theme accent</strong><small>Changes the selected navigation, buttons, chart highlights, and other highlights. Preview updates immediately; save Settings to keep it.</small></span><select name="accentProfile"><option value="emerald" ${settings.accentProfile === "emerald" ? "selected" : ""}>Emerald Terminal</option><option value="amber" ${settings.accentProfile === "amber" ? "selected" : ""}>Cyber Amber</option><option value="matrix" ${settings.accentProfile === "matrix" ? "selected" : ""}>Matrix Green</option><option value="blue" ${settings.accentProfile === "blue" ? "selected" : ""}>Classic Blue</option><option value="violet" ${settings.accentProfile === "violet" ? "selected" : ""}>Electric Violet</option><option value="coral" ${settings.accentProfile === "coral" ? "selected" : ""}>Sunset Coral</option><option value="aqua" ${settings.accentProfile === "aqua" ? "selected" : ""}>Aqua Teal</option></select></label>
-          <div class="accent-preview" data-accent-preview aria-live="polite"><span class="accent-preview-swatch" aria-hidden="true"></span><span class="accent-preview-copy"><strong data-accent-preview-name>${escapeHTML({ emerald: "Emerald Terminal", amber: "Cyber Amber", matrix: "Matrix Green", blue: "Classic Blue", violet: "Electric Violet", coral: "Sunset Coral", aqua: "Aqua Teal" }[settings.accentProfile])}</strong><small>Live accent preview</small></span><span class="accent-preview-sample">Example action</span></div>
-          <label class="settings-field"><span><strong>Show XP Points</strong><small>Show quest status badges and XP-style progress labels.</small></span><input name="showXpPoints" type="checkbox" ${settings.showXpPoints ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Quest completion sounds</strong><small>Play a short sound when a quest is completed.</small></span><input name="questSounds" type="checkbox" ${settings.questSounds ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Quest completion animations</strong><small>Show the milestone celebration animation.</small></span><input name="questAnimations" type="checkbox" ${settings.questAnimations ? "checked" : ""}></label>
         </section>
         <div class="settings-actions"><span>Saved on this device; syncs when online.</span><button class="inventory-submit" type="submit">Save changes</button></div>
       </form>
     </section>
     ${renderAppFooter()}`;
+}
+
+function setupSettingsTabs(root = content) {
+  const tabs = [...root.querySelectorAll("[data-settings-tab]")];
+  if (!tabs.length) return;
+  const panels = [...root.querySelectorAll("[data-settings-panel]")];
+  const settingsForm = root.querySelector("[data-account-form='settings']");
+  const activate = (id, focusTab = false) => {
+    if (!tabs.some(tab => tab.dataset.settingsTab === id)) id = "profile";
+    activeSettingsTab = id;
+    tabs.forEach(tab => {
+      const selected = tab.dataset.settingsTab === id;
+      tab.classList.toggle("is-active", selected);
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      if (selected && focusTab) tab.focus();
+    });
+    panels.forEach(panel => { panel.hidden = panel.dataset.settingsPanel !== id; });
+    if (settingsForm) settingsForm.hidden = id === "profile";
+  };
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => activate(tab.dataset.settingsTab));
+    tab.addEventListener("keydown", event => {
+      let next = null;
+      if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
+      if (event.key === "ArrowLeft") next = (index - 1 + tabs.length) % tabs.length;
+      if (event.key === "Home") next = 0;
+      if (event.key === "End") next = tabs.length - 1;
+      if (next !== null) {
+        event.preventDefault();
+        activate(tabs[next].dataset.settingsTab, true);
+      }
+    });
+  });
+  activate(activeSettingsTab);
 }
 
 // Start the local session, apply the profile and preferences, and open the dashboard.
@@ -1674,22 +1841,91 @@ function questProgress(quest) {
   return target > 0 ? Math.min(100, Math.round((Number(quest.current || 0) / target) * 100)) : 0;
 }
 
+function activeQuests(quests = getQuests()) {
+  return quests.filter(quest => questProgress(quest) < 100);
+}
+
+function questsForFilter(quests, filter = activeQuestFilter) {
+  if (filter === "completed") return quests.filter(quest => questProgress(quest) === 100);
+  if (filter === "all") return quests;
+  return activeQuests(quests);
+}
+
 
 // Milestones Engine: categories, priority tiers, required pace, XP and portfolio summary.
-const questCategories = ["Emergency Buffer", "Debt Eradication", "Asset Accumulation", "Lifestyle & Major Purchase"];
+const questCategories = [
+  "Emergency Buffer", "Debt Eradication", "Asset Accumulation", "Lifestyle & Major Purchase",
+  "Education & Career", "Home & Property", "Health & Family", "Travel & Experiences",
+  "Business & Entrepreneurship", "Vehicle & Transport", "Retirement & Financial Independence", "Giving & Community"
+];
+const questCategoryIcons = {
+  "Emergency Buffer": '<svg viewBox="0 0 24 24"><path d="m12 3 7 3v5c0 4.5-2.8 7.7-7 10-4.2-2.3-7-5.5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg>',
+  "Debt Eradication": '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="15" rx="2"/><path d="M3 10h18M15 15h4M7 6V4h10v2"/></svg>',
+  "Asset Accumulation": '<svg viewBox="0 0 24 24"><path d="M3 18 9 12l4 3 8-9M15 6h6v6"/><path d="M4 21h16"/></svg>',
+  "Lifestyle & Major Purchase": '<svg viewBox="0 0 24 24"><path d="M5 8h14l-1 13H6L5 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>',
+  "Education & Career": '<svg viewBox="0 0 24 24"><path d="m2 9 10-5 10 5-10 5L2 9Z"/><path d="M6 11v5c3.5 2.7 8.5 2.7 12 0v-5M22 9v6"/></svg>',
+  "Home & Property": '<svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z"/></svg>',
+  "Health & Family": '<svg viewBox="0 0 24 24"><path d="M20.8 8.7c0 5.1-8.8 11-8.8 11s-8.8-5.9-8.8-11A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.8 2.3Z"/><path d="M9 11h6m-3-3v6"/></svg>',
+  "Travel & Experiences": '<svg viewBox="0 0 24 24"><path d="m2 12 20-9-7 18-3-7-10-2Z"/><path d="m12 14 5-5"/></svg>',
+  "Business & Entrepreneurship": '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18m-11 0v2h4v-2"/></svg>',
+  "Vehicle & Transport": '<svg viewBox="0 0 24 24"><path d="m5 16-1-7 2-4h12l2 4-1 7M5 16h14M7 16v3m10-3v3M4 9h16"/><path d="M7 13h.01M17 13h.01"/></svg>',
+  "Retirement & Financial Independence": '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6.4 6.4M4 12h2m12 0h2"/></svg>',
+  "Giving & Community": '<svg viewBox="0 0 24 24"><path d="M20.8 8.7c0 5.1-8.8 11-8.8 11s-8.8-5.9-8.8-11A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.8 2.3Z"/></svg>'
+};
+
+function questCategoryIcon(category) {
+  return questCategoryIcons[category] || '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>';
+}
+
 const questTiers = [
   { tier: 1, label: "Tier 1 · Critical Safeguard" },
   { tier: 2, label: "Tier 2 · Structured Milestone" },
   { tier: 3, label: "Tier 3 · Growth & Lifestyle" }
 ];
+const questPriorityByCategory = {
+  "Emergency Buffer": 1,
+  "Debt Eradication": 1,
+  "Health & Family": 1,
+  "Education & Career": 2,
+  "Home & Property": 2,
+  "Vehicle & Transport": 2,
+  "Retirement & Financial Independence": 2,
+  "Asset Accumulation": 3,
+  "Lifestyle & Major Purchase": 3,
+  "Travel & Experiences": 3,
+  "Business & Entrepreneurship": 3,
+  "Giving & Community": 3
+};
+const questCategoryAccents = {
+  "Emergency Buffer": "#168660",
+  "Debt Eradication": "#c65f4b",
+  "Asset Accumulation": "#2b8a78",
+  "Lifestyle & Major Purchase": "#8a65b6",
+  "Education & Career": "#337cac",
+  "Home & Property": "#5b8b51",
+  "Health & Family": "#c05b74",
+  "Travel & Experiences": "#287fa3",
+  "Business & Entrepreneurship": "#4357a6",
+  "Vehicle & Transport": "#ba762b",
+  "Retirement & Financial Independence": "#337b61",
+  "Giving & Community": "#a35c9c"
+};
 const XP_PER_PERCENT = 10;
+
+function questPriorityTier(category) {
+  return questPriorityByCategory[category] || 2;
+}
+
+function questCategoryAccent(category) {
+  return questCategoryAccents[category] || "#168660";
+}
 
 function questXp(quest) {
   return questProgress(quest) * XP_PER_PERCENT;
 }
 
 function questTierLabel(quest) {
-  return questTiers.find(item => item.tier === Number(quest.tier))?.label || "";
+  return questTiers.find(item => item.tier === questPriorityTier(quest?.category))?.label || "";
 }
 
 // Remaining amount spread over the months left (at least one month) before the deadline.
@@ -1717,7 +1953,7 @@ function questPace(quest) {
 
 function sortQuestsByPriority(quests) {
   return [...quests].sort((a, b) =>
-    (Number(a.tier) || 4) - (Number(b.tier) || 4) ||
+    questPriorityTier(a.category) - questPriorityTier(b.category) ||
     String(a.deadline || "9999").localeCompare(String(b.deadline || "9999")));
 }
 
@@ -1750,7 +1986,7 @@ function renderQuestMetrics(quest) {
   }[pace.status];
   const velocity = pace.velocity !== null ? ` · saving ${formatKsh(Math.round(pace.velocity))}/mo` : "";
   return `<span class="loan-metrics quest-metrics">
-    <span><small>CATEGORY / PRIORITY</small><b>${escapeHTML(quest.category || "Not set")}${quest.tier ? ` · ${escapeHTML(questTierLabel(quest))}` : ""}</b></span>
+    <span><small>CATEGORY / PRIORITY</small><b>${escapeHTML(quest.category || "Not set")} · ${escapeHTML(questTierLabel(quest))}</b></span>
     <span><small>TARGET &amp; CURRENT</small><b>${formatKsh(quest.current)} of ${formatKsh(quest.target)}</b></span>
     <span><small>DEADLINE</small><b>${escapeHTML(deadline)}</b></span>
     <span><small>REQUIRED MONTHLY</small><b>${escapeHTML(monthly)}</b></span>
@@ -1763,17 +1999,19 @@ function renderQuestRows(quests, dashboard = false) {
     return `<p class="empty-quests">No active goals yet. Add a quest when you are ready.</p>`;
   }
 
+  if (!dashboard) return sortQuestsByPriority(quests).map(renderQuestCard).join("");
+
   return sortQuestsByPriority(quests).map(quest => {
     const progress = questProgress(quest);
     const pace = questPace(quest);
     return `
       <div class="quest-row ${progress === 100 ? "is-complete" : ""}" data-quest-id="${escapeHTML(quest.id)}">
-        <span class="quest-icon shield">${progress === 100 ? "✦" : "◈"}</span>
+        <span class="quest-icon shield">${progress === 100 ? "✦" : questNavigationIcon}</span>
         <div class="quest-info">
           <div class="quest-title">
             ${escapeHTML(quest.name)}
             ${progress === 100 ? `<span class="quest-xp quest-complete-badge">COMPLETE</span>` : dashboard ? "" : `<span class="quest-xp">ACTIVE</span>`}
-            ${quest.tier ? `<span class="quest-tier tier-${Number(quest.tier)}">TIER ${Number(quest.tier)}</span>` : ""}
+            <span class="quest-tier tier-${questPriorityTier(quest.category)}">TIER ${questPriorityTier(quest.category)}</span>
             <span class="quest-xp quest-xp-earned">+${questXp(quest)} XP</span>
           </div>
           <div class="quest-meta">${formatKsh(quest.current)} <span>of</span> ${formatKsh(quest.target)}${dashboard && progress < 100 && pace.required !== null ? ` <span>·</span> ${formatKsh(Math.ceil(pace.required))}/mo needed` : ""}</div>
@@ -1787,6 +2025,44 @@ function renderQuestRows(quests, dashboard = false) {
         </button>
       </div>`;
   }).join("");
+}
+
+function renderQuestCard(quest) {
+  const progress = questProgress(quest);
+  const complete = progress === 100;
+  const pace = questPace(quest);
+  const deadline = quest.deadline
+    ? `Due ${new Date(`${quest.deadline}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+    : "No deadline";
+  const monthly = complete ? "Fully funded" : pace.required === null ? "Set a deadline" : `${formatKsh(Math.ceil(pace.required))}/mo needed`;
+  const status = complete ? "Completed" : pace.status === "on-track" ? "On track" : pace.status === "behind" || pace.status === "overdue" ? "Needs attention" : "In progress";
+  const statusClass = complete ? "is-complete" : status === "In progress" ? "is-progress" : status === "Needs attention" ? "is-attention" : status === "On track" ? "is-on-track" : "";
+  return `
+    <article class="quest-card ${complete ? "is-complete" : ""}" style="--quest-accent:${questCategoryAccent(quest.category)}" data-quest-id="${escapeHTML(quest.id)}">
+      <header class="quest-card-header">
+        <span class="quest-card-icon ${complete ? "is-complete" : ""}" aria-hidden="true">${complete ? "✦" : questNavigationIcon}</span>
+        <div class="quest-card-title-group">
+          <div class="quest-card-title-line"><h3>${escapeHTML(quest.name)}</h3><span class="quest-status ${statusClass}">${status}</span></div>
+        </div>
+        <strong class="quest-card-percent" aria-label="${progress} percent complete">${progress}%</strong>
+        <div class="quest-card-actions">
+          <button class="quest-update" type="button" data-edit-quest="${escapeHTML(quest.id)}" aria-label="${complete ? "Edit" : "Update"} ${escapeHTML(quest.name)}">${complete ? "Edit quest" : "Update progress"}</button>
+          <button class="quest-more" type="button" data-quest-actions="${escapeHTML(quest.id)}" aria-label="More actions for ${escapeHTML(quest.name)}" aria-haspopup="menu" aria-expanded="false">•••</button>
+        </div>
+      </header>
+      <div class="quest-card-progress">
+        <div class="quest-card-amounts"><span>Saved <strong>${formatKsh(quest.current)}</strong></span><span>Target <strong>${formatKsh(quest.target)}</strong></span></div>
+        <div class="quest-track" role="progressbar" aria-label="${escapeHTML(quest.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><i style="width:${progress}%"></i></div>
+      </div>
+      <details class="quest-card-details">
+        <summary>Details <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+        <div class="quest-card-details-grid">
+          <span class="quest-card-detail"><small>CATEGORY / PRIORITY</small><b><span class="quest-card-category-icon" aria-hidden="true">${questCategoryIcon(quest.category)}</span>${escapeHTML(quest.category || "Personal goal")} · ${escapeHTML(questTierLabel(quest))}</b></span>
+          <span class="quest-card-detail"><small>DEADLINE</small><b>${escapeHTML(deadline)}</b></span>
+          <span class="quest-card-detail"><small>MONTHLY PACE</small><b>${escapeHTML(monthly)}</b></span>
+        </div>
+      </details>
+    </article>`;
 }
 
 // Summary shown on the Quests page and (compact) on the dashboard's Active quests panel.
@@ -1827,6 +2103,7 @@ function renderMilestonesSummary(compact = false) {
 
 function updateDashboardQuests() {
   const quests = getQuests();
+  const active = activeQuests(quests);
   const list = document.querySelector(".quests-panel .quest-list");
   const badge = document.querySelector(".quests-panel .count-badge");
   if (list) {
@@ -1834,7 +2111,7 @@ function updateDashboardQuests() {
     list.parentElement.querySelector(".milestone-strip")?.remove();
     list.insertAdjacentHTML("beforebegin", renderMilestonesSummary(true));
   }
-  if (badge) badge.textContent = quests.length;
+  if (badge) badge.textContent = active.length;
   updateDashboardOnboarding();
 }
 
@@ -2026,6 +2303,24 @@ function setPrivacyMode(enabled) {
   const input = document.querySelector('input[name="privacyShield"]');
   if (input) input.checked = enabled;
   try { localStorage.setItem(privacyModeStorageKey, String(enabled)); } catch { /* Keep privacy masking active for this session. */ }
+}
+
+function markRequiredFields(root = document) {
+  const controls = [];
+  if (root instanceof Element && root.matches("input[required], select[required], textarea[required]")) controls.push(root);
+  root.querySelectorAll?.("input[required], select[required], textarea[required]").forEach(control => controls.push(control));
+  controls.forEach(control => {
+    let label = control.closest("label");
+    if (!label && control.id) label = document.querySelector(`label[for="${CSS.escape(control.id)}"]`);
+    const field = label || control.closest(".inventory-form-field, .settings-field, .security-lock-card form");
+    const title = field.querySelector(":scope > span, :scope > strong") || field;
+    if (!field || title.querySelector(":scope > .required-marker")) return;
+    const marker = document.createElement("span");
+    marker.className = "required-marker";
+    marker.setAttribute("aria-hidden", "true");
+    marker.textContent = "*";
+    title.append(marker);
+  });
 }
 
 function initializePrivacyMode() {
@@ -2280,10 +2575,8 @@ function updateDashboardInventorySummary() {
   const entries = getInventoryEntries();
   const totals = getInventoryTotals();
   const netWorthValue = document.querySelector(".networth-card .metric-value");
-  const assetTotal = document.querySelector(".donut-center strong");
 
   if (netWorthValue) netWorthValue.textContent = formatKsh(totals.netWorth);
-  if (assetTotal) assetTotal.textContent = formatKsh(totals.assets);
 
   const allocations = [
     { label: "Cash", categories: ["Bank accounts", "Mobile money", "Cash & savings"] },
@@ -2308,21 +2601,90 @@ function updateDashboardInventorySummary() {
         ? Math.round((allocation.value / totals.assets) * 100)
         : 0;
       share.textContent = percentage + "%";
+      row.dataset.allocationLabel = allocation.label;
+      row.dataset.allocationPercent = String(percentage);
     }
   });
 
   const donut = document.querySelector(".donut");
+  const donutWrap = donut?.closest(".donut-wrap");
+  const allocationTooltip = donutWrap?.querySelector(".allocation-tooltip");
+  if (allocationTooltip) allocationTooltip.hidden = true;
+  if (donut) {
+    donut._allocationData = allocations;
+    donut._assetTotal = totals.assets;
+  }
+  if (donut && allocationTooltip && donut.dataset.hoverReady !== "true") {
+    donut.dataset.hoverReady = "true";
+    donut.addEventListener("pointermove", event => {
+      const currentAllocations = donut._allocationData || [];
+      const assetTotal = donut._assetTotal || 0;
+      if (!assetTotal) return;
+      const bounds = donut.getBoundingClientRect();
+      const centerX = bounds.left + bounds.width / 2;
+      const centerY = bounds.top + bounds.height / 2;
+      const dx = event.clientX - centerX;
+      const dy = event.clientY - centerY;
+      const radius = Math.hypot(dx, dy);
+      if (radius < bounds.width * 0.28 || radius > bounds.width * 0.53) {
+        allocationTooltip.hidden = true;
+        donut.querySelectorAll(".allocation-slice").forEach(slice => { slice.style.transform = ""; });
+        return;
+      }
+      const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+      let boundary = 0;
+      let selectedIndex = currentAllocations.findIndex(allocation => {
+        boundary += (allocation.value / assetTotal) * 360;
+        return angle <= boundary;
+      });
+      if (selectedIndex < 0) selectedIndex = currentAllocations.reduce((last, allocation, index) => allocation.value > 0 ? index : last, -1);
+      const selected = currentAllocations[selectedIndex];
+      if (!selected || !selected.value) {
+        allocationTooltip.hidden = true;
+        donut.querySelectorAll(".allocation-slice").forEach(slice => { slice.style.transform = ""; });
+        return;
+      }
+      donut.querySelectorAll(".allocation-slice").forEach((slice, index) => {
+        slice.style.transform = "";
+        if (index === selectedIndex) {
+          const middle = ((boundary - (selected.value / assetTotal * 360) / 2) - 90) * Math.PI / 180;
+          const lift = bounds.width * 0.04;
+          slice.style.transform = `translate(${Math.cos(middle) * lift}px, ${Math.sin(middle) * lift}px)`;
+        }
+      });
+      const percentage = Math.round(selected.value / assetTotal * 100);
+      allocationTooltip.textContent = `${selected.label}: ${percentage}%`;
+      allocationTooltip.hidden = false;
+    });
+    donut.addEventListener("pointerleave", () => { allocationTooltip.hidden = true; });
+  }
   if (donut && totals.assets > 0) {
     const colors = [...document.querySelectorAll(".allocation-legend i")].map(item => getComputedStyle(item).backgroundColor);
     let position = 0;
-    const stops = allocations.map((allocation, index) => {
+    const paths = allocations.map((allocation, index) => {
+      const sweep = (allocation.value / totals.assets) * 360;
       const start = position;
-      position += (allocation.value / totals.assets) * 100;
-      return `${colors[index]} ${start}% ${position}%`;
+      position += sweep;
+      if (!sweep) return "";
+      const startAngle = (start - 90) * Math.PI / 180;
+      const endAngle = (position - 90) * Math.PI / 180;
+      const outerStart = [50 + 48 * Math.cos(startAngle), 50 + 48 * Math.sin(startAngle)];
+      const outerEnd = [50 + 48 * Math.cos(endAngle), 50 + 48 * Math.sin(endAngle)];
+      const innerEnd = [50 + 36 * Math.cos(endAngle), 50 + 36 * Math.sin(endAngle)];
+      const innerStart = [50 + 36 * Math.cos(startAngle), 50 + 36 * Math.sin(startAngle)];
+      const largeArc = sweep > 180 ? 1 : 0;
+      const d = sweep >= 359.999
+        ? "M 50 2 A 48 48 0 1 1 50 98 A 48 48 0 1 1 50 2 M 50 14 A 36 36 0 1 0 50 86 A 36 36 0 1 0 50 14 Z"
+        : `M ${outerStart[0]} ${outerStart[1]} A 48 48 0 ${largeArc} 1 ${outerEnd[0]} ${outerEnd[1]} L ${innerEnd[0]} ${innerEnd[1]} A 36 36 0 ${largeArc} 0 ${innerStart[0]} ${innerStart[1]} Z`;
+      return `<path class="allocation-slice" d="${d}" fill="${colors[index]}" fill-rule="evenodd" />`;
     });
-    donut.style.background = `conic-gradient(${stops.join(", ")})`;
+    donut.innerHTML = `<svg class="allocation-chart" viewBox="0 0 100 100" aria-hidden="true" focusable="false">${paths.join("")}</svg>`;
+    donut.style.background = "#e2e8e4";
+    donut.setAttribute("aria-label", `Asset allocation: ${allocations.map(item => `${item.label} ${Math.round(item.value / totals.assets * 100)}%`).join(", ")}`);
   } else if (donut) {
+    donut.innerHTML = "";
     donut.style.background = "conic-gradient(#e2e8e4 0 100%)";
+    donut.setAttribute("aria-label", "Asset allocation chart: no assets recorded");
   }
 }
 
@@ -2340,7 +2702,6 @@ function updateDashboardPowerUpSummary() {
   if (incomeCard) {
     incomeCard.querySelector(".metric-heading span").textContent = `${periodLabel} INCOME`;
     incomeCard.querySelector(".metric-value").textContent = formatKsh(totals.reportIncome);
-    incomeCard.querySelector(".metric-trailing").textContent = "TOTAL";
   }
 
   const savingsRate = totals.reportIncome > 0
@@ -2736,6 +3097,7 @@ function openInventoryDialog(action, editId = null) {
       ...(returns ? { returns } : {})
     };
     const existingIndex = entries.findIndex(entry => entry.id === updatedEntry.id);
+    const wasLiabilityPaidOff = Boolean(editing?.type === "liability" && Number(editing.amount) > 0 && amount === 0);
     if (existingIndex >= 0) entries[existingIndex] = updatedEntry;
     else entries.push(updatedEntry);
 
@@ -2749,7 +3111,12 @@ function openInventoryDialog(action, editId = null) {
     dialog.close();
     dialog.remove();
     content.innerHTML = renderInventoryPage();
-    showToast(editing ? `${name} updated.` : `${name} added to your inventory.`);
+    const debtNoticeEnabled = getStoredSettings().debtNotifications;
+    if (wasLiabilityPaidOff) {
+      const installment = Number(editing.loan?.minInstallment || 0);
+      createInAppNotification({ title: "Liability marked as paid off", body: installment > 0 ? `${name} is now recorded at zero. Its recorded monthly installment is ${formatKsh(installment)}.` : `${name} is now recorded at zero in Inventory.`, page: "Inventory", dedupeKey: `liability-paid:${updatedEntry.id}`, preference: "debtNotifications" });
+    }
+    showToast(wasLiabilityPaidOff && debtNoticeEnabled ? `${name} marked paid off. See Notifications for details.` : editing ? `${name} updated.` : `${name} added to your inventory.`);
   });
 
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
@@ -2872,6 +3239,7 @@ function openPowerUpDialog(kind, editId = null) {
     }
 
     const data = getPowerUpData();
+    const totalsBeforeUpdate = getPowerUpTotals();
     const entry = {
       id: editing?.id || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       name,
@@ -2890,9 +3258,18 @@ function openPowerUpDialog(kind, editId = null) {
       return;
     }
 
+    const totalsAfterUpdate = getPowerUpTotals();
+    if (isIncome && getStoredSettings().monthlyReminders) {
+      createInAppNotification({ title: "Income plan updated", body: `${name} is in your income plan. Review your monthly plan in Power-Up.`, page: "Power-Up", dedupeKey: `income-plan:${savedEntry.id}:${monthKey()}`, preference: "monthlyReminders" });
+    }
+    const spendingShortfall = getStoredSettings().budgetNotifications && totalsAfterUpdate.reportIncome > 0 && totalsAfterUpdate.cashAfterSpending < 0 && totalsBeforeUpdate.cashAfterSpending >= 0;
+    if (spendingShortfall) {
+      createInAppNotification({ title: "Spending is above planned income", body: `Your recorded spending is now ${formatKsh(Math.abs(totalsAfterUpdate.cashAfterSpending))} above income in the selected reporting period. Review the plan in Power-Up.`, page: "Power-Up", dedupeKey: `spending-shortfall:${getReportPeriod()}:${monthKey()}`, preference: "budgetNotifications" });
+    }
+
     dialog.close();
     refreshFinancialPage();
-    showToast(editing ? `${name} updated.` : isSpending ? `${name} expense recorded.` : `${name} added to your monthly plan.`);
+    showToast(spendingShortfall ? "Recorded spending is above planned income. See Notifications for details." : editing ? `${name} updated.` : isSpending ? `${name} expense recorded.` : `${name} added to your monthly plan.`);
   });
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   dialog.showModal();
@@ -2902,43 +3279,67 @@ function openPowerUpDialog(kind, editId = null) {
 // Quest and achievement pages show goals, completion celebrations, and earned badges.
 function renderQuestsPage() {
   const quests = getQuests();
-  const canAddQuest = quests.length < 4;
+  const active = activeQuests(quests);
   const completed = quests.filter(quest => questProgress(quest) === 100).length;
+  const canAddQuest = active.length < 4;
+  const engine = getMilestonesEngine(quests);
+  const visibleQuests = questsForFilter(quests);
+  const filters = [
+    { id: "active", label: "Active", count: active.length },
+    { id: "completed", label: "Completed", count: completed },
+    { id: "all", label: "All", count: quests.length }
+  ];
   return `
     <section class="quests-page">
       <header class="inventory-heading">
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> GOALS WITH MOMENTUM</div>
-          <h1>Make progress<br><em>visible.</em></h1>
-          <p class="welcome-sub">Keep up to four active quests in motion. Update the amount saved to see your progress.</p>
+          <h1>Financial quests</h1>
+          <p class="welcome-sub">Set a goal, track your progress, and keep your next milestone in reach.</p>
         </div>
-        <button class="inventory-action" type="button" data-quest-action="add" ${canAddQuest ? "" : "disabled"}>
-          ${plusIcon} Add a quest
+        <button class="inventory-action" type="button" data-quest-action="add" ${canAddQuest ? "" : "disabled"} title="${canAddQuest ? "Create a quest" : "Complete or remove an active quest to make room"}">
+          ${plusIcon} New quest
         </button>
       </header>
-      <section class="inventory-summary quest-summary" aria-label="Quest summary">
-        <article class="inventory-summary-card"><span class="inventory-label">ACTIVE QUESTS</span><strong>${quests.length} / 4</strong><span class="inventory-note">Up to four at a time</span></article>
-        <article class="inventory-summary-card"><span class="inventory-label">COMPLETED</span><strong>${completed}</strong><span class="inventory-note">Goals at 100% progress</span></article>
-        <article class="inventory-summary-card net-worth-summary"><span class="inventory-label">NEXT STEP</span><strong>${canAddQuest ? "Keep going" : "Quest limit"}</strong><span class="inventory-note">${canAddQuest ? "Add or update a goal" : "Delete a goal to add another"}</span></article>
+      <section class="quest-overview" aria-label="Quest overview">
+        <article class="quest-overview-card active"><span class="inventory-label">ACTIVE QUESTS</span><strong>${active.length}<small> / 4</small></strong><span class="inventory-note">${canAddQuest ? `${4 - active.length} active ${4 - active.length === 1 ? "spot" : "spots"} available` : "All active spots in use"}</span></article>
+        <article class="quest-overview-card completed"><span class="inventory-label">COMPLETED</span><strong>${completed}</strong><span class="inventory-note">Finished goals kept for you</span></article>
+        <article class="quest-overview-card quest-overall-progress">
+          <div class="quest-overall-heading"><span class="inventory-label">OVERALL SAVINGS PROGRESS</span><strong>${engine.rate}%</strong></div>
+          <div class="quest-overall-amounts"><span>${formatKsh(engine.saved)} saved</span><span>${formatKsh(engine.target)} total</span></div>
+          <div class="quest-track" role="progressbar" aria-label="Overall quest savings progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${engine.rate}"><i style="width:${engine.rate}%"></i></div>
+        </article>
       </section>
-      ${renderMilestonesSummary()}
+      ${active.length ? `<aside class="quest-plan-insight"><span class="quest-insight-icon" aria-hidden="true">✳</span><span>${engine.monthly > 0 ? `Plan for about <strong>${formatKsh(Math.ceil(engine.monthly))} per month</strong> to stay on pace${engine.top ? ` with <strong>${escapeHTML(engine.top.name)}</strong> as your top priority` : ""}.` : `Add target dates to your active quests to see the monthly pace needed${engine.top ? ` for your top priority, <strong>${escapeHTML(engine.top.name)}</strong>` : ""}.`}</span></aside>` : ""}
       <section class="panel quest-page-panel">
-        <div class="panel-heading">
-          <div><div class="section-kicker">YOUR CURRENT GOALS</div><h2>Active quests</h2></div>
-          <span class="inventory-account-count">${quests.length} of 4</span>
+        <div class="quest-list-heading">
+          <div><h2>Your quests</h2></div>
+          <span class="inventory-account-count">${visibleQuests.length} ${visibleQuests.length === 1 ? "goal" : "goals"}</span>
         </div>
-        <div class="quest-page-list">${renderQuestRows(quests)}</div>
+        <div class="quest-filters" role="group" aria-label="Filter quests">
+          ${filters.map(filter => `<button class="quest-filter ${activeQuestFilter === filter.id ? "active" : ""}" type="button" data-quest-filter="${filter.id}" aria-pressed="${activeQuestFilter === filter.id}">${filter.label}<span>${filter.count}</span></button>`).join("")}
+        </div>
+        <div class="quest-page-list" data-quest-list>
+          ${visibleQuests.length ? renderQuestRows(visibleQuests) : renderQuestEmptyState(activeQuestFilter, canAddQuest)}
+        </div>
       </section>
     </section>
     ${renderAppFooter()}`;
+}
+
+function renderQuestEmptyState(filter, canAddQuest) {
+  const isCompleted = filter === "completed";
+  const title = isCompleted ? "No completed quests yet" : filter === "active" ? "Ready for your first quest?" : "No quests yet";
+  const copy = isCompleted ? "Finished goals will be saved here so you can look back on your progress." : "Choose a goal that matters to you and start building momentum.";
+  return `<div class="quest-empty-state"><span class="quest-empty-icon" aria-hidden="true">${isCompleted ? "✦" : questNavigationIcon}</span><strong>${title}</strong><p>${copy}</p>${!isCompleted && canAddQuest ? `<button class="quest-update" type="button" data-quest-action="add">Create a quest</button>` : ""}</div>`;
 }
 
 function openQuestDialog(questId = "") {
   const quests = getQuests();
   const quest = quests.find(item => item.id === questId);
   if (questId && !quest) return;
-  if (!quest && quests.length >= 4) {
-    showToast("You can have up to four active quests. Delete one to make room.");
+  if (!quest && activeQuests(quests).length >= 4) {
+    showToast("You can have up to four active quests. Complete or delete one to make room.");
     return;
   }
 
@@ -2950,8 +3351,8 @@ function openQuestDialog(questId = "") {
       <div class="inventory-form-fields">
         <label class="inventory-form-field"><span>Quest name</span><input name="name" type="text" maxlength="60" placeholder="e.g. Emergency fund" value="${escapeHTML(quest?.name || "")}" required></label>
         <div class="liability-rate-row">
-          <label class="inventory-form-field"><span>Category</span><select name="category">${questCategories.map(item => `<option ${quest?.category === item ? "selected" : ""}>${item}</option>`).join("")}</select></label>
-          <label class="inventory-form-field"><span>Priority tier</span><select name="tier">${questTiers.map(item => `<option value="${item.tier}" ${Number(quest?.tier || 2) === item.tier ? "selected" : ""}>${item.label}</option>`).join("")}</select></label>
+          <label class="inventory-form-field"><span>Category</span><span class="income-category-select-wrap quest-category-select-wrap"><span class="income-category-select-icon quest-category-select-icon" aria-hidden="true">${questCategoryIcon(quest?.category || questCategories[0])}</span><select name="category">${questCategories.map(item => `<option value="${escapeHTML(item)}" ${quest?.category === item ? "selected" : ""}>${escapeHTML(item)}</option>`).join("")}</select></span></label>
+          <div class="quest-priority-preview" aria-live="polite"><span>Suggested priority</span><strong data-quest-tier-preview></strong><small>Picked automatically from the goal category</small></div>
         </div>
         <label class="inventory-form-field"><span>Current amount (KSh)</span><input name="current" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(quest?.current || 0)}" required></label>
         <label class="inventory-form-field"><span>Target amount (KSh)</span><input name="target" type="number" min="1" step="0.01" inputmode="decimal" value="${Number(quest?.target || 0) || ""}" required></label>
@@ -2962,6 +3363,19 @@ function openQuestDialog(questId = "") {
     </form>`;
   document.body.append(dialog);
   const form = dialog.querySelector(".inventory-form");
+  const questCategorySelect = form.querySelector('select[name="category"]');
+  const questCategoryPreview = form.querySelector(".quest-category-select-icon");
+  const questTierPreview = form.querySelector("[data-quest-tier-preview]");
+  const updateQuestCategoryPreview = () => {
+    const tier = questPriorityTier(questCategorySelect.value);
+    questTierPreview.textContent = questTiers.find(item => item.tier === tier)?.label || "";
+    form.querySelector(".quest-priority-preview").style.setProperty("--quest-accent", questCategoryAccent(questCategorySelect.value));
+  };
+  updateQuestCategoryPreview();
+  questCategorySelect.addEventListener("change", () => {
+    questCategoryPreview.innerHTML = questCategoryIcon(questCategorySelect.value);
+    updateQuestCategoryPreview();
+  });
   dialog.querySelector(".inventory-dialog-close").addEventListener("click", () => dialog.close());
   dialog.querySelector(".inventory-cancel").addEventListener("click", () => dialog.close());
   form.addEventListener("submit", event => {
@@ -2972,17 +3386,19 @@ function openQuestDialog(questId = "") {
     const target = Number(formData.get("target"));
     if (!name || !Number.isFinite(current) || !Number.isFinite(target) || current < 0 || target <= 0) return;
     const wasComplete = quest ? questProgress(quest) === 100 : false;
+    const previousProgress = quest ? questProgress(quest) : 0;
     const deadline = String(formData.get("deadline") || "");
     if (deadline && !quest && deadline <= localDateValue()) {
       showToast("Choose a deadline in the future.");
       return;
     }
+    const category = String(formData.get("category") || questCategories[0]);
     const updatedQuest = {
       ...(quest || {}),
       id: quest?.id || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       name, current, target,
-      category: String(formData.get("category") || questCategories[0]),
-      tier: Number(formData.get("tier")) || 2,
+      category,
+      tier: questPriorityTier(category),
       deadline,
       createdAt: quest?.createdAt || new Date().toISOString(),
       startAmount: quest?.startAmount ?? (quest?.createdAt ? 0 : current)
@@ -2997,14 +3413,19 @@ function openQuestDialog(questId = "") {
     dialog.close();
     refreshFinancialPage();
     if (!wasComplete && questProgress(updatedQuest) === 100) {
+      createInAppNotification({ title: "Quest completed", body: `${name} reached its target. Choose your next goal when you’re ready.`, page: "Quests", dedupeKey: `quest-complete:${updatedQuest.id}`, preference: "goalNotifications" });
       celebrateQuestCompletion(name);
       const next = getMilestonesEngine(updatedQuests).top;
       if (next) {
         const need = questPace(next).required;
         window.setTimeout(() => showToast(`Overflow: re-route this monthly saving to ${next.name}${need !== null ? ` (needs ${formatKsh(Math.ceil(need))}/mo)` : ""}.`), 1200);
       }
+    } else {
+      const newProgress = questProgress(updatedQuest);
+      const crossed = [75, 50, 25].find(threshold => previousProgress < threshold && newProgress >= threshold);
+      if (crossed) createInAppNotification({ title: `${crossed}% quest milestone`, body: `${name} has reached ${crossed}% progress. Keep going at your own pace.`, page: "Quests", dedupeKey: `quest-progress:${updatedQuest.id}:${crossed}`, preference: "goalNotifications" });
+      showToast(quest ? "Quest progress updated." : `${name} added to your quests.`);
     }
-    else showToast(quest ? "Quest progress updated." : `${name} added to your quests.`);
   });
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   dialog.showModal();
@@ -3057,7 +3478,7 @@ function celebrateQuestCompletion(name) {
 }
 
 function deleteQuest(button) {
-  const id = button.dataset.deleteQuest;
+  const id = typeof button === "string" ? button : button.dataset.deleteQuest;
   if (!id) return;
   try {
     const quests = getQuests().filter(quest => quest.id !== id);
@@ -3070,16 +3491,115 @@ function deleteQuest(button) {
   }
 }
 
+function getStatsMonthlySeries(monthCount = 6) {
+  const data = getPowerUpData();
+  const now = new Date();
+  return Array.from({ length: monthCount }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (monthCount - index - 1), 1, 12);
+    const key = monthKey(date);
+    const income = budgetTotalForMonth(data.incomes, key);
+    const spending = data.spending.filter(item => {
+      const datedMonth = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date.slice(0, 7) : /^\d{4}-\d{2}$/.test(item.month || "") ? item.month : "";
+      const startMonth = datedMonth || getReportMonth();
+      return item.recurring === true ? key >= startMonth : key === startMonth;
+    }).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return { key, label: date.toLocaleDateString(undefined, { month: "short" }), income, spending, saved: income - spending };
+  });
+}
+
+function getStatsNetWorthSnapshots(currentNetWorth) {
+  let snapshots = [];
+  try {
+    const stored = JSON.parse(localStorage.getItem(statsSnapshotStorageKey) || "[]");
+    if (Array.isArray(stored)) snapshots = stored.filter(item => /^\d{4}-\d{2}$/.test(item.month) && Number.isFinite(Number(item.value)));
+    const key = monthKey();
+    const current = { month: key, value: Number(currentNetWorth) || 0 };
+    const index = snapshots.findIndex(item => item.month === key);
+    if (index >= 0) snapshots[index] = current;
+    else snapshots.push(current);
+    snapshots.sort((a, b) => a.month.localeCompare(b.month));
+    localStorage.setItem(statsSnapshotStorageKey, JSON.stringify(snapshots.slice(-36)));
+  } catch { /* Keep the chart usable when browser storage is unavailable. */ }
+  return snapshots;
+}
+
+function renderStatsTrend(view, months, currentNetWorth) {
+  if (view === "savings") {
+    const current = months.at(-1) || { income: 0, saved: 0 };
+    const previous = months.at(-2) || { saved: 0 };
+    const rate = current.income > 0 ? Math.round(current.saved / current.income * 1000) / 10 : 0;
+    const gaugeValue = Math.max(0, Math.min(100, rate));
+    let comparison = "No prior-month comparison";
+    let comparisonClass = "neutral";
+    if (previous.saved > 0) {
+      const delta = (current.saved - previous.saved) / Math.abs(previous.saved) * 100;
+      comparison = `${delta > 0 ? "+" : ""}${delta.toFixed(1)}% vs. last month`;
+      comparisonClass = delta > 0 ? "positive" : delta < 0 ? "negative" : "neutral";
+    } else if (current.saved > 0) {
+      comparison = "Up from no savings last month";
+      comparisonClass = "positive";
+    }
+    const savedLabel = current.saved < 0 ? `${formatKsh(Math.abs(current.saved))} shortfall after spending` : `${formatKsh(current.saved)} saved this month`;
+    return `<div class="stats-savings-view"><div class="stats-savings-gauge" style="--savings-progress:${gaugeValue}%" role="img" aria-label="Savings rate ${rate}%"><div><strong>${rate}%</strong><span>SAVINGS RATE</span></div></div><div class="stats-savings-copy"><strong>${escapeHTML(savedLabel)}</strong><span class="stats-savings-comparison ${comparisonClass}">${escapeHTML(comparison)}</span></div></div>`;
+  }
+  if (view === "cash-flow") {
+    const max = Math.max(1, ...months.flatMap(item => [item.income, item.spending]));
+    const ticks = [0, 1, 2, 3].map(index => Math.round(max * (1 - index / 3)));
+    const monthEvery = months.length >= 24 ? 2 : 1;
+    return `<div class="stats-cashflow-chart" role="img" aria-label="Monthly income and spending comparison">
+      <div class="stats-cf-y-axis">${ticks.map(value => `<span>${escapeHTML(formatCompactKsh(value))}</span>`).join("")}</div>
+      <div class="stats-cf-plot">
+        <div class="stats-cf-gridlines" aria-hidden="true">${ticks.map(() => "<span></span>").join("")}</div>
+        <div class="stats-cf-columns" style="grid-template-columns:repeat(${months.length},minmax(0,1fr))">${months.map(item => `<div class="stats-cf-month-group"><i class="income" style="height:${item.income ? Math.max(1, item.income / max * 100) : 0}%" title="${escapeHTML(item.label)} income: ${escapeHTML(formatKsh(item.income))}"></i><i class="spending" style="height:${item.spending ? Math.max(1, item.spending / max * 100) : 0}%" title="${escapeHTML(item.label)} expenses: ${escapeHTML(formatKsh(item.spending))}"></i></div>`).join("")}</div>
+      </div>
+      <span aria-hidden="true"></span>
+      <div class="stats-cf-months" style="grid-template-columns:repeat(${months.length},minmax(0,1fr))">${months.map((item, index) => `<span title="${escapeHTML(item.key)}">${index % monthEvery === 0 ? escapeHTML(item.label) : ""}</span>`).join("")}</div>
+    </div>`;
+  }
+  const width = 760;
+  const height = view === "net-worth" ? 280 : 220;
+  const left = 60;
+  const right = 740;
+  const top = view === "net-worth" ? 30 : 20;
+  const bottom = view === "net-worth" ? 236 : 178;
+  const selected = view === "net-worth"
+    ? getStatsNetWorthSnapshots(currentNetWorth).filter(item => item.month >= months[0]?.key && item.month <= months.at(-1)?.key)
+    : months;
+  const keyIndex = new Map(months.map((item, index) => [item.key, index]));
+  const values = selected.map(item => item.value);
+  const min = 0;
+  const max = Math.max(1, ...values);
+  const range = Math.max(1, max - min);
+  const slotWidth = (right - left) / Math.max(months.length, 1);
+  const x = index => left + slotWidth * (index + 0.5);
+  const y = value => bottom - ((value - min) / range) * (bottom - top);
+  const grid = [0, 1, 2, 3].map(index => {
+    const value = max - (range * index / 3);
+    const yy = top + (bottom - top) * index / 3;
+    return `<line class="stats-chart-grid" x1="${left}" y1="${yy}" x2="${right}" y2="${yy}"/><text class="stats-chart-axis" x="${left - 8}" y="${yy + 4}" text-anchor="end">${formatCompactKsh(value)}</text>`;
+  }).join("") + `<line class="stats-chart-y-axis" x1="${left}" y1="${top}" x2="${left}" y2="${bottom}"/>`;
+  const monthLabels = months.map((item, index) => `<text class="stats-chart-month" x="${x(index)}" y="${height - 14}" text-anchor="middle">${escapeHTML(item.label)}</text>`).join("");
+  let content = "";
+  {
+    const points = selected.map(item => ({ ...item, index: keyIndex.get(item.month) })).filter(item => item.index !== undefined);
+    content = points.slice(1).map((item, index) => {
+      const previous = points[index];
+      return `<line class="stats-chart-net-line" x1="${x(previous.index)}" y1="${y(previous.value)}" x2="${x(item.index)}" y2="${y(item.value)}"/>`;
+    }).join("") + points.map(item => `<circle class="stats-chart-net-point" cx="${x(item.index)}" cy="${y(item.value)}" r="5"><title>${escapeHTML(item.month)} net worth snapshot: ${escapeHTML(formatKsh(item.value))}</title></circle>`).join("");
+    if (!points.length) content = `<text class="stats-chart-empty" x="400" y="120" text-anchor="middle">Net worth history will appear as monthly snapshots are recorded.</text>`;
+  }
+  const aria = "Recorded net worth trend";
+  return `<svg class="stats-trend-chart${view === "net-worth" ? " is-net-worth" : ""}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${aria}">${grid}${content}${monthLabels}</svg>`;
+}
+
 function renderStatsPage() {
   const inventory = getInventoryEntries();
   const power = getPowerUpData();
   const reportSpending = spendingForReport(power.spending);
-  const totals = getPowerUpTotals();
   const balance = getInventoryTotals();
   const quests = getQuests();
-  const savingsRate = totals.reportIncome > 0
-    ? Math.round((totals.cashAfterSpending / totals.reportIncome) * 1000) / 10
-    : 0;
+  const active = activeQuests(quests);
+  const monthlySeries = getStatsMonthlySeries(statsRangeMonths);
   const categories = budgetCategories.map(category => {
     const planned = budgetTotalForReport(power.budgets, category);
     const spent = reportSpending.filter(item => item.category === category)
@@ -3091,7 +3611,7 @@ function renderStatsPage() {
     name: category.name,
     value: inventory.filter(item => item.type === "asset" && item.category === category.name)
       .reduce((sum, item) => sum + Number(item.amount || 0), 0)
-  }));
+  })).filter(item => item.value > 0);
   const maxAsset = Math.max(1, ...assetMix.map(item => item.value));
   const categoryRows = categories.length
     ? categories.map(item => `
@@ -3101,46 +3621,48 @@ function renderStatsPage() {
           <small class="stats-planned-label">${formatKsh(item.planned)} planned</small>
         </div>`).join("")
     : `<div class="stats-empty">Add budget lines and spending records in Power-Up to see a category comparison.</div>`;
-  const assetRows = assetMix.map(item => `
+  const assetRows = assetMix.length ? assetMix.map(item => `
       <div class="stats-asset-row">
         <span>${escapeHTML(item.name)}</span>
         <div class="stats-single-track"><i style="width:${Math.round((item.value / maxAsset) * 100)}%"></i></div>
         <strong>${formatKsh(item.value)}</strong>
-      </div>`).join("");
-  const monthly = [
-    { label: "Period income", value: totals.reportIncome, color: "income" },
-    { label: "Period budget", value: totals.reportBudget, color: "planned" },
-    { label: "Period spending", value: totals.spending, color: "spent" },
-    { label: "After spending", value: totals.cashAfterSpending, color: "remaining" }
-  ];
-  const maxMonthly = Math.max(1, ...monthly.map(item => Math.abs(item.value)));
-  const monthlyRows = monthly.map(item => `
-      <div class="stats-monthly-row">
-        <div><span>${item.label}</span><strong>${formatKsh(item.value)}</strong></div>
-        <div class="stats-single-track"><i class="${item.color}" style="width:${Math.min(100, Math.round((Math.abs(item.value) / maxMonthly) * 100))}%"></i></div>
-      </div>`).join("");
+      </div>`).join("")
+    : `<div class="stats-empty">Add assets in Inventory to see how they are distributed.</div>`;
+  const cashFlowLegend = `<div class="stats-main-legend"><span><i class="income"></i>Income</span><span><i class="spending"></i>Expenses</span></div>`;
 
   return `
     <section class="stats-page">
       <header class="inventory-heading">
         <div>
-          <div class="eyebrow"><span class="eyebrow-line"></span> YOUR FINANCIAL SIGNALS</div>
-          <h1>See the full<br><em>pattern.</em></h1>
-          <p class="welcome-sub">A live snapshot of your balances and monthly plan, based on the information you’ve entered.</p>
+          <div class="eyebrow"><span class="eyebrow-line"></span> FINANCIAL OVERVIEW</div>
+          <h1>Your Financial <em>Stats</em></h1>
+          <p class="welcome-sub">Visual insights to help you make better decisions.</p>
         </div>
-        <button class="inventory-action secondary" type="button" data-jump="Power-Up">＋ Update monthly plan</button>
+        <label class="stats-range-select">Chart range
+          <select data-stats-range aria-label="Chart time range">
+            ${[{ months: 6, label: "6 months" }, { months: 12, label: "1 year" }, { months: 24, label: "2 years" }].map(range => `<option value="${range.months}" ${statsRangeMonths === range.months ? "selected" : ""}>${range.label}</option>`).join("")}
+          </select>
+        </label>
       </header>
-      <section class="inventory-summary stats-summary" aria-label="Financial statistics">
-        <article class="inventory-summary-card net-worth-summary"><span class="inventory-label">NET WORTH</span><strong>${formatKsh(balance.netWorth)}</strong><span class="inventory-note">Assets less liabilities</span></article>
-        <article class="inventory-summary-card"><span class="inventory-label">PERIOD INCOME</span><strong>${formatKsh(totals.reportIncome)}</strong><span class="inventory-note">${power.incomes.length} income ${power.incomes.length === 1 ? "source" : "sources"}</span></article>
-        <article class="inventory-summary-card"><span class="inventory-label">PERIOD SPENDING</span><strong>${formatKsh(totals.spending)}</strong><span class="inventory-note">${reportSpending.length} recorded ${reportSpending.length === 1 ? "expense" : "expenses"}</span></article>
-        <article class="inventory-summary-card"><span class="inventory-label">AFTER SPENDING</span><strong>${formatKsh(totals.cashAfterSpending)}</strong><span class="inventory-note">${savingsRate}% of period income</span></article>
+      <section class="stats-trend-section" aria-label="Financial trends">
+        <div class="stats-trend-grid">
+          <article class="panel stats-primary-panel stats-cashflow-panel">
+            <div class="stats-chart-heading"><div><h2>Monthly Cash Flow</h2></div>${cashFlowLegend}</div>
+            ${renderStatsTrend("cash-flow", monthlySeries, balance.netWorth)}
+          </article>
+          <article class="panel stats-primary-panel stats-secondary-chart stats-savings-panel">
+            <div class="stats-chart-heading"><h2>Savings Rate</h2></div>
+            ${renderStatsTrend("savings", monthlySeries, balance.netWorth)}
+          </article>
+          <article class="panel stats-primary-panel stats-secondary-chart stats-net-worth-panel">
+            <div class="stats-chart-heading"><h2>Net Worth Trend</h2></div>
+            ${renderStatsTrend("net-worth", monthlySeries, balance.netWorth)}
+          </article>
+        </div>
       </section>
-      <section class="stats-panels">
-        <article class="panel stats-panel">
-          <div class="panel-heading"><div><div class="section-kicker">${escapeHTML(getReportPeriod().toUpperCase())} OVERVIEW</div><h2>Income &amp; outflow</h2></div><span class="inventory-account-count">${escapeHTML(reportMonthLabel())}</span></div>
-          <div class="stats-monthly-list">${monthlyRows}</div>
-        </article>
+      <details class="stats-more-insights">
+        <summary class="stats-more-heading"><div><h2>More insights</h2><p>Supporting details for your budget, assets, and goals.</p></div><span class="stats-more-chevron" aria-hidden="true"></span></summary>
+        <section class="stats-panels">
         <article class="panel stats-panel">
           <div class="panel-heading"><div><div class="section-kicker">SPENDING BREAKDOWN</div><h2>Budget vs. actual</h2></div><span class="inventory-account-count">${categories.length} categories</span></div>
           <div class="stats-category-list">${categoryRows}</div>
@@ -3152,68 +3674,137 @@ function renderStatsPage() {
           <div class="inventory-panel-total"><span>Total assets</span><strong>${formatKsh(balance.assets)}</strong></div>
         </article>
         <article class="panel stats-panel">
-          <div class="panel-heading"><div><div class="section-kicker">GOALS WITH MOMENTUM</div><h2>Quest progress</h2></div><span class="inventory-account-count">${quests.length} of 4</span></div>
-          <div class="stats-quest-list">${quests.length ? quests.map(quest => `<div class="stats-quest-row"><span>${escapeHTML(quest.name)}</span><strong>${questProgress(quest)}%</strong><div class="quest-track"><i style="width:${questProgress(quest)}%"></i></div></div>`).join("") : `<div class="stats-empty">No active quests. Create a goal on the Quests page to track progress here.</div>`}</div>
+          <div class="panel-heading"><div><div class="section-kicker">GOALS WITH MOMENTUM</div><h2>Quest progress</h2></div><span class="inventory-account-count">${active.length} active</span></div>
+          <div class="stats-quest-list">${active.length ? active.map(quest => `<div class="stats-quest-row"><span>${escapeHTML(quest.name)}</span><strong>${questProgress(quest)}%</strong><div class="quest-track"><i style="width:${questProgress(quest)}%"></i></div></div>`).join("") : `<div class="stats-empty">No active quests. Create a goal on the Quests page to track progress here.</div>`}</div>
         </article>
-      </section>
+        </section>
+      </details>
     </section>
     ${renderAppFooter()}`;
 }
 
+document.addEventListener("change", event => {
+  const range = event.target.closest("select[data-stats-range]");
+  if (!range) return;
+  const months = Number(range.value);
+  if (![6, 12, 24].includes(months) || months === statsRangeMonths) return;
+  statsRangeMonths = months;
+  content.innerHTML = renderStatsPage();
+});
+
+function achievementMedalIcon(kind, tone, earned) {
+  const symbols = {
+    asset: '<path d="m32 13-12 14h8l-3 13 16-19h-9l3-8Z"/>',
+    portfolio: '<path d="M19 39V26h9v13m4 0V17h9v22m-25 4h28"/>',
+    investment: '<path d="m18 36 9-9 6 5 12-15m-8 0h8v8"/>',
+    income: '<path d="M32 15v30m10-23c-2-5-17-6-18 1-1 8 18 5 17 14-1 8-17 8-20 1"/>',
+    budget: '<path d="M22 15h20v30H22zM27 23h10m-10 7h10m-10 7h6"/>',
+    spending: '<path d="M21 16h22v29H21zM26 24h12m-12 7h12m-12 7h7"/>',
+    goal: '<circle cx="32" cy="30" r="14"/><circle cx="32" cy="30" r="7"/><path d="m28 30 3 3 6-7"/>',
+    emergency: '<path d="m32 14 13 5v9c0 8-5 14-13 18-8-4-13-10-13-18v-9l13-5Z"/><path d="m26 30 4 4 8-9"/>',
+    debt: '<rect x="19" y="19" width="26" height="22" rx="3"/><path d="M20 26h24m-17 9h7m-2-19 4-5"/>',
+    retirement: '<circle cx="32" cy="30" r="14"/><path d="M32 20v11l8 5m-22 8-4 5m6-5-1 6m-4-6-5 4"/>',
+    networth: '<path d="M19 40V28h8v12m4 0V20h8v20m4 0V14h6v26M16 44h34"/>',
+    surplus: '<circle cx="32" cy="30" r="15"/><path d="M32 21v18m-6-12c1-4 11-4 12 0 1 5-12 3-12 8 0 5 10 5 12 1"/>'
+  };
+  return `<span class="achievement-medal ${earned ? "is-earned" : "is-locked"}" style="--medal-tone:${tone}" aria-hidden="true"><svg viewBox="0 0 64 72" focusable="false"><path class="achievement-medal-ribbon" d="M19 41h26l-3 28-10-7-10 7z"/><circle class="achievement-medal-disc" cx="32" cy="28" r="22"/><circle class="achievement-medal-ring" cx="32" cy="28" r="17"/><g class="achievement-medal-symbol">${symbols[kind] || symbols.goal}</g></svg></span>`;
+}
+
 function renderAchievementsPage() {
   const inventory = getInventoryEntries();
+  const assets = inventory.filter(item => item.type === "asset");
   const power = getPowerUpData();
   const totals = getPowerUpTotals();
   const balance = getInventoryTotals();
   const quests = getQuests();
-  const highestQuestProgress = quests.reduce((highest, quest) => Math.max(highest, questProgress(quest)), 0);
-  const milestones = [
-    { id: "first-asset", icon: "◉", name: "First asset recorded", detail: "Add your first asset to Inventory.", progress: inventory.some(item => item.type === "asset") ? 1 : 0, target: 1 },
-    { id: "monthly-plan", icon: "▤", name: "A plan in place", detail: "Add at least one income source and one budget line.", progress: Math.min(2, Number(power.incomes.length > 0) + Number(power.budgets.length > 0)), target: 2 },
-    { id: "spending-tracked", icon: "↗", name: "Spending tracked", detail: "Record your first monthly expense.", progress: power.spending.length > 0 ? 1 : 0, target: 1 },
-    { id: "goal-reached", icon: "◎", name: "Quest complete", detail: "Reach the target on any active quest.", progress: highestQuestProgress, target: 100, suffix: "%" },
-    { id: "positive-flow", icon: "⌁", name: "Positive cash flow", detail: "Record income greater than spending for the selected period.", progress: totals.reportIncome > 0 ? Math.max(0, Math.min(100, Math.round((totals.cashAfterSpending / totals.reportIncome) * 100))) : 0, target: 100, suffix: "%", earned: totals.reportIncome > 0 && totals.cashAfterSpending > 0 },
-    { id: "net-worth-100k", icon: "◇", name: "KSh 100,000 net worth", detail: "Build your net worth to KSh 100,000.", progress: Math.max(0, Math.min(100, Math.round((balance.netWorth / 100000) * 100))), target: 100, suffix: "%", earned: balance.netWorth >= 100000 }
+  const completedQuests = quests.filter(quest => questProgress(quest) >= 100);
+  const completedInCategory = category => completedQuests.filter(quest => quest.category === category).length;
+  const spendingMonths = new Set(power.spending.map(item => item.month || String(item.date || "").slice(0, 7)).filter(month => /^\d{4}-\d{2}$/.test(month))).size;
+  const investmentAssets = assets.filter(item => item.category === "Investments").length;
+  const candidates = [
+    { id: "first-asset", name: "First asset", detail: "Record your first asset in Inventory.", progress: assets.length, target: 1, format: "count", icon: "asset", tone: "#1c9b76" },
+    { id: "portfolio-builder", name: "Portfolio builder", detail: "Track three assets in your portfolio.", progress: assets.length, target: 3, format: "count", icon: "portfolio", tone: "#368bb8" },
+    { id: "investment-starter", name: "Investment starter", detail: "Add an asset in the Investments category.", progress: investmentAssets, target: 1, format: "count", icon: "investment", tone: "#7f63b7" },
+    { id: "income-foundation", name: "Income foundation", detail: "Add your first income source in Power-Up.", progress: power.incomes.length, target: 1, format: "count", icon: "income", tone: "#219b73" },
+    { id: "income-diversifier", name: "Income diversifier", detail: "Track two income sources.", progress: power.incomes.length, target: 2, format: "count", icon: "income", tone: "#3b83ba" },
+    { id: "income-builder", name: "Multiple income streams", detail: "Track three income sources.", progress: power.incomes.length, target: 3, format: "count", icon: "income", tone: "#7f63b7" },
+    { id: "monthly-plan", name: "A plan in place", detail: "Add an income source and a budget line.", progress: Number(power.incomes.length > 0) + Number(power.budgets.length > 0), target: 2, format: "count", icon: "budget", tone: "#168b80" },
+    { id: "budget-builder", name: "Budget builder", detail: "Plan spending across three budget categories.", progress: new Set(power.budgets.map(item => item.category).filter(Boolean)).size, target: 3, format: "count", icon: "budget", tone: "#3089ad" },
+    { id: "spending-tracked", name: "First expense recorded", detail: "Record your first expense.", progress: power.spending.length, target: 1, format: "count", icon: "spending", tone: "#d88c36" },
+    { id: "spending-streak-3", name: "Spending awareness", detail: "Track expenses in three different months.", progress: spendingMonths, target: 3, format: "count", icon: "spending", tone: "#cc7049" },
+    { id: "spending-streak-12", name: "Year-round tracker", detail: "Track expenses across twelve different months.", progress: spendingMonths, target: 12, format: "count", icon: "spending", tone: "#9e5d67" },
+    { id: "goal-reached", name: "First goal achieved", detail: "Complete any financial quest.", progress: completedQuests.length, target: 1, format: "count", icon: "goal", tone: "#d7a42d" },
+    { id: "goals-achieved-3", name: "Goal setter", detail: "Complete three financial quests.", progress: completedQuests.length, target: 3, format: "count", icon: "goal", tone: "#c58b28" },
+    { id: "goals-achieved-5", name: "Quest champion", detail: "Complete five financial quests.", progress: completedQuests.length, target: 5, format: "count", icon: "goal", tone: "#a97822" },
+    { id: "emergency-goal-achieved", name: "Emergency fund builder", detail: "Complete an Emergency Buffer quest.", progress: completedInCategory("Emergency Buffer"), target: 1, format: "count", icon: "emergency", tone: "#d19b28" },
+    { id: "debt-goal-achieved", name: "Debt goal achieved", detail: "Complete a Debt Eradication quest.", progress: completedInCategory("Debt Eradication"), target: 1, format: "count", icon: "debt", tone: "#4387b7" },
+    { id: "asset-goal-achieved", name: "Asset goal achieved", detail: "Complete an Asset Accumulation quest.", progress: completedInCategory("Asset Accumulation"), target: 1, format: "count", icon: "investment", tone: "#219b73" },
+    { id: "retirement-goal-achieved", name: "Future funder", detail: "Complete a Retirement & Financial Independence quest.", progress: completedInCategory("Retirement & Financial Independence"), target: 1, format: "count", icon: "retirement", tone: "#765ea5" },
+    { id: "net-worth-100k", name: "Net worth: 100K", detail: "Reach 100,000 in net worth.", progress: Math.max(0, balance.netWorth), target: 100000, format: "money", icon: "networth", tone: "#3186a9" },
+    { id: "net-worth-500k", name: "Net worth: 500K", detail: "Reach 500,000 in net worth.", progress: Math.max(0, balance.netWorth), target: 500000, format: "money", icon: "networth", tone: "#287b9c" },
+    { id: "net-worth-1m", name: "Net worth: 1 million", detail: "Reach 1,000,000 in net worth.", progress: Math.max(0, balance.netWorth), target: 1000000, format: "money", icon: "networth", tone: "#235d83" },
+    { id: "positive-flow", name: "Positive cash flow", detail: "Finish a reporting period with income above expenses.", progress: totals.reportIncome > 0 && totals.cashAfterSpending > 0 ? 1 : 0, target: 1, format: "count", icon: "surplus", tone: "#179678" }
   ];
-  const earnedIds = milestones
-    .filter(milestone => Number(milestone.progress) >= Number(milestone.target) || milestone.earned === true)
-    .map(milestone => milestone.id);
-  milestones.forEach(milestone => { milestone.isEarned = earnedIds.includes(milestone.id); });
+  let previouslyEarned = [];
   try {
-    localStorage.setItem(achievementStorageKey, JSON.stringify(earnedIds));
-  } catch {
-    // Keep earned state visible in this render if storage is unavailable.
-  }
-  const earnedCount = milestones.filter(item => item.isEarned).length;
-  const cards = milestones.map(milestone => {
-    const progress = Math.min(100, Math.round((milestone.progress / milestone.target) * 100));
-    const progressLabel = milestone.suffix === "%"
-      ? `${Math.min(milestone.progress, 100)}% complete`
-      : `${Math.min(milestone.progress, milestone.target)} of ${milestone.target}`;
-    return `
-      <article class="achievement-card ${milestone.isEarned ? "is-earned" : "is-locked"}">
-        <div class="achievement-card-top"><span class="achievement-icon">${milestone.icon}</span><span class="achievement-status">${milestone.isEarned ? "EARNED" : "IN PROGRESS"}</span></div>
-        <h2>${escapeHTML(milestone.name)}</h2>
-        <p>${escapeHTML(milestone.detail)}</p>
-        <div class="achievement-progress-label"><span>${milestone.isEarned ? "Milestone reached" : progressLabel}</span><strong>${milestone.isEarned ? "100%" : `${progress}%`}</strong></div>
-        <div class="achievement-track"><i style="width:${milestone.isEarned ? 100 : progress}%"></i></div>
-      </article>`;
+    const stored = JSON.parse(localStorage.getItem(achievementStorageKey) || "[]");
+    if (Array.isArray(stored)) previouslyEarned = stored.filter(id => typeof id === "string");
+  } catch { /* Continue with achievements calculated from current records. */ }
+  const earnedIds = new Set(previouslyEarned);
+  candidates.forEach(item => {
+    item.isEarned = earnedIds.has(item.id) || Number(item.progress) >= Number(item.target);
+    if (item.isEarned) earnedIds.add(item.id);
+  });
+  try {
+    localStorage.setItem(achievementStorageKey, JSON.stringify([...earnedIds]));
+  } catch { /* Achievement display stays available if storage is unavailable. */ }
+
+  const earnedCount = candidates.filter(item => item.isEarned).length;
+  const lockedCount = candidates.length - earnedCount;
+  const visible = candidates.filter(item => activeAchievementFilter === "earned" ? item.isEarned : !item.isEarned);
+  const cards = visible.map(item => {
+    const progress = item.isEarned ? 100 : Math.min(100, Math.round(Math.max(0, Number(item.progress)) / item.target * 100));
+    const shownProgress = Math.min(item.target, Math.max(0, Number(item.progress)));
+    const progressLabel = item.format === "money"
+      ? `${formatKsh(shownProgress)} / ${formatKsh(item.target)}`
+      : `${shownProgress} of ${item.target}`;
+    return `<article class="achievement-card ${item.isEarned ? "is-earned" : "is-locked"}">
+      <div class="achievement-card-top">${achievementMedalIcon(item.icon, item.tone, item.isEarned)}<span class="achievement-status">${item.isEarned ? "EARNED" : progress ? "IN PROGRESS" : "LOCKED"}</span></div>
+      <h2>${escapeHTML(item.name)}</h2>
+      <p>${escapeHTML(item.detail)}</p>
+      <div class="achievement-progress-label"><span>${item.isEarned ? "Milestone achieved" : progressLabel}</span><strong>${item.isEarned ? "100%" : `${progress}%`}</strong></div>
+      <div class="achievement-track"><i style="width:${progress}%"></i></div>
+    </article>`;
   }).join("");
+  const emptyState = `<div class="achievement-empty"><span class="achievement-empty-medal">✦</span><strong>${activeAchievementFilter === "earned" ? "Your first medal is within reach" : "All achievements earned"}</strong><p>${activeAchievementFilter === "earned" ? "Complete a financial quest or add your first records to unlock a medal." : "You have unlocked every achievement currently available."}</p></div>`;
 
   return `
     <section class="achievements-page">
       <header class="inventory-heading">
         <div>
-          <div class="eyebrow"><span class="eyebrow-line"></span> MILESTONES EARNED</div>
-          <h1>Progress worth<br><em>keeping.</em></h1>
-          <p class="welcome-sub">Milestones unlock when your saved financial records meet each goal. Add your first account, plan, or quest to get started.</p>
+          <div class="eyebrow"><span class="eyebrow-line"></span> FINANCIAL MILESTONES</div>
+          <h1>Your <em>Achievements</em></h1>
+          <p class="welcome-sub">Celebrate goals achieved and build strong money habits over time.</p>
         </div>
-        <div class="achievement-score"><strong>${earnedCount} / ${milestones.length}</strong><span>milestones earned</span></div>
+        <div class="achievement-score"><strong>${earnedCount} / ${candidates.length}</strong><span>medals earned</span></div>
       </header>
-      <section class="achievement-grid" aria-label="Financial achievements">${cards}</section>
+      <nav class="achievement-filters" aria-label="Filter achievements">
+        <button type="button" class="achievement-filter ${activeAchievementFilter === "earned" ? "is-active" : ""}" data-achievement-filter="earned" aria-pressed="${activeAchievementFilter === "earned"}">Earned <span>${earnedCount}</span></button>
+        <button type="button" class="achievement-filter ${activeAchievementFilter === "locked" ? "is-active" : ""}" data-achievement-filter="locked" aria-pressed="${activeAchievementFilter === "locked"}">Locked <span>${lockedCount}</span></button>
+      </nav>
+      <section class="achievement-grid" aria-label="${activeAchievementFilter === "earned" ? "Earned" : "Locked"} financial achievements">${cards || emptyState}</section>
     </section>
     ${renderAppFooter()}`;
 }
+
+document.addEventListener("click", event => {
+  const filter = event.target.closest("[data-achievement-filter]");
+  if (!filter || !content.contains(filter)) return;
+  const value = filter.dataset.achievementFilter;
+  if (!["earned", "locked"].includes(value) || value === activeAchievementFilter) return;
+  activeAchievementFilter = value;
+  content.innerHTML = renderAchievementsPage();
+});
 
 // Select a page, refresh its data, and update the active tab and URL.
 function showPage(page) {
@@ -3263,6 +3854,7 @@ function showPage(page) {
   if (page === "Contact") {
     window.location.hash = "contact";
     content.innerHTML = renderContactPage();
+    setupContactFaq();
     return;
   }
   if (page === "Profile") {
@@ -3273,6 +3865,7 @@ function showPage(page) {
   if (page === "Settings") {
     window.location.hash = "settings";
     content.innerHTML = renderSettingsPage();
+    setupSettingsTabs();
     return;
   }
   const info = pageDescriptions[page];
@@ -3398,7 +3991,6 @@ function renderPowerUpPage() {
         <div class="power-tabs" role="tablist" aria-label="Power-Up sections" data-power-tablist>
           <button id="power-tab-income" type="button" role="tab" aria-selected="${activePowerTab === "income"}" aria-controls="power-panel-income" tabindex="${activePowerTab === "income" ? 0 : -1}" data-power-tab="income">Income Streams</button>
           <button id="power-tab-budget" type="button" role="tab" aria-selected="${activePowerTab === "budget"}" aria-controls="power-panel-budget" tabindex="${activePowerTab === "budget" ? 0 : -1}" data-power-tab="budget">Budget Categories</button>
-          <button id="power-tab-calculator" type="button" role="tab" aria-selected="${activePowerTab === "calculator"}" aria-controls="power-panel-calculator" tabindex="${activePowerTab === "calculator" ? 0 : -1}" data-power-tab="calculator">Take-Home Pay Calculator</button>
         </div>
         <section class="power-tab-panel" id="power-panel-income" role="tabpanel" aria-labelledby="power-tab-income" data-power-panel="income" ${activePowerTab !== "income" ? "hidden" : ""}>
           <div class="power-desktop-income-layout">
@@ -3411,9 +4003,6 @@ function renderPowerUpPage() {
             ${renderPowerListPanel("budget", "Monthly budget", "MONEY WITH A JOB", budgetRows, "Total planned budget", totals.budget)}
             ${renderPowerListPanel("spending", "Monthly spending", "MONEY SPENT", spendingRows, "Total monthly spending", totals.spending)}
           </div>
-        </section>
-        <section class="power-tab-panel" id="power-panel-calculator" role="tabpanel" aria-labelledby="power-tab-calculator" data-power-panel="calculator" ${activePowerTab !== "calculator" ? "hidden" : ""}>
-          ${renderTaxWidget(false, "-desktop-calculator", true)}
         </section>
       </section>
 
@@ -3771,15 +4360,15 @@ function renderTaxCompactResults(p) {
 
 // Contact page: team directory, availability helpers, and a simple message form.
 const supportChannels = [
-  { dept: "Support", detail: "Help using NetraOS", email: "support@netraos.io", hours: "Mon – Fri, 08:00 – 18:00", sla: "Within 2 hours", window: { start: 8, end: 18 } },
+  { dept: "Support", detail: "Help using NetraOS", email: "hello@netraos.co.ke", hours: "Mon – Fri, 08:00 – 18:00", sla: "Within 2 hours", window: { start: 8, end: 18 } },
   { dept: "Security & Privacy", detail: "Privacy and security questions", email: "security@netraos.io", hours: "Always monitored", sla: "Within 30 minutes", window: null },
   { dept: "Partnerships", detail: "Integrations and collaboration", email: "integrations@netraos.io", hours: "Mon – Fri, 09:00 – 17:00", sla: "Within 24 hours", window: { start: 9, end: 17 } },
   { dept: "Press & Media", detail: "Interviews and media enquiries", email: "press@netraos.io", hours: "Mon – Fri, 09:00 – 17:00", sla: "Within 48 hours", window: { start: 9, end: 17 } }
 ];
 
 const contactDestinations = {
-  support: { label: "General support", to: "support@netraos.io", tag: "Support" },
-  bug: { label: "Report a problem", to: "support@netraos.io", tag: "Problem report" },
+  support: { label: "General support", to: "hello@netraos.co.ke", tag: "Support" },
+  bug: { label: "Report a problem", to: "hello@netraos.co.ke", tag: "Problem report" },
   security: { label: "Security or privacy", to: "security@netraos.io", tag: "Security" },
   partnerships: { label: "Partnerships", to: "integrations@netraos.io", tag: "Partnership" },
   press: { label: "Press & media", to: "press@netraos.io", tag: "Press" }
@@ -3840,7 +4429,7 @@ function renderContactPage() {
           </label>
           <label class="cx-field"><span>Message</span><textarea name="payload" maxlength="2000" rows="6" placeholder="How can we help?"></textarea></label>
           <div class="cx-actions">
-            <button class="cx-send" type="submit">Send message</button>
+            <button class="cx-send" type="submit"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"/></svg>Send message</button>
             <button class="cx-clear" type="button" data-contact-clear>Clear</button>
           </div>
           <p class="cx-status" role="status" aria-live="polite"></p>
@@ -3851,19 +4440,23 @@ function renderContactPage() {
           <article class="panel cx-card">
             <h2>Reach us directly</h2>
             <ul class="cx-lines">
-              <li><span class="cx-label">Phone</span><a href="tel:+254700000988">+254 (0) 700 000 988</a></li>
-              <li><span class="cx-label">WhatsApp</span><a href="https://wa.me/254799000988" target="_blank" rel="noopener">+254 (0) 799 000 988</a></li>
-              <li><span class="cx-label">Email</span><a href="mailto:support@netraos.io">support@netraos.io</a></li>
-              <li><span class="cx-label">Office</span><address>NetraOS Technologies Lab<br>The Mirage Towers, 8th Floor, Tower 2<br>Chiromo Road, Westlands<br>Nairobi, Kenya<br>P.O. Box 40100 - 00100</address></li>
+              <li><span class="cx-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h3l2 5-2 1.5a14 14 0 0 0 4.5 4.5L16 12l5 2v3c0 1.1-.9 2-2 2C10.7 19 5 13.3 5 6c0-1.7.8-3 2-3Z"/></svg>Phone</span><a href="tel:+254700000988">+254 (0) 700 000 988</a></li>
+              <li><span class="cx-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4.4 8-12a8 8 0 1 0-16 0c0 7.6 8 12 8 12Z"/><circle cx="12" cy="10" r="2.5"/></svg>WhatsApp</span><a href="https://wa.me/254799000988" target="_blank" rel="noopener">+254 (0) 799 000 988</a></li>
+              <li><span class="cx-label"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>Email</span><a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a></li>
+              <li><span class="cx-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-3h4v3"/></svg>Office</span><address>NetraOS Technologies Lab<br>The Mirage Towers, 8th Floor, Tower 2<br>Chiromo Road, Westlands<br>Nairobi, Kenya<br>P.O. Box 40100 - 00100</address></li>
             </ul>
           </article>
+          <section class="panel cx-card cx-faq" aria-labelledby="cx-faq-title">
+            <h2 id="cx-faq-title">Frequently asked questions</h2>
+            <div class="faq-list cx-faq-list">
+              <article class="faq-item" data-contact-faq-item><button class="faq-q" type="button" aria-expanded="false" aria-controls="contact-faq-asset"><span class="faq-q-text">How do I add an asset?</span><span class="faq-q-icon" aria-hidden="true">+</span></button><div class="faq-a" id="contact-faq-asset" role="region"><div class="faq-a-inner"><p>Open Inventory, choose Add Item, select Asset, then enter its name, value and account or source.</p></div></div></article>
+              <article class="faq-item" data-contact-faq-item><button class="faq-q" type="button" aria-expanded="false" aria-controls="contact-faq-tax"><span class="faq-q-text">How is take-home pay calculated?</span><span class="faq-q-icon" aria-hidden="true">+</span></button><div class="faq-a" id="contact-faq-tax" role="region"><div class="faq-a-inner"><p>The Power-Up calculator estimates PAYE, NSSF, SHIF and the Affordable Housing Levy from your gross pay.</p></div></div></article>
+              <article class="faq-item" data-contact-faq-item><button class="faq-q" type="button" aria-expanded="false" aria-controls="contact-faq-access"><span class="faq-q-text">Can NetraOS access my bank or M-Pesa?</span><span class="faq-q-icon" aria-hidden="true">+</span></button><div class="faq-a" id="contact-faq-access" role="region"><div class="faq-a-inner"><p>No. You enter balances yourself; NetraOS does not connect to your bank or M-Pesa account.</p></div></div></article>
+            </div>
+          </section>
         </aside>
       </section>
 
-      <section class="panel cx-card cx-team">
-        <h2>Who to contact</h2>
-        <ul class="cx-team-list">${team}</ul>
-      </section>
     </section>
     ${renderAppFooter()}`;
 }
@@ -3929,6 +4522,93 @@ function showToast(message) {
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => toast.remove(), 2800);
 }
+
+function getInAppNotifications() {
+  try {
+    const items = JSON.parse(localStorage.getItem(notificationStorageKey) || "[]");
+    return Array.isArray(items) ? items.filter(item => item && typeof item === "object" && typeof item.id === "string").slice(0, 50) : [];
+  } catch { return []; }
+}
+
+function saveInAppNotifications(items) {
+  try { localStorage.setItem(notificationStorageKey, JSON.stringify(items.slice(0, 50))); } catch { /* In-app notices are best-effort when browser storage is full. */ }
+  updateNotificationBadge();
+}
+
+function updateNotificationBadge() {
+  const button = document.querySelector(".notification-toggle");
+  if (!button) return;
+  const unread = getInAppNotifications().filter(item => !item.read).length;
+  let badge = button.querySelector("b");
+  if (!unread) {
+    badge?.remove();
+    button.setAttribute("aria-label", "Notifications");
+    button.title = "Notifications";
+    return;
+  }
+  if (!badge) {
+    badge = document.createElement("b");
+    badge.setAttribute("aria-hidden", "true");
+    button.append(badge);
+  }
+  badge.textContent = unread > 9 ? "9+" : String(unread);
+  button.setAttribute("aria-label", `Notifications, ${unread} unread`);
+  button.title = `${unread} unread notification${unread === 1 ? "" : "s"}`;
+}
+
+function createInAppNotification({ title, body, page = "Power-Up", dedupeKey = "", preference = "" }) {
+  if (preference && getStoredSettings()[preference] === false) return;
+  const items = getInAppNotifications();
+  const cutoff = Date.now() - 30 * 86400000;
+  if (dedupeKey && items.some(item => item.dedupeKey === dedupeKey && Date.parse(item.createdAt) > cutoff)) return;
+  items.unshift({
+    id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    title, body, page, dedupeKey, createdAt: new Date().toISOString(), read: false
+  });
+  saveInAppNotifications(items);
+  if (document.querySelector(".notification-center")) renderNotificationCenter();
+}
+
+function renderNotificationCenter() {
+  const center = document.querySelector(".notification-center");
+  if (!center) return;
+  const items = getInAppNotifications();
+  const unread = items.filter(item => !item.read).length;
+  center.innerHTML = `<header class="notification-center-heading"><div><strong>Notifications</strong><span>${unread ? `${unread} unread` : "You’re all caught up"}</span></div><button type="button" data-notification-read-all ${unread ? "" : "disabled"}>Mark all read</button></header>${items.length ? `<div class="notification-center-list">${items.slice(0, 12).map(item => `<article class="notification-item ${item.read ? "is-read" : "is-unread"}"><button class="notification-item-open" type="button" data-notification-open="${escapeHTML(item.id)}"><span class="notification-item-mark" aria-hidden="true">${item.read ? "✓" : "•"}</span><span class="notification-item-copy"><strong>${escapeHTML(item.title || "Update")}</strong><span>${escapeHTML(item.body || "")}</span><time>${escapeHTML(new Date(item.createdAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}</time></span></button><button class="notification-item-dismiss" type="button" data-notification-dismiss="${escapeHTML(item.id)}" aria-label="Dismiss notification">×</button></article>`).join("")}</div>` : `<div class="notification-center-empty"><span aria-hidden="true">♧</span><strong>No notifications yet</strong><p>Quest milestones, plan updates, and spending alerts will appear here.</p></div>`}`;
+}
+
+function closeNotificationCenter() {
+  document.querySelector(".notification-center")?.remove();
+  document.querySelector(".notification-toggle")?.setAttribute("aria-expanded", "false");
+}
+
+function toggleNotificationCenter(button) {
+  if (document.querySelector(".notification-center")) {
+    closeNotificationCenter();
+    return;
+  }
+  closePopover();
+  const center = document.createElement("section");
+  center.className = "notification-center";
+  center.setAttribute("role", "dialog");
+  center.setAttribute("aria-label", "Notifications");
+  document.body.append(center);
+  button.setAttribute("aria-expanded", "true");
+  button.setAttribute("aria-haspopup", "dialog");
+  const rect = button.getBoundingClientRect();
+  const right = Math.max(12, window.innerWidth - rect.right);
+  const top = Math.min(window.innerHeight - 120, rect.bottom + 8);
+  center.style.top = `${Math.max(8, top)}px`;
+  center.style.right = `${right}px`;
+  renderNotificationCenter();
+}
+
+document.addEventListener("pointerdown", event => {
+  const center = document.querySelector(".notification-center");
+  if (center && !center.contains(event.target) && !event.target.closest(".notification-toggle")) closeNotificationCenter();
+}, true);
+window.addEventListener("resize", closeNotificationCenter);
+window.addEventListener("scroll", closeNotificationCenter, { passive: true });
 
 function openMenu(button, choices) {
   if (activeMenuTrigger === button && document.querySelector(".action-popover")) {
@@ -4036,6 +4716,10 @@ function showAutoLockNudge() {
   const dialog = document.createElement("dialog");
   dialog.className = "inventory-dialog autolock-dialog";
   dialog.setAttribute("aria-labelledby", "autolock-nudge-title");
+  const appAccentStyles = getComputedStyle(appShell);
+  ["--green", "--gold", "--gold-bright", "--line"].forEach(token => {
+    dialog.style.setProperty(token, appAccentStyles.getPropertyValue(token).trim());
+  });
   dialog.innerHTML = `
     <form class="inventory-form">
       <header class="inventory-dialog-heading">
@@ -4077,6 +4761,7 @@ function showAutoLockNudge() {
     }
     dialog.remove();
     if (goToSettings) {
+      activeSettingsTab = "privacy";
       showPage("Settings");
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
         const section = document.querySelector("#autolock-settings");
@@ -4413,6 +5098,7 @@ function showPinRecoveryForm() {
       recordSecurityAudit("Reset local inactivity PIN by email verification");
       close();
       applyStoredSettings();
+      activeSettingsTab = "privacy";
       showPage("Settings");
       scheduleAutoLock();
       showToast("Your inactivity PIN has been reset.");
@@ -5235,6 +5921,10 @@ function downloadPDF() {
 // Route menu selections to date, currency, profile, settings, and export actions.
 function handleMenuChoice(action) {
   closePopover();
+  if (action.startsWith("delete-quest:")) {
+    deleteQuest(action.slice("delete-quest:".length));
+    return;
+  }
   if (action === "profile") {
     showPage("Profile");
     return;
@@ -5472,8 +6162,8 @@ function friendlyAuthMessage(error, fallback = "We couldn’t complete that just
   if (/email not confirmed|email.*not.*confirm/.test(message)) {
     return "This email still needs confirmation. The link may be in your inbox or spam folder. An expired link can be requested again after the email limit resets.";
   }
-  if (/pgrst204.*incomes|could not find the '(?:category|month)' column of 'incomes'/.test(message)) {
-    return "Your sign-in succeeded, but the database is missing a column required by NetraOS. Run supabase/migrations/20261016_add_income_category_month.sql in your Supabase project’s SQL Editor, then try again.";
+  if (/pgrst204|could not find the .* column .* in the schema cache/.test(message)) {
+    return "Your sign-in succeeded, but the database is missing a column required by NetraOS. Run supabase/migrations/20261017_add_power_up_sync_columns.sql in your Supabase project’s SQL Editor, then try again.";
   }
   if (/pgrst205|42p01|could not find the table|relation .* does not exist|schema cache/.test(message)) {
     return "Your sign-in was accepted, but the NetraOS database tables aren’t available yet. Run supabase/schema.sql in your Supabase project’s SQL Editor, then try again.";
@@ -5533,7 +6223,8 @@ document.addEventListener("submit", async event => {
       try {
         if (isSignup) {
           const termsAcceptedAt = new Date().toISOString();
-          const result = await window.NetraSupabase.signUp(email, password, { full_name: name, terms_version: termsVersion, terms_accepted_at: termsAcceptedAt });
+          const phone = String(formData.get("phone") || "").trim();
+          const result = await window.NetraSupabase.signUp(email, password, { full_name: name, phone_number: phone, terms_version: termsVersion, terms_accepted_at: termsAcceptedAt });
           if (result.error) throw result.error;
           if (!result.data.session) {
             error.textContent = `A confirmation email is on its way to ${email}. The link in it will finish setting up your account; you can return here to sign in afterward.`;
@@ -5590,6 +6281,7 @@ document.addEventListener("submit", async event => {
         ...(currentProfile || {}),
         name,
         email,
+        phone: String(formData.get("phone") || "").trim(),
         ...passwordVerifier,
         termsVersion,
         termsAcceptedAt: new Date().toISOString()
@@ -5660,6 +6352,7 @@ document.addEventListener("submit", async event => {
       name: String(formData.get("name") || "").trim(),
       username: String(formData.get("username") || "").trim().replace(/\s+/g, " "),
       email: String(formData.get("email") || "").trim().toLowerCase(),
+      phone: String(formData.get("phone") || "").trim(),
       sex: String(formData.get("sex") || ""),
       dateOfBirth: String(formData.get("dateOfBirth") || ""),
       image
@@ -5683,7 +6376,10 @@ document.addEventListener("submit", async event => {
       applyProfileAvatar();
       if (profilePreviewUrl) URL.revokeObjectURL(profilePreviewUrl);
       profilePreviewUrl = "";
-      showPage("Profile");
+      if (form.closest(".settings-page")) {
+        activeSettingsTab = "profile";
+        showPage("Settings");
+      } else showPage("Profile");
       showToast(window.NetraSupabase?.enabled ? "Profile saved; cloud sync queued." : "Profile saved in this browser.");
     } catch {
       showToast("Unable to save the profile.");
@@ -5704,9 +6400,12 @@ document.addEventListener("submit", async event => {
     const settings = {
       alwaysShowCents: formData.has("alwaysShowCents"),
       reduceMotion: formData.has("reduceMotion"),
-      darkMode: formData.has("darkMode"),
+      themeMode: ["light", "dark", "system"].includes(formData.get("themeMode")) ? String(formData.get("themeMode")) : previousSettings.themeMode,
+      darkMode: formData.get("themeMode") === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : formData.get("themeMode") === "dark",
       goalNotifications: formData.has("goalNotifications"),
       monthlyReminders: formData.has("monthlyReminders"),
+      debtNotifications: formData.has("debtNotifications"),
+      budgetNotifications: formData.has("budgetNotifications"),
       performanceTelemetryConsent: formData.has("performanceTelemetryConsent"),
       financialYearStartMonth: Number(formData.get("financialYearStartMonth")),
       paydayAnchorDay: paydayDay,
@@ -5851,7 +6550,8 @@ document.addEventListener("click", event => {
   if (themeToggle) {
     // Save the appearance choice with the other local preferences so it survives reloads.
     const settings = getStoredSettings();
-    settings.darkMode = !settings.darkMode;
+    settings.themeMode = settings.darkMode ? "light" : "dark";
+    settings.darkMode = settings.themeMode === "dark";
     appShell.classList.toggle("theme-dark", settings.darkMode);
     publicShell.classList.toggle("theme-dark", settings.darkMode);
     document.body.classList.toggle("theme-dark", settings.darkMode);
@@ -5905,6 +6605,41 @@ document.addEventListener("click", event => {
   }
   const button = target.closest("button");
   if (!button) return;
+  if (button.matches("[data-choose-profile-image]")) {
+    const form = button.closest("form");
+    const input = form?.querySelector('input[name="photo"]');
+    if (form) form.dataset.removeImage = "false";
+    input?.click();
+    return;
+  }
+  if (button.matches(".notification-toggle")) {
+    toggleNotificationCenter(button);
+    return;
+  }
+  if (button.matches("[data-notification-read-all]")) {
+    saveInAppNotifications(getInAppNotifications().map(item => ({ ...item, read: true })));
+    renderNotificationCenter();
+    return;
+  }
+  if (button.matches("[data-notification-dismiss]")) {
+    const id = button.dataset.notificationDismiss;
+    saveInAppNotifications(getInAppNotifications().filter(item => item.id !== id));
+    renderNotificationCenter();
+    return;
+  }
+  if (button.matches("[data-notification-open]")) {
+    const id = button.dataset.notificationOpen;
+    const items = getInAppNotifications();
+    const item = items.find(entry => entry.id === id);
+    if (item) {
+      item.read = true;
+      saveInAppNotifications(items);
+      const page = item.page;
+      closeNotificationCenter();
+      if (["Dashboard", "Inventory", "Power-Up", "Quests", "Stats", "Achievements", "Contact", "Profile", "Settings"].includes(page)) showPage(page);
+    }
+    return;
+  }
   if (button.matches("[data-inventory-toggle]")) {
     const row = button.closest(".inventory-account-row");
     const details = row?.querySelector("[data-inventory-details]");
@@ -5997,6 +6732,33 @@ document.addEventListener("click", event => {
     openQuestDialog();
     return;
   }
+  if (button.matches("[data-quest-filter]")) {
+    const panel = button.closest(".quest-page-panel");
+    const filter = button.dataset.questFilter;
+    if (!panel || !["active", "completed", "all"].includes(filter)) return;
+    activeQuestFilter = filter;
+    const quests = getQuests();
+    const active = activeQuests(quests);
+    const completed = quests.filter(quest => questProgress(quest) === 100).length;
+    const visible = questsForFilter(quests);
+    panel.querySelectorAll("[data-quest-filter]").forEach(tab => {
+      const selected = tab.dataset.questFilter === filter;
+      tab.classList.toggle("active", selected);
+      tab.setAttribute("aria-pressed", String(selected));
+      const count = tab.querySelector("span");
+      if (count) count.textContent = String(tab.dataset.questFilter === "active" ? active.length : tab.dataset.questFilter === "completed" ? completed : quests.length);
+    });
+    const list = panel.querySelector("[data-quest-list]");
+    if (list) list.innerHTML = visible.length ? renderQuestRows(visible) : renderQuestEmptyState(filter, active.length < 4);
+    const count = panel.querySelector(".inventory-account-count");
+    if (count) count.textContent = `${visible.length} ${visible.length === 1 ? "goal" : "goals"}`;
+    return;
+  }
+  if (button.matches("[data-quest-actions]")) {
+    const id = button.dataset.questActions;
+    openMenu(button, [{ label: "Delete quest", action: `delete-quest:${id}` }]);
+    return;
+  }
   if (button.matches("[data-edit-quest]")) {
     openQuestDialog(button.dataset.editQuest);
     return;
@@ -6008,18 +6770,21 @@ document.addEventListener("click", event => {
   if (button.matches("[data-inventory-filter]")) {
     const filter = button.dataset.inventoryFilter;
     const section = button.closest(".inventory-accounts");
+    if (!section || !["all", "asset", "liability"].includes(filter)) return;
     section?.querySelectorAll("[data-inventory-filter]").forEach(option => {
       const active = option === button;
       option.classList.toggle("active", active);
       option.setAttribute("aria-pressed", String(active));
     });
-    const rows = [...(section?.querySelectorAll(".inventory-account-row") || [])];
+    const rows = [...section.querySelectorAll(".inventory-account-rows > .inventory-account-row")];
     let visibleCount = 0;
     rows.forEach(row => {
-      row.hidden = filter !== "all" && row.dataset.inventoryType !== filter;
+      const visible = filter === "all" || row.dataset.inventoryType === filter;
+      row.hidden = !visible;
+      row.style.display = visible ? "" : "none";
       if (!row.hidden) visibleCount += 1;
     });
-    const empty = section?.querySelector("[data-inventory-filter-empty]");
+    const empty = section.querySelector("[data-inventory-filter-empty]");
     if (empty) empty.hidden = visibleCount !== 0 || rows.length === 0;
     return;
   }
@@ -6148,7 +6913,7 @@ document.addEventListener("drop", event => {
 
 // Close open action menus when the user presses Escape.
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape") closePopover();
+  if (event.key === "Escape") { closePopover(); closeNotificationCenter(); }
 });
 
 document.addEventListener("click", event => {
@@ -6176,7 +6941,15 @@ phoneQuery.addEventListener("change", () => {
 const informationCardObserver = new MutationObserver(() => enhanceInformationCards(content));
 informationCardObserver.observe(content, { childList: true, subtree: true });
 updateDateSwitcher();
+updateNotificationBadge();
 initializePrivacyMode();
+markRequiredFields();
+const requiredFieldObserver = new MutationObserver(records => {
+  records.forEach(record => record.addedNodes.forEach(node => {
+    if (node instanceof Element) markRequiredFields(node);
+  }));
+});
+requiredFieldObserver.observe(document.body, { childList: true, subtree: true });
 const copyrightYear = document.querySelector("#footer-copyright-year");
 if (copyrightYear) copyrightYear.textContent = String(new Date().getFullYear());
 const authQuery = new URLSearchParams(window.location.search);
@@ -6190,6 +6963,9 @@ updateDashboardPowerUpSummary();
 updateDashboardQuests();
 updateCurrencySwitcher();
 applyStoredSettings();
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (getStoredSettings().themeMode === "system") applyStoredSettings();
+});
 // Remove the legacy persistent local session marker. The workspace only opens after
 // a successful sign-in in this running app instance.
 try { localStorage.removeItem(sessionStorageKey); } catch {}

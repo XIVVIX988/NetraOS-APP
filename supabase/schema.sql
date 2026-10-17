@@ -9,6 +9,7 @@ create table if not exists public.user_profiles (
   name text not null default '',
   email text not null,
   username text not null default '',
+  phone_number text,
   sex text,
   date_of_birth date,
   avatar_data text,
@@ -57,7 +58,7 @@ create table if not exists public.incomes (
 create table if not exists public.budget_lines (
   id text not null, user_id uuid not null references auth.users(id) on delete cascade,
   name text not null default '', amount numeric(20,2) not null default 0 check (amount >= 0),
-  category text not null default '', notes text not null default '', details jsonb not null default '{}'::jsonb,
+  category text not null default '', month text not null default '', notes text not null default '', details jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(), deleted_at timestamptz,
   primary key (user_id,id)
 );

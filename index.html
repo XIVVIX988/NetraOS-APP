@@ -137,7 +137,7 @@
           </div>
           <!-- Header actions: notifications, date range, display currency, privacy, theme, and profile. -->
           <div class="topbar-actions">
-            <button class="icon-button notification-toggle" aria-label="Notifications" title="Notifications">
+            <button class="icon-button notification-toggle" type="button" aria-label="Notifications" title="Notifications" aria-haspopup="dialog" aria-expanded="false">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
                 <path d="M10 21h4" />
@@ -235,9 +235,6 @@
               <div class="metric-value">
                 KSh 0
               </div>
-              <div class="metric-foot">
-                <span class="metric-trailing">TOTAL</span>
-              </div>
             </article>
             <article class="metric-card savings-card">
               <div class="metric-heading">
@@ -304,12 +301,8 @@
               </div>
               <div class="allocation-body">
                 <div class="donut-wrap">
-                  <div class="donut">
-                    <div class="donut-center">
-                      <strong>KSh 0</strong>
-                      <span>TOTAL ASSETS</span>
-                    </div>
-                  </div>
+                  <div class="donut" role="img" aria-label="Asset allocation chart"></div>
+                  <div class="allocation-tooltip" role="status" aria-live="polite" hidden></div>
                 </div>
                 <div class="allocation-legend">
                   <div>

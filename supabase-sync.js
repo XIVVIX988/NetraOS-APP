@@ -7,16 +7,19 @@
     return;
   }
 
-  // Remove legacy localStorage tokens. Current sessions live in sessionStorage so
-  // refreshing this tab preserves auth without silently signing into a new tab.
+  // Migrate an active session from the previous tab-only storage to persistent
+  // browser storage so deploying this change does not sign out current users.
   try {
     const projectRef = new URL(config.url).hostname.split(".")[0];
-    localStorage.removeItem(`sb-${projectRef}-auth-token`);
-  } catch { /* The active session uses sessionStorage below. */ }
+    const authStorageKey = `sb-${projectRef}-auth-token`;
+    const tabSession = sessionStorage.getItem(authStorageKey);
+    if (!localStorage.getItem(authStorageKey) && tabSession) localStorage.setItem(authStorageKey, tabSession);
+    if (tabSession) sessionStorage.removeItem(authStorageKey);
+  } catch { /* Supabase will report unavailable storage if the browser blocks it. */ }
 
   const client = sdk.createClient(config.url, config.publishableKey, {
-    // Preserve auth through reloads in this tab; a fresh tab still requires sign-in.
-    auth: { persistSession: true, storage: window.sessionStorage, autoRefreshToken: true, detectSessionInUrl: true }
+    // Keep auth across page reloads and new tabs in this browser.
+    auth: { persistSession: true, storage: window.localStorage, autoRefreshToken: true, detectSessionInUrl: true }
   });
   const confirmationRedirectUrl = () => {
     const url = new URL(config.authRedirectUrl || `${location.origin}${location.pathname}`, location.href);
@@ -123,7 +126,7 @@
       const profile = profileOverride || local(keys.profile) || {};
       const profileRow = {
         user_id: user.id, name: profile.name || user.user_metadata?.full_name || "", email: user.email || profile.email || "",
-        username: profile.username || "", sex: profile.sex || null, date_of_birth: profile.dateOfBirth || null,
+        username: profile.username || "", phone_number: profile.phone || null, sex: profile.sex || null, date_of_birth: profile.dateOfBirth || null,
         avatar_data: profile.image || null, terms_version: profile.termsVersion || user.user_metadata?.terms_version || null,
         terms_accepted_at: profile.termsAcceptedAt || user.user_metadata?.terms_accepted_at || null, updated_at: now(), deleted_at: null
       };
@@ -270,8 +273,8 @@
       delete oldProfile.passwordSalt;
       delete oldProfile.passwordIterations;
       write(keys.profile, cloudProfile
-        ? { ...oldProfile, name: cloudProfile.name, email: cloudProfile.email, username: cloudProfile.username, sex: cloudProfile.sex || "", dateOfBirth: cloudProfile.date_of_birth || "", image: cloudProfile.avatar_data || "", termsVersion: cloudProfile.terms_version || "", termsAcceptedAt: cloudProfile.terms_accepted_at || "" }
-        : { name: user.user_metadata?.full_name || "", email: user.email || "", username: "", termsVersion: user.user_metadata?.terms_version || "", termsAcceptedAt: user.user_metadata?.terms_accepted_at || "" });
+        ? { ...oldProfile, name: cloudProfile.name, email: cloudProfile.email, username: cloudProfile.username, phone: cloudProfile.phone_number || "", sex: cloudProfile.sex || "", dateOfBirth: cloudProfile.date_of_birth || "", image: cloudProfile.avatar_data || "", termsVersion: cloudProfile.terms_version || "", termsAcceptedAt: cloudProfile.terms_accepted_at || "" }
+        : { name: user.user_metadata?.full_name || "", email: user.email || "", username: "", phone: user.user_metadata?.phone_number || "", termsVersion: user.user_metadata?.terms_version || "", termsAcceptedAt: user.user_metadata?.terms_accepted_at || "" });
       const localSettings = local(keys.settings) || {};
       const cloudSettings = data.user_settings[0]?.settings || {};
       write(keys.settings, { ...cloudSettings, localPinSalt: localSettings.localPinSalt || "", localPinHash: localSettings.localPinHash || "", localPinLength: localSettings.localPinLength || 4 });
@@ -286,7 +289,7 @@
       if (data.consents[0]) write(keys.consent, { necessary: data.consents[0].necessary, analytics: data.consents[0].analytics, savedAt: data.consents[0].saved_at });
       else localStorage.removeItem(keys.consent);
     } finally { applyingRemote = false; }
-    return { hasData, recoveredLocalPower, hasProfile: Boolean(cloudProfile), profile: cloudProfile ? { name: cloudProfile.name, email: cloudProfile.email, username: cloudProfile.username, sex: cloudProfile.sex || "", dateOfBirth: cloudProfile.date_of_birth || "", image: cloudProfile.avatar_data || "", termsVersion: cloudProfile.terms_version || "", termsAcceptedAt: cloudProfile.terms_accepted_at || "" } : { name: user.user_metadata?.full_name || "", email: user.email || "", username: "", termsVersion: user.user_metadata?.terms_version || "", termsAcceptedAt: user.user_metadata?.terms_accepted_at || "" } };
+    return { hasData, recoveredLocalPower, hasProfile: Boolean(cloudProfile), profile: cloudProfile ? { name: cloudProfile.name, email: cloudProfile.email, username: cloudProfile.username, phone: cloudProfile.phone_number || "", sex: cloudProfile.sex || "", dateOfBirth: cloudProfile.date_of_birth || "", image: cloudProfile.avatar_data || "", termsVersion: cloudProfile.terms_version || "", termsAcceptedAt: cloudProfile.terms_accepted_at || "" } : { name: user.user_metadata?.full_name || "", email: user.email || "", username: "", phone: user.user_metadata?.phone_number || "", termsVersion: user.user_metadata?.terms_version || "", termsAcceptedAt: user.user_metadata?.terms_accepted_at || "" } };
   }
 
   function schedulePush() {
