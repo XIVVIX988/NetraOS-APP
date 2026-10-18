@@ -397,16 +397,17 @@
         wipingCloudData = false;
       }
     },
-    deleteAccount: async () => {
-      const user = await currentUser();
-      if (!user) throw new Error("Sign in again before deleting this account.");
+    deleteAccount: async (verifiedAccessToken = "") => {
+      const user = verifiedAccessToken ? null : await currentUser();
+      if (!verifiedAccessToken && !user) throw new Error("Sign in again before deleting this account.");
       wipingCloudData = true;
       if (syncTimer) clearTimeout(syncTimer);
       syncTimer = 0;
       pendingSync = false;
       try {
         await syncCycle;
-        const { error } = await client.functions.invoke("delete-account");
+        const headers = verifiedAccessToken ? { Authorization: `Bearer ${verifiedAccessToken}` } : undefined;
+        const { error } = await client.functions.invoke("delete-account", headers ? { headers } : undefined);
         if (error) {
           const status = error.context?.status;
           if (status === 404) throw new Error("Permanent account deletion is not deployed in the Supabase project yet.");

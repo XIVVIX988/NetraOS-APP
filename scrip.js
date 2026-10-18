@@ -299,7 +299,8 @@ const faqCategories = [
   ]},
   { id: "data", label: "Backup & Maintenance", items: [
     { q: "How do I transfer my NetraOS data to a new laptop or phone?", a: "Open Settings and choose <b>Download all data (JSON)</b> and save the file. On the new device open NetraOS, go to Settings and use <b>Restore a JSON backup</b> to bring everything back. A CSV export is available too, and a monthly backup reminder can be switched on.", action: { label: "Open Settings", target: "Settings" } },
-    { q: "How do I completely wipe my data from the app?", a: "In Settings use <b>Factory reset · Clear all NetraOS data</b>. Confirm your account password and the deletion prompt. This removes synced NetraOS records and the local device copy, but leaves your Supabase sign-in identity. Download a backup first; deletion cannot be undone.", action: { label: "Open Settings", target: "Settings" } }
+    { q: "How do I completely wipe my data from the app?", a: "In Settings use <b>Factory reset · Clear all NetraOS data</b>. Confirm your account password and the deletion prompt. This removes synced NetraOS records and the local device copy, but leaves your Supabase sign-in identity. Download a backup first; deletion cannot be undone.", action: { label: "Open Settings", target: "Settings" } },
+    { q: "How do I permanently delete my account?", a: "In Settings choose <b>Delete account permanently</b>, re-enter your account password, and type <b>DELETE</b> to confirm. After NetraOS confirms completion, your Supabase sign-in identity and linked synced financial records are permanently deleted. Download a backup first; exported files and browser copies on other devices are not removed automatically.", action: { label: "Open Settings", target: "Settings" } }
   ]}
 ];
 
@@ -1551,7 +1552,7 @@ function renderProfilePage() {
   const maxDate = localDateValue();
   return `
     <section class="account-page">
-      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> YOUR ACCOUNT</div><h1>Your profile.</h1><p class="welcome-sub">Choose the name NetraOS should use to address you and manage your profile details.</p></div></header>
+      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> YOUR ACCOUNT</div><h1>Your profile.</h1><p class="welcome-sub">Keep your name and contact details up to date.</p></div></header>
       <section class="panel account-panel">
         <div class="profile-summary"><span class="profile-initials profile-photo-preview">${photo}</span><div><strong>${escapeHTML(profile.username || profile.name)}</strong><small>${escapeHTML(profile.name)} · ${escapeHTML(profile.email || "No email added")}</small></div></div>
         <form class="account-form" data-account-form="profile">
@@ -1594,7 +1595,7 @@ function renderSettingsPage() {
   const mobileSettingsTabs = [["profile", "Profile"], ["preferences", "Preferences"], ["security", "Security"]];
   return `
     <section class="account-page settings-page">
-      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> APP PREFERENCES</div><h1><span class="settings-title-desktop">Make it yours.</span><span class="settings-title-mobile">Settings</span></h1><p class="welcome-sub">Manage your profile, privacy, appearance, and financial preferences.</p></div></header>
+      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> APP PREFERENCES</div><h1><span class="settings-title-desktop">Make it yours.</span><span class="settings-title-mobile">Settings</span></h1><p class="welcome-sub">Make your account and app work your way.</p></div></header>
       <div class="settings-tabs" role="tablist" aria-label="Settings categories">
         ${settingsTabs.map(([id, label]) => `<button class="settings-tab${activeSettingsTab === id ? " is-active" : ""}" id="settings-tab-${id}" type="button" role="tab" aria-selected="${activeSettingsTab === id}" aria-controls="settings-panel-${id}" data-settings-tab="${id}">${label}</button>`).join("")}
       </div>
@@ -1653,8 +1654,7 @@ function renderSettingsPage() {
         <section class="settings-tab-panel" id="settings-panel-appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" data-settings-panel="appearance" tabindex="0" ${activeSettingsTab === "appearance" ? "" : "hidden"}>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">LOOK &amp; FEEL</div><h2>Appearance</h2></div></div>
           <div class="settings-field settings-theme-field"><span><strong>Theme</strong><small>Choose light, dark, or follow your device setting.</small></span><select name="themeMode" aria-label="Theme"><option value="light" ${settings.themeMode === "light" ? "selected" : ""}>Light</option><option value="dark" ${settings.themeMode === "dark" ? "selected" : ""}>Dark</option><option value="system" ${settings.themeMode === "system" ? "selected" : ""}>System</option></select><div class="settings-theme-choice" role="group" aria-label="Choose theme">${[["light", "Light"], ["dark", "Dark"], ["system", "System"]].map(([value, label]) => `<button type="button" data-theme-mode="${value}" class="${settings.themeMode === value ? "is-selected" : ""}" aria-pressed="${settings.themeMode === value}">${label}</button>`).join("")}</div></div>
-          <label class="settings-field"><span><strong>Theme accent</strong><small>Updates navigation, buttons, icons, and highlights immediately.</small></span><select name="accentProfile"><option value="emerald" ${settings.accentProfile === "emerald" ? "selected" : ""}>Emerald Terminal</option><option value="amber" ${settings.accentProfile === "amber" ? "selected" : ""}>Cyber Amber</option><option value="matrix" ${settings.accentProfile === "matrix" ? "selected" : ""}>Matrix Green</option><option value="blue" ${settings.accentProfile === "blue" ? "selected" : ""}>Classic Blue</option><option value="violet" ${settings.accentProfile === "violet" ? "selected" : ""}>Electric Violet</option><option value="coral" ${settings.accentProfile === "coral" ? "selected" : ""}>Sunset Coral</option><option value="aqua" ${settings.accentProfile === "aqua" ? "selected" : ""}>Aqua Teal</option></select></label>
-          <div class="accent-preview" data-accent-preview aria-live="polite"><span class="accent-preview-swatch" aria-hidden="true"></span><span class="accent-preview-copy"><strong data-accent-preview-name>${escapeHTML({ emerald: "Emerald Terminal", amber: "Cyber Amber", matrix: "Matrix Green", blue: "Classic Blue", violet: "Electric Violet", coral: "Sunset Coral", aqua: "Aqua Teal" }[settings.accentProfile])}</strong><small>Live accent preview</small></span><span class="accent-preview-sample">Example action</span></div>
+          <label class="settings-field"><span><strong>Theme accent</strong><small>Applied across the app when you save changes.</small></span><select name="accentProfile"><option value="emerald" ${settings.accentProfile === "emerald" ? "selected" : ""}>Emerald Terminal</option><option value="amber" ${settings.accentProfile === "amber" ? "selected" : ""}>Cyber Amber</option><option value="matrix" ${settings.accentProfile === "matrix" ? "selected" : ""}>Matrix Green</option><option value="blue" ${settings.accentProfile === "blue" ? "selected" : ""}>Classic Blue</option><option value="violet" ${settings.accentProfile === "violet" ? "selected" : ""}>Electric Violet</option><option value="coral" ${settings.accentProfile === "coral" ? "selected" : ""}>Sunset Coral</option><option value="aqua" ${settings.accentProfile === "aqua" ? "selected" : ""}>Aqua Teal</option></select></label>
           <label class="settings-field"><span><strong>Always show cents</strong><small>Show two decimal places in money amounts.</small></span><input name="alwaysShowCents" type="checkbox" ${settings.alwaysShowCents ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Reduce motion</strong><small>Use fewer animations and hover effects.</small></span><input name="reduceMotion" type="checkbox" ${settings.reduceMotion ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Show XP points</strong><small>Show quest status badges and XP-style progress labels.</small></span><input name="showXpPoints" type="checkbox" ${settings.showXpPoints ? "checked" : ""}></label>
@@ -2558,6 +2558,43 @@ function getInventoryTotals() {
   return { assets, liabilities, netWorth: assets - liabilities };
 }
 
+function updateDashboardAssetAllocation() {
+  const chart = document.querySelector("[data-asset-allocation-chart]");
+  const legend = document.querySelector("[data-asset-allocation-legend]");
+  if (!chart || !legend) return;
+  const assets = getInventoryEntries().filter(entry => entry.type === "asset");
+  const groups = [
+    { name: "Cash", categories: ["Bank accounts", "Mobile money", "Cash & savings"], color: "#12a17a" },
+    { name: "Investments", categories: ["Money market funds", "SACCO deposits", "SACCO shares", "Bonds", "Equities", "Investments"], color: "#5689d6" },
+    { name: "Property", categories: ["Property & vehicles"], color: "#eca842" },
+    { name: "Other", categories: ["Other assets"], color: "#8b9992" }
+  ].map(group => ({
+    ...group,
+    value: assets.filter(asset => group.categories.includes(asset.category)).reduce((sum, asset) => sum + Number(asset.amount || 0), 0)
+  })).filter(group => group.value > 0);
+  const total = groups.reduce((sum, group) => sum + group.value, 0);
+  if (!total) {
+    chart.innerHTML = '<circle cx="50" cy="50" r="37" fill="none" stroke="var(--line)" stroke-width="16"/>';
+    chart.setAttribute("aria-label", "No asset allocation recorded");
+    legend.innerHTML = '<p class="allocation-empty">Add assets in Inventory to see their allocation.</p>';
+    return;
+  }
+  const circumference = 2 * Math.PI * 37;
+  let offset = 0;
+  const slices = groups.map(group => {
+    const length = circumference * group.value / total;
+    const middleAngle = (offset + length / 2) / circumference * 2 * Math.PI - Math.PI / 2;
+    const liftX = Math.cos(middleAngle) * 4;
+    const liftY = Math.sin(middleAngle) * 4;
+    const slice = `<g class="allocation-slice" tabindex="0" role="img" aria-label="${group.name}: ${Math.round(group.value / total * 100)} percent" style="--lift-x:${liftX}px;--lift-y:${liftY}px"><circle cx="50" cy="50" r="37" fill="none" stroke="${group.color}" stroke-width="16" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 50 50)"><title>${group.name}: ${Math.round(group.value / total * 100)}%</title></circle></g>`;
+    offset += length;
+    return slice;
+  }).join("");
+  chart.innerHTML = `<circle cx="50" cy="50" r="37" fill="none" stroke="var(--line)" stroke-width="16"/>${slices}`;
+  chart.setAttribute("aria-label", `Asset allocation by category: ${groups.map(group => `${group.name} ${Math.round(group.value / total * 100)}%`).join(", ")}`);
+  legend.innerHTML = groups.map(group => `<div><i style="background:${group.color}" aria-hidden="true"></i><span>${group.name}</span><strong>${Math.round(group.value / total * 100)}%</strong></div>`).join("");
+}
+
 function renderInventoryRows(type, categories) {
   const entries = getInventoryEntries();
 
@@ -2648,7 +2685,7 @@ function renderInventoryPage() {
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> YOUR BALANCE SHEET</div>
           <h1><span class="inventory-title-desktop">My Inventory</span><span class="inventory-title-mobile">Inventory</span></h1>
-          <p class="welcome-sub">Track the assets and liabilities that shape your net worth.</p>
+          <p class="welcome-sub">See what you own, owe, and how it adds up.</p>
         </div>
         <button class="inventory-action" type="button" data-inventory-action="add-account" aria-label="Add item" title="Add item">
           <span class="inventory-add-plus" aria-hidden="true">+</span><span class="inventory-add-label">Add item</span>
@@ -2689,6 +2726,7 @@ function renderInventoryPage() {
 
 function updateDashboardInventorySummary() {
   const totals = getInventoryTotals();
+  updateDashboardAssetAllocation();
   const netWorthValue = document.querySelector(".networth-card .metric-value");
 
   if (netWorthValue) netWorthValue.textContent = formatKsh(totals.netWorth);
@@ -3342,7 +3380,7 @@ function renderQuestsPage() {
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> GOALS WITH MOMENTUM</div>
           <h1><span class="quests-title-desktop">Financial quests</span><span class="quests-title-mobile">Quests</span></h1>
-          <p class="welcome-sub">Set a goal, track your progress, and keep your next milestone in reach.</p>
+          <p class="welcome-sub">Set a goal. Track progress. Celebrate each win.</p>
         </div>
         <button class="inventory-action quest-heading-add" type="button" data-quest-action="add" aria-label="Create a quest" ${canAddQuest ? "" : "disabled"} title="${canAddQuest ? "Create a quest" : "Complete or remove an active quest to make room"}">
           <span class="quest-heading-add-plus" aria-hidden="true">+</span><span class="quest-heading-add-label">New quest</span>
@@ -3711,7 +3749,7 @@ function renderStatsPage() {
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> FINANCIAL OVERVIEW</div>
           <h1><span class="stats-title-desktop">Your Financial <em>Stats</em></span><span class="stats-title-mobile">Stats</span></h1>
-          <p class="welcome-sub">Visual insights to help you make better decisions.</p>
+          <p class="welcome-sub">See where your money goes and how it grows.</p>
         </div>
         <label class="stats-range-select">Chart range
           <select data-stats-range aria-label="Chart time range">
@@ -3874,7 +3912,7 @@ function renderAchievementsPage() {
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> FINANCIAL MILESTONES</div>
           <h1><span class="achievement-title-desktop">Your <em>Achievements</em></span><span class="achievement-title-mobile">Achievements</span></h1>
-          <p class="welcome-sub">Celebrate goals achieved and build strong money habits over time.</p>
+          <p class="welcome-sub">Build lasting money habits, one milestone at a time.</p>
         </div>
         <div class="achievement-score"><strong>${earnedCount} / ${candidates.length}</strong><span>medals earned</span></div>
       </header>
@@ -4060,7 +4098,7 @@ function renderPowerUpPage() {
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> INCOME &amp; BUDGET</div>
           <h1><span class="power-title-desktop">Give every shilling<br><em>a direction.</em></span><span class="power-title-mobile">Power-Up &amp; Tax</span></h1>
-          <p class="welcome-sub">Build a monthly plan around the income you have and the priorities you choose.</p>
+          <p class="welcome-sub">Plan your income, budget, and take-home pay.</p>
         </div>
         <button class="inventory-action power-heading-add" type="button" data-power-action="income" aria-label="Add income" title="Add income">
           <span class="power-heading-add-plus" aria-hidden="true">+</span><span class="power-heading-add-label">Add income</span>
@@ -4522,7 +4560,7 @@ function renderContactPage() {
           <div class="cx-heading-text">
             <div class="eyebrow"><span class="eyebrow-line"></span> CONTACT</div>
             <h1>Get in touch.</h1>
-            <p class="welcome-sub">We're here to help. Send us a message or check our FAQs.</p>
+            <p class="welcome-sub">Questions? Send a message or browse quick answers.</p>
           </div>
         </div>
       </header>
@@ -5426,12 +5464,16 @@ function showPermanentAccountDeletion() {
     submit.disabled = true;
     status.textContent = "Verifying your password…";
     try {
-      const user = await window.NetraSupabase.getUser();
-      if (!user?.email || !password) throw new Error("Enter your account password to continue.");
-      const verified = await window.NetraSupabase.signIn(user.email, password);
+      let user = null;
+      try { user = await window.NetraSupabase.getUser(); } catch { /* Use the saved account email if the old session has expired. */ }
+      const accountEmail = user?.email || getStoredProfile()?.email;
+      if (!accountEmail || !password) throw new Error("Enter your account email and password to continue.");
+      const verified = await window.NetraSupabase.signIn(accountEmail, password);
       if (verified.error) throw new Error("The password could not be verified.");
+      const accessToken = verified.data?.session?.access_token;
+      if (!accessToken) throw new Error("Your sign-in could not be refreshed. Please try again.");
       status.textContent = "Permanently deleting your account and synced data…";
-      await window.NetraSupabase.deleteAccount();
+      await window.NetraSupabase.deleteAccount(accessToken);
       dialog.close();
       performFactoryReset("Your NetraOS account and synced data were permanently deleted.");
     } catch (error) {
@@ -7085,13 +7127,6 @@ document.addEventListener("click", event => {
 // Validate profile image uploads and show a local preview before saving the profile.
 document.addEventListener("change", event => {
   const input = event.target;
-  if (input instanceof HTMLSelectElement && input.name === "accentProfile") {
-    const names = { emerald: "Emerald Terminal", amber: "Cyber Amber", matrix: "Matrix Green", blue: "Classic Blue", violet: "Electric Violet", coral: "Sunset Coral", aqua: "Aqua Teal" };
-    setAccent(input.value);
-    const previewName = input.form?.querySelector("[data-accent-preview-name]");
-    if (previewName) previewName.textContent = names[input.value] || names.emerald;
-    return;
-  }
   if (input instanceof HTMLSelectElement && input.name === "lockTimeoutMinutes") {
     const autoLockOptions = input.form?.querySelector("[data-autolock-options]");
     const isNever = Number(input.value) === 0;
