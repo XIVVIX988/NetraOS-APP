@@ -3004,6 +3004,11 @@ h1 em {
   .app-shell .cx-label svg { width: 14px; height: 14px; flex-basis: 14px; }
   .app-shell .cx-lines address { font-size: 11px; line-height: 1.5; }
   .app-shell .cx-side { gap: 12px; }
+  .app-shell .cx-social-share-mobile { display: grid; gap: 10px; margin: 0; padding: 13px 15px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+  .app-shell .cx-card .cx-social-share-desktop { display: none; }
+  .app-shell .cx-social-share-mobile .cx-social-actions { gap: 8px; }
+  .app-shell .cx-social-share-mobile .cx-social-links a { width: 34px; height: 34px; }
+  .app-shell .cx-social-share-mobile .cx-share-app { min-height: 38px; }
   .app-shell .cx-faq-list { margin-top: 11px; gap: 7px; }
   .app-shell .cx-faq .faq-q { padding: 11px; }
   .app-shell .cx-faq .faq-q-text { font-size: 12px; }
@@ -8254,6 +8259,7 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
 .cx-heading { display: grid; gap: 10px; padding: 8px 0 4px; }
 .cx-heading-copy { display: grid; gap: 10px; }
 .cx-heading-icon, .cx-mobile-tabs { display: none; }
+.cx-social-share-mobile { display: none; }
 .cx-heading h1 { margin: 0; }
 .cx-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 .cx-form, .cx-card { padding: 28px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); box-shadow: 0 1px 2px #1a241d0a; }
