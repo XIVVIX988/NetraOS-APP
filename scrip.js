@@ -1230,32 +1230,47 @@ function renderAppFooter() {
 // Keep the displayed and downloadable legal copy in one source of truth.
 function getLegalDocument(page) {
   const isTerms = page === "terms";
-  const title = isTerms ? "Terms of Service" : "Privacy Policy";
+  const isCookies = page === "cookies";
+  const isPrivacy = !isTerms && !isCookies;
+  const title = isTerms ? "Terms of Service" : isCookies ? "Cookie Policy" : "Privacy Policy";
   const content = isTerms ? `
+    <h2>Agreement</h2><p>When you create an account, you must accept these Terms to use NetraOS. If you do not agree, do not create or use an account. The Privacy Policy and Cookie Policy explain how personal information and browser storage are handled.</p>
     <h2>Using NetraOS</h2><p>NetraOS is a personal finance organization tool for recording and reviewing your finances, plans, quests, and progress. It is not a bank, lender, tax agent, investment adviser, or provider of financial, legal, or tax advice. You are responsible for the information you enter and decisions you make using the app.</p>
-    <h2>Estimates and financial information</h2><p>Calculators, tax estimates, charts, suggestions, and projections are provided for general planning and may be incomplete or inaccurate for your circumstances. Tax, PAYE, NSSF, SHIF, housing levy, and other statutory rules can change. Check current requirements with the relevant authority or a qualified professional before acting.</p>
-    <h2>Your account and records</h2><p>You retain your rights to the information you enter. NetraOS stores a working copy in this browser and synchronizes account records with the Supabase service connected to the app when you are signed in and online. The project owner controls the Supabase project and its selected region. Keep your sign-in details private, protect devices that contain local copies, and download backups when needed. Exports are files outside NetraOS and are your responsibility.</p>
-    <h2>Account closure and deletion</h2><p>In Settings, choose <strong>Delete account permanently</strong>, verify your account password, and confirm the deletion request. The account and linked synced records are deleted only after NetraOS confirms the operation succeeded. Completed deletion cannot be undone. Browser copies on other devices and files you previously exported are not removed automatically; remove those copies separately.</p>
-    <h2>Third-party services and sharing</h2><p>Sign-in and cloud synchronization depend on Supabase and an internet connection. Links to email, telephone, WhatsApp, social networks, and device sharing tools open services outside NetraOS. Their own terms and privacy practices apply when you choose to use them.</p>
-    <h2>Acceptable use and availability</h2><p>Do not use NetraOS to access another person's records without permission, disrupt or compromise the service, or misuse its systems. Features and availability may change. Local records can remain on a device when cloud access is unavailable, but sign-in and synchronization require the connected service and an internet connection.</p>
-    <h2>Contact</h2><p>For general support, email <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a>. For security or privacy concerns, email <a href="mailto:security@netraos.io">security@netraos.io</a>.</p>` : `
-    <h2>Information NetraOS stores</h2><p>Depending on the features you use, NetraOS stores your name, username, email address, optional phone number and profile photo; financial records such as assets, liabilities, income, budgets and spending; quests and achievement progress; settings; cookie preference choices; and limited security activity. A working copy is kept in browser storage. When you are signed in and online, account records synchronize with the Supabase project connected to NetraOS. Supabase Auth manages authentication credentials and sessions.</p>
-    <h2>Cookies and browser storage</h2><p>NetraOS uses browser storage for local records, settings, cookie choices, and the Supabase Auth sign-in session. This version does not use advertising or analytics cookies and does not collect performance telemetry. The optional telemetry choice in the cookie preferences is reserved for a future feature; no telemetry is collected by this version. Your browser, device, or website host may separately use its own technologies.</p>
-    <h2>How information is used</h2><p>Information is used to provide the app, calculate and display the financial summaries you request, save your preferences, maintain your account, synchronize records, and help protect account operations. NetraOS does not sell or rent your financial records or use ad networks for them.</p>
-    <h2>Storage, security, and retention</h2><p>Browser storage is not encrypted by NetraOS. Anyone with access to your browser profile or device may be able to access its local copy. The optional PIN hides the workspace but does not encrypt stored records. Cloud storage and its region are controlled by the Supabase project owner. Local copies remain until you clear browser data or reset the app. Synced account records remain until deleted through account deletion or otherwise removed from the connected project.</p>
-    <h2>Sharing and third parties</h2><p>NetraOS does not send your financial records through the social links or Share button. If you choose to share the app, the device sharing service receives the app link and any message you choose to include. Supabase processes sign-in and synced account data. Google Fonts may receive a request from your browser when fonts are loaded. Email, telephone, WhatsApp, social networks, and other services you open handle information you choose to send to them under their own privacy practices.</p>
-    <h2>Your choices and account deletion</h2><p>You can review, correct, and export profile and financial details in Settings. Factory reset clears app data from this device and requests removal of synced NetraOS database records while keeping the Supabase Auth identity. <strong>Delete account permanently</strong> deletes the Supabase Auth identity and linked synced NetraOS records after the app confirms success. Deletion cannot be undone. Exported files and browser copies on other devices are separate and are not erased automatically. Clearing browser site data removes only the local copy on that device.</p>
-    <h2>Contact</h2><p>For general support or privacy requests, email <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a>. For security concerns, email <a href="mailto:security@netraos.io">security@netraos.io</a>.</p>`;
-  return { title, content, updated: "October 18, 2026", isTerms };
+    <h2>Estimates and financial information</h2><p>Calculators, tax estimates, charts, suggestions, and projections are general planning tools and may be incomplete or inaccurate for your circumstances. Tax, PAYE, NSSF, SHIF, housing levy, and other statutory rules can change. Check current requirements with the relevant authority or a qualified professional before acting.</p>
+    <h2>Accounts, records, and deletion</h2><p>You retain your rights to information you enter. NetraOS stores a working copy in this browser and synchronizes account records with the connected Supabase service when you are signed in and online. In Settings, choose <strong>Delete account permanently</strong>, verify your password, and confirm. The account and linked synced records are deleted only after NetraOS confirms the operation succeeded. Deletion cannot be undone. Browser copies on other devices and exported files are not removed automatically. Keep your sign-in details private, protect devices with local copies, and download backups when needed.</p>
+    <h2>Acceptable use</h2><p>You must not use NetraOS for unlawful activity, access another person's records without permission, interfere with or compromise the service, probe or bypass its security, scrape or harvest data without permission, reverse engineer or copy the service except where the law permits, or upload malicious code or content.</p>
+    <h2>Ownership and intellectual property</h2><p>NetraOS and its operator or licensors retain rights in the NetraOS name and brand, logos, interface, design assets, software, and original content. These Terms grant you a limited, personal, revocable right to use the service. You may not copy, redistribute, sell, or reuse protected materials without prior permission, except where applicable law permits.</p>
+    <h2>Suspension and termination</h2><p>NetraOS may restrict, suspend, or terminate access if it reasonably believes you have materially breached these Terms, created a security risk, or used the service unlawfully. Where practical, we will notify you and provide a way to address the issue. You may stop using the service at any time and may request account deletion through Settings.</p>
+    <h2>Availability and limits</h2><p>The service is provided on an "as is" and "as available" basis. Features may change, and sign-in or synchronization may be interrupted by maintenance, network conditions, or third-party service outages. To the maximum extent permitted by law, NetraOS and its operator are not liable for indirect, incidental, special, consequential, or punitive loss, including lost profits, data, or access, arising from use or inability to use the service. Nothing in these Terms excludes liability or rights that applicable law does not allow to be excluded or limited. Keep independent backups of important information.</p>
+    <h2>Third-party services and sharing</h2><p>Sign-in and cloud synchronization depend on Supabase and an internet connection. Links to email, telephone, WhatsApp, social networks, and device sharing tools open services outside NetraOS. Their terms and privacy practices apply when you choose to use them.</p>
+    <h2>Governing law</h2><p>These Terms are governed by the laws of Kenya. Courts in Kenya will have jurisdiction over disputes, subject to any mandatory consumer protections or dispute rights that apply to you under other laws.</p>
+    <h2>Contact</h2><p>For general support, email <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a>. For security or privacy concerns, email <a href="mailto:security@netraos.io">security@netraos.io</a>.</p>` : isPrivacy ? `
+    <h2>Who operates NetraOS</h2><p>NetraOS is operated from Nairobi, Kenya, using the name NetraOS Technologies Lab in its public contact details. For privacy requests, contact <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a>. For security concerns, contact <a href="mailto:security@netraos.io">security@netraos.io</a>.</p>
+    <h2>Information collected or stored</h2><p>Information you provide includes your name, username, email address, password at sign-in, optional phone number, optional profile details such as date of birth and sex, and profile photo. Account records also include an account identifier, authentication session, and the accepted Terms version and time. NetraOS stores financial entries (assets, liabilities, income, budgets, spending, and tax-planning inputs), quests, progress and achievements, preferences, cookie choices, and limited security activity such as actions recorded in the app. Password authentication is handled by Supabase Auth; NetraOS does not store your password in its application profile. The app does not request or process payment card details, and it has no payment processor.</p>
+    <h2>Technical data and provider logs</h2><p>When your browser connects to NetraOS, Supabase, the Supabase client CDN, or Google Fonts, the relevant service may receive technical request data such as your IP address, browser and device information, requested resource, and request time as part of delivering and securing the connection. The NetraOS application does not read or store your IP address or use it for profiling. The website host and service providers may keep server or security logs under their own settings and policies; the NetraOS operator does not control all such logs.</p>
+    <h2>Why information is used</h2><p>Information is used to create and secure your account, display and calculate the financial views and estimates you request, save preferences, synchronize your records, record required consent choices, and protect the service. The Contact form prepares a message in your email application; it is not sent to NetraOS until you choose to send it. Information you provide is needed for the features that use it; optional phone and profile details can be left blank. Security and service operation may require limited processing by providers.</p>
+    <h2>Storage and service providers</h2><p>NetraOS keeps a local working copy in your browser. When you are signed in and online, account data is sent to the Supabase project connected to this app for authentication, database storage, and synchronization. The project owner selects its hosting region and configuration; provider processing locations may be outside your country, so check the connected project's settings and provider terms for current locations and safeguards. The configured web deployment uses GitHub Pages, loads the Supabase client from jsDelivr, and may load fonts from Google Fonts. These services may receive request metadata such as IP address and browser details. Email, phone, WhatsApp, social media, and your device's share service receive information only when you choose to open them and send or share something. NetraOS does not sell or rent financial records, run advertising pixels, or use an analytics service in this version.</p>
+    <h2>Cookies and similar storage</h2><p>NetraOS currently uses essential browser storage, including local storage for your working records, settings, and consent choice, and Supabase Auth browser storage for your sign-in session. These features support functions you request. This version sets no analytics or marketing cookies, tracking pixels, or performance telemetry. Details and browser controls are in the <a href="#cookies" data-public-action="cookies">Cookie Policy</a>.</p>
+    <h2>Security and retention</h2><p>Cloud requests use HTTPS to the configured Supabase service. Supabase Auth handles password authentication, and Supabase database access policies are used to restrict account records. Browser-local records are not encrypted by NetraOS; the optional PIN hides the workspace but does not encrypt data. Security and availability also depend on the website host and Supabase project configuration. Local copies remain until you clear browser data or reset the app. Synced account records are retained in the connected project while the account is active and until a deletion request succeeds or they are otherwise removed. Provider logs and backups may follow provider retention practices.</p>
+    <h2>Your choices and rights</h2><p>You can review and correct profile and financial details in Settings, export data, clear this device's browser copy, or request deletion of your account and synced records. Under Kenya's Data Protection Act, where it applies, data subject rights include being informed about use, access, objection to processing, correction of false or misleading data, and deletion of false or misleading data. Other laws may provide additional rights, such as erasure, restriction, portability, or withdrawing consent where processing relies on consent. Contact <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a> to make a privacy request; use <a href="mailto:security@netraos.io">security@netraos.io</a> for a security issue. Factory reset clears this device's app data and requests removal of synced database records but keeps the Supabase Auth identity. Permanent account deletion removes the Auth identity and linked synced records after the app confirms success. Exported files and copies on other devices are not erased automatically.</p>
+    <h2>Contact and regulator</h2><p>NetraOS is operated from Kenya. You may contact the Office of the Data Protection Commissioner (ODPC) in Kenya for information about its role and complaint process at <a href="https://www.odpc.go.ke/">odpc.go.ke</a>, where applicable.</p>` : `
+    <h2>Storage technologies in this version</h2><p>NetraOS uses essential browser storage: local storage for your on-device working copy, preferences, and cookie choice, and browser storage used by Supabase Auth for your sign-in session. This is not an advertising or analytics cookie system. The app does not currently set analytics or marketing cookies, tracking pixels, or performance telemetry.</p>
+    <h2>Categories</h2><p><strong>Essential:</strong> Local app data, theme and account preferences, consent choice, and authentication session storage needed for functions you request. These cannot be turned off inside NetraOS without affecting saved data, sign-in, or app operation.</p><p><strong>Analytics and performance:</strong> Not active. NetraOS does not currently run analytics or performance telemetry. The preference is reserved for a possible future feature and does not activate any tracking today.</p><p><strong>Marketing and tracking:</strong> Not used. NetraOS does not use advertising pixels or behavioral advertising cookies.</p>
+    <h2>Consent choices</h2><p>Because this version uses only essential storage, no non-essential cookie or tracker is placed by NetraOS. The banner lets you accept or reject optional future analytics storage; your choice is recorded in essential local storage. If an optional category is introduced, it must remain disabled until you affirmatively allow it. You can reopen Manage cookie preferences at any time to change your choice.</p>
+    <h2>Manage or clear browser storage</h2><p>Use the app's Manage cookie preferences control to review your choice. You can also use your browser's privacy or site settings to clear or block site data, cookies, and local storage. Blocking essential storage may prevent sign-in, synchronization, or local saving from working. Clearing site data removes this browser's local copy and consent choice, but does not delete your synced account records, other device copies, or downloaded exports; use Settings for account and data deletion.</p>
+    <h2>Third-party storage</h2><p>Supabase Auth stores the sign-in session in browser storage. The website host, CDN, font provider, browser, or operating system may use their own technologies or logs. Review their policies and settings for details; NetraOS does not control those provider technologies. See the <a href="#privacy" data-public-action="privacy">Privacy Policy</a> for providers and information handling.</p>
+    <h2>Contact</h2><p>For questions about cookies or privacy, email <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a>. For security concerns, email <a href="mailto:security@netraos.io">security@netraos.io</a>.</p>`;
+  return { title, content, updated: "October 18, 2026", isTerms, isPrivacy, isCookies };
 }
 
 function renderLegalPage(page) {
-  const { title, content, updated, isTerms } = getLegalDocument(page);
-  return `<main class="legal-page"><header class="public-header"><a class="public-brand" href="#home" data-public-action="landing" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a><button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button></header><article class="legal-card"><div class="section-kicker">NETRAOS · ${isTerms ? "TERMS" : "PRIVACY"}</div><h1>${title}.</h1><p class="legal-updated">Last updated ${updated}</p>${content}<a class="public-primary legal-back" href="#signup" data-public-action="signup">Continue to signup <span>↗</span></a></article><footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><a href="#privacy" data-public-action="privacy">Privacy</a>${renderSocialLinks("footer-social-links public-social-links")}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer></main>`;
+  const { title, content, updated } = getLegalDocument(page);
+  return `<main class="legal-page"><header class="public-header"><a class="public-brand" href="#home" data-public-action="landing" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a><button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button></header><article class="legal-card"><div class="section-kicker">NETRAOS · ${title.toUpperCase()}</div><h1>${title}.</h1><p class="legal-updated">Last updated ${updated}</p>${content}${page === "cookies" ? '<button class="secondary-button legal-cookie-manage" type="button" data-cookie-manage>Manage cookie preferences</button>' : ""}<a class="public-primary legal-back" href="#signup" data-public-action="signup">Continue to signup <span>↗</span></a></article><footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><nav aria-label="Legal"><a href="#terms" data-public-action="terms">Terms</a><a href="#privacy" data-public-action="privacy">Privacy</a><a href="#cookies" data-public-action="cookies">Cookies</a></nav>${renderSocialLinks("footer-social-links public-social-links")}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer></main>`;
 }
 
 function downloadLegalDocument(page) {
-  const { title, content, updated, isTerms } = getLegalDocument(page);
+  const { title, content, updated, isTerms, isCookies } = getLegalDocument(page);
+  const documentType = isTerms ? "TERMS OF SERVICE" : isCookies ? "COOKIE POLICY" : "PRIVACY POLICY";
   const W = 595.28, H = 841.89, M = 44, FOOT = 48;
   const colors = { ink: "#16241D", body: "#3B4A42", muted: "#6B7A71", green: "#13875F", deep: "#0E3B2C", gold: "#C9A24A", line: "#DCE6DF", white: "#FFFFFF" };
   const rgb = hex => [0, 2, 4].map(i => (parseInt(hex.slice(1).slice(i, i + 2), 16) / 255).toFixed(3)).join(" ");
@@ -1302,7 +1317,7 @@ function downloadLegalDocument(page) {
   const newPage = () => { stream = []; pages.push(stream); y = 76; };
   newPage();
   pushText(M, y + 28, 24, title, { bold: true, color: colors.ink });
-  pushText(M, y + 45, 8.5, `${isTerms ? "TERMS OF SERVICE" : "PRIVACY POLICY"}  |  LAST UPDATED ${updated.toUpperCase()}`, { bold: true, color: colors.green });
+  pushText(M, y + 45, 8.5, `${documentType}  |  LAST UPDATED ${updated.toUpperCase()}`, { bold: true, color: colors.green });
   stream.push(`${rgb(colors.line)} RG 0.8 w ${num(M)} ${num(H - (y + 56))} m ${num(W - M)} ${num(H - (y + 56))} l S\n`);
   y += 76;
   blocks.forEach(block => {
@@ -1327,7 +1342,7 @@ function downloadLegalDocument(page) {
     pushText(M + 40, 26, 13, "NETRAOS", { bold: true, color: colors.white });
     pushText(M + 40, 39, 6.2, "YOUR FINANCIAL OPERATING SYSTEM", { color: "#A9D3BF" });
     pushText(W - M, 24, 7.2, "LEGAL DOCUMENT", { bold: true, color: colors.gold });
-    pushText(W - M, 38, 6.5, `${isTerms ? "TERMS OF SERVICE" : "PRIVACY POLICY"}  |  ${updated}`, { color: "#A9D3BF", alignRight: true });
+    pushText(W - M, 38, 6.5, `${documentType}  |  ${updated}`, { color: "#A9D3BF", alignRight: true });
     stream.push(`${rgb(colors.line)} RG 0.7 w ${num(M)} 40 m ${num(W - M)} 40 l S\n`);
     pushText(M, H - 28, 6.5, `NetraOS  |  ${title}  |  ${updated}`, { color: colors.muted });
     const pageLabel = `Page ${index + 1} of ${total}`;
@@ -1359,7 +1374,7 @@ function downloadLegalDocument(page) {
   pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
   offsets.forEach(offset => { pdf += `${String(offset).padStart(10, "0")} 00000 n \n`; });
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Info ${infoId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-  const filename = isTerms ? "netraos-terms-of-service.pdf" : "netraos-privacy-policy.pdf";
+  const filename = isTerms ? "netraos-terms-of-service.pdf" : isCookies ? "netraos-cookie-policy.pdf" : "netraos-privacy-policy.pdf";
   saveFile(filename, pdf, "application/pdf");
 }
 
@@ -1582,11 +1597,11 @@ function showPublicPage(page = "landing") {
           <section class="landing-bottom-cta"><div><small>START WHERE YOU ARE</small><h2>Make your next money move with clarity.</h2></div><button class="public-primary" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></section>
         </main>
         <button class="landing-back-top" type="button" aria-label="Back to top" title="Back to top">↑</button>
-        <footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><span>Kenyan shillings · KSh</span><nav aria-label="Legal"><a href="#terms" data-public-action="terms">Terms</a><a href="#privacy" data-public-action="privacy">Privacy</a></nav>${renderSocialLinks("footer-social-links public-social-links")}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer>
+        <footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><span>Kenyan shillings · KSh</span><nav aria-label="Legal"><a href="#terms" data-public-action="terms">Terms</a><a href="#privacy" data-public-action="privacy">Privacy</a><a href="#cookies" data-public-action="cookies">Cookies</a></nav>${renderSocialLinks("footer-social-links public-social-links")}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer>
       </div>`;
     setupLandingScrollEffects();
     setupLandingFaq();
-  } else if (page === "terms" || page === "privacy") {
+  } else if (page === "terms" || page === "privacy" || page === "cookies") {
     publicShell.innerHTML = renderLegalPage(page);
   } else {
     const isSignup = page === "signup";
@@ -1604,7 +1619,7 @@ function showPublicPage(page = "landing") {
             ${isSignup ? `<label class="inventory-form-field"><span>Phone number <small>Optional</small></span><input name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="e.g. +254 712 345 678"></label>` : ""}
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
             <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" ${isSignup ? 'minlength="8"' : ""} placeholder="${isSignup ? "At least 8 characters" : "Your password"}" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
-            ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>` : ""}
+            ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="#cookies" target="_blank" rel="noopener">Cookie Policy</a>.</span></label>` : ""}
             ${isSignup ? "" : '<button class="auth-reset-password" type="button" data-password-reset>Forgot your password?</button>'}
             <div class="auth-error" role="status" aria-live="polite" hidden></div>
             <button class="public-primary auth-submit" type="submit">${isSignup ? "Create account" : "Log in"}</button>
@@ -1616,6 +1631,7 @@ function showPublicPage(page = "landing") {
       </div>`;
   }
   applyStoredSettings();
+  if (["landing", "login", "signup"].includes(page)) window.setTimeout(showCookieBanner, 0);
 }
 
 function showPasswordResetForm() {
@@ -1784,10 +1800,10 @@ function renderSettingsPage() {
         </section>
         <section class="settings-tab-panel" id="settings-panel-backups" role="tabpanel" aria-labelledby="settings-tab-backups" data-settings-panel="backups" tabindex="0" ${activeSettingsTab === "backups" ? "" : "hidden"}>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">BACKUP &amp; DATA</div><h2>Your browser data</h2></div></div>
-          <p class="settings-disclosure">Browser storage keeps a working copy and Supabase Auth keeps your sign-in session. Account data syncs to the connected Supabase project when online. This app currently sets no analytics cookies and collects no performance telemetry.</p>
-          <label class="settings-field"><span><strong>Allow optional performance telemetry</strong><small>No telemetry is currently collected by this version.</small></span><input name="performanceTelemetryConsent" type="checkbox" ${settings.performanceTelemetryConsent ? "checked" : ""}></label>
+          <p class="settings-disclosure">Browser storage keeps a working copy and Supabase Auth keeps your sign-in session. Account data syncs to the connected Supabase project when online. NetraOS currently uses no analytics or marketing tracking.</p>
+          <label class="settings-field"><span><strong>Allow future analytics and performance measurement</strong><small>Not active in this version. This choice will not start tracking today.</small></span><input name="performanceTelemetryConsent" type="checkbox" ${settings.performanceTelemetryConsent ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Monthly backup reminder</strong><small>Remind you in this browser to download a local backup.</small></span><input name="monthlyBackupPrompt" type="checkbox" ${settings.monthlyBackupPrompt ? "checked" : ""}></label>
-          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-cookie-manage>Manage cookie preferences</button><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button><button class="secondary-button" type="button" data-settings-action="download-terms">Download Terms of Service (PDF)</button><button class="secondary-button" type="button" data-settings-action="download-privacy">Download Privacy Policy (PDF)</button></div>
+          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-cookie-manage>Manage cookie preferences</button><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button><button class="secondary-button" type="button" data-settings-action="download-terms">Download Terms of Service (PDF)</button><button class="secondary-button" type="button" data-settings-action="download-privacy">Download Privacy Policy (PDF)</button><button class="secondary-button" type="button" data-settings-action="download-cookies">Download Cookie Policy (PDF)</button></div>
           <label class="settings-import-drop" data-settings-drop><strong>Restore a JSON backup</strong><span>Choose a file or drop it here. Existing matching NetraOS records will be replaced.</span><input name="backupFile" type="file" accept="application/json,.json" data-settings-import></label>
           <p class="legal-links"><a href="#terms" data-public-action="terms">Terms of Service</a><a href="#privacy" data-public-action="privacy">Privacy Policy</a></p>
         </section>
@@ -6936,7 +6952,7 @@ document.addEventListener("click", event => {
   const publicLink = target.closest("[data-public-action]");
   if (publicLink && publicLink.tagName === "A" && publicLink.target !== "_blank") {
     const action = publicLink.dataset.publicAction;
-    if (["signup", "login", "landing", "terms", "privacy"].includes(action)) {
+    if (["signup", "login", "landing", "terms", "privacy", "cookies"].includes(action)) {
       event.preventDefault();
       showPublicPage(action);
       return;
@@ -7080,6 +7096,7 @@ document.addEventListener("click", event => {
     else if (button.dataset.settingsAction === "delete-account") showPermanentAccountDeletion();
     else if (button.dataset.settingsAction === "download-terms") downloadLegalDocument("terms");
     else if (button.dataset.settingsAction === "download-privacy") downloadLegalDocument("privacy");
+    else if (button.dataset.settingsAction === "download-cookies") downloadLegalDocument("cookies");
     return;
   }
   if (button.matches("[data-remove-profile-image]")) {
@@ -7099,7 +7116,7 @@ document.addEventListener("click", event => {
   }
   if (button.matches("[data-public-action]")) {
     const action = button.dataset.publicAction;
-    if (["signup", "login", "landing", "terms", "privacy"].includes(action)) {
+    if (["signup", "login", "landing", "terms", "privacy", "cookies"].includes(action)) {
       showPublicPage(action);
     }
     return;
@@ -7368,7 +7385,7 @@ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () 
 // Remove the legacy persistent local session marker. The workspace only opens after
 // a successful sign-in in this running app instance.
 try { localStorage.removeItem(sessionStorageKey); } catch {}
-if (["login", "signup", "terms", "privacy"].includes(initialPage)) {
+if (["login", "signup", "terms", "privacy", "cookies"].includes(initialPage)) {
   showPublicPage(initialPage);
 } else if (phoneNavQuery.matches) {
   showPhoneSplash();
@@ -7402,7 +7419,7 @@ window.addEventListener("netraos-sync-error", () => {
 });
 
 // Supabase Auth, not the old browser-only flag, authorizes a cloud account.
-if (window.NetraSupabase?.enabled && !["terms", "privacy"].includes(initialPage)) {
+if (window.NetraSupabase?.enabled && !["terms", "privacy", "cookies"].includes(initialPage)) {
   window.NetraSupabase.getSession().then(async ({ data, error }) => {
     if (error) throw error;
     if (passwordRecoveryReturn) {
@@ -7447,19 +7464,13 @@ if (window.NetraSupabase?.enabled && !["terms", "privacy"].includes(initialPage)
   });
 }
 
-// Bump this only when the cookie/storage notice meaningfully changes.
+// Bump this when consent categories, choices, or notice meaning change.
 const cookieConsentStorageKey = "netraos-cookie-consent-v1";
-const cookieConsentVersion = 1;
+const cookieConsentVersion = 2;
 function hasCurrentCookieConsent() {
   try {
     const consent = JSON.parse(localStorage.getItem(cookieConsentStorageKey) || "null");
-    if (!consent || consent.necessary !== true || typeof consent.analytics !== "boolean") return false;
-    if (consent.version === cookieConsentVersion) return true;
-    // Preserve choices made before version metadata existed; the notice text has not changed.
-    if (consent.version == null) {
-      localStorage.setItem(cookieConsentStorageKey, JSON.stringify({ ...consent, version: cookieConsentVersion }));
-      return true;
-    }
+    return Boolean(consent && consent.necessary === true && typeof consent.analytics === "boolean" && consent.version === cookieConsentVersion);
   } catch { /* Treat unavailable or unreadable storage as no saved choice. */ }
   return false;
 }
@@ -7484,16 +7495,25 @@ function openCookiePreferences() {
   dialog.className = "cookie-dialog";
   dialog.dataset.cookieDialog = "";
   dialog.setAttribute("aria-labelledby", "cookie-dialog-title");
-  dialog.innerHTML = `<form method="dialog"><div class="section-kicker">PRIVACY PREFERENCES</div><h2 id="cookie-dialog-title">Manage your choices</h2><p>NetraOS uses essential browser storage and Supabase Auth session storage. Account data syncs to your Supabase project when online. This version collects no analytics.</p><label class="cookie-choice"><span><strong>Essential browser and session storage</strong><small>Always on · Keeps this device’s working copy and your sign-in session.</small></span><input type="checkbox" checked disabled aria-label="Essential browser and session storage are always on"></label><label class="cookie-choice"><span><strong>Future performance telemetry</strong><small>Not collected in this version. Save your choice for when this feature is introduced.</small></span><input name="analytics" type="checkbox" ${analytics ? "checked" : ""}></label><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-cancel>Cancel</button><button type="submit" class="cookie-button">Save preferences</button></div></form>`;
+  dialog.innerHTML = `<form method="dialog"><div class="section-kicker">PRIVACY PREFERENCES</div><h2 id="cookie-dialog-title">Manage cookie choices</h2><p>Essential browser storage and the Supabase Auth session support the app. NetraOS currently uses no analytics or marketing trackers. Optional analytics is not active; this choice records whether you would allow it if introduced later.</p><label class="cookie-choice"><span><strong>Essential browser and session storage</strong><small>Always on · Saves your local copy, preferences, and sign-in session.</small></span><input type="checkbox" checked disabled aria-label="Essential browser and session storage are always on"></label><label class="cookie-choice"><span><strong>Analytics and performance</strong><small>Not active in this version. If introduced, it stays off until you allow it.</small></span><input name="analytics" type="checkbox" ${analytics ? "checked" : ""}></label><div class="cookie-choice cookie-choice-disabled"><span><strong>Marketing and tracking</strong><small>Not used by NetraOS.</small></span><span aria-label="Not used">Not used</span></div><p class="cookie-policy-note">Read the <a href="#cookies" data-public-action="cookies">Cookie Policy</a> or use your browser settings to clear or block site data.</p><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-cancel>Cancel</button><button type="button" class="cookie-button secondary" data-cookie-reject>Reject optional</button><button type="submit" class="cookie-button">Save choices</button></div></form>`;
   document.body.append(dialog);
   dialog.querySelector("[data-cookie-cancel]").addEventListener("click", () => dialog.close());
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.querySelector("[data-cookie-reject]").addEventListener("click", () => {
+    try {
+      saveCookiePreferences(false);
+      dialog.close();
+      showToast("Optional cookie and tracking choices rejected.");
+    } catch {
+      showToast("Unable to save your choice in browser storage.");
+    }
+  });
   dialog.addEventListener("submit", event => {
     event.preventDefault();
     try {
       saveCookiePreferences(dialog.elements.analytics.checked);
       dialog.close();
-      showToast("Cookie preferences saved.");
+      showToast("Cookie choices saved.");
     } catch {
       showToast("Unable to save preferences in browser storage.");
     }
@@ -7502,18 +7522,30 @@ function openCookiePreferences() {
 }
 
 function showCookieBanner() {
-  if (appShell.hidden || document.querySelector("[data-cookie-banner]")) return;
+  if ((!publicShell || publicShell.hidden) && (!appShell || appShell.hidden)) return;
+  if (!publicShell.hidden && ["terms", "privacy", "cookies"].includes(window.location.hash.slice(1))) return;
+  if (document.querySelector("[data-cookie-banner]")) return;
   if (hasCurrentCookieConsent()) return;
   const banner = document.createElement("aside");
   banner.className = "cookie-banner";
   banner.dataset.cookieBanner = "";
   banner.setAttribute("aria-label", "Cookie and browser storage notice");
-  banner.innerHTML = `<div class="cookie-banner-copy"><strong>Your privacy matters</strong><p>NetraOS uses essential browser storage and Supabase Auth session storage. Account data syncs to your Supabase project when online. This version collects no analytics.</p></div><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-manage>Manage</button><button type="button" class="cookie-button" data-cookie-accept>Accept</button></div>`;
+  banner.innerHTML = `<div class="cookie-banner-copy"><strong>Cookies and browser storage</strong><p>Essential storage keeps NetraOS working. No analytics or marketing trackers are active. Choose whether to allow optional analytics if introduced later.</p><a href="#cookies" data-public-action="cookies">Read the Cookie Policy</a></div><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-manage>Manage</button><button type="button" class="cookie-button secondary" data-cookie-reject>Reject optional</button><button type="button" class="cookie-button" data-cookie-accept>Accept optional</button></div>`;
   document.body.append(banner);
   banner.querySelector("[data-cookie-accept]").addEventListener("click", () => {
     try {
+      saveCookiePreferences(true);
+      banner.remove();
+      showToast("Optional cookie choice saved.");
+    } catch {
+      showToast("Unable to save your choice in browser storage.");
+    }
+  });
+  banner.querySelector("[data-cookie-reject]").addEventListener("click", () => {
+    try {
       saveCookiePreferences(false);
       banner.remove();
+      showToast("Optional cookies and tracking rejected.");
     } catch {
       showToast("Unable to save your choice in browser storage.");
     }
@@ -7523,4 +7555,4 @@ function showCookieBanner() {
 document.addEventListener("click", event => {
   if (event.target.closest("[data-cookie-manage]")) openCookiePreferences();
 });
-if (!appShell.hidden) showCookieBanner();
+showCookieBanner();
