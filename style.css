@@ -4183,6 +4183,7 @@ body.theme-dark #public-shell .auth-error.success {
 .settings-page .settings-form > .settings-tab-panel { display: grid; gap: 14px; }
 .settings-profile-panel { padding: 24px; }
 .settings-profile-panel .profile-summary { align-items: center; margin-bottom: 18px; }
+.settings-profile-panel .profile-initials { width: 64px; height: 64px; flex: 0 0 64px; font-size: 18px; }
 .settings-profile-panel .profile-summary strong { font-size: 14px; }
 .settings-profile-panel .profile-summary small { font-size: 11px; }
 .settings-profile-form { gap: 17px; }
@@ -9829,3 +9830,47 @@ body.theme-dark { background: var(--bg); }
 }
 
 .required-marker { color: #d92d20; font-weight: 800; margin-left: 0.25em; }
+
+/* Keep the selected accent visible on dark-theme active states and navigation. */
+.app-shell.theme-dark[data-accent] .desktop-sidebar {
+  background: color-mix(in srgb, var(--green) 16%, #0b1110);
+  border-color: color-mix(in srgb, var(--green) 30%, #17211c);
+}
+.app-shell.theme-dark[data-accent] .desktop-nav-item.active,
+.app-shell.theme-dark[data-accent] .desktop-nav-item:hover {
+  background: color-mix(in srgb, var(--green) 20%, var(--panel));
+  color: var(--green);
+}
+.app-shell.theme-dark[data-accent] .desktop-nav-item.active { box-shadow: inset 3px 0 var(--green); }
+.app-shell.theme-dark[data-accent] .desktop-nav-item.active > span[aria-hidden="true"],
+.app-shell.theme-dark[data-accent] .desktop-nav-item:hover > span[aria-hidden="true"] { color: var(--green); }
+.app-shell.theme-dark[data-accent] .top-nav .top-nav-item:hover,
+.app-shell.theme-dark[data-accent] .top-nav .top-nav-item.active {
+  background: color-mix(in srgb, var(--green) 18%, var(--panel));
+  color: var(--green);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--green) 36%, var(--line));
+}
+.app-shell.theme-dark[data-accent] .nav-item.active,
+.app-shell.theme-dark[data-accent] .settings-page .settings-tab.is-active {
+  background: color-mix(in srgb, var(--green) 20%, var(--panel));
+  border-color: color-mix(in srgb, var(--green) 42%, var(--line));
+  color: var(--green);
+  box-shadow: inset 3px 0 var(--green);
+}
+.app-shell.theme-dark[data-accent] .nav-item.active .nav-icon { color: var(--green); }
+.app-shell.theme-dark[data-accent] .inventory-filter.active {
+  border-color: color-mix(in srgb, var(--green) 48%, var(--line));
+  background: color-mix(in srgb, var(--green) 15%, var(--panel));
+  color: var(--green);
+}
+.app-shell.theme-dark[data-accent] .inventory-filter.active span,
+.app-shell.theme-dark[data-accent] .quest-filter.active,
+.app-shell.theme-dark[data-accent] .quest-filter.active span,
+.app-shell.theme-dark[data-accent] .achievement-filter.is-active,
+.app-shell.theme-dark[data-accent] .achievement-filter.is-active span { color: var(--green); }
+.app-shell.theme-dark[data-accent] .quest-filter.active span,
+.app-shell.theme-dark[data-accent] .achievement-filter.is-active span {
+  background: color-mix(in srgb, var(--green) 18%, var(--panel));
+}
+.app-shell.theme-dark[data-accent] .achievement-filter.is-active { border-color: var(--green); }
+.app-shell.theme-dark[data-accent] :is(button, a, input, select, textarea):focus-visible { outline-color: var(--green); }

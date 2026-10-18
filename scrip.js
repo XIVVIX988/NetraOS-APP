@@ -1166,6 +1166,10 @@ function applyProfileAvatar() {
   }
 }
 
+function getProfilePhotoSource(profile = getStoredProfile()) {
+  return profile?.image || document.querySelector(".profile-button .avatar img")?.getAttribute("src") || "";
+}
+
 function localDateValue(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -1432,7 +1436,7 @@ function showPublicPage(page = "landing") {
             <div class="landing-copy landing-copy-v2">
               <div class="landing-eyebrow landing-manifesto" aria-label="Plan. Track. Grow."><span>Plan</span><b>·</b><span>Track</span><b>·</b><strong>Grow</strong></div>
               <h1>Your money,<br>with <em>a plan.</em></h1>
-              <p>Track your assets, spending, savings goals, and Kenya tax estimates in one clear place.</p>
+              <p>Track assets, debts, income, spending, savings goals, and Kenya take-home estimates in one clear place.</p>
               <div class="landing-actions"><button class="public-primary" type="button" data-public-action="signup">Get started <span>↗</span></button><a class="landing-text-link" href="#features">Learn more <span>↓</span></a></div>
               <a class="landing-download-link" href="https://github.com/XIVVIX988/NetraOS-APP/releases/latest/download/NetraOS-Setup.exe" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">↓</span> Download the desktop app for Windows</a>
             </div>
@@ -1449,8 +1453,8 @@ function showPublicPage(page = "landing") {
               <div class="floating-note floating-note-bottom"><span>↗</span><div><small>YOUR NEXT MOVE</small><strong>Progress, at your pace</strong></div></div>
             </div>
           </section>
-          <section class="landing-feature-strip" id="features" aria-label="NetraOS features"><article><span>◉</span><div><strong>Track what you own</strong><small>Assets, debts, and net worth</small></div></article><article><span>↗</span><div><strong>Plan your spending</strong><small>Income, budgets, and expenses</small></div></article><article><span>◎</span><div><strong>Save toward goals</strong><small>Build progress one step at a time</small></div></article><article><span>％</span><div><strong>Estimate take-home pay</strong><small>Kenya tax calculator</small></div></article></section>
-          <section class="landing-deep-dive" id="about"><div class="landing-deep-copy"><div class="landing-eyebrow"><i></i> A BETTER VIEW, STEP BY STEP</div><h2>From the big picture<br>to your next move.</h2><p>Bring your financial basics together, then build from there. NetraOS keeps the essentials close without making money management feel like another job.</p><ul><li><i>✓</i> See bank, cash, and M-Pesa balances together</li><li><i>✓</i> Switch display currency using rates you manage</li><li><i>✓</i> Project compounding savings month by month</li><li><i>✓</i> Keep amounts private and export a polished PDF</li></ul><button class="public-primary" type="button" data-public-action="signup">Build your financial picture <span>↗</span></button></div><div class="insight-collage"><article class="insight-card insight-progress"><div class="insight-card-head"><span><small>QUEST PROGRESS</small><strong>Emergency fund</strong></span><i>◈</i></div><div class="insight-progress-line"><span></span></div><div class="insight-card-foot"><small>One goal at a time</small><strong>0%</strong></div></article><article class="insight-card insight-rate"><small>SAVINGS RATE</small><strong>0<span>%</span></strong><div class="insight-sparkline"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>Calculated from your monthly plan</small></article><article class="insight-card insight-budget"><i>▤</i><small>MONTHLY BUDGET</small><strong>KSh 0</strong><span>Set your first budget line</span></article><article class="insight-card insight-note"><span>✳</span><p>Your plan should work for your life—not the other way around.</p></article></div></section>
+          <section class="landing-feature-strip" id="features" aria-label="NetraOS features"><article><span>◉</span><div><strong>See your full picture</strong><small>Assets, debts, cash flow, and net worth</small></div></article><article><span>↗</span><div><strong>Make informed decisions</strong><small>Income, spending, savings, and trends</small></div></article><article><span>◎</span><div><strong>Build lasting goals</strong><small>Quest progress, priorities, and achievements</small></div></article><article><span>％</span><div><strong>Plan with confidence</strong><small>Kenya take-home estimates and data controls</small></div></article></section>
+          <section class="landing-deep-dive" id="about"><div class="landing-deep-copy"><div class="landing-eyebrow"><i></i> A BETTER VIEW, STEP BY STEP</div><h2>From the big picture<br>to your next move.</h2><p>Bring your financial basics together, then build from there. NetraOS helps you understand your money, stay focused on long-term goals, and keep control of your account.</p><ul><li><i>✓</i> Track bank, cash, and M-Pesa balances alongside debts, income, budgets, and spending</li><li><i>✓</i> Compare cash flow, savings, and net worth over time</li><li><i>✓</i> Turn financial goals into prioritized quests, progress, and achievements</li><li><i>✓</i> Project savings, estimate Kenya take-home pay, and manage display currency</li><li><i>✓</i> Sync account data when signed in; protect your privacy and export backups or reports</li></ul><button class="public-primary" type="button" data-public-action="signup">Build your financial picture <span>↗</span></button></div><div class="insight-collage"><article class="insight-card insight-progress"><div class="insight-card-head"><span><small>QUEST PROGRESS</small><strong>Emergency fund</strong></span><i>◈</i></div><div class="insight-progress-line"><span></span></div><div class="insight-card-foot"><small>One goal at a time</small><strong>0%</strong></div></article><article class="insight-card insight-rate"><small>SAVINGS RATE</small><strong>0<span>%</span></strong><div class="insight-sparkline"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>Calculated from your monthly plan</small></article><article class="insight-card insight-budget"><i>▤</i><small>MONTHLY BUDGET</small><strong>KSh 0</strong><span>Set your first budget line</span></article><article class="insight-card insight-note"><span>✳</span><p>Your plan should work for your life—not the other way around.</p></article></div></section>
           ${renderLandingFaq()}
           <section class="landing-contact" id="contact" aria-labelledby="landing-contact-title">
             <div class="landing-contact-intro">
@@ -1535,8 +1539,9 @@ function renderProfilePage() {
   const profile = getStoredProfile() || { name: document.body.dataset.userName || "Jordan Davis", email: "" };
   const username = String(profile.username || profile.name.split(/\s+/)[0] || "");
   const initials = profile.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
-  const photo = profile.image
-    ? `<img src="${escapeHTML(profile.image)}" alt="Profile photo">`
+  const photoSource = getProfilePhotoSource(profile);
+  const photo = photoSource
+    ? `<img src="${escapeHTML(photoSource)}" alt="Profile photo">`
     : `<span>${escapeHTML(initials)}</span>`;
   const maxDate = localDateValue();
   return `
@@ -1566,7 +1571,8 @@ function renderSettingsPage() {
   const profile = getStoredProfile() || { name: document.body.dataset.userName || "Jordan Davis", email: "" };
   const username = String(profile.username || profile.name.split(/\s+/)[0] || "");
   const initials = profile.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
-  const photo = profile.image ? `<img src="${escapeHTML(profile.image)}" alt="Profile photo">` : `<span>${escapeHTML(initials)}</span>`;
+  const photoSource = getProfilePhotoSource(profile);
+  const photo = photoSource ? `<img src="${escapeHTML(photoSource)}" alt="Profile photo">` : `<span>${escapeHTML(initials)}</span>`;
   const maxDate = localDateValue();
   const fiscalMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const recentAudit = getSecurityAuditLog()
@@ -6394,7 +6400,7 @@ document.addEventListener("submit", async event => {
       showToast("Choose a PNG, JPEG, or WebP image smaller than 5 MB.");
       return;
     }
-    let image = form.dataset.removeImage === "true" ? "" : existingProfile.image || "";
+    let image = form.dataset.removeImage === "true" ? "" : getProfilePhotoSource(existingProfile);
     if (photoFile) {
       try {
         image = await compressProfileImage(photoFile);
