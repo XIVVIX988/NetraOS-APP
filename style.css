@@ -15,6 +15,108 @@
   --display: 'Manrope',sans-serif;
   --mono: 'DM Mono',monospace;
 }
+
+.settings-title-mobile, .settings-mobile-tabs, .settings-profile-mobile-details, .settings-edit-profile, .settings-theme-choice { display: none; }
+
+@media (max-width: 600px) {
+  .app-shell .settings-page { gap: 12px; }
+  .app-shell .settings-page > .inventory-heading { margin: 0; }
+  .app-shell .settings-page > .inventory-heading .eyebrow,
+  .app-shell .settings-page > .inventory-heading .welcome-sub { display: none; }
+  .app-shell .settings-page > .inventory-heading h1 { margin: 0; font-size: 23px; }
+  .app-shell .settings-title-desktop { display: none; }
+  .app-shell .settings-title-mobile { display: inline; }
+  .app-shell .settings-page > .settings-tabs { display: none; }
+  .app-shell .settings-page > .settings-mobile-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    margin: 0;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--panel-2);
+  }
+  .app-shell .settings-mobile-tab {
+    min-width: 0;
+    min-height: 38px;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font: 600 10px var(--sans);
+    cursor: pointer;
+  }
+  .app-shell .settings-mobile-tab.is-active { background: var(--green); color: #fff; }
+  .app-shell .settings-profile-panel { padding: 14px; }
+  .app-shell .settings-profile-panel > .panel-heading { margin-bottom: 10px; }
+  .app-shell .settings-profile-panel > .panel-heading h2 { font-size: 15px; }
+  .app-shell .settings-profile-panel .profile-summary {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    align-items: center;
+    gap: 5px 11px;
+    margin: 0 0 8px;
+    padding: 11px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--panel-2);
+  }
+  .app-shell .settings-profile-panel .profile-initials { grid-column: 1; grid-row: 1 / span 2; width: 52px; height: 52px; min-width: 52px; font-size: 15px; }
+  .app-shell .settings-profile-panel .profile-summary > div { grid-column: 2; grid-row: 1; min-width: 0; }
+  .app-shell .settings-profile-panel .profile-summary strong { font-size: 13px; overflow-wrap: anywhere; }
+  .app-shell .settings-profile-panel .profile-summary small { font-size: 9px; line-height: 1.35; overflow-wrap: anywhere; }
+  .app-shell .settings-edit-profile {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    flex: none;
+    padding: 0 10px;
+    border: 1px solid color-mix(in srgb, var(--green) 28%, var(--line));
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--green) 9%, var(--panel));
+    color: var(--green);
+    font: 600 10px var(--sans);
+    cursor: pointer;
+  }
+  .app-shell .settings-profile-mobile-details { display: grid; padding: 0 5px; }
+  .app-shell .settings-profile-mobile-details > div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; padding: 11px 3px; border-bottom: 1px solid var(--line); }
+  .app-shell .settings-profile-mobile-details > div:last-child { border-bottom: 0; }
+  .app-shell .settings-profile-mobile-details span { color: var(--muted); font-size: 10px; }
+  .app-shell .settings-profile-mobile-details strong { min-width: 0; color: var(--text); font: 500 11px var(--sans); overflow-wrap: anywhere; }
+  .app-shell .settings-profile-tab:not(.is-editing) .settings-profile-form { display: none !important; }
+  .app-shell .settings-profile-tab.is-editing .settings-profile-mobile-details { display: none; }
+  .app-shell .settings-profile-tab.is-editing .settings-profile-form { display: grid; }
+  .app-shell .settings-profile-form { gap: 13px; }
+  .app-shell .settings-profile-form .account-form-actions { position: static; display: flex; flex-direction: column; align-items: stretch; gap: 9px; padding: 12px 0 0; border: 0; }
+  .app-shell .settings-profile-form .account-form-actions .inventory-submit { width: 100%; }
+  .app-shell .settings-profile-tab .account-notice { gap: 8px; margin-top: 10px; padding: 10px; }
+  .app-shell .settings-profile-tab .account-notice p { font-size: 9px; }
+  .app-shell .settings-form { gap: 10px; }
+  .app-shell .settings-form > .settings-tab-panel { gap: 10px; }
+  .app-shell .settings-form .settings-panel { padding: 14px; border-radius: 13px; box-shadow: none; }
+  .app-shell .settings-form .settings-panel .panel-heading h2 { font-size: 14px; }
+  .app-shell .settings-form .settings-field { min-height: 56px; gap: 8px; }
+  .app-shell .settings-form .settings-field > span strong { font-size: 11px; }
+  .app-shell .settings-form .settings-field > span small { font-size: 9px; line-height: 1.35; }
+  .app-shell .settings-form .settings-field > select,
+  .app-shell .settings-form .settings-field > .payday-input { max-width: 145px; }
+  .app-shell .settings-form .settings-theme-field { display: grid; align-items: start; gap: 9px; padding: 12px 0; }
+  .app-shell .settings-form .settings-theme-field > select { display: none; }
+  .app-shell .settings-theme-choice { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .app-shell .settings-theme-choice button { min-height: 36px; padding: 0 5px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); color: var(--muted); font: 600 10px var(--sans); cursor: pointer; }
+  .app-shell .settings-theme-choice button.is-selected { border-color: var(--green); background: var(--green); color: #fff; }
+  .app-shell .settings-form .settings-actions { position: static; display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 0 0; border: 0; background: transparent; backdrop-filter: none; }
+  .app-shell .settings-form .settings-actions .inventory-submit { width: 100%; }
+  .app-shell .settings-danger-zone { border-color: color-mix(in srgb, #c33b37 28%, var(--line)); }
+  .app-shell .settings-danger-zone .settings-inline-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .app-shell.theme-dark .settings-edit-profile { border-color: color-mix(in srgb, var(--green) 42%, var(--line)); background: color-mix(in srgb, var(--green) 18%, var(--panel)); }
+}
 * {
   box-sizing: border-box;
 }
@@ -2171,6 +2273,7 @@ h1 em {
   display: grid;
   gap: 18px;
 }
+.stats-mobile-tabs, .stats-key-insight, .stats-title-mobile { display: none; }
 
 .achievements-page {
   display: grid;
@@ -2629,8 +2732,80 @@ h1 em {
 .app-shell.theme-dark .achievement-empty p { color: var(--muted); }
 
 @media (max-width: 760px) {
-  .stats-trend-grid { grid-template-columns: minmax(0, 1fr); }
-  .stats-cashflow-panel { grid-column: auto; }
+  .app-shell .stats-page { gap: 13px; }
+  .app-shell .stats-page > .inventory-heading {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0;
+  }
+  .app-shell .stats-page > .inventory-heading > div { min-width: 0; }
+  .app-shell .stats-page > .inventory-heading .eyebrow,
+  .app-shell .stats-page > .inventory-heading .welcome-sub { display: none; }
+  .app-shell .stats-page > .inventory-heading h1 { margin: 0; font-size: 23px; }
+  .app-shell .stats-title-desktop { display: none; }
+  .app-shell .stats-title-mobile { display: inline; }
+  .app-shell .stats-range-select { gap: 0; font-size: 0; }
+  .app-shell .stats-range-select select { min-height: 36px; padding-left: 10px; font-size: 11px; }
+  .app-shell .stats-trend-section { gap: 10px; }
+  .app-shell .stats-mobile-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--panel-2);
+  }
+  .app-shell .stats-mobile-tab {
+    min-width: 0;
+    min-height: 38px;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font: 600 11px var(--sans);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .app-shell .stats-mobile-tab.is-active {
+    background: var(--green);
+    color: #fff;
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--green) 22%, transparent);
+  }
+  .app-shell .stats-trend-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .app-shell .stats-trend-grid > .stats-primary-panel { display: none; min-height: 0; }
+  .app-shell .stats-trend-grid > .stats-primary-panel.is-mobile-active { display: block; }
+  .app-shell .stats-cashflow-panel { grid-column: auto; }
+  .app-shell .stats-key-insight {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 13px 14px;
+    border: 1px solid #eadfbf;
+    border-radius: 13px;
+    background: #fff9eb;
+  }
+  .app-shell .stats-key-insight-icon {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    place-items: center;
+    border-radius: 50%;
+    background: #fff0c9;
+    color: #bd851c;
+    font-size: 17px;
+  }
+  .app-shell .stats-key-insight > div { min-width: 0; }
+  .app-shell .stats-key-insight strong { color: #34483a; font: 700 12px var(--display); }
+  .app-shell .stats-key-insight p { margin: 3px 0 0; color: #6f7d73; font-size: 10px; line-height: 1.45; }
+  .app-shell.theme-dark .stats-key-insight { border-color: #61512c; background: #332b18; }
+  .app-shell.theme-dark .stats-key-insight-icon { background: #4a3c1d; color: #edc46d; }
+  .app-shell.theme-dark .stats-key-insight strong { color: var(--text); }
+  .app-shell.theme-dark .stats-key-insight p { color: var(--muted); }
   .stats-panels {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2674,6 +2849,150 @@ h1 em {
 
 .quest-page-panel {
   padding: 20px;
+}
+
+.achievement-title-mobile,
+.achievement-mobile-hero { display: none; }
+
+@media (max-width: 600px) {
+  .app-shell .achievements-page { gap: 13px; }
+  .app-shell .achievements-page > .inventory-heading {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0;
+  }
+  .app-shell .achievements-page > .inventory-heading > div { min-width: 0; }
+  .app-shell .achievements-page > .inventory-heading .eyebrow,
+  .app-shell .achievements-page > .inventory-heading .welcome-sub,
+  .app-shell .achievements-page > .inventory-heading .achievement-score { display: none; }
+  .app-shell .achievements-page > .inventory-heading h1 { margin: 0; font-size: 23px; }
+  .app-shell .achievement-title-desktop { display: none; }
+  .app-shell .achievement-title-mobile { display: inline; }
+  .app-shell .achievement-mobile-hero {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #bfe4d3;
+    border-radius: 15px;
+    background: linear-gradient(125deg, #0d5e4e, #167d65 62%, #249377);
+    color: #fff;
+  }
+  .app-shell .achievement-mobile-trophy {
+    display: grid;
+    width: 50px;
+    height: 50px;
+    flex: 0 0 50px;
+    place-items: center;
+    border: 1px solid #f3d46e;
+    border-radius: 15px;
+    background: #fff2bf;
+    color: #b77c13;
+  }
+  .app-shell .achievement-mobile-trophy svg { width: 34px; height: 34px; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .app-shell .achievement-mobile-hero-copy { min-width: 0; flex: 1; }
+  .app-shell .achievement-mobile-hero-copy > strong { color: #fff; font: 700 14px var(--display); }
+  .app-shell .achievement-mobile-hero-copy p { margin: 2px 0 8px; color: #d8f2e8; font-size: 10px; }
+  .app-shell .achievement-mobile-unlocked { display: flex; align-items: center; gap: 9px; color: #effff7; font: 600 9px var(--mono); }
+  .app-shell .achievement-mobile-unlocked > span { flex: none; }
+  .app-shell .achievement-mobile-unlocked > i { height: 5px; flex: 1; overflow: hidden; border-radius: 5px; background: #ffffff50; }
+  .app-shell .achievement-mobile-unlocked b { display: block; height: 100%; border-radius: inherit; background: #7ce1b4; }
+  .app-shell .achievement-filters { gap: 7px; border: 0; }
+  .app-shell .achievement-filter { min-height: 36px; padding: 0 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font-size: 10px; }
+  .app-shell .achievement-filter.is-active { border-color: var(--green); background: var(--green); color: #fff; }
+  .app-shell .achievement-filter.is-active span { background: #ffffff2e; color: #fff; }
+  .app-shell .achievement-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .app-shell .achievement-card { min-width: 0; min-height: 0; padding: 11px 10px; border-radius: 13px; }
+  .app-shell .achievement-card-top { min-height: 48px; gap: 4px; }
+  .app-shell .achievement-medal { width: 40px; height: 47px; }
+  .app-shell .achievement-status { padding: 4px 6px; font-size: 7px; }
+  .app-shell .achievement-card h2 { margin: 8px 0 4px; font-size: 11px; line-height: 1.25; overflow-wrap: anywhere; }
+  .app-shell .achievement-card p { min-height: 38px; margin: 0 0 10px; font-size: 9px; line-height: 1.4; }
+  .app-shell .achievement-progress-label { gap: 4px; font-size: 8px; }
+  .app-shell .achievement-progress-label strong { font-size: 8px; }
+  .app-shell .achievement-track { height: 5px; margin-top: 6px; }
+  .app-shell .achievement-card.is-earned .achievement-progress-label,
+  .app-shell .achievement-card.is-earned .achievement-track { display: none; }
+  .app-shell.theme-dark .achievement-mobile-hero { border-color: #24634d; }
+  .app-shell.theme-dark .achievement-mobile-trophy { border-color: #78602a; background: #40351e; color: #f0c968; }
+  .app-shell.theme-dark .achievement-filter { border-color: var(--line); background: var(--panel); color: var(--muted); }
+  .app-shell.theme-dark .achievement-filter.is-active { border-color: var(--green); background: var(--green); color: #fff; }
+  .app-shell.theme-dark .achievement-filter.is-active span { color: #fff; }
+}
+
+@media (max-width: 600px) {
+  .app-shell .cx-page { gap: 13px; }
+  .app-shell .cx-heading { gap: 0; padding: 0; }
+  .app-shell .cx-heading-copy { display: flex; align-items: center; gap: 11px; }
+  .app-shell .cx-heading-icon {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--green) 24%, var(--line));
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--green) 11%, var(--panel));
+    color: var(--green);
+  }
+  .app-shell .cx-heading-icon svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .app-shell .cx-heading-icon svg circle { fill: currentColor; stroke: none; }
+  .app-shell .cx-heading-text { min-width: 0; }
+  .app-shell .cx-heading .eyebrow { display: none; }
+  .app-shell .cx-heading h1 { font-size: 19px; }
+  .app-shell .cx-heading .welcome-sub { margin: 3px 0 0; font-size: 10px; line-height: 1.4; }
+  .app-shell .cx-mobile-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--panel-2);
+  }
+  .app-shell .cx-mobile-tabs button {
+    min-width: 0;
+    min-height: 38px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font: 600 11px var(--sans);
+    cursor: pointer;
+  }
+  .app-shell .cx-mobile-tabs button.is-active { background: var(--green); color: #fff; }
+  .app-shell .cx-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .app-shell .cx-layout[data-contact-view="message"] .cx-faq { display: none; }
+  .app-shell .cx-layout[data-contact-view="faq"] .cx-form,
+  .app-shell .cx-layout[data-contact-view="faq"] .cx-card:not(.cx-faq) { display: none; }
+  .app-shell .cx-layout[data-contact-view="faq"] .cx-side { display: block; }
+  .app-shell .cx-form, .app-shell .cx-card { padding: 16px; border-radius: 14px; box-shadow: none; }
+  .app-shell .cx-form { gap: 12px; }
+  .app-shell .cx-form h2 { margin: 0; font-size: 15px; }
+  .app-shell .cx-form-lead { margin: -7px 0 0; font-size: 10px; }
+  .app-shell .cx-field { gap: 5px; }
+  .app-shell .cx-field > span { font-size: 11px; }
+  .app-shell .cx-field input, .app-shell .cx-field select, .app-shell .cx-field textarea { min-height: 42px; padding: 10px 11px; border-radius: 9px; font-size: 13px; }
+  .app-shell .cx-field textarea { min-height: 104px; }
+  .app-shell .cx-actions { margin: 0; }
+  .app-shell .cx-send { width: 100%; min-height: 44px; padding: 11px 14px; font-size: 13px; }
+  .app-shell .cx-status { font-size: 11px; }
+  .app-shell .cx-note { padding-top: 10px; font-size: 10px; }
+  .app-shell .cx-card h2 { font-size: 15px; }
+  .app-shell .cx-lines { margin-top: 11px; }
+  .app-shell .cx-lines li { grid-template-columns: 82px minmax(0, 1fr); gap: 9px; padding: 11px 0; font-size: 12px; }
+  .app-shell .cx-label { gap: 6px; font-size: 10px; }
+  .app-shell .cx-label svg { width: 14px; height: 14px; flex-basis: 14px; }
+  .app-shell .cx-lines address { font-size: 11px; line-height: 1.5; }
+  .app-shell .cx-side { gap: 12px; }
+  .app-shell .cx-faq-list { margin-top: 11px; gap: 7px; }
+  .app-shell .cx-faq .faq-q { padding: 11px; }
+  .app-shell .cx-faq .faq-q-text { font-size: 12px; }
+  .app-shell.theme-dark .cx-heading-icon { border-color: color-mix(in srgb, var(--green) 38%, var(--line)); background: color-mix(in srgb, var(--green) 18%, var(--panel)); }
 }
 
 .quest-page-list {
@@ -7915,6 +8234,8 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
 /* ===== Contact page (calm, professional) ===== */
 .cx-page { max-width: 1080px; margin: 0 auto; gap: 24px; }
 .cx-heading { display: grid; gap: 10px; padding: 8px 0 4px; }
+.cx-heading-copy { display: grid; gap: 10px; }
+.cx-heading-icon, .cx-mobile-tabs { display: none; }
 .cx-heading h1 { margin: 0; }
 .cx-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 .cx-form, .cx-card { padding: 28px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); box-shadow: 0 1px 2px #1a241d0a; }
@@ -7923,6 +8244,7 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
 .cx-form-lead { margin: -8px 0 4px; font-size: 13px; color: var(--muted); }
 .cx-field { display: grid; gap: 6px; }
 .cx-field > span { font: 500 12px var(--sans); color: var(--soft); }
+.cx-field > span small { color: var(--muted); font-size: 10px; font-weight: 400; }
 .cx-field input, .cx-field select, .cx-field textarea { width: 100%; box-sizing: border-box; padding: 11px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font: 14px var(--sans); transition: border-color .15s, box-shadow .15s; }
 .cx-field textarea { resize: vertical; min-height: 130px; line-height: 1.55; }
 .cx-field input::placeholder, .cx-field textarea::placeholder { color: var(--muted); opacity: .7; }
@@ -8323,6 +8645,7 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
 .quest-card-amounts { margin-bottom: 7px; color: #748178; font-size: 10px; }
 .quest-card-amounts strong { margin-left: 3px; color: #283c31; font: 600 10px var(--mono); }
 .quest-card-progress .quest-track { height: 6px; margin: 0; background: #e9efeb; }
+.quest-update-label-short { display: none; }
 .quest-card-progress .quest-track i { min-width: 0; background: var(--quest-accent, #168660); }
 .quest-card.is-complete .quest-card-progress .quest-track i { background: #63b992; }
 .quest-card-details { min-width: 0; margin-left: 49px; }
@@ -10176,6 +10499,243 @@ body.theme-dark { background: var(--bg); }
 
 /* Keep the brand and copyright footer on public entry pages, not inside the signed-in app. */
 .app-shell .page-footer { display: none !important; }
+.app-shell .inventory-title-mobile { display: none; }
+.app-shell .power-title-mobile { display: none; }
+.app-shell .quests-title-mobile { display: none; }
+
+@media (max-width: 760px) {
+  .app-shell .inventory-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .app-shell .inventory-summary-card {
+    min-width: 0;
+    min-height: 78px;
+    padding: 11px 12px;
+  }
+  .app-shell .inventory-summary-card strong {
+    font-size: clamp(15px, 4vw, 19px);
+    overflow-wrap: anywhere;
+  }
+  .app-shell .inventory-summary-card.net-worth-summary { grid-column: 1 / -1; }
+}
+
+@media (max-width: 600px) {
+  .app-shell .quests-title-desktop { display: none; }
+  .app-shell .quests-title-mobile { display: inline; }
+  .app-shell .quests-page { gap: 12px; }
+  .app-shell .quests-page > .inventory-heading {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 0;
+  }
+  .app-shell .quests-page > .inventory-heading > div { min-width: 0; }
+  .app-shell .quests-page > .inventory-heading .eyebrow,
+  .app-shell .quests-page > .inventory-heading .welcome-sub { display: none; }
+  .app-shell .quests-page > .inventory-heading h1 { margin: 0; font-size: 23px; }
+  .app-shell .quests-page > .inventory-heading .quest-heading-add {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+    flex: 0 0 42px;
+    gap: 0;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .app-shell .quest-heading-add-plus {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+    font: 400 26px/1 var(--sans);
+  }
+  .app-shell .quest-heading-add-label { display: none; }
+  .app-shell .quests-page > .quest-overview,
+  .app-shell .quests-page > .quest-plan-insight { display: none; }
+  .app-shell .quests-page > .quest-page-panel {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .app-shell .quests-page .quest-list-heading { display: none; }
+  .app-shell .quests-page .quest-filters {
+    gap: 6px;
+    margin: 0 0 10px;
+    border: 0;
+  }
+  .app-shell .quests-page .quest-filter {
+    flex: 1 1 0;
+    justify-content: center;
+    gap: 5px;
+    min-height: 36px;
+    padding: 0 7px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  .app-shell .quests-page .quest-filter.active {
+    border-color: var(--green);
+    background: var(--green);
+    color: #fff;
+  }
+  .app-shell .quests-page .quest-filter.active::after { content: none; }
+  .app-shell .quests-page .quest-filter span { min-width: 0; padding: 0; background: transparent; color: inherit; }
+  .app-shell .quests-page .quest-page-list { gap: 9px; margin-top: 0; }
+  .app-shell .quests-page .quest-icon-default { display: none; }
+  .app-shell .quests-page .quest-card-icon.is-complete .quest-icon-default { display: inline; }
+  .app-shell .quests-page .quest-update-label-full { display: none; }
+  .app-shell .quests-page .quest-update-label-short { display: inline; }
+  .app-shell .quests-page .quest-card-amounts {
+    justify-content: flex-start;
+    gap: 5px;
+    margin-bottom: 6px;
+  }
+  .app-shell .quests-page .quest-card-amounts > span { font-size: 0; }
+  .app-shell .quests-page .quest-card-amounts > span:first-child::after {
+    content: "/";
+    margin-left: 7px;
+    color: var(--muted);
+    font-size: 10px;
+  }
+  .app-shell .quests-page .quest-card-amounts strong { margin-left: 0; font-size: 10px; }
+  .app-shell .quests-page .quest-icon-category { display: grid; place-items: center; }
+  .app-shell .quests-page .quest-icon-category svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .app-shell .power-mobile-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+  .app-shell .power-mobile-workspace > .tax-panel,
+  .app-shell .power-mobile-workspace > .power-columns {
+    position: relative;
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+  }
+  .app-shell .power-mobile-workspace > .power-columns { row-gap: 14px; }
+
+  .app-shell .power-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .app-shell .power-summary .inventory-summary-card {
+    min-width: 0;
+    min-height: 78px;
+    padding: 11px 12px;
+  }
+  .app-shell .power-summary .inventory-summary-card strong {
+    font-size: clamp(15px, 4vw, 19px);
+    overflow-wrap: anywhere;
+  }
+  .app-shell .power-summary .inventory-summary-card:nth-child(n + 3) { display: none; }
+  .app-shell .power-mobile-workspace .power-list-panel .panel-heading .inventory-add-small { display: none; }
+
+  /* Match dashboard metric tiles to the flat summary-card treatment in Power-Up. */
+  .app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card {
+    border: 1px solid #cce8da !important;
+    background: #f0faf4 !important;
+  }
+  .app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="increase"] {
+    border: 1px solid #cce8da !important;
+    background: #f0faf4 !important;
+  }
+  .app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="decrease"] {
+    border: 1px solid #f1d8d8 !important;
+    background: #fff5f4 !important;
+  }
+  .app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="unchanged"] {
+    border: 1px solid #eadfbf !important;
+    background: #fff9eb !important;
+  }
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .networth-card,
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="increase"] {
+    border-color: #315b47 !important;
+    background: #1b3328 !important;
+  }
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="decrease"] {
+    border-color: #694241 !important;
+    background: #382624 !important;
+  }
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="unchanged"] {
+    border-color: #61512c !important;
+    background: #332b18 !important;
+  }
+
+  .app-shell .inventory-page > .inventory-heading .eyebrow,
+  .app-shell .inventory-page > .inventory-heading .welcome-sub { display: none; }
+  .app-shell .inventory-title-desktop { display: none; }
+  .app-shell .inventory-title-mobile { display: inline; }
+  .app-shell .inventory-page > .inventory-heading {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 15px;
+  }
+  .app-shell .inventory-page > .inventory-heading > div { min-width: 0; }
+  .app-shell .inventory-page > .inventory-heading .inventory-action {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+    flex: 0 0 42px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .app-shell .inventory-page > .inventory-heading .inventory-add-plus {
+    width: auto;
+    height: auto;
+    border: 0;
+    font-size: 25px;
+  }
+  .app-shell .inventory-page > .inventory-heading .inventory-add-label { display: none; }
+  .app-shell .power-title-desktop { display: none; }
+  .app-shell .power-title-mobile { display: inline; }
+  .app-shell .power-page > .inventory-heading .eyebrow,
+  .app-shell .power-page > .inventory-heading .welcome-sub { display: none; }
+  .app-shell .power-page > .inventory-heading {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 15px;
+  }
+  .app-shell .power-page > .inventory-heading > div { min-width: 0; }
+  .app-shell .power-page > .inventory-heading .power-heading-add {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+    flex: 0 0 42px;
+    gap: 0;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .app-shell .power-page > .inventory-heading .power-heading-add-plus {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+    font: 400 26px/1 var(--sans);
+  }
+  .app-shell .power-page > .inventory-heading .power-heading-add-label { display: none; }
+}
 
 /* Keep dashboard cards flat in every theme and interaction state. */
 .app-shell #page-content:has(> .welcome-row) :is(.metric-card, .dashboard-grid > .panel, .dashboard-next-action, .onboarding-card),
@@ -10187,16 +10747,19 @@ body.theme-dark { background: var(--bg); }
   .app-shell[data-accent] .topbar,
   .app-shell .topbar {
     position: relative !important;
-    min-height: 48px;
-    padding: 5px 11px;
+    width: auto;
+    max-width: none;
+    min-height: 56px;
+    margin: max(8px, env(safe-area-inset-top)) 8px 0;
+    padding: 8px 14px;
     gap: 7px;
-    border-bottom-color: transparent;
+    border: 1px solid var(--line);
+    border-radius: 24px;
   }
   .app-shell[data-accent] .topbar {
-    background: linear-gradient(180deg,
-      color-mix(in srgb, var(--green) 76%, var(--bg)) 0%,
-      color-mix(in srgb, var(--green) 68%, var(--bg)) 54%,
-      color-mix(in srgb, var(--green) 22%, var(--bg)) 100%);
+    background: #fff;
+    color: var(--text);
+    border-bottom-color: var(--line);
   }
   .app-shell .phone-account-menu[hidden] { display: none !important; }
   .app-shell .phone-account-menu {
@@ -10226,8 +10789,8 @@ body.theme-dark { background: var(--bg); }
   }
   .app-shell .phone-account-menu-item:hover { background: color-mix(in srgb, var(--green) 12%, transparent); }
   .app-shell .phone-account-menu-item svg {
-    width: 18px;
-    height: 18px;
+    width: 15px;
+    height: 15px;
     fill: none;
     stroke: var(--green);
     stroke-width: 1.8;
@@ -10235,17 +10798,23 @@ body.theme-dark { background: var(--bg); }
     stroke-linejoin: round;
   }
   .app-shell.theme-dark .phone-account-menu { box-shadow: 0 8px 22px #0008; }
-  .app-shell .topbar > .top-brand .brand-mark { width: 29px; height: 29px; }
+  .app-shell .topbar > .top-brand .brand-mark { width: 32px; height: 32px; }
   .app-shell .notification-toggle,
   .app-shell .privacy-toggle,
   .app-shell .sign-out-button {
-    width: 34px;
-    height: 34px;
-    flex-basis: 34px;
-    padding: 7px;
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+    padding: 8px;
   }
-  .app-shell .profile-button { width: 34px; min-height: 34px; flex-basis: 34px; }
-  .app-shell .profile-button .avatar { width: 26px; height: 26px; }
+  .app-shell .profile-button { width: 38px; min-height: 38px; flex-basis: 38px; }
+  .app-shell .profile-button .avatar { width: 30px; height: 30px; }
+  .app-shell .notification-center {
+    width: auto;
+    max-width: none;
+    max-height: calc(100dvh - 68px);
+    border-radius: 16px;
+  }
 
   /* Flat, softly tinted dashboard tiles like the phone mockup. */
   .app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card {

@@ -47,6 +47,8 @@ let activePowerTab = "income";
 let activeQuestFilter = "active";
 let activeAchievementFilter = "earned";
 let activeSettingsTab = "profile";
+let settingsTabsMediaQuery = null;
+let settingsTabsMediaHandler = null;
 
 // Shared icons. Inline SVG is centred by the button's own grid, unlike the old text arrows (⌃ ⌄).
 const chevronIcon = '<svg class="chev-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>';
@@ -635,6 +637,7 @@ const achievementStorageKey = "netraos-achievements-v1";
 const reportPeriodStorageKey = "netraos-report-period-v1";
 const statsSnapshotStorageKey = "netraos-stats-networth-snapshots-v1";
 let statsRangeMonths = 6;
+let statsMobileView = "cash-flow";
 const currencyStorageKey = "netraos-currency-v1";
 const privacyModeStorageKey = "netraos-privacy-mode-v1";
 const currencyAmountPattern = /(?:KSh|USh|TSh|KES|USD|EUR|GBP|UGX|TZS|[$€£])\s*[+-]?\s*\d[\d,]*(?:\.\d+)?/i;
@@ -873,13 +876,15 @@ function getStoredSettings() {
 }
 
 // Apply browser-saved preferences and keep the header and settings controls in sync.
-function applyStoredSettings() {
+function applyStoredSettings(themeModeOverride = "") {
   const settings = getStoredSettings();
+  const themeMode = ["light", "dark", "system"].includes(themeModeOverride) ? themeModeOverride : settings.themeMode;
+  const darkMode = themeMode === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : themeMode === "dark";
   document.body.classList.toggle("reduce-motion", settings.reduceMotion);
-  document.body.classList.toggle("theme-dark", settings.darkMode);
-  appShell.classList.toggle("theme-dark", settings.darkMode);
-  publicShell.classList.toggle("theme-dark", settings.darkMode);
-  const logoPath = settings.darkMode ? "netraos-logo-dark.svg" : "netraos-logo.svg";
+  document.body.classList.toggle("theme-dark", darkMode);
+  appShell.classList.toggle("theme-dark", darkMode);
+  publicShell.classList.toggle("theme-dark", darkMode);
+  const logoPath = darkMode ? "netraos-logo-dark.svg" : "netraos-logo.svg";
   document.querySelectorAll("[data-brand-logo]").forEach(logo => {
     if (logo.getAttribute("src") !== logoPath) logo.setAttribute("src", logoPath);
   });
@@ -889,12 +894,12 @@ function applyStoredSettings() {
   appShell.classList.toggle("hide-xp-points", !settings.showXpPoints);
   appShell.classList.toggle("disable-quest-animations", !settings.questAnimations || settings.reduceMotion);
   document.querySelectorAll("[data-theme-toggle]").forEach(themeToggle => {
-    themeToggle.setAttribute("aria-pressed", String(settings.darkMode));
-    themeToggle.setAttribute("aria-label", settings.darkMode ? "Enable light mode" : "Enable dark mode");
-    themeToggle.title = settings.darkMode ? "Enable light mode" : "Enable dark mode";
+    themeToggle.setAttribute("aria-pressed", String(darkMode));
+    themeToggle.setAttribute("aria-label", darkMode ? "Enable light mode" : "Enable dark mode");
+    themeToggle.title = darkMode ? "Enable light mode" : "Enable dark mode";
   });
   const themeModeInput = document.querySelector('[name="themeMode"]');
-  if (themeModeInput) themeModeInput.value = settings.themeMode;
+  if (themeModeInput) themeModeInput.value = themeMode;
   const privacyInput = document.querySelector('input[name="privacyShield"]');
   if (privacyInput) privacyInput.checked = document.body.classList.contains("privacy-mode");
 }
@@ -1585,16 +1590,27 @@ function renderSettingsPage() {
   const settingsTabs = [
     ["profile", "Profile"], ["privacy", "Privacy"], ["appearance", "Appearance"], ["currency", "Currency"], ["backups", "Backups"]
   ];
+  const activeMobileSettingsTab = activeSettingsTab === "profile" ? "profile" : activeSettingsTab === "privacy" ? "security" : "preferences";
+  const mobileSettingsTabs = [["profile", "Profile"], ["preferences", "Preferences"], ["security", "Security"]];
   return `
     <section class="account-page settings-page">
-      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> APP PREFERENCES</div><h1>Make it yours.</h1><p class="welcome-sub">Manage your profile, privacy, appearance, and financial preferences.</p></div></header>
+      <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> APP PREFERENCES</div><h1><span class="settings-title-desktop">Make it yours.</span><span class="settings-title-mobile">Settings</span></h1><p class="welcome-sub">Manage your profile, privacy, appearance, and financial preferences.</p></div></header>
       <div class="settings-tabs" role="tablist" aria-label="Settings categories">
         ${settingsTabs.map(([id, label]) => `<button class="settings-tab${activeSettingsTab === id ? " is-active" : ""}" id="settings-tab-${id}" type="button" role="tab" aria-selected="${activeSettingsTab === id}" aria-controls="settings-panel-${id}" data-settings-tab="${id}">${label}</button>`).join("")}
+      </div>
+      <div class="settings-mobile-tabs" role="tablist" aria-label="Settings categories">
+        ${mobileSettingsTabs.map(([id, label]) => `<button class="settings-mobile-tab${activeMobileSettingsTab === id ? " is-active" : ""}" type="button" role="tab" data-settings-mobile-tab="${id}" aria-selected="${activeMobileSettingsTab === id}" aria-controls="settings-panel-${id === "preferences" ? "appearance" : id === "security" ? "privacy" : "profile"}">${label}</button>`).join("")}
       </div>
       <section class="settings-tab-panel settings-profile-tab" id="settings-panel-profile" role="tabpanel" aria-labelledby="settings-tab-profile" data-settings-panel="profile" tabindex="0" ${activeSettingsTab === "profile" ? "" : "hidden"}>
         <section class="panel settings-panel settings-profile-panel">
           <div class="panel-heading"><div><div class="section-kicker">YOUR ACCOUNT</div><h2>Profile information</h2></div></div>
-          <div class="profile-summary"><span class="profile-initials profile-photo-preview">${photo}</span><div><strong>${escapeHTML(profile.username || profile.name)}</strong><small>${escapeHTML(profile.name)} · ${escapeHTML(profile.email || "No email added")}</small></div></div>
+          <div class="profile-summary"><span class="profile-initials profile-photo-preview">${photo}</span><div><strong>${escapeHTML(profile.username || profile.name)}</strong><small>${escapeHTML(profile.name)} · ${escapeHTML(profile.email || "No email added")}</small></div><button class="settings-edit-profile" type="button" data-settings-edit-profile aria-expanded="false">Edit Profile</button></div>
+          <div class="settings-profile-mobile-details" aria-label="Profile details">
+            <div><span>Full name</span><strong>${escapeHTML(profile.name || "Not set")}</strong></div>
+            <div><span>Username</span><strong>${escapeHTML(username || "Not set")}</strong></div>
+            <div><span>Email</span><strong>${escapeHTML(profile.email || "Not set")}</strong></div>
+            <div><span>Phone</span><strong>${escapeHTML(profile.phone || "Add phone number")}</strong></div>
+          </div>
           <form class="account-form settings-profile-form" data-account-form="profile">
             <div class="inventory-form-field profile-photo-field settings-profile-photo-field"><label for="profile-photo-input"><span>Profile photo <small>Optional · PNG, JPEG, or WebP up to 5 MB</small></span></label><input id="profile-photo-input" name="photo" type="file" accept="image/png,image/jpeg,image/webp"><button class="inventory-submit profile-photo-choose" type="button" data-choose-profile-image>Choose photo</button></div>
             <label class="inventory-form-field"><span>Full name</span><input name="name" type="text" maxlength="80" value="${escapeHTML(profile.name)}" required></label>
@@ -1629,10 +1645,14 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Debt payoff</strong><small>In-app notices when a liability is marked as paid off.</small></span><input name="debtNotifications" type="checkbox" ${settings.debtNotifications ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Spending shortfall</strong><small>In-app notices if recorded spending moves above planned income.</small></span><input name="budgetNotifications" type="checkbox" ${settings.budgetNotifications ? "checked" : ""}></label>
         </section>
+        <section class="panel settings-panel settings-danger-zone"><div class="panel-heading"><div><div class="section-kicker">ACCOUNT CONTROL</div><h2>Reset or delete account data</h2></div></div>
+          <p class="settings-disclosure">These actions can permanently remove your local or synced data. Review the confirmation details before continuing.</p>
+          <div class="settings-inline-actions"><button class="danger-button" type="button" data-settings-action="clear-data">Factory reset · Clear all NetraOS data</button><button class="danger-button" type="button" data-settings-action="delete-account">Delete account permanently</button></div>
+        </section>
         </section>
         <section class="settings-tab-panel" id="settings-panel-appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" data-settings-panel="appearance" tabindex="0" ${activeSettingsTab === "appearance" ? "" : "hidden"}>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">LOOK &amp; FEEL</div><h2>Appearance</h2></div></div>
-          <label class="settings-field"><span><strong>Theme</strong><small>Choose light, dark, or follow your device setting.</small></span><select name="themeMode"><option value="light" ${settings.themeMode === "light" ? "selected" : ""}>Light</option><option value="dark" ${settings.themeMode === "dark" ? "selected" : ""}>Dark</option><option value="system" ${settings.themeMode === "system" ? "selected" : ""}>System</option></select></label>
+          <div class="settings-field settings-theme-field"><span><strong>Theme</strong><small>Choose light, dark, or follow your device setting.</small></span><select name="themeMode" aria-label="Theme"><option value="light" ${settings.themeMode === "light" ? "selected" : ""}>Light</option><option value="dark" ${settings.themeMode === "dark" ? "selected" : ""}>Dark</option><option value="system" ${settings.themeMode === "system" ? "selected" : ""}>System</option></select><div class="settings-theme-choice" role="group" aria-label="Choose theme">${[["light", "Light"], ["dark", "Dark"], ["system", "System"]].map(([value, label]) => `<button type="button" data-theme-mode="${value}" class="${settings.themeMode === value ? "is-selected" : ""}" aria-pressed="${settings.themeMode === value}">${label}</button>`).join("")}</div></div>
           <label class="settings-field"><span><strong>Theme accent</strong><small>Updates navigation, buttons, icons, and highlights immediately.</small></span><select name="accentProfile"><option value="emerald" ${settings.accentProfile === "emerald" ? "selected" : ""}>Emerald Terminal</option><option value="amber" ${settings.accentProfile === "amber" ? "selected" : ""}>Cyber Amber</option><option value="matrix" ${settings.accentProfile === "matrix" ? "selected" : ""}>Matrix Green</option><option value="blue" ${settings.accentProfile === "blue" ? "selected" : ""}>Classic Blue</option><option value="violet" ${settings.accentProfile === "violet" ? "selected" : ""}>Electric Violet</option><option value="coral" ${settings.accentProfile === "coral" ? "selected" : ""}>Sunset Coral</option><option value="aqua" ${settings.accentProfile === "aqua" ? "selected" : ""}>Aqua Teal</option></select></label>
           <div class="accent-preview" data-accent-preview aria-live="polite"><span class="accent-preview-swatch" aria-hidden="true"></span><span class="accent-preview-copy"><strong data-accent-preview-name>${escapeHTML({ emerald: "Emerald Terminal", amber: "Cyber Amber", matrix: "Matrix Green", blue: "Classic Blue", violet: "Electric Violet", coral: "Sunset Coral", aqua: "Aqua Teal" }[settings.accentProfile])}</strong><small>Live accent preview</small></span><span class="accent-preview-sample">Example action</span></div>
           <label class="settings-field"><span><strong>Always show cents</strong><small>Show two decimal places in money amounts.</small></span><input name="alwaysShowCents" type="checkbox" ${settings.alwaysShowCents ? "checked" : ""}></label>
@@ -1665,7 +1685,6 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Monthly backup reminder</strong><small>Remind you in this browser to download a local backup.</small></span><input name="monthlyBackupPrompt" type="checkbox" ${settings.monthlyBackupPrompt ? "checked" : ""}></label>
           <div class="settings-inline-actions"><button class="secondary-button" type="button" data-cookie-manage>Manage cookie preferences</button><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button><button class="secondary-button" type="button" data-settings-action="download-terms">Download Terms of Service</button><button class="secondary-button" type="button" data-settings-action="download-privacy">Download Privacy Policy</button></div>
           <label class="settings-import-drop" data-settings-drop><strong>Restore a JSON backup</strong><span>Choose a file or drop it here. Existing matching NetraOS records will be replaced.</span><input name="backupFile" type="file" accept="application/json,.json" data-settings-import></label>
-          <div class="settings-inline-actions"><button class="danger-button" type="button" data-settings-action="clear-data">Factory reset · Clear all NetraOS data</button><button class="danger-button" type="button" data-settings-action="delete-account">Delete account permanently</button></div>
           <p class="legal-links"><a href="#terms" data-public-action="terms">Terms of Service</a><a href="#privacy" data-public-action="privacy">Privacy Policy</a></p>
         </section>
         </section>
@@ -1678,11 +1697,18 @@ function renderSettingsPage() {
 function setupSettingsTabs(root = content) {
   const tabs = [...root.querySelectorAll("[data-settings-tab]")];
   if (!tabs.length) return;
+  const mobileTabs = [...root.querySelectorAll("[data-settings-mobile-tab]")];
   const panels = [...root.querySelectorAll("[data-settings-panel]")];
   const settingsForm = root.querySelector("[data-account-form='settings']");
+  const themeSelect = root.querySelector('select[name="themeMode"]');
+  const themeButtons = [...root.querySelectorAll("[data-theme-mode]")];
+  const profileTab = root.querySelector(".settings-profile-tab");
+  const editProfileButton = root.querySelector("[data-settings-edit-profile]");
+  const mobileGroupForId = id => id === "profile" ? "profile" : id === "privacy" ? "security" : "preferences";
   const activate = (id, focusTab = false) => {
     if (!tabs.some(tab => tab.dataset.settingsTab === id)) id = "profile";
     activeSettingsTab = id;
+    const mobileGroup = mobileGroupForId(id);
     tabs.forEach(tab => {
       const selected = tab.dataset.settingsTab === id;
       tab.classList.toggle("is-active", selected);
@@ -1690,8 +1716,20 @@ function setupSettingsTabs(root = content) {
       tab.tabIndex = selected ? 0 : -1;
       if (selected && focusTab) tab.focus();
     });
-    panels.forEach(panel => { panel.hidden = panel.dataset.settingsPanel !== id; });
+    const showAllPreferences = window.matchMedia("(max-width: 600px)").matches && mobileGroup === "preferences";
+    panels.forEach(panel => {
+      const groupedPreferencePanel = showAllPreferences && ["appearance", "currency", "backups"].includes(panel.dataset.settingsPanel);
+      panel.hidden = panel.dataset.settingsPanel !== id && !groupedPreferencePanel;
+    });
     if (settingsForm) settingsForm.hidden = id === "profile";
+    if (settingsForm) settingsForm.dataset.mobileSettingsGroup = mobileGroup;
+    mobileTabs.forEach(tab => {
+      const selected = tab.dataset.settingsMobileTab === mobileGroup;
+      tab.classList.toggle("is-active", selected);
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      if (selected && focusTab) tab.focus();
+    });
   };
   tabs.forEach((tab, index) => {
     tab.addEventListener("click", () => activate(tab.dataset.settingsTab));
@@ -1707,6 +1745,67 @@ function setupSettingsTabs(root = content) {
       }
     });
   });
+  mobileTabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => {
+      const id = tab.dataset.settingsMobileTab === "preferences" ? "appearance" : tab.dataset.settingsMobileTab === "security" ? "privacy" : "profile";
+      if (id !== "profile" && profileTab?.classList.contains("is-editing")) {
+        if (profilePreviewUrl) URL.revokeObjectURL(profilePreviewUrl);
+        profilePreviewUrl = "";
+        activeSettingsTab = id;
+        showPage("Settings");
+        return;
+      }
+      activate(id);
+    });
+    tab.addEventListener("keydown", event => {
+      let next = null;
+      if (event.key === "ArrowRight") next = (index + 1) % mobileTabs.length;
+      if (event.key === "ArrowLeft") next = (index - 1 + mobileTabs.length) % mobileTabs.length;
+      if (event.key === "Home") next = 0;
+      if (event.key === "End") next = mobileTabs.length - 1;
+      if (next !== null) {
+        event.preventDefault();
+        mobileTabs[next].click();
+        mobileTabs[next].focus();
+      }
+    });
+  });
+  editProfileButton?.addEventListener("click", () => {
+    if (!profileTab) return;
+    const editing = !profileTab.classList.contains("is-editing");
+    if (!editing) {
+      if (profilePreviewUrl) URL.revokeObjectURL(profilePreviewUrl);
+      profilePreviewUrl = "";
+      activeSettingsTab = "profile";
+      showPage("Settings");
+      return;
+    }
+    profileTab.classList.toggle("is-editing", editing);
+    editProfileButton.textContent = editing ? "Cancel" : "Edit Profile";
+    editProfileButton.setAttribute("aria-expanded", String(editing));
+    const profileForm = root.querySelector(".settings-profile-form");
+    if (editing) profileForm?.querySelector('[name="name"]')?.focus();
+    else profileForm?.reset();
+  });
+  const syncThemeButtons = value => themeButtons.forEach(button => {
+    const selected = button.dataset.themeMode === value;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+  themeButtons.forEach(button => button.addEventListener("click", () => {
+    if (!themeSelect || !["light", "dark", "system"].includes(button.dataset.themeMode)) return;
+    themeSelect.value = button.dataset.themeMode;
+    syncThemeButtons(themeSelect.value);
+    applyStoredSettings(themeSelect.value);
+  }));
+  themeSelect?.addEventListener("change", () => {
+    syncThemeButtons(themeSelect.value);
+    applyStoredSettings(themeSelect.value);
+  });
+  if (settingsTabsMediaQuery && settingsTabsMediaHandler) settingsTabsMediaQuery.removeEventListener("change", settingsTabsMediaHandler);
+  settingsTabsMediaQuery = window.matchMedia("(max-width: 600px)");
+  settingsTabsMediaHandler = () => activate(activeSettingsTab);
+  settingsTabsMediaQuery.addEventListener("change", settingsTabsMediaHandler);
   activate(activeSettingsTab);
 }
 
@@ -2060,18 +2159,18 @@ function renderQuestCard(quest) {
   return `
     <article class="quest-card ${complete ? "is-complete" : ""}" style="--quest-accent:${questCategoryAccent(quest.category)}" data-quest-id="${escapeHTML(quest.id)}">
       <header class="quest-card-header">
-        <span class="quest-card-icon ${complete ? "is-complete" : ""}" aria-hidden="true">${complete ? "✦" : questNavigationIcon}</span>
+      <span class="quest-card-icon ${complete ? "is-complete" : ""}" aria-hidden="true"><span class="quest-icon-default">${complete ? "✦" : questNavigationIcon}</span>${complete ? "" : `<span class="quest-icon-category">${questCategoryIcon(quest.category)}</span>`}</span>
         <div class="quest-card-title-group">
           <div class="quest-card-title-line"><h3>${escapeHTML(quest.name)}</h3><span class="quest-status ${statusClass}">${status}</span></div>
         </div>
         <strong class="quest-card-percent" aria-label="${progress} percent complete">${progress}%</strong>
         <div class="quest-card-actions">
-          <button class="quest-update" type="button" data-edit-quest="${escapeHTML(quest.id)}" aria-label="${complete ? "Edit" : "Update"} ${escapeHTML(quest.name)}">${complete ? "Edit quest" : "Update progress"}</button>
+          <button class="quest-update" type="button" data-edit-quest="${escapeHTML(quest.id)}" aria-label="${complete ? "Edit" : "Update"} ${escapeHTML(quest.name)}"><span class="quest-update-label-full">${complete ? "Edit quest" : "Update progress"}</span><span class="quest-update-label-short">${complete ? "Edit" : "Update"}</span></button>
           <button class="quest-more" type="button" data-quest-actions="${escapeHTML(quest.id)}" aria-label="More actions for ${escapeHTML(quest.name)}" aria-haspopup="menu" aria-expanded="false">•••</button>
         </div>
       </header>
       <div class="quest-card-progress">
-        <div class="quest-card-amounts"><span>Saved <strong>${formatKsh(quest.current)}</strong></span><span>Target <strong>${formatKsh(quest.target)}</strong></span></div>
+        <div class="quest-card-amounts" aria-label="Saved ${formatKsh(quest.current)} of target ${formatKsh(quest.target)}"><span>Saved <strong>${formatKsh(quest.current)}</strong></span><span>Target <strong>${formatKsh(quest.target)}</strong></span></div>
         <div class="quest-track" role="progressbar" aria-label="${escapeHTML(quest.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><i style="width:${progress}%"></i></div>
       </div>
       <details class="quest-card-details">
@@ -2485,11 +2584,8 @@ function renderAccountRows(entries) {
         <span class="inventory-empty-icon" aria-hidden="true">＋</span>
         <div>
           <strong>No accounts added yet</strong>
-          <p>Add an account to keep its balance in your financial inventory.</p>
+          <p>Use Add item above to keep this balance in your financial inventory.</p>
         </div>
-        <button class="inventory-action secondary" type="button" data-inventory-action="add-account">
-          Add your first item
-        </button>
       </div>`;
   }
 
@@ -2551,11 +2647,11 @@ function renderInventoryPage() {
       <header class="inventory-heading">
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> YOUR BALANCE SHEET</div>
-          <h1>My Inventory</h1>
+          <h1><span class="inventory-title-desktop">My Inventory</span><span class="inventory-title-mobile">Inventory</span></h1>
           <p class="welcome-sub">Track the assets and liabilities that shape your net worth.</p>
         </div>
-        <button class="inventory-action" type="button" data-inventory-action="add-account">
-          <span class="inventory-add-plus" aria-hidden="true">+</span> Add item
+        <button class="inventory-action" type="button" data-inventory-action="add-account" aria-label="Add item" title="Add item">
+          <span class="inventory-add-plus" aria-hidden="true">+</span><span class="inventory-add-label">Add item</span>
         </button>
       </header>
 
@@ -2585,7 +2681,7 @@ function renderInventoryPage() {
           <button type="button" class="inventory-filter" data-inventory-filter="liability" aria-pressed="false">Liabilities (${entries.filter(entry => entry.type === "liability").length})</button>
         </div>
         ${renderAccountRows(entries)}
-        <p class="inventory-filter-empty" data-inventory-filter-empty hidden>No items in this category yet. <button type="button" data-inventory-action="add-account">Add an item</button></p>
+        <p class="inventory-filter-empty" data-inventory-filter-empty hidden>No items in this category yet.</p>
       </section>
     </section>
     ${renderAppFooter()}`;
@@ -3245,11 +3341,11 @@ function renderQuestsPage() {
       <header class="inventory-heading">
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> GOALS WITH MOMENTUM</div>
-          <h1>Financial quests</h1>
+          <h1><span class="quests-title-desktop">Financial quests</span><span class="quests-title-mobile">Quests</span></h1>
           <p class="welcome-sub">Set a goal, track your progress, and keep your next milestone in reach.</p>
         </div>
-        <button class="inventory-action" type="button" data-quest-action="add" ${canAddQuest ? "" : "disabled"} title="${canAddQuest ? "Create a quest" : "Complete or remove an active quest to make room"}">
-          ${plusIcon} New quest
+        <button class="inventory-action quest-heading-add" type="button" data-quest-action="add" aria-label="Create a quest" ${canAddQuest ? "" : "disabled"} title="${canAddQuest ? "Create a quest" : "Complete or remove an active quest to make room"}">
+          <span class="quest-heading-add-plus" aria-hidden="true">+</span><span class="quest-heading-add-label">New quest</span>
         </button>
       </header>
       <section class="quest-overview" aria-label="Quest overview">
@@ -3281,8 +3377,8 @@ function renderQuestsPage() {
 function renderQuestEmptyState(filter, canAddQuest) {
   const isCompleted = filter === "completed";
   const title = isCompleted ? "No completed quests yet" : filter === "active" ? "Ready for your first quest?" : "No quests yet";
-  const copy = isCompleted ? "Finished goals will be saved here so you can look back on your progress." : "Choose a goal that matters to you and start building momentum.";
-  return `<div class="quest-empty-state"><span class="quest-empty-icon" aria-hidden="true">${isCompleted ? "✦" : questNavigationIcon}</span><strong>${title}</strong><p>${copy}</p>${!isCompleted && canAddQuest ? `<button class="quest-update" type="button" data-quest-action="add">Create a quest</button>` : ""}</div>`;
+  const copy = isCompleted ? "Finished goals will be saved here so you can look back on your progress." : "";
+  return `<div class="quest-empty-state"><span class="quest-empty-icon" aria-hidden="true">${isCompleted ? "✦" : questNavigationIcon}</span><strong>${title}</strong>${copy ? `<p>${copy}</p>` : ""}${!isCompleted && canAddQuest ? `<button class="quest-update" type="button" data-quest-action="add">Create a quest</button>` : ""}</div>`;
 }
 
 function openQuestDialog(questId = "") {
@@ -3543,6 +3639,29 @@ function renderStatsTrend(view, months, currentNetWorth) {
   return `<svg class="stats-trend-chart${view === "net-worth" ? " is-net-worth" : ""}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${aria}">${grid}${content}${monthLabels}</svg>`;
 }
 
+function getStatsMobileInsight(view, months, currentNetWorth) {
+  const current = months.at(-1);
+  const previous = months.at(-2);
+  if (view === "cash-flow") {
+    if (!current || !previous || previous.spending <= 0) return "Add spending records to see how this month compares.";
+    const delta = (current.spending - previous.spending) / previous.spending * 100;
+    if (Math.abs(delta) < 0.5) return "Your spending is about the same as last month.";
+    return `Spending is ${delta < 0 ? "down" : "up"} ${Math.abs(delta).toFixed(0)}% compared with last month.`;
+  }
+  if (view === "savings") {
+    if (!current) return "Add income and spending records to track your savings rate.";
+    if (current.saved < 0) return `You spent ${formatKsh(Math.abs(current.saved))} more than your income this month.`;
+    return `${formatKsh(current.saved)} saved this month from ${formatKsh(current.income)} income.`;
+  }
+  const snapshots = getStatsNetWorthSnapshots(currentNetWorth);
+  const latest = snapshots.at(-1);
+  const prior = snapshots.at(-2);
+  if (!latest) return "Add assets and liabilities in Inventory to track your net worth.";
+  if (!prior) return `Your latest recorded net worth is ${formatKsh(latest.value)}.`;
+  const change = latest.value - prior.value;
+  return `Net worth ${change < 0 ? "decreased" : change > 0 ? "increased" : "held steady"} by ${formatKsh(Math.abs(change))} since the previous snapshot.`;
+}
+
 function renderStatsPage() {
   const inventory = getInventoryEntries();
   const power = getPowerUpData();
@@ -3580,13 +3699,18 @@ function renderStatsPage() {
       </div>`).join("")
     : `<div class="stats-empty">Add assets in Inventory to see how they are distributed.</div>`;
   const cashFlowLegend = `<div class="stats-main-legend"><span><i class="income"></i>Income</span><span><i class="spending"></i>Expenses</span></div>`;
+  const statsViews = [
+    { id: "cash-flow", label: "Cash Flow", title: "Monthly Cash Flow" },
+    { id: "savings", label: "Savings", title: "Savings Rate" },
+    { id: "net-worth", label: "Net Worth", title: "Net Worth Trend" }
+  ];
 
   return `
     <section class="stats-page">
       <header class="inventory-heading">
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> FINANCIAL OVERVIEW</div>
-          <h1>Your Financial <em>Stats</em></h1>
+          <h1><span class="stats-title-desktop">Your Financial <em>Stats</em></span><span class="stats-title-mobile">Stats</span></h1>
           <p class="welcome-sub">Visual insights to help you make better decisions.</p>
         </div>
         <label class="stats-range-select">Chart range
@@ -3596,21 +3720,25 @@ function renderStatsPage() {
         </label>
       </header>
       <section class="stats-trend-section" aria-label="Financial trends">
+        <div class="stats-mobile-tabs" role="tablist" aria-label="Financial trend">
+          ${statsViews.map(view => `<button type="button" role="tab" class="stats-mobile-tab ${statsMobileView === view.id ? "is-active" : ""}" data-stats-view="${view.id}" aria-selected="${statsMobileView === view.id}" aria-controls="stats-panel-${view.id}">${view.label}</button>`).join("")}
+        </div>
         <div class="stats-trend-grid">
-          <article class="panel stats-primary-panel stats-cashflow-panel">
+          <article id="stats-panel-cash-flow" role="tabpanel" class="panel stats-primary-panel stats-cashflow-panel ${statsMobileView === "cash-flow" ? "is-mobile-active" : ""}">
             <div class="stats-chart-heading"><div><h2>Monthly Cash Flow</h2></div>${cashFlowLegend}</div>
             ${renderStatsTrend("cash-flow", monthlySeries, balance.netWorth)}
           </article>
-          <article class="panel stats-primary-panel stats-secondary-chart stats-savings-panel">
+          <article id="stats-panel-savings" role="tabpanel" class="panel stats-primary-panel stats-secondary-chart stats-savings-panel ${statsMobileView === "savings" ? "is-mobile-active" : ""}">
             <div class="stats-chart-heading"><h2>Savings Rate</h2></div>
             ${renderStatsTrend("savings", monthlySeries, balance.netWorth)}
           </article>
-          <article class="panel stats-primary-panel stats-secondary-chart stats-net-worth-panel">
+          <article id="stats-panel-net-worth" role="tabpanel" class="panel stats-primary-panel stats-secondary-chart stats-net-worth-panel ${statsMobileView === "net-worth" ? "is-mobile-active" : ""}">
             <div class="stats-chart-heading"><h2>Net Worth Trend</h2></div>
             ${renderStatsTrend("net-worth", monthlySeries, balance.netWorth)}
           </article>
         </div>
       </section>
+      <aside class="stats-key-insight"><span class="stats-key-insight-icon" aria-hidden="true">✦</span><div><strong>Key Insight</strong><p>${escapeHTML(getStatsMobileInsight(statsMobileView, monthlySeries, balance.netWorth))}</p></div></aside>
       <details class="stats-more-insights">
         <summary class="stats-more-heading"><div><h2>More insights</h2><p>Supporting details for your budget, assets, and goals.</p></div><span class="stats-more-chevron" aria-hidden="true"></span></summary>
         <section class="stats-panels">
@@ -3633,6 +3761,14 @@ function renderStatsPage() {
     </section>
     ${renderAppFooter()}`;
 }
+
+document.addEventListener("click", event => {
+  const tab = event.target.closest("button[data-stats-view]");
+  if (!tab || !["cash-flow", "savings", "net-worth"].includes(tab.dataset.statsView)) return;
+  if (tab.dataset.statsView === statsMobileView) return;
+  statsMobileView = tab.dataset.statsView;
+  content.innerHTML = renderStatsPage();
+});
 
 document.addEventListener("change", event => {
   const range = event.target.closest("select[data-stats-range]");
@@ -3713,6 +3849,9 @@ function renderAchievementsPage() {
   const earnedCount = candidates.filter(item => item.isEarned).length;
   const lockedCount = candidates.length - earnedCount;
   const visible = candidates.filter(item => activeAchievementFilter === "earned" ? item.isEarned : !item.isEarned);
+  if (activeAchievementFilter === "locked") {
+    visible.sort((a, b) => Math.min(1, Math.max(0, Number(b.progress) / b.target)) - Math.min(1, Math.max(0, Number(a.progress) / a.target)));
+  }
   const cards = visible.map(item => {
     const progress = item.isEarned ? 100 : Math.min(100, Math.round(Math.max(0, Number(item.progress)) / item.target * 100));
     const shownProgress = Math.min(item.target, Math.max(0, Number(item.progress)));
@@ -3734,11 +3873,15 @@ function renderAchievementsPage() {
       <header class="inventory-heading">
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> FINANCIAL MILESTONES</div>
-          <h1>Your <em>Achievements</em></h1>
+          <h1><span class="achievement-title-desktop">Your <em>Achievements</em></span><span class="achievement-title-mobile">Achievements</span></h1>
           <p class="welcome-sub">Celebrate goals achieved and build strong money habits over time.</p>
         </div>
         <div class="achievement-score"><strong>${earnedCount} / ${candidates.length}</strong><span>medals earned</span></div>
       </header>
+      <section class="achievement-mobile-hero" aria-label="Achievement progress">
+        <span class="achievement-mobile-trophy" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M16 8h16v10c0 8-3.5 12-8 12s-8-4-8-12V8Z"/><path d="M16 12H8v4c0 6 4 9 9 9m15-13h8v4c0 6-4 9-9 9M24 30v7m-8 4h16l-2-4H18l-2 4Z"/><path d="M24 12v10m-4-5h8"/></svg></span>
+        <div class="achievement-mobile-hero-copy"><strong>You're doing great!</strong><p>Keep building your wealth.</p><div class="achievement-mobile-unlocked"><span>${earnedCount} / ${candidates.length} unlocked</span><i><b style="width:${Math.round(earnedCount / candidates.length * 100)}%"></b></i></div></div>
+      </section>
       <nav class="achievement-filters" aria-label="Filter achievements">
         <button type="button" class="achievement-filter ${activeAchievementFilter === "earned" ? "is-active" : ""}" data-achievement-filter="earned" aria-pressed="${activeAchievementFilter === "earned"}">Earned <span>${earnedCount}</span></button>
         <button type="button" class="achievement-filter ${activeAchievementFilter === "locked" ? "is-active" : ""}" data-achievement-filter="locked" aria-pressed="${activeAchievementFilter === "locked"}">Locked <span>${lockedCount}</span></button>
@@ -3916,11 +4059,11 @@ function renderPowerUpPage() {
       <header class="inventory-heading">
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> INCOME &amp; BUDGET</div>
-          <h1>Give every shilling<br><em>a direction.</em></h1>
+          <h1><span class="power-title-desktop">Give every shilling<br><em>a direction.</em></span><span class="power-title-mobile">Power-Up &amp; Tax</span></h1>
           <p class="welcome-sub">Build a monthly plan around the income you have and the priorities you choose.</p>
         </div>
-        <button class="inventory-action" type="button" data-power-action="income">
-          ${plusIcon} Add income
+        <button class="inventory-action power-heading-add" type="button" data-power-action="income" aria-label="Add income" title="Add income">
+          <span class="power-heading-add-plus" aria-hidden="true">+</span><span class="power-heading-add-label">Add income</span>
         </button>
       </header>
 
@@ -4374,23 +4517,32 @@ function renderContactPage() {
   return `
     <section class="contact-page cx-page">
       <header class="cx-heading">
-        <div class="eyebrow"><span class="eyebrow-line"></span> CONTACT</div>
-        <h1>Get in touch.</h1>
-        <p class="welcome-sub">Questions, feedback or partnerships — we read every message. Times shown are East Africa Time (EAT).</p>
+        <div class="cx-heading-copy">
+          <span class="cx-heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.5 11.5a8 8 0 0 1-8 8 8.5 8.5 0 0 1-3.5-.8L4 20l1.5-4a8 8 0 1 1 15-4.5Z"/><circle cx="8.5" cy="12" r=".9"/><circle cx="12.5" cy="12" r=".9"/><circle cx="16.5" cy="12" r=".9"/></svg></span>
+          <div class="cx-heading-text">
+            <div class="eyebrow"><span class="eyebrow-line"></span> CONTACT</div>
+            <h1>Get in touch.</h1>
+            <p class="welcome-sub">We're here to help. Send us a message or check our FAQs.</p>
+          </div>
+        </div>
       </header>
 
-      <section class="cx-layout">
+      <nav class="cx-mobile-tabs" role="tablist" aria-label="Contact options">
+        <button type="button" role="tab" class="is-active" data-contact-tab="message" aria-selected="true" aria-controls="cx-layout">Send a Message</button>
+        <button type="button" role="tab" data-contact-tab="faq" aria-selected="false" aria-controls="cx-layout">FAQs</button>
+      </nav>
+      <section class="cx-layout" id="cx-layout" data-contact-view="message">
         <form class="panel cx-form" data-contact-form novalidate aria-label="Send us a message">
           <h2>Send us a message</h2>
-          <p class="cx-form-lead">Your message opens in your email app, addressed to the right team.</p>
-          <label class="cx-field"><span>Your name</span><input name="handle" type="text" maxlength="80" autocomplete="name" placeholder="Full name"></label>
-          <label class="cx-field"><span>Topic</span>
+          <p class="cx-form-lead">We'll open a message to the right team in your email app.</p>
+          <label class="cx-field"><span>Your name</span><input name="handle" type="text" maxlength="80" autocomplete="name" placeholder="Full name" required></label>
+          <label class="cx-field"><span>Email</span><input name="email" type="email" maxlength="254" autocomplete="email" placeholder="you@example.com" required></label>
+          <label class="cx-field"><span>Topic <small>(optional)</small></span>
             <select name="dest">${Object.entries(contactDestinations).map(([key, dest]) => `<option value="${key}">${dest.label}</option>`).join("")}</select>
           </label>
-          <label class="cx-field"><span>Message</span><textarea name="payload" maxlength="2000" rows="6" placeholder="How can we help?"></textarea></label>
+          <label class="cx-field"><span>Message</span><textarea name="payload" maxlength="2000" rows="6" placeholder="How can we help?" required></textarea></label>
           <div class="cx-actions">
             <button class="cx-send" type="submit"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"/></svg>Send message</button>
-            <button class="cx-clear" type="button" data-contact-clear>Clear</button>
           </div>
           <p class="cx-status" role="status" aria-live="polite"></p>
           <p class="cx-note">For your safety, never include your PIN, M-Pesa credentials or security keys in a message.</p>
@@ -4433,25 +4585,32 @@ document.addEventListener("submit", event => {
   };
   const data = new FormData(form);
   const handle = String(data.get("handle") || "").trim();
+  const replyEmail = String(data.get("email") || "").trim();
   const payload = String(data.get("payload") || "").trim();
   const dest = contactDestinations[String(data.get("dest"))] || contactDestinations.support;
   if (!handle) { setStatus("Please enter your name.", true); form.elements.handle.focus(); return; }
+  if (!replyEmail) { setStatus("Please enter your email address.", true); form.elements.email.focus(); return; }
+  if (!form.elements.email.validity.valid) { setStatus("Please enter a valid email address.", true); form.elements.email.focus(); return; }
   if (payload.length < 10) { setStatus("Please write a little more so we can help.", true); form.elements.payload.focus(); return; }
   const subject = `[${dest.tag}] NetraOS message from ${handle}`;
-  const body = `${payload}\n\n— ${handle}`;
+  const body = `${payload}\n\n— ${handle}\nReply to: ${replyEmail}`;
   window.location.href = `mailto:${dest.to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   setStatus(`Opening your email app, addressed to ${dest.to}.`);
 });
 
-// Reset the contact form and its status line when the clear control is selected.
 document.addEventListener("click", event => {
-  const clear = event.target.closest("[data-contact-clear]");
-  if (!clear) return;
-  const form = clear.closest("form");
-  form.reset();
-  const status = form.querySelector(".cx-status");
-  status.textContent = "";
-  status.classList.remove("error");
+  const tab = event.target.closest("button[data-contact-tab]");
+  if (!tab) return;
+  const layout = document.querySelector("#cx-layout");
+  if (!layout) return;
+  const view = tab.dataset.contactTab;
+  if (!["message", "faq"].includes(view)) return;
+  layout.dataset.contactView = view;
+  document.querySelectorAll("button[data-contact-tab]").forEach(button => {
+    const selected = button === tab;
+    button.classList.toggle("is-active", selected);
+    button.setAttribute("aria-selected", String(selected));
+  });
 });
 
 // Shared popover menus and toast messages provide lightweight app feedback.
@@ -4556,10 +4715,21 @@ function toggleNotificationCenter(button) {
   button.setAttribute("aria-expanded", "true");
   button.setAttribute("aria-haspopup", "dialog");
   const rect = button.getBoundingClientRect();
-  const right = Math.max(12, window.innerWidth - rect.right);
-  const top = Math.min(window.innerHeight - 120, rect.bottom + 8);
-  center.style.top = `${Math.max(8, top)}px`;
-  center.style.right = `${right}px`;
+  const isPhone = window.matchMedia("(max-width: 600px)").matches;
+  if (isPhone) {
+    const headerBottom = document.querySelector(".app-shell .topbar")?.getBoundingClientRect().bottom || rect.bottom;
+    const top = Math.max(8, headerBottom + 6);
+    center.style.left = "10px";
+    center.style.right = "10px";
+    center.style.width = "auto";
+    center.style.top = `${top}px`;
+    center.style.maxHeight = `${Math.max(180, window.innerHeight - top - 12)}px`;
+  } else {
+    const right = Math.max(12, window.innerWidth - rect.right);
+    const top = Math.min(window.innerHeight - 120, rect.bottom + 8);
+    center.style.top = `${Math.max(8, top)}px`;
+    center.style.right = `${right}px`;
+  }
   renderNotificationCenter();
 }
 
