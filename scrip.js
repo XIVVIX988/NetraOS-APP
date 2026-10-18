@@ -1232,19 +1232,21 @@ function getLegalDocument(page) {
   const isTerms = page === "terms";
   const title = isTerms ? "Terms of Service" : "Privacy Policy";
   const content = isTerms ? `
-    <h2>Using NetraOS</h2><p>NetraOS is a personal finance organization tool. It is not a bank, lender, tax agent, investment adviser, or provider of financial, legal, or tax advice. You are responsible for decisions made using the app.</p>
-    <h2>Estimates and financial information</h2><p>Calculators and projections are estimates for planning only. Tax, PAYE, NSSF, SHIF and other statutory figures may change and may not reflect your circumstances. Verify current requirements with the relevant official authority or a qualified professional before acting.</p>
-    <h2>Your records and account</h2><p>You retain ownership of the financial information you enter. NetraOS keeps a browser copy for local-first use and syncs account records with Supabase when you are signed in and online. Supabase stores the account database in the project region selected by its owner. Keep backups and protect access to your email and devices. The app uses essential browser storage for local operation, preferences, and sign-in sessions; see the Privacy Policy for details.</p>
-    <h2>Closing and deleting your account</h2><p>Use <strong>Settings → Delete account permanently</strong> to request permanent deletion of your NetraOS account, its Supabase Auth identity, and linked synced records. The deletion completes only when the app confirms success. This action cannot be undone. Downloaded exports and browser copies on other devices are separate and are not removed automatically; delete those copies yourself.</p>
-    <h2>Acceptable use</h2><p>Do not use the app to disrupt or compromise it, automate scraping, reverse engineer it, or access another person's data without permission.</p>
-    <h2>Availability</h2><p>This app is provided as-is and may change. Account sign-in and sync depend on the connected Supabase project and an internet connection. Local copies remain available on devices where you have already signed in.</p>` : `
-    <h2>Information stored</h2><p>NetraOS stores your profile, optional phone number, financial records, preferences, consent choices, and limited security activity in browser storage and, when signed in and online, in your Supabase account. Authentication passwords and sessions are managed by Supabase Auth. Browser copies support local-first operation; clearing browser data removes that device copy, while account data remains until deleted from the account.</p>
-    <h2>Cookies and browser storage</h2><p>This version of NetraOS does not use advertising or analytics cookies and does not currently collect performance telemetry. It stores essential app data, your cookie preference choice, and local preferences in browser storage. Supabase Auth uses browser storage to maintain your sign-in session. The optional telemetry choice in the preference dialog is reserved for a future feature; no telemetry is collected by this version. Your browser or hosting provider may separately use its own technologies.</p>
-    <h2>Storage and security limits</h2><p>Browser storage is not encrypted by this app. A person with access to this browser profile may be able to read its contents. The optional PIN locks the visible workspace only; it does not encrypt records. HTTPS and security headers depend on the website host and are not configured by this app's source.</p>
-    <h2>Sharing and third parties</h2><p>NetraOS does not sell or rent your financial records or use ad networks for them. When signed in and online, records are sent to the Supabase project connected to this app for account storage and synchronization. Supabase processes that data under the project owner's configuration and selected region. This version collects no performance telemetry. If you open email, telephone, or WhatsApp links, those services handle information you share with them. Google Fonts may be loaded by the page and can receive a request from your browser.</p>
-    <h2>Your choices and account deletion</h2><p>You can review and export your records in Settings, correct profile and financial details, or use Factory reset to delete synced NetraOS database records and clear this device's app data while keeping your Supabase Auth identity. Use <strong>Delete account permanently</strong> to delete the Supabase Auth identity and linked synced NetraOS records. Once completed, the deletion cannot be undone. Downloaded exports and browser copies on other devices are separate and are not erased automatically. Clearing browser site data removes only the local device copy, not account records or exported backups.</p>
-    <h2>Contact</h2><p>For privacy questions, contact <a href="mailto:support@netraos.io">support@netraos.io</a>.</p>`;
-  return { title, content, updated: "October 17, 2026", isTerms };
+    <h2>Using NetraOS</h2><p>NetraOS is a personal finance organization tool for recording and reviewing your finances, plans, quests, and progress. It is not a bank, lender, tax agent, investment adviser, or provider of financial, legal, or tax advice. You are responsible for the information you enter and decisions you make using the app.</p>
+    <h2>Estimates and financial information</h2><p>Calculators, tax estimates, charts, suggestions, and projections are provided for general planning and may be incomplete or inaccurate for your circumstances. Tax, PAYE, NSSF, SHIF, housing levy, and other statutory rules can change. Check current requirements with the relevant authority or a qualified professional before acting.</p>
+    <h2>Your account and records</h2><p>You retain your rights to the information you enter. NetraOS stores a working copy in this browser and synchronizes account records with the Supabase service connected to the app when you are signed in and online. The project owner controls the Supabase project and its selected region. Keep your sign-in details private, protect devices that contain local copies, and download backups when needed. Exports are files outside NetraOS and are your responsibility.</p>
+    <h2>Account closure and deletion</h2><p>In Settings, choose <strong>Delete account permanently</strong>, verify your account password, and confirm the deletion request. The account and linked synced records are deleted only after NetraOS confirms the operation succeeded. Completed deletion cannot be undone. Browser copies on other devices and files you previously exported are not removed automatically; remove those copies separately.</p>
+    <h2>Third-party services and sharing</h2><p>Sign-in and cloud synchronization depend on Supabase and an internet connection. Links to email, telephone, WhatsApp, social networks, and device sharing tools open services outside NetraOS. Their own terms and privacy practices apply when you choose to use them.</p>
+    <h2>Acceptable use and availability</h2><p>Do not use NetraOS to access another person's records without permission, disrupt or compromise the service, or misuse its systems. Features and availability may change. Local records can remain on a device when cloud access is unavailable, but sign-in and synchronization require the connected service and an internet connection.</p>
+    <h2>Contact</h2><p>For general support, email <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a>. For security or privacy concerns, email <a href="mailto:security@netraos.io">security@netraos.io</a>.</p>` : `
+    <h2>Information NetraOS stores</h2><p>Depending on the features you use, NetraOS stores your name, username, email address, optional phone number and profile photo; financial records such as assets, liabilities, income, budgets and spending; quests and achievement progress; settings; cookie preference choices; and limited security activity. A working copy is kept in browser storage. When you are signed in and online, account records synchronize with the Supabase project connected to NetraOS. Supabase Auth manages authentication credentials and sessions.</p>
+    <h2>Cookies and browser storage</h2><p>NetraOS uses browser storage for local records, settings, cookie choices, and the Supabase Auth sign-in session. This version does not use advertising or analytics cookies and does not collect performance telemetry. The optional telemetry choice in the cookie preferences is reserved for a future feature; no telemetry is collected by this version. Your browser, device, or website host may separately use its own technologies.</p>
+    <h2>How information is used</h2><p>Information is used to provide the app, calculate and display the financial summaries you request, save your preferences, maintain your account, synchronize records, and help protect account operations. NetraOS does not sell or rent your financial records or use ad networks for them.</p>
+    <h2>Storage, security, and retention</h2><p>Browser storage is not encrypted by NetraOS. Anyone with access to your browser profile or device may be able to access its local copy. The optional PIN hides the workspace but does not encrypt stored records. Cloud storage and its region are controlled by the Supabase project owner. Local copies remain until you clear browser data or reset the app. Synced account records remain until deleted through account deletion or otherwise removed from the connected project.</p>
+    <h2>Sharing and third parties</h2><p>NetraOS does not send your financial records through the social links or Share button. If you choose to share the app, the device sharing service receives the app link and any message you choose to include. Supabase processes sign-in and synced account data. Google Fonts may receive a request from your browser when fonts are loaded. Email, telephone, WhatsApp, social networks, and other services you open handle information you choose to send to them under their own privacy practices.</p>
+    <h2>Your choices and account deletion</h2><p>You can review, correct, and export profile and financial details in Settings. Factory reset clears app data from this device and requests removal of synced NetraOS database records while keeping the Supabase Auth identity. <strong>Delete account permanently</strong> deletes the Supabase Auth identity and linked synced NetraOS records after the app confirms success. Deletion cannot be undone. Exported files and browser copies on other devices are separate and are not erased automatically. Clearing browser site data removes only the local copy on that device.</p>
+    <h2>Contact</h2><p>For general support or privacy requests, email <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a>. For security concerns, email <a href="mailto:security@netraos.io">security@netraos.io</a>.</p>`;
+  return { title, content, updated: "October 18, 2026", isTerms };
 }
 
 function renderLegalPage(page) {
@@ -1253,10 +1255,112 @@ function renderLegalPage(page) {
 }
 
 function downloadLegalDocument(page) {
-  const { title, content, updated } = getLegalDocument(page);
-  const filename = page === "terms" ? "netraos-terms-of-service.html" : "netraos-privacy-policy.html";
-  const documentHtml = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · NetraOS</title><style>body{max-width:780px;margin:48px auto;padding:0 24px;color:#263a2f;font:16px/1.7 Arial,sans-serif}h1{margin:.2em 0;color:#14291f;font-size:38px}h2{margin:2em 0 .4em;color:#1b6146;font-size:21px}.updated{color:#67766d;font-size:14px}a{color:#14734f}</style></head><body><p>NETRAOS · ${title.toUpperCase()}</p><h1>${title}</h1><p class="updated">Last updated ${updated}</p>${content}</body></html>`;
-  saveFile(filename, documentHtml, "text/html;charset=utf-8");
+  const { title, content, updated, isTerms } = getLegalDocument(page);
+  const W = 595.28, H = 841.89, M = 44, FOOT = 48;
+  const colors = { ink: "#16241D", body: "#3B4A42", muted: "#6B7A71", green: "#13875F", deep: "#0E3B2C", gold: "#C9A24A", line: "#DCE6DF", white: "#FFFFFF" };
+  const rgb = hex => [0, 2, 4].map(i => (parseInt(hex.slice(1).slice(i, i + 2), 16) / 255).toFixed(3)).join(" ");
+  const num = value => String(Math.round(value * 100) / 100);
+  const clean = value => String(value || "").replace(/→/g, ">>").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, " ").replace(/\s+/g, " ").trim();
+  const escape = value => clean(value).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  const measure = (value, size) => clean(value).length * size * 0.51;
+  const wrap = (value, size, maxWidth) => {
+    const lines = [];
+    let line = "";
+    clean(value).split(" ").forEach(word => {
+      const next = line ? `${line} ${word}` : word;
+      if (line && measure(next, size) > maxWidth) { lines.push(line); line = word; }
+      else line = next;
+    });
+    if (line) lines.push(line);
+    return lines;
+  };
+  const source = document.createElement("div");
+  source.innerHTML = content;
+  const blocks = [...source.children].map(node => ({ heading: node.tagName === "H2", text: node.textContent.trim() })).filter(block => block.text);
+  const pages = [];
+  let stream = [];
+  let y = 72;
+  const pushText = (x, top, size, value, options = {}) => {
+    const face = options.bold ? "F2" : "F1";
+    const textX = options.alignRight ? x - measure(value, size) : x;
+    stream.push(`${rgb(options.color || colors.body)} rg BT /${face} ${num(size)} Tf ${num(textX)} ${num(H - top)} Td (${escape(value)}) Tj ET\n`);
+  };
+  const circlePath = (cx, cy, radius) => {
+    const k = radius * 0.5523;
+    return `${num(cx + radius)} ${num(cy)} m ${num(cx + radius)} ${num(cy + k)} ${num(cx + k)} ${num(cy + radius)} ${num(cx)} ${num(cy + radius)} c ${num(cx - k)} ${num(cy + radius)} ${num(cx - radius)} ${num(cy + k)} ${num(cx - radius)} ${num(cy)} c ${num(cx - radius)} ${num(cy - k)} ${num(cx - k)} ${num(cy - radius)} ${num(cx)} ${num(cy - radius)} c ${num(cx + k)} ${num(cy - radius)} ${num(cx + radius)} ${num(cy - k)} ${num(cx + radius)} ${num(cy)} c h`;
+  };
+  const drawEye = (x, top, size, { lid, accent, ring, ringWidth = 3, lidWidth = 7, irisWidth = 5.5 } = {}) => {
+    const scale = size / 256;
+    stream.push(`q ${num(scale)} 0 0 -${num(scale)} ${num(x)} ${num(H - top)} cm\n`);
+    if (ring) stream.push(`${rgb(ring)} RG ${num(ringWidth)} w ${circlePath(128, 128, 112)} S\n`);
+    stream.push(`${rgb(lid)} RG ${num(lidWidth)} w 56.32 128 m 104.11 83.63 151.89 83.63 199.68 128 c 151.89 172.37 104.11 172.37 56.32 128 c S\n`);
+    stream.push(`${rgb(accent)} RG ${num(irisWidth)} w ${circlePath(128, 128, 33.28)} S\n`);
+    stream.push(`${rgb(accent)} RG ${num(irisWidth)} w 112.64 138.24 m 128 117.76 l 143.36 138.24 l S\n`);
+    stream.push(`${rgb(lid)} rg ${circlePath(128, 128, 8.19)} f\n`);
+    stream.push(`${rgb(accent)} rg ${circlePath(56.32, 128, 3.5)} f ${circlePath(199.68, 128, 3.5)} f\nQ\n`);
+  };
+  const newPage = () => { stream = []; pages.push(stream); y = 76; };
+  newPage();
+  pushText(M, y + 28, 24, title, { bold: true, color: colors.ink });
+  pushText(M, y + 45, 8.5, `${isTerms ? "TERMS OF SERVICE" : "PRIVACY POLICY"}  |  LAST UPDATED ${updated.toUpperCase()}`, { bold: true, color: colors.green });
+  stream.push(`${rgb(colors.line)} RG 0.8 w ${num(M)} ${num(H - (y + 56))} m ${num(W - M)} ${num(H - (y + 56))} l S\n`);
+  y += 76;
+  blocks.forEach(block => {
+    const size = block.heading ? 10.5 : 8.4;
+    const leading = block.heading ? 14 : 12;
+    const lines = wrap(block.text, size, W - M * 2);
+    const height = (block.heading ? 19 : 4) + lines.length * leading + (block.heading ? 1 : 8);
+    if (y + height > H - FOOT - 8) newPage();
+    if (block.heading) {
+      pushText(M, y + 10, size, block.text, { bold: true, color: colors.green });
+      y += 18;
+    }
+    lines.forEach(line => { pushText(M, y + 9, size, line); y += leading; });
+    y += block.heading ? 9 : 2;
+  });
+  const total = pages.length;
+  pages.forEach((page, index) => {
+    stream = page;
+    stream.push(`${rgb(colors.deep)} rg 0 ${num(H - 52)} ${num(W)} 52 re f\n`);
+    stream.push(`${rgb(colors.gold)} rg 0 ${num(H - 54)} ${num(W)} 2 re f\n`);
+    drawEye(M, 11, 30, { lid: "#F2F1E1", accent: "#E3B74B", ring: "#1F2937", ringWidth: 1, lidWidth: 7 });
+    pushText(M + 40, 26, 13, "NETRAOS", { bold: true, color: colors.white });
+    pushText(M + 40, 39, 6.2, "YOUR FINANCIAL OPERATING SYSTEM", { color: "#A9D3BF" });
+    pushText(W - M, 24, 7.2, "LEGAL DOCUMENT", { bold: true, color: colors.gold });
+    pushText(W - M, 38, 6.5, `${isTerms ? "TERMS OF SERVICE" : "PRIVACY POLICY"}  |  ${updated}`, { color: "#A9D3BF", alignRight: true });
+    stream.push(`${rgb(colors.line)} RG 0.7 w ${num(M)} 40 m ${num(W - M)} 40 l S\n`);
+    pushText(M, H - 28, 6.5, `NetraOS  |  ${title}  |  ${updated}`, { color: colors.muted });
+    const pageLabel = `Page ${index + 1} of ${total}`;
+    pushText(W - M - measure(pageLabel, 6.5), H - 28, 6.5, pageLabel, { bold: true, color: colors.muted });
+    stream.push("q /G1 gs\n");
+    drawEye((W - 300) / 2, 255, 300, { lid: colors.green, accent: colors.gold, ring: colors.green, ringWidth: 2.2, lidWidth: 5, irisWidth: 4 });
+    pushText(W / 2 - 80, 600, 34, "NETRAOS", { bold: true, color: colors.green });
+    pushText(W / 2 - 66, 622, 8, "OFFICIAL POLICY DOCUMENT", { bold: true, color: colors.green });
+    stream.push("Q\n");
+  });
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    `<< /Type /Pages /Kids [${pages.map((_, i) => `${6 + i * 2} 0 R`).join(" ")}] /Count ${total} >>`,
+    "<< /Font << /F1 4 0 R /F2 5 0 R >> /ExtGState << /G1 << /Type /ExtGState /ca 0.055 /CA 0.055 >> >> >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>"
+  ];
+  pages.forEach((page, index) => {
+    const body = page.join("");
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources 3 0 R /Contents ${7 + index * 2} 0 R >>`);
+    objects.push(`<< /Length ${body.length} >>\nstream\n${body}endstream`);
+  });
+  const infoId = 6 + total * 2;
+  objects.push(`<< /Title (${escape(title)}) /Author (NetraOS) /Creator (NetraOS) /Producer (NetraOS) >>`);
+  let pdf = "%PDF-1.4\n";
+  const offsets = [];
+  objects.forEach((object, index) => { offsets.push(pdf.length); pdf += `${index + 1} 0 obj\n${object}\nendobj\n`; });
+  const xrefOffset = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.forEach(offset => { pdf += `${String(offset).padStart(10, "0")} 00000 n \n`; });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Info ${infoId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  const filename = isTerms ? "netraos-terms-of-service.pdf" : "netraos-privacy-policy.pdf";
+  saveFile(filename, pdf, "application/pdf");
 }
 
 const phoneIntroStorageKey = "netraos-phone-intro-seen-v1";
@@ -1472,7 +1576,7 @@ function showPublicPage(page = "landing") {
               <article class="landing-contact-card"><span class="landing-contact-icon" aria-hidden="true">⌖</span><div><small>ADDRESS</small><address><strong>NetraOS Technologies Lab</strong>The Mirage Towers, 8th Floor, Tower 2<br>Chiromo Road, Westlands<br>Nairobi, Kenya</address></div></article>
               <a class="landing-contact-card" href="tel:+254700000988"><span class="landing-contact-icon" aria-hidden="true">☎</span><div><small>CALL</small><strong>+254 (0) 700 000 988</strong><em>Primary Operations Desk</em></div></a>
               <a class="landing-contact-card" href="https://wa.me/254799000988" target="_blank" rel="noopener"><span class="landing-contact-icon" aria-hidden="true">✉</span><div><small>WHATSAPP</small><strong>+254 (0) 799 000 988</strong><em>WhatsApp only</em></div></a>
-              <article class="landing-contact-card"><span class="landing-contact-icon" aria-hidden="true">@</span><div><small>EMAIL</small><a href="mailto:support@netraos.io"><strong>support@netraos.io</strong></a><em>Support</em><a href="mailto:press@netraos.io"><strong>press@netraos.io</strong></a><em>Press</em></div></article>
+              <article class="landing-contact-card"><span class="landing-contact-icon" aria-hidden="true">@</span><div><small>EMAIL</small><a href="mailto:hello@netraos.co.ke"><strong>hello@netraos.co.ke</strong></a><em>Support</em><a href="mailto:press@netraos.io"><strong>press@netraos.io</strong></a><em>Press</em></div></article>
             </div>
           </section>
           <section class="landing-bottom-cta"><div><small>START WHERE YOU ARE</small><h2>Make your next money move with clarity.</h2></div><button class="public-primary" type="button" data-public-action="signup">Open NetraOS <span>↗</span></button></section>
@@ -1683,7 +1787,7 @@ function renderSettingsPage() {
           <p class="settings-disclosure">Browser storage keeps a working copy and Supabase Auth keeps your sign-in session. Account data syncs to the connected Supabase project when online. This app currently sets no analytics cookies and collects no performance telemetry.</p>
           <label class="settings-field"><span><strong>Allow optional performance telemetry</strong><small>No telemetry is currently collected by this version.</small></span><input name="performanceTelemetryConsent" type="checkbox" ${settings.performanceTelemetryConsent ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Monthly backup reminder</strong><small>Remind you in this browser to download a local backup.</small></span><input name="monthlyBackupPrompt" type="checkbox" ${settings.monthlyBackupPrompt ? "checked" : ""}></label>
-          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-cookie-manage>Manage cookie preferences</button><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button><button class="secondary-button" type="button" data-settings-action="download-terms">Download Terms of Service</button><button class="secondary-button" type="button" data-settings-action="download-privacy">Download Privacy Policy</button></div>
+          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-cookie-manage>Manage cookie preferences</button><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button><button class="secondary-button" type="button" data-settings-action="download-terms">Download Terms of Service (PDF)</button><button class="secondary-button" type="button" data-settings-action="download-privacy">Download Privacy Policy (PDF)</button></div>
           <label class="settings-import-drop" data-settings-drop><strong>Restore a JSON backup</strong><span>Choose a file or drop it here. Existing matching NetraOS records will be replaced.</span><input name="backupFile" type="file" accept="application/json,.json" data-settings-import></label>
           <p class="legal-links"><a href="#terms" data-public-action="terms">Terms of Service</a><a href="#privacy" data-public-action="privacy">Privacy Policy</a></p>
         </section>
@@ -4595,6 +4699,13 @@ function renderContactPage() {
               <li><span class="cx-label"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>Email</span><a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a></li>
               <li><span class="cx-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-3h4v3"/></svg>Office</span><address>NetraOS Technologies Lab<br>The Mirage Towers, 8th Floor, Tower 2<br>Chiromo Road, Westlands<br>Nairobi, Kenya<br>P.O. Box 40100 - 00100</address></li>
             </ul>
+            <div class="cx-social-share">
+              <div class="cx-social-copy"><strong>Follow &amp; share NetraOS</strong><span>Stay connected or pass NetraOS along.</span></div>
+              <div class="cx-social-actions">
+                ${renderSocialLinks("footer-social-links cx-social-links")}
+                <button class="cx-share-app" type="button" data-share-app aria-label="Share NetraOS" title="Share NetraOS"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4m-6.6 7 6.6 4.4"/></svg><span>Share</span></button>
+              </div>
+            </div>
           </article>
           <section class="panel cx-card cx-faq" aria-labelledby="cx-faq-title">
             <h2 id="cx-faq-title">Frequently asked questions</h2>
@@ -4602,6 +4713,7 @@ function renderContactPage() {
               <article class="faq-item" data-contact-faq-item><button class="faq-q" type="button" aria-expanded="false" aria-controls="contact-faq-asset"><span class="faq-q-text">How do I add an asset?</span><span class="faq-q-icon" aria-hidden="true">+</span></button><div class="faq-a" id="contact-faq-asset" role="region"><div class="faq-a-inner"><p>Open Inventory, choose Add Item, select Asset, then enter its name, value and account or source.</p></div></div></article>
               <article class="faq-item" data-contact-faq-item><button class="faq-q" type="button" aria-expanded="false" aria-controls="contact-faq-tax"><span class="faq-q-text">How is take-home pay calculated?</span><span class="faq-q-icon" aria-hidden="true">+</span></button><div class="faq-a" id="contact-faq-tax" role="region"><div class="faq-a-inner"><p>The Power-Up calculator estimates PAYE, NSSF, SHIF and the Affordable Housing Levy from your gross pay.</p></div></div></article>
               <article class="faq-item" data-contact-faq-item><button class="faq-q" type="button" aria-expanded="false" aria-controls="contact-faq-access"><span class="faq-q-text">Can NetraOS access my bank or M-Pesa?</span><span class="faq-q-icon" aria-hidden="true">+</span></button><div class="faq-a" id="contact-faq-access" role="region"><div class="faq-a-inner"><p>No. You enter balances yourself; NetraOS does not connect to your bank or M-Pesa account.</p></div></div></article>
+              <article class="faq-item" data-contact-faq-item><button class="faq-q" type="button" aria-expanded="false" aria-controls="contact-faq-delete-account"><span class="faq-q-text">How do I permanently delete my account?</span><span class="faq-q-icon" aria-hidden="true">+</span></button><div class="faq-a" id="contact-faq-delete-account" role="region"><div class="faq-a-inner"><p>In Settings, choose <b>Delete account permanently</b>, re-enter your account password, and type <b>DELETE</b> to confirm. Once NetraOS confirms completion, your sign-in identity and synced financial records are deleted. Download a backup first; exported files and browser copies on other devices are not removed automatically.</p></div></div></article>
             </div>
           </section>
         </aside>
@@ -4637,6 +4749,11 @@ document.addEventListener("submit", event => {
 });
 
 document.addEventListener("click", event => {
+  const shareButton = event.target.closest("button[data-share-app]");
+  if (shareButton) {
+    shareNetraApp();
+    return;
+  }
   const tab = event.target.closest("button[data-contact-tab]");
   if (!tab) return;
   const layout = document.querySelector("#cx-layout");
@@ -4650,6 +4767,26 @@ document.addEventListener("click", event => {
     button.setAttribute("aria-selected", String(selected));
   });
 });
+
+async function shareNetraApp() {
+  const url = new URL(window.location.href);
+  url.hash = "";
+  const shareData = { title: "NetraOS", text: "Plan, track, and grow your finances with NetraOS.", url: url.href };
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (error) {
+      if (error?.name === "AbortError") return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(shareData.url);
+    showToast("NetraOS link copied. Share it with someone.");
+  } catch {
+    window.prompt("Copy this link to share NetraOS:", shareData.url);
+  }
+}
 
 // Shared popover menus and toast messages provide lightweight app feedback.
 let activeMenuTrigger = null;

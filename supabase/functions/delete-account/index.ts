@@ -18,17 +18,18 @@ Deno.serve(async request => {
   const authorization = request.headers.get("Authorization");
   const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const publishableKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!bearer || !supabaseUrl || !publishableKey || !serviceRoleKey) {
+  if (!bearer || !supabaseUrl || !serviceRoleKey) {
     return respond({ error: "Account deletion is unavailable." }, 401);
   }
 
   try {
     const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { apikey: publishableKey, Authorization: `Bearer ${bearer}` },
+      // The service key is required below for admin deletion and avoids relying
+      // on a separately configured anon key when validating the fresh user JWT.
+      headers: { apikey: serviceRoleKey, Authorization: `Bearer ${bearer}` },
     });
-    if (!userResponse.ok) return respond({ error: "Sign in again before deleting this account." }, 401);
+    if (!userResponse.ok) return respond({ error: "Supabase could not verify the fresh sign-in token. Your account was not deleted." }, 401);
     const user = await userResponse.json();
     if (typeof user.id !== "string" || !user.id) return respond({ error: "Unable to verify the account." }, 401);
 

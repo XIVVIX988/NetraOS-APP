@@ -8294,6 +8294,19 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
 .cx-lines a, .cx-team-main a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--line); transition: border-color .15s, color .15s; }
 .cx-lines a:hover, .cx-team-main a:hover { color: var(--green); border-color: var(--green); }
 .cx-lines address { font-style: normal; line-height: 1.6; color: var(--soft); }
+.cx-social-share { display: grid; gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.cx-social-copy { display: grid; gap: 3px; }
+.cx-social-copy strong { color: var(--text); font: 600 13px var(--display); }
+.cx-social-copy span { color: var(--soft); font-size: 11px; line-height: 1.45; }
+.cx-social-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cx-social-actions .cx-social-links { margin-left: 0; gap: 5px; color: var(--soft); }
+.cx-social-actions .cx-social-links a { width: 31px; height: 31px; border: 1px solid var(--line); border-radius: 9px; }
+.cx-social-actions .cx-social-links a:hover { border-color: var(--green); color: var(--green); }
+.cx-social-actions .cx-social-links svg { width: 16px; height: 16px; }
+.cx-share-app { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; padding: 0 12px; border: 1px solid var(--green); border-radius: 10px; background: var(--green); color: #fff; font: 600 11px var(--sans); cursor: pointer; transition: background .16s ease, border-color .16s ease, transform .16s ease; }
+.cx-share-app:hover { filter: brightness(.94); transform: translateY(-1px); }
+.cx-share-app:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.cx-share-app svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .cx-team-row { display: flex; justify-content: space-between; gap: 24px; padding: 18px 0; border-top: 1px solid var(--line); }
 .cx-team-row:first-child { border-top: 0; }
 .cx-team-main { display: grid; gap: 3px; }

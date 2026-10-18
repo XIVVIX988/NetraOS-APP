@@ -397,22 +397,32 @@
         wipingCloudData = false;
       }
     },
-    deleteAccount: async (verifiedAccessToken = "") => {
-      const user = verifiedAccessToken ? null : await currentUser();
-      if (!verifiedAccessToken && !user) throw new Error("Sign in again before deleting this account.");
+    deleteAccount: async verifiedAccessToken => {
+      if (typeof verifiedAccessToken !== "string" || !verifiedAccessToken.trim()) {
+        throw new Error("Verify your account password before deleting this account.");
+      }
       wipingCloudData = true;
       if (syncTimer) clearTimeout(syncTimer);
       syncTimer = 0;
       pendingSync = false;
       try {
-        await syncCycle;
-        const headers = verifiedAccessToken ? { Authorization: `Bearer ${verifiedAccessToken}` } : undefined;
-        const { error } = await client.functions.invoke("delete-account", headers ? { headers } : undefined);
-        if (error) {
-          const status = error.context?.status;
+        const response = await fetch(`${config.url.replace(/\/+$/, "")}/functions/v1/delete-account`, {
+          method: "POST",
+          headers: {
+            apikey: config.publishableKey,
+            Authorization: `Bearer ${verifiedAccessToken.trim()}`,
+            "Content-Type": "application/json"
+          },
+          body: "{}"
+        });
+        let result = {};
+        try { result = await response.json(); } catch { /* Use an HTTP-specific message when the function returns no JSON. */ }
+        if (!response.ok) {
+          const status = response.status;
           if (status === 404) throw new Error("Permanent account deletion is not deployed in the Supabase project yet.");
-          throw new Error("Supabase could not permanently delete this account. Try again later.");
+          throw new Error(typeof result.error === "string" ? result.error : "Supabase could not permanently delete this account. Try again later.");
         }
+        if (result.success !== "Account deleted.") throw new Error("Supabase did not confirm account deletion. Your account was not cleared from this device.");
         dirtyLocal = false;
         await client.auth.signOut({ scope: "local" }).catch(() => {});
       } catch (error) {
