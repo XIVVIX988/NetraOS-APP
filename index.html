@@ -135,7 +135,7 @@
             <kbd aria-hidden="true">/</kbd>
             <div class="app-search-results" id="app-search-results" role="listbox" hidden></div>
           </div>
-          <!-- Header actions: notifications, date range, display currency, privacy, theme, and profile. -->
+          <!-- Header actions: notifications, date range, display currency, privacy, theme, profile, and sign out. -->
           <div class="topbar-actions">
             <button class="icon-button notification-toggle" type="button" aria-label="Notifications" title="Notifications" aria-haspopup="dialog" aria-expanded="false">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -164,13 +164,16 @@
                 <g class="theme-sun"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></g>
               </svg>
             </button>
-            <button class="profile-button" aria-label="Profile" title="Profile">
+            <button class="profile-button" type="button" aria-label="Open profile settings" title="Profile settings">
               <span class="avatar" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
                   <circle cx="12" cy="8" r="3.4" />
                   <path d="M5.5 20c.5-3.6 2.7-5.5 6.5-5.5s6 1.9 6.5 5.5" />
                 </svg>
               </span>
+            </button>
+            <button class="icon-button sign-out-button" type="button" aria-label="Sign out" title="Sign out">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"/><path d="M14 16l4-4-4-4M18 12H9"/></svg>
             </button>
           </div>
         </header>

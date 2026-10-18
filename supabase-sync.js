@@ -388,7 +388,32 @@
         const { error } = await client.rpc("wipe_my_data");
         if (error) throw error;
         dirtyLocal = false;
-        await client.auth.signOut({ scope: "local" });
+        await client.auth.signOut({ scope: "local" }).catch(() => {});
+      } catch (error) {
+        wipingCloudData = false;
+        if (dirtyLocal) schedulePush();
+        throw error;
+      } finally {
+        wipingCloudData = false;
+      }
+    },
+    deleteAccount: async () => {
+      const user = await currentUser();
+      if (!user) throw new Error("Sign in again before deleting this account.");
+      wipingCloudData = true;
+      if (syncTimer) clearTimeout(syncTimer);
+      syncTimer = 0;
+      pendingSync = false;
+      try {
+        await syncCycle;
+        const { error } = await client.functions.invoke("delete-account");
+        if (error) {
+          const status = error.context?.status;
+          if (status === 404) throw new Error("Permanent account deletion is not deployed in the Supabase project yet.");
+          throw new Error("Supabase could not permanently delete this account. Try again later.");
+        }
+        dirtyLocal = false;
+        await client.auth.signOut({ scope: "local" }).catch(() => {});
       } catch (error) {
         wipingCloudData = false;
         if (dirtyLocal) schedulePush();

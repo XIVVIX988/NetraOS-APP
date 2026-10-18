@@ -15,7 +15,13 @@ If you previously applied `supabase/migrations/20261015_require_totp_aal2.sql`, 
 
 The schema stores profile data in `user_profiles`, settings in `user_settings`, and financial records in the individual tables. Supabase Auth owns password hashes, confirmation challenges, password recovery, and session tokens. The local PIN verifier stays on each device; when online, a bcrypt hash in `user_pins` adds account-level verification and a five-attempt, five-minute lockout. Older PINs remain local until the PIN is changed while signed in and online. The new `wipe_my_data()` RPC removes all NetraOS account rows in one transaction while preserving the Supabase Auth identity.
 
-## 2. Configure Auth URLs and email
+## 2. Deploy permanent account deletion
+
+Settings includes a separate **Delete account permanently** action. It verifies the signed-in user, then calls the `delete-account` Edge Function to remove that user from Supabase Auth. The database rows reference `auth.users` with `ON DELETE CASCADE`, so the account’s synced NetraOS records are removed with the identity. The function uses `SUPABASE_SERVICE_ROLE_KEY` only in the Edge Function environment; never put that key in browser code.
+
+Deploy `supabase/functions/delete-account` to the same project with the Supabase CLI (`supabase functions deploy delete-account`). Confirm the Edge Function environment has `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` set. Keep JWT verification enabled for the function. Permanent deletion will report that it is not configured until this function is deployed.
+
+## 3. Configure Auth URLs and email
 
 In **Authentication → URL Configuration**:
 
@@ -29,11 +35,11 @@ Signup confirmation and password recovery now return to the published GitHub Pag
 
 Keep email confirmation enabled. Supabase’s default email sender is best-effort and limited to two emails per hour; on newer free projects it may only deliver to addresses belonging to the project organization. Configure custom SMTP under **Authentication → Emails → SMTP Settings** before inviting ordinary users or launching publicly.
 
-## 3. Serve the app
+## 4. Serve the app
 
 Use a local web server such as VS Code Live Server at port `5500`; do not open `index.html` as a `file://` URL. Keep `index.html`, `scrip.js`, `style.css`, `supabase-config.js`, `supabase-sync.js`, the SVG assets, and `manifest.webmanifest` together in the same app directory. The SQL file is for the Dashboard only.
 
-## 4. Check the first sync
+## 5. Check the first sync
 
 1. Reload `http://127.0.0.1:5500/index.html` and create an account with an email you can open.
 2. Follow the Supabase confirmation link. NetraOS keeps the confirmed Supabase session and opens the dashboard automatically; if Supabase doesn’t return a session, sign in with your email and password.

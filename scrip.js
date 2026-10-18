@@ -253,7 +253,7 @@ let localAppSessionActive = false;
 const settingsStorageKey = "netraos-settings-v1";
 const securityAuditStorageKey = "netraos-security-audit-v1";
 const notificationStorageKey = "netraos-in-app-notifications-v1";
-const termsVersion = "2026-10-10";
+const termsVersion = "2026-10-17.1";
 let autoLockTimer = 0;
 let backupPromptTimer = 0;
 let autoLockNudgeTimer = 0;
@@ -1217,22 +1217,36 @@ function renderAppFooter() {
   return `<footer class="page-footer"><span>NETRAOS <i>·</i> YOUR FINANCIAL OPERATING SYSTEM</span><span>Private by design <i>✳</i></span>${renderSocialLinks()}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer>`;
 }
 
-// Explain the current local prototype's terms and data handling in plain language.
-function renderLegalPage(page) {
+// Keep the displayed and downloadable legal copy in one source of truth.
+function getLegalDocument(page) {
   const isTerms = page === "terms";
   const title = isTerms ? "Terms of Service" : "Privacy Policy";
   const content = isTerms ? `
     <h2>Using NetraOS</h2><p>NetraOS is a personal finance organization tool. It is not a bank, lender, tax agent, investment adviser, or provider of financial, legal, or tax advice. You are responsible for decisions made using the app.</p>
     <h2>Estimates and financial information</h2><p>Calculators and projections are estimates for planning only. Tax, PAYE, NSSF, SHIF and other statutory figures may change and may not reflect your circumstances. Verify current requirements with the relevant official authority or a qualified professional before acting.</p>
-    <h2>Your records and account</h2><p>You retain ownership of the financial information you enter. NetraOS keeps a browser copy for local-first use and syncs account records with Supabase when you are signed in and online. Supabase stores the account database in the project region selected by its owner. Keep backups and protect access to your email and devices.</p>
+    <h2>Your records and account</h2><p>You retain ownership of the financial information you enter. NetraOS keeps a browser copy for local-first use and syncs account records with Supabase when you are signed in and online. Supabase stores the account database in the project region selected by its owner. Keep backups and protect access to your email and devices. The app uses essential browser storage for local operation, preferences, and sign-in sessions; see the Privacy Policy for details.</p>
+    <h2>Closing and deleting your account</h2><p>Use <strong>Settings → Delete account permanently</strong> to request permanent deletion of your NetraOS account, its Supabase Auth identity, and linked synced records. The deletion completes only when the app confirms success. This action cannot be undone. Downloaded exports and browser copies on other devices are separate and are not removed automatically; delete those copies yourself.</p>
     <h2>Acceptable use</h2><p>Do not use the app to disrupt or compromise it, automate scraping, reverse engineer it, or access another person's data without permission.</p>
     <h2>Availability</h2><p>This app is provided as-is and may change. Account sign-in and sync depend on the connected Supabase project and an internet connection. Local copies remain available on devices where you have already signed in.</p>` : `
-    <h2>Information stored</h2><p>NetraOS stores your profile, financial records, preferences, consent choices, and limited security activity in the browser and in your Supabase account. Authentication passwords and sessions are managed by Supabase Auth. The app does not currently collect performance telemetry. Browser copies are used for local-first operation; clearing browser data removes that device copy, while account data remains until deleted from the account.</p>
+    <h2>Information stored</h2><p>NetraOS stores your profile, optional phone number, financial records, preferences, consent choices, and limited security activity in browser storage and, when signed in and online, in your Supabase account. Authentication passwords and sessions are managed by Supabase Auth. Browser copies support local-first operation; clearing browser data removes that device copy, while account data remains until deleted from the account.</p>
+    <h2>Cookies and browser storage</h2><p>This version of NetraOS does not use advertising or analytics cookies and does not currently collect performance telemetry. It stores essential app data, your cookie preference choice, and local preferences in browser storage. Supabase Auth uses browser storage to maintain your sign-in session. The optional telemetry choice in the preference dialog is reserved for a future feature; no telemetry is collected by this version. Your browser or hosting provider may separately use its own technologies.</p>
     <h2>Storage and security limits</h2><p>Browser storage is not encrypted by this app. A person with access to this browser profile may be able to read its contents. The optional PIN locks the visible workspace only; it does not encrypt records. HTTPS and security headers depend on the website host and are not configured by this app's source.</p>
     <h2>Sharing and third parties</h2><p>NetraOS does not sell or rent your financial records or use ad networks for them. When signed in and online, records are sent to the Supabase project connected to this app for account storage and synchronization. Supabase processes that data under the project owner's configuration and selected region. This version collects no performance telemetry. If you open email, telephone, or WhatsApp links, those services handle information you share with them. Google Fonts may be loaded by the page and can receive a request from your browser.</p>
-    <h2>Your choices</h2><p>You can review and export your records in Settings, correct profile and financial details, or use Factory reset to delete the synced NetraOS database records and clear this device's app data. Factory reset does not delete the Supabase Auth identity. Clearing browser site data removes only the local device copy, not account records or exported backups.</p>
+    <h2>Your choices and account deletion</h2><p>You can review and export your records in Settings, correct profile and financial details, or use Factory reset to delete synced NetraOS database records and clear this device's app data while keeping your Supabase Auth identity. Use <strong>Delete account permanently</strong> to delete the Supabase Auth identity and linked synced NetraOS records. Once completed, the deletion cannot be undone. Downloaded exports and browser copies on other devices are separate and are not erased automatically. Clearing browser site data removes only the local device copy, not account records or exported backups.</p>
     <h2>Contact</h2><p>For privacy questions, contact <a href="mailto:support@netraos.io">support@netraos.io</a>.</p>`;
-  return `<main class="legal-page"><header class="public-header"><a class="public-brand" href="#home" data-public-action="landing" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a><button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button></header><article class="legal-card"><div class="section-kicker">NETRAOS · ${isTerms ? "TERMS" : "PRIVACY"}</div><h1>${title}.</h1><p class="legal-updated">Last updated October 15, 2026</p>${content}<a class="public-primary legal-back" href="#signup" data-public-action="signup">Continue to signup <span>↗</span></a></article><footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><a href="#privacy" data-public-action="privacy">Privacy</a>${renderSocialLinks("footer-social-links public-social-links")}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer></main>`;
+  return { title, content, updated: "October 17, 2026", isTerms };
+}
+
+function renderLegalPage(page) {
+  const { title, content, updated, isTerms } = getLegalDocument(page);
+  return `<main class="legal-page"><header class="public-header"><a class="public-brand" href="#home" data-public-action="landing" aria-label="NetraOS home">${renderBrandMark()}<span><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL OPERATING SYSTEM</small></span></a><button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button></header><article class="legal-card"><div class="section-kicker">NETRAOS · ${isTerms ? "TERMS" : "PRIVACY"}</div><h1>${title}.</h1><p class="legal-updated">Last updated ${updated}</p>${content}<a class="public-primary legal-back" href="#signup" data-public-action="signup">Continue to signup <span>↗</span></a></article><footer class="public-footer"><span>NETRAOS · YOUR FINANCIAL OPERATING SYSTEM</span><a href="#privacy" data-public-action="privacy">Privacy</a>${renderSocialLinks("footer-social-links public-social-links")}<small>© ${new Date().getFullYear()} NetraOS. All rights reserved.</small></footer></main>`;
+}
+
+function downloadLegalDocument(page) {
+  const { title, content, updated } = getLegalDocument(page);
+  const filename = page === "terms" ? "netraos-terms-of-service.html" : "netraos-privacy-policy.html";
+  const documentHtml = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · NetraOS</title><style>body{max-width:780px;margin:48px auto;padding:0 24px;color:#263a2f;font:16px/1.7 Arial,sans-serif}h1{margin:.2em 0;color:#14291f;font-size:38px}h2{margin:2em 0 .4em;color:#1b6146;font-size:21px}.updated{color:#67766d;font-size:14px}a{color:#14734f}</style></head><body><p>NETRAOS · ${title.toUpperCase()}</p><h1>${title}</h1><p class="updated">Last updated ${updated}</p>${content}</body></html>`;
+  saveFile(filename, documentHtml, "text/html;charset=utf-8");
 }
 
 const phoneIntroStorageKey = "netraos-phone-intro-seen-v1";
@@ -1643,9 +1657,9 @@ function renderSettingsPage() {
           <p class="settings-disclosure">Browser storage keeps a working copy and Supabase Auth keeps your sign-in session. Account data syncs to the connected Supabase project when online. This app currently sets no analytics cookies and collects no performance telemetry.</p>
           <label class="settings-field"><span><strong>Allow optional performance telemetry</strong><small>No telemetry is currently collected by this version.</small></span><input name="performanceTelemetryConsent" type="checkbox" ${settings.performanceTelemetryConsent ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Monthly backup reminder</strong><small>Remind you in this browser to download a local backup.</small></span><input name="monthlyBackupPrompt" type="checkbox" ${settings.monthlyBackupPrompt ? "checked" : ""}></label>
-          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-cookie-manage>Manage cookie preferences</button><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button></div>
+          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-cookie-manage>Manage cookie preferences</button><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button><button class="secondary-button" type="button" data-settings-action="download-terms">Download Terms of Service</button><button class="secondary-button" type="button" data-settings-action="download-privacy">Download Privacy Policy</button></div>
           <label class="settings-import-drop" data-settings-drop><strong>Restore a JSON backup</strong><span>Choose a file or drop it here. Existing matching NetraOS records will be replaced.</span><input name="backupFile" type="file" accept="application/json,.json" data-settings-import></label>
-          <div class="settings-inline-actions"><button class="danger-button" type="button" data-settings-action="clear-data">Factory reset · Clear all NetraOS data</button></div>
+          <div class="settings-inline-actions"><button class="danger-button" type="button" data-settings-action="clear-data">Factory reset · Clear all NetraOS data</button><button class="danger-button" type="button" data-settings-action="delete-account">Delete account permanently</button></div>
           <p class="legal-links"><a href="#terms" data-public-action="terms">Terms of Service</a><a href="#privacy" data-public-action="privacy">Privacy Policy</a></p>
         </section>
         </section>
@@ -5124,7 +5138,7 @@ async function sendResetCodeEmail(to, code) {
   throw new Error("Email delivery is not set up for this app yet, so the reset cannot be verified.");
 }
 
-function performFactoryReset() {
+function performFactoryReset(successMessage = "NetraOS data cleared from this browser.") {
   window.clearTimeout(autoLockTimer);
   for (const storage of [localStorage, sessionStorage]) {
     const keys = [];
@@ -5141,7 +5155,7 @@ function performFactoryReset() {
   document.querySelector("#security-lock-screen")?.remove();
   appShell.hidden = true;
   showPublicPage("landing");
-  showToast("NetraOS data cleared from this browser.");
+  showToast(successMessage);
 }
 
 function clearAllLocalData() {
@@ -5275,6 +5289,47 @@ function showCloudFactoryReset() {
     } catch (error) {
       form.querySelector('[type="submit"]').disabled = false;
       status.textContent = error.message || "Unable to delete account data.";
+    }
+  });
+  dialog.showModal();
+  form.elements.password.focus();
+}
+
+function showPermanentAccountDeletion() {
+  if (!window.NetraSupabase?.enabled) {
+    clearAllLocalData();
+    return;
+  }
+  const dialog = document.createElement("dialog");
+  dialog.className = "inventory-dialog";
+  dialog.innerHTML = `<form class="inventory-form" novalidate><header class="inventory-dialog-heading"><div><span class="section-kicker">PERMANENT ACCOUNT DELETION</span><h2>Delete your account</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header><div class="inventory-form-fields"><p class="reset-copy">This permanently deletes your NetraOS account, profile, and all synced financial records. Your Supabase sign-in identity will also be deleted. This cannot be undone. Download a backup first if you need one.</p><label class="inventory-form-field"><span>Confirm your account password</span><input name="password" type="password" autocomplete="current-password" required></label><label class="inventory-form-field"><span>Type DELETE to confirm</span><input name="confirmation" type="text" autocomplete="off" required></label><p class="reset-status" role="alert" aria-live="polite"></p></div><footer class="inventory-dialog-actions"><button class="inventory-cancel" type="button">Cancel</button><button class="inventory-submit danger" type="submit">Delete account permanently</button></footer></form>`;
+  document.body.append(dialog);
+  const form = dialog.querySelector("form");
+  const status = dialog.querySelector(".reset-status");
+  const submit = form.querySelector('[type="submit"]');
+  const close = () => dialog.close();
+  dialog.querySelector(".inventory-dialog-close").addEventListener("click", close);
+  dialog.querySelector(".inventory-cancel").addEventListener("click", close);
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const password = String(form.elements.password.value || "");
+    const confirmation = String(form.elements.confirmation.value || "").trim();
+    if (confirmation !== "DELETE") { status.textContent = 'Type DELETE exactly to confirm account deletion.'; form.elements.confirmation.focus(); return; }
+    submit.disabled = true;
+    status.textContent = "Verifying your password…";
+    try {
+      const user = await window.NetraSupabase.getUser();
+      if (!user?.email || !password) throw new Error("Enter your account password to continue.");
+      const verified = await window.NetraSupabase.signIn(user.email, password);
+      if (verified.error) throw new Error("The password could not be verified.");
+      status.textContent = "Permanently deleting your account and synced data…";
+      await window.NetraSupabase.deleteAccount();
+      dialog.close();
+      performFactoryReset("Your NetraOS account and synced data were permanently deleted.");
+    } catch (error) {
+      submit.disabled = false;
+      status.textContent = error.message || "Unable to delete your account. Try again later.";
     }
   });
   dialog.showModal();
@@ -5926,7 +5981,8 @@ function handleMenuChoice(action) {
     return;
   }
   if (action === "profile") {
-    showPage("Profile");
+    activeSettingsTab = "profile";
+    showPage("Settings");
     return;
   }
   if (action === "settings") {
@@ -6666,6 +6722,9 @@ document.addEventListener("click", event => {
     else if (button.dataset.settingsAction === "export-csv") downloadAllLocalData("csv");
     else if (button.dataset.settingsAction === "manage-rates") openCurrencyRatesDialog();
     else if (button.dataset.settingsAction === "clear-data") clearAllLocalData();
+    else if (button.dataset.settingsAction === "delete-account") showPermanentAccountDeletion();
+    else if (button.dataset.settingsAction === "download-terms") downloadLegalDocument("terms");
+    else if (button.dataset.settingsAction === "download-privacy") downloadLegalDocument("privacy");
     return;
   }
   if (button.matches("[data-remove-profile-image]")) {
@@ -6836,17 +6895,17 @@ document.addEventListener("click", event => {
     }
     return;
   }
-  if (button.matches(".icon-button")) {
-    showToast("You’re all caught up.");
+  if (button.matches(".profile-button")) {
+    activeSettingsTab = "profile";
+    showPage("Settings");
     return;
   }
-  if (button.matches(".profile-button")) {
-    const profile = getStoredProfile();
-    openMenu(button, [
-      { label: profile?.username || profile?.name || "Your profile", action: "profile" },
-      { label: "Settings", action: "settings" },
-      { label: "Sign out", action: "sign-out" }
-    ]);
+  if (button.matches(".sign-out-button")) {
+    handleMenuChoice("sign-out");
+    return;
+  }
+  if (button.matches(".icon-button")) {
+    showToast("You’re all caught up.");
     return;
   }
   if (button.matches(".empty-action")) {

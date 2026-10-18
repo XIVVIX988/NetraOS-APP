@@ -7162,6 +7162,27 @@ body.reduce-motion .quest-celebration { opacity: 1; transform: none; }
   color: #56645b;
   background: #f7f9f7;
 }
+.app-shell .topbar-actions .sign-out-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #e7ece8;
+  border-radius: 50%;
+  color: #56645b;
+  background: #f7f9f7;
+}
+.app-shell .topbar-actions .sign-out-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .app-shell .topbar-actions .notification-toggle svg {
   width: 18px;
   height: 18px;
@@ -7172,6 +7193,11 @@ body.reduce-motion .quest-celebration { opacity: 1; transform: none; }
   stroke-linejoin: round;
 }
 .app-shell .topbar-actions .notification-toggle:hover {
+  color: #087953;
+  background: #edf5f0;
+  border-color: #d7e7dc;
+}
+.app-shell .topbar-actions .sign-out-button:hover {
   color: #087953;
   background: #edf5f0;
   border-color: #d7e7dc;
@@ -7199,7 +7225,18 @@ body.reduce-motion .quest-celebration { opacity: 1; transform: none; }
   border-color: #262626;
   box-shadow: 0 2px 7px #0002;
 }
+.app-shell.theme-dark .topbar-actions .sign-out-button {
+  color: #b8c4bb;
+  background: #0a0a0a;
+  border-color: #262626;
+  box-shadow: 0 2px 7px #0002;
+}
 .app-shell.theme-dark .topbar-actions .notification-toggle:hover {
+  color: #f3d984;
+  background: #222d26;
+  border-color: #405247;
+}
+.app-shell.theme-dark .topbar-actions .sign-out-button:hover {
   color: #f3d984;
   background: #222d26;
   border-color: #405247;
@@ -8051,6 +8088,7 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
   .app-shell .topbar .currency-select .dropdown-chevron { width: 10px; height: 10px; }
   .app-shell .topbar .privacy-toggle { order: 3; flex: 0 0 38px; width: 38px; height: 38px; padding: 8px; }
   .app-shell .topbar .profile-button { order: 4; margin-left: 0; flex: 0 0 auto; }
+  .app-shell .topbar .sign-out-button { order: 5; flex: 0 0 38px; width: 38px; height: 38px; padding: 8px; }
 
   .drawer-backdrop {
     display: block;
