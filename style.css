@@ -387,36 +387,6 @@ body {
   gap: 10px;
   flex: 0 0 auto;
 }
-.pdf-download-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 38px;
-  padding: 9px 14px;
-  border: 1px solid #8dbd74;
-  border-radius: 20px;
-  background: #d9f0c9;
-  color: #17321c;
-  font: 600 11px var(--mono);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color .16s ease, box-shadow .16s ease, transform .16s ease;
-}
-.pdf-download-button:hover {
-  background: #c9e8b6;
-  box-shadow: 0 3px 12px #0002;
-}
-.pdf-download-button:active {
-  transform: translateY(1px);
-}
-.pdf-download-button:focus-visible {
-  outline: 3px solid #7caa61;
-  outline-offset: 3px;
-}
-.pdf-download-icon {
-  font: 700 16px/1 Arial, sans-serif;
-}
 .eyebrow {
   font: 9px var(--mono);
   letter-spacing: .115em;
@@ -1194,11 +1164,6 @@ h1 em {
     flex-direction: column-reverse;
     align-items: flex-end;
     gap: 7px;
-  }
-  .pdf-download-button {
-    min-height: 34px;
-    padding: 7px 10px;
-    font-size: 9px;
   }
   .welcome-sub {
     max-width: 250px;
@@ -7559,6 +7524,35 @@ body.theme-dark .cookie-button:not(.secondary) { border-color: #41956e; backgrou
   .cookie-banner .cookie-button { flex: 1 1 0; }
   .cookie-dialog { padding: 21px; }
 }
+
+/* Keep all five phone destinations on one tidy row, including at narrow widths. */
+@media (max-width: 600px) {
+  .app-shell .mobile-tab-bar {
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: 8px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    min-height: 62px;
+    padding: 4px;
+    border-radius: 24px;
+  }
+  .app-shell .mobile-tab {
+    min-width: 0;
+    min-height: 52px;
+    gap: 2px;
+    padding: 3px 1px;
+    white-space: nowrap;
+    font-size: clamp(7px, 2.35vw, 9px);
+    line-height: 1;
+  }
+  .app-shell .mobile-tab svg { width: 19px; height: 19px; }
+  .app-shell .mobile-tab.is-active {
+    border-radius: 17px;
+    background: color-mix(in srgb, var(--green) 10%, transparent);
+  }
+}
+
+
 .security-lock-screen { position: fixed; z-index: 10000; inset: 0; display: grid; place-items: center; padding: 24px; background: #f1f5f2; color: #24352a; }
 .security-lock-card { width: min(440px, 100%); padding: 34px; border: 1px solid #d9e3dc; border-radius: 22px; background: #fff; box-shadow: 0 24px 80px #1c33251f; }
 .security-lock-card h1 { margin: 12px 0; color: #1c2b21; font-size: 30px; }
@@ -8813,6 +8807,117 @@ body.theme-dark, html.theme-dark { background: #000; }
 .app-shell[data-accent] .desktop-nav-item.active > span[aria-hidden="true"] { color: #fff; }
 .app-shell[data-accent] .desktop-nav-item:hover > span[aria-hidden="true"] { color: #fff; }
 
+/* Phone dashboard and persistent bottom navigation. */
+.mobile-tab-bar { display: none; }
+.app-shell .networth-caption { display: none; }
+.app-shell .dashboard-networth-sparkline { display: none; }
+.app-shell .savings-card .positive-pill:empty { display: none; }
+@media (max-width: 600px) {
+  .app-shell .topbar {
+    min-height: 58px;
+    height: auto;
+    flex-wrap: nowrap;
+    gap: 9px;
+    padding: 8px 13px;
+    border-radius: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .app-shell .nav-toggle { display: none; }
+  .app-shell .topbar > .top-brand {
+    order: 1;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 36px;
+    overflow: hidden;
+  }
+  .app-shell .topbar > .top-brand .brand-copy { display: none; }
+  .app-shell .topbar > .top-brand .brand-mark { width: 34px; height: 34px; }
+  .app-shell .topbar-actions { display: contents; }
+  .app-shell .notification-toggle { order: 2; }
+  .app-shell .profile-button { order: 3; margin-left: 0; flex: 0 0 38px; }
+  .app-shell .main-panel { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .app-shell .content { padding: 17px 14px 24px; }
+  #page-content:has(> .welcome-row) { display: flex; flex-direction: column; }
+  #page-content:has(> .welcome-row) > .welcome-row { order: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; margin: 0 0 14px; }
+  #page-content:has(> .welcome-row) > .welcome-row .eyebrow { display: none; }
+  #page-content:has(> .welcome-row) > .welcome-row h1 { margin: 0; font-size: 23px; line-height: 1.2; letter-spacing: -.04em; }
+  #page-content:has(> .welcome-row) > .welcome-row h1 br { display: none; }
+  #page-content:has(> .welcome-row) > .welcome-row h1 em { color: var(--green); font-style: normal; }
+  #page-content:has(> .welcome-row) > .welcome-row .welcome-sub { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+  #page-content:has(> .welcome-row) > .welcome-row .welcome-actions { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
+  #page-content:has(> .welcome-row) > .welcome-row .period-button { min-height: 34px; padding: 7px 10px; font-size: 11px; }
+  #page-content:has(> .welcome-row) > .onboarding-card { order: 2; margin-bottom: 12px; padding: 14px; }
+  #page-content:has(> .welcome-row) > .metrics-grid { order: 3; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 0 0 12px; }
+  #page-content:has(> .welcome-row) > .metrics-grid .metric-card { min-width: 0; min-height: 104px; height: auto; padding: 12px; border-radius: 13px; }
+  #page-content:has(> .welcome-row) > .metrics-grid .networth-card { grid-column: 1 / -1; min-height: 116px; }
+  #page-content:has(> .welcome-row) > .metrics-grid .savings-card { display: none; }
+  #page-content:has(> .welcome-row) > .metrics-grid .metric-heading { font-size: 9px; }
+  #page-content:has(> .welcome-row) > .metrics-grid .metric-value { margin: 9px 0 4px; font-size: clamp(19px, 6vw, 25px); overflow-wrap: anywhere; }
+  #page-content:has(> .welcome-row) > .metrics-grid .networth-card .metric-value { font-size: 27px; }
+  #page-content:has(> .welcome-row) > .metrics-grid .networth-caption { margin-top: 1px; font-size: 10px; }
+  #page-content:has(> .welcome-row) > .metrics-grid .networth-caption { display: block; }
+  #page-content:has(> .welcome-row) > .metrics-grid .dashboard-networth-sparkline.is-visible { position: absolute; right: 12px; bottom: 11px; display: block; width: 40%; height: 34px; overflow: visible; }
+  .dashboard-networth-sparkline path { fill: none; stroke: var(--green); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-foot,
+  #page-content:has(> .welcome-row) > .metrics-grid .spending-card .thin-progress,
+  #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-inline-action { display: none; }
+  #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-caption { margin-top: 3px; font-size: 9px; }
+  #page-content:has(> .welcome-row) > .dashboard-grid { display: contents; }
+  #page-content:has(> .welcome-row) > .dashboard-grid .cashflow-panel { order: 4; min-height: 0; margin: 0 0 11px; padding: 14px 12px; }
+  #page-content:has(> .welcome-row) > .dashboard-grid .allocation-panel { order: 6; min-height: 0; margin: 0 0 12px; padding: 14px 12px; }
+  #page-content:has(> .welcome-row) > .dashboard-grid .cashflow-panel .section-kicker { margin-bottom: 3px; }
+  #page-content:has(> .welcome-row) > .dashboard-grid .cashflow-panel .panel-heading { gap: 8px; margin-bottom: 5px; }
+  #page-content:has(> .welcome-row) > .dashboard-grid .cashflow-panel .panel-heading h2 { font-size: 16px; }
+  #page-content:has(> .welcome-row) > .dashboard-grid .chart-period-label { max-width: 118px; font-size: 9px; }
+  #page-content:has(> .welcome-row) > .dashboard-grid .chart-legend { justify-content: flex-start; gap: 12px; margin-top: 8px; font-size: 9px; }
+  #page-content:has(> .welcome-row) > .dashboard-grid .cashflow-chart-wrap { margin-top: 2px; }
+  #page-content:has(> .welcome-row) > .dashboard-grid .cashflow-chart { width: 100%; height: auto; aspect-ratio: 380 / 260; }
+  #page-content:has(> .welcome-row) > .dashboard-grid [data-chart-series] { display: block !important; }
+  #page-content:has(> .welcome-row) > .dashboard-grid [data-chart-bars] { display: none !important; }
+  #page-content:has(> .welcome-row) > .dashboard-next-action { order: 5; align-items: flex-start; gap: 10px; margin: 0 0 12px; padding: 12px; }
+  #page-content:has(> .welcome-row) > .dashboard-next-action > div { flex: 1 1 calc(100% - 50px); }
+  #page-content:has(> .welcome-row) > .dashboard-next-action h2 { font-size: 13px; }
+  #page-content:has(> .welcome-row) > .dashboard-next-action p { font-size: 11px; line-height: 1.45; }
+  #page-content:has(> .welcome-row) > .dashboard-next-action button { flex: 1 1 100%; min-height: 38px; }
+  #page-content:has(> .welcome-row) > .page-footer { order: 7; }
+  .mobile-tab-bar {
+    position: fixed;
+    right: 12px;
+    bottom: max(9px, env(safe-area-inset-bottom));
+    left: 12px;
+    z-index: 65;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    min-height: 64px;
+    padding: 5px 7px;
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    background: color-mix(in srgb, var(--panel) 96%, transparent);
+    box-shadow: 0 -5px 18px #10251a0c;
+    backdrop-filter: blur(14px);
+  }
+  .mobile-tab {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 48px;
+    padding: 4px 2px;
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    color: var(--muted);
+    font: 500 9px var(--sans);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-tab svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .mobile-tab.is-active { color: var(--green); font-weight: 700; }
+  .mobile-tab:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+  .app-shell.theme-dark .mobile-tab-bar { background: color-mix(in srgb, var(--panel) 96%, #000); box-shadow: 0 -5px 18px #0005; }
+}
+
 /* Popups are often mounted under body, so use the accent tokens exported on :root. */
 body dialog { border-color: color-mix(in srgb, var(--app-popup-accent) 30%, var(--line)) !important; }
 body dialog .section-kicker,
@@ -9874,3 +9979,308 @@ body.theme-dark { background: var(--bg); }
 }
 .app-shell.theme-dark[data-accent] .achievement-filter.is-active { border-color: var(--green); }
 .app-shell.theme-dark[data-accent] :is(button, a, input, select, textarea):focus-visible { outline-color: var(--green); }
+
+/* Give the phone dashboard's three headline figures clear semantic colors. */
+@media (max-width: 600px) {
+  #page-content:has(> .welcome-row) > .metrics-grid .networth-card {
+    border-color: color-mix(in srgb, #15936a 38%, var(--line));
+    border-left: 3px solid #15936a;
+    background: linear-gradient(135deg, color-mix(in srgb, #15936a 13%, var(--panel)), var(--panel));
+  }
+  #page-content:has(> .welcome-row) > .metrics-grid .networth-card .metric-heading,
+  #page-content:has(> .welcome-row) > .metrics-grid .networth-card .metric-value { color: #12664b; }
+  #page-content:has(> .welcome-row) > .metrics-grid .income-card {
+    border-color: color-mix(in srgb, #398dbe 40%, var(--line));
+    border-left: 3px solid #398dbe;
+    background: linear-gradient(135deg, color-mix(in srgb, #398dbe 13%, var(--panel)), var(--panel));
+  }
+  #page-content:has(> .welcome-row) > .metrics-grid .income-card .metric-heading,
+  #page-content:has(> .welcome-row) > .metrics-grid .income-card .metric-value { color: #21678f; }
+  #page-content:has(> .welcome-row) > .metrics-grid .spending-card {
+    border-color: color-mix(in srgb, #df716a 40%, var(--line));
+    border-left: 3px solid #df716a;
+    background: linear-gradient(135deg, color-mix(in srgb, #df716a 12%, var(--panel)), var(--panel));
+  }
+  #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-heading,
+  #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-value { color: #a9403e; }
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .networth-card {
+    border-color: color-mix(in srgb, #48c594 54%, var(--line));
+    border-left-color: #48c594;
+    background: linear-gradient(135deg, color-mix(in srgb, #48c594 17%, var(--panel)), var(--panel));
+  }
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .networth-card .metric-heading,
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .networth-card .metric-value { color: #9ce6c5; }
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .income-card {
+    border-color: color-mix(in srgb, #67b9e8 54%, var(--line));
+    border-left-color: #67b9e8;
+    background: linear-gradient(135deg, color-mix(in srgb, #67b9e8 17%, var(--panel)), var(--panel));
+  }
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .income-card .metric-heading,
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .income-card .metric-value { color: #a5dcf7; }
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card {
+    border-color: color-mix(in srgb, #e47b73 54%, var(--line));
+    border-left-color: #e47b73;
+    background: linear-gradient(135deg, color-mix(in srgb, #e47b73 18%, var(--panel)), var(--panel));
+  }
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-heading,
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-value { color: #ffb1a9; }
+}
+
+
+
+/* Keep the phone top bar's surface tied to the selected theme accent. */
+@media (max-width: 600px) {
+  .app-shell[data-accent] .topbar {
+    border-bottom-color: color-mix(in srgb, var(--green) 65%, #10251f);
+    background: linear-gradient(112deg,
+      color-mix(in srgb, var(--green) 72%, #10251f),
+      color-mix(in srgb, var(--green) 84%, #061613));
+    color: #fff;
+  }
+  .app-shell[data-accent] .topbar .brand-copy strong,
+  .app-shell[data-accent] .topbar .brand-copy strong span { color: #fff; }
+  .app-shell[data-accent] .topbar .brand-copy small { color: color-mix(in srgb, var(--green) 35%, #fff); }
+  .app-shell[data-accent] .topbar .notification-toggle,
+  .app-shell[data-accent] .topbar .profile-button {
+    border-color: color-mix(in srgb, var(--green) 48%, #fff);
+    background: color-mix(in srgb, var(--green) 35%, transparent);
+    color: #fff;
+  }
+}
+
+/* Keep all five phone destinations on one tidy row, including at narrow widths. */
+@media (max-width: 600px) {
+  .app-shell .mobile-tab-bar {
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: 8px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    min-height: 62px;
+    padding: 4px;
+    border-radius: 24px;
+  }
+  .app-shell .mobile-tab {
+    min-width: 0;
+    min-height: 52px;
+    gap: 2px;
+    padding: 3px 1px;
+    white-space: nowrap;
+    font-size: clamp(7px, 2.35vw, 9px);
+    line-height: 1;
+  }
+  .app-shell .mobile-tab svg { width: 19px; height: 19px; }
+  .app-shell .mobile-tab.is-active {
+    border-radius: 17px;
+    background: color-mix(in srgb, var(--green) 10%, transparent);
+  }
+}
+
+
+/* Dashboard metric colors follow movement; keep the cards flat with no hover shadow. */
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card {
+  box-shadow: none !important;
+  transition: border-color .16s ease, background-color .16s ease;
+}
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card:hover {
+  transform: none;
+  box-shadow: none !important;
+}
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="increase"] { --trend-accent: #16875f; --trend-ink: #116b4a; }
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="decrease"] { --trend-accent: #d5524b; --trend-ink: #ad3833; }
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="unchanged"] { --trend-accent: #c28a24; --trend-ink: #8d6419; }
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend] {
+  border-color: color-mix(in srgb, var(--trend-accent) 40%, var(--line)) !important;
+  border-left: 3px solid var(--trend-accent) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--trend-accent) 12%, var(--panel)), var(--panel)) !important;
+}
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend] .metric-heading,
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend] .metric-value { color: var(--trend-ink) !important; }
+.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="increase"] { --trend-accent: #51c28f; --trend-ink: #a0e7c2; }
+.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="decrease"] { --trend-accent: #ef7770; --trend-ink: #ffb6b0; }
+.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="unchanged"] { --trend-accent: #e5b44e; --trend-ink: #f3d38c; }
+.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend] {
+  border-color: color-mix(in srgb, var(--trend-accent) 55%, var(--line)) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--trend-accent) 17%, var(--panel)), var(--panel)) !important;
+}
+
+/* Independent phone More popover; it never shares the side drawer's transform. */
+.mobile-more-menu { display: none; }
+@media (max-width: 600px) {
+  .app-shell .mobile-more-menu {
+    position: fixed;
+    z-index: 66;
+    right: 8px;
+    bottom: calc(78px + env(safe-area-inset-bottom));
+    display: grid;
+    width: min(180px, calc(100vw - 24px));
+    max-height: min(42vh, 220px);
+    gap: 1px;
+    padding: 4px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: 17px;
+    background: var(--panel);
+    box-shadow: 0 12px 32px #0e241d30;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(12px) scale(.98);
+    transform-origin: bottom right;
+    transition: transform .2s cubic-bezier(.2, .8, .2, 1), opacity .16s ease, visibility 0s linear .2s;
+  }
+  .app-shell.more-menu-open .mobile-more-menu {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    transition: transform .2s cubic-bezier(.2, .8, .2, 1), opacity .16s ease, visibility 0s;
+  }
+  .mobile-more-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    min-height: 34px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    color: var(--soft);
+    font: 600 11px var(--sans);
+    text-align: left;
+    cursor: pointer;
+  }
+  .mobile-more-item svg {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .mobile-more-item:hover,
+  .mobile-more-item.active { background: color-mix(in srgb, var(--green) 12%, transparent); color: var(--green); }
+  .app-shell.theme-dark .mobile-more-menu { box-shadow: 0 12px 32px #0009; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-more-menu { transition: none !important; }
+}
+
+/* Let the app header scroll away with the page instead of remaining pinned. */
+.app-shell .topbar {
+  position: static !important;
+  top: auto !important;
+}
+
+/* Keep the brand and copyright footer on public entry pages, not inside the signed-in app. */
+.app-shell .page-footer { display: none !important; }
+
+/* Keep dashboard cards flat in every theme and interaction state. */
+.app-shell #page-content:has(> .welcome-row) :is(.metric-card, .dashboard-grid > .panel, .dashboard-next-action, .onboarding-card),
+.app-shell #page-content:has(> .welcome-row) :is(.metric-card, .dashboard-grid > .panel, .dashboard-next-action, .onboarding-card):hover {
+  box-shadow: none !important;
+}
+
+@media (max-width: 600px) {
+  .app-shell[data-accent] .topbar,
+  .app-shell .topbar {
+    position: relative !important;
+    min-height: 48px;
+    padding: 5px 11px;
+    gap: 7px;
+    border-bottom-color: transparent;
+  }
+  .app-shell[data-accent] .topbar {
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--green) 76%, var(--bg)) 0%,
+      color-mix(in srgb, var(--green) 68%, var(--bg)) 54%,
+      color-mix(in srgb, var(--green) 22%, var(--bg)) 100%);
+  }
+  .app-shell .phone-account-menu[hidden] { display: none !important; }
+  .app-shell .phone-account-menu {
+    position: absolute;
+    z-index: 80;
+    top: calc(100% - 2px);
+    right: 10px;
+    width: 42px;
+    padding: 5px;
+    border: 1px solid color-mix(in srgb, var(--green) 24%, var(--line));
+    border-radius: 13px;
+    background: var(--panel);
+    box-shadow: 0 8px 22px #10251f24;
+  }
+  .app-shell .phone-account-menu-item {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    margin: 0 auto;
+    padding: 0;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .app-shell .phone-account-menu-item:hover { background: color-mix(in srgb, var(--green) 12%, transparent); }
+  .app-shell .phone-account-menu-item svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--green);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .app-shell.theme-dark .phone-account-menu { box-shadow: 0 8px 22px #0008; }
+  .app-shell .topbar > .top-brand .brand-mark { width: 29px; height: 29px; }
+  .app-shell .notification-toggle,
+  .app-shell .privacy-toggle,
+  .app-shell .sign-out-button {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    padding: 7px;
+  }
+  .app-shell .profile-button { width: 34px; min-height: 34px; flex-basis: 34px; }
+  .app-shell .profile-button .avatar { width: 26px; height: 26px; }
+
+  /* Flat, softly tinted dashboard tiles like the phone mockup. */
+  .app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card {
+    border: 1px solid var(--line);
+    border-left-width: 1px;
+    border-radius: 14px;
+    box-shadow: none !important;
+    transform: none;
+  }
+  .app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card {
+    border-color: color-mix(in srgb, #15936a 24%, var(--line));
+    background: color-mix(in srgb, #15936a 9%, var(--panel));
+  }
+  .app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="increase"] {
+    border-color: color-mix(in srgb, #16875f 25%, var(--line)) !important;
+    background: color-mix(in srgb, #16875f 9%, var(--panel)) !important;
+  }
+  .app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="decrease"] {
+    border-color: color-mix(in srgb, #d5524b 25%, var(--line)) !important;
+    background: color-mix(in srgb, #d5524b 9%, var(--panel)) !important;
+  }
+  .app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="unchanged"] {
+    border-color: color-mix(in srgb, #c28a24 27%, var(--line)) !important;
+    background: color-mix(in srgb, #c28a24 10%, var(--panel)) !important;
+  }
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="increase"] {
+    border-color: color-mix(in srgb, #51c28f 33%, var(--line)) !important;
+    background: color-mix(in srgb, #51c28f 13%, var(--panel)) !important;
+  }
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="decrease"] {
+    border-color: color-mix(in srgb, #ef7770 33%, var(--line)) !important;
+    background: color-mix(in srgb, #ef7770 13%, var(--panel)) !important;
+  }
+  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend="unchanged"] {
+    border-color: color-mix(in srgb, #e5b44e 35%, var(--line)) !important;
+    background: color-mix(in srgb, #e5b44e 14%, var(--panel)) !important;
+  }
+}

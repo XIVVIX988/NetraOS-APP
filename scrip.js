@@ -2592,135 +2592,61 @@ function renderInventoryPage() {
 }
 
 function updateDashboardInventorySummary() {
-  const entries = getInventoryEntries();
   const totals = getInventoryTotals();
   const netWorthValue = document.querySelector(".networth-card .metric-value");
 
   if (netWorthValue) netWorthValue.textContent = formatKsh(totals.netWorth);
-
-  const allocations = [
-    { label: "Cash", categories: ["Bank accounts", "Mobile money", "Cash & savings"] },
-    { label: "Investments", categories: ["Money market funds", "SACCO deposits", "SACCO shares", "SACCO deposits & shares", "Bonds", "Bonds & equities", "Equities", "Investments"] },
-    { label: "Property", categories: ["Property & vehicles"] },
-    { label: "Other", categories: ["Other assets"] }
-  ].map(allocation => {
-    const value = entries
-      .filter(entry => entry.type === "asset" && allocation.categories.includes(entry.category))
-      .reduce((total, entry) => total + Number(entry.amount || 0), 0);
-
-    return { ...allocation, value };
-  });
-
-  document.querySelectorAll(".allocation-legend > div").forEach((row, index) => {
-    const allocation = allocations[index];
-    if (!allocation) return;
-
-    const share = row.querySelector("small");
-    if (share) {
-      const percentage = totals.assets > 0
-        ? Math.round((allocation.value / totals.assets) * 100)
-        : 0;
-      share.textContent = percentage + "%";
-      row.dataset.allocationLabel = allocation.label;
-      row.dataset.allocationPercent = String(percentage);
+  const netWorthSnapshots = !appShell.hidden && crumb.textContent === "Dashboard"
+    ? getStatsNetWorthSnapshots(totals.netWorth).slice(-6)
+    : [];
+  setMetricTrend(document.querySelector(".networth-card"), totals.netWorth, netWorthSnapshots.at(-2)?.value);
+  const netWorthSparkline = document.querySelector("[data-networth-sparkline]");
+  if (netWorthSparkline) {
+    if (netWorthSnapshots.length > 1) {
+      const values = netWorthSnapshots.map(snapshot => Number(snapshot.value));
+      const min = Math.min(...values);
+      const range = Math.max(...values) - min || 1;
+      const points = values.map((value, index) => `${values.length === 1 ? 90 : 3 + index * 174 / (values.length - 1)},${32 - (value - min) / range * 27}`);
+      const path = points.map((point, index) => `${index ? "L" : "M"}${point}`).join(" ");
+      netWorthSparkline.innerHTML = `<path d="${path}"/>`;
+      netWorthSparkline.classList.add("is-visible");
+    } else {
+      netWorthSparkline.replaceChildren();
+      netWorthSparkline.classList.remove("is-visible");
     }
-  });
+  }
 
-  const donut = document.querySelector(".donut");
-  const donutWrap = donut?.closest(".donut-wrap");
-  const allocationTooltip = donutWrap?.querySelector(".allocation-tooltip");
-  if (allocationTooltip) allocationTooltip.hidden = true;
-  if (donut) {
-    donut._allocationData = allocations;
-    donut._assetTotal = totals.assets;
-  }
-  if (donut && allocationTooltip && donut.dataset.hoverReady !== "true") {
-    donut.dataset.hoverReady = "true";
-    donut.addEventListener("pointermove", event => {
-      const currentAllocations = donut._allocationData || [];
-      const assetTotal = donut._assetTotal || 0;
-      if (!assetTotal) return;
-      const bounds = donut.getBoundingClientRect();
-      const centerX = bounds.left + bounds.width / 2;
-      const centerY = bounds.top + bounds.height / 2;
-      const dx = event.clientX - centerX;
-      const dy = event.clientY - centerY;
-      const radius = Math.hypot(dx, dy);
-      if (radius < bounds.width * 0.28 || radius > bounds.width * 0.53) {
-        allocationTooltip.hidden = true;
-        donut.querySelectorAll(".allocation-slice").forEach(slice => { slice.style.transform = ""; });
-        return;
-      }
-      const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
-      let boundary = 0;
-      let selectedIndex = currentAllocations.findIndex(allocation => {
-        boundary += (allocation.value / assetTotal) * 360;
-        return angle <= boundary;
-      });
-      if (selectedIndex < 0) selectedIndex = currentAllocations.reduce((last, allocation, index) => allocation.value > 0 ? index : last, -1);
-      const selected = currentAllocations[selectedIndex];
-      if (!selected || !selected.value) {
-        allocationTooltip.hidden = true;
-        donut.querySelectorAll(".allocation-slice").forEach(slice => { slice.style.transform = ""; });
-        return;
-      }
-      donut.querySelectorAll(".allocation-slice").forEach((slice, index) => {
-        slice.style.transform = "";
-        if (index === selectedIndex) {
-          const middle = ((boundary - (selected.value / assetTotal * 360) / 2) - 90) * Math.PI / 180;
-          const lift = bounds.width * 0.04;
-          slice.style.transform = `translate(${Math.cos(middle) * lift}px, ${Math.sin(middle) * lift}px)`;
-        }
-      });
-      const percentage = Math.round(selected.value / assetTotal * 100);
-      allocationTooltip.textContent = `${selected.label}: ${percentage}%`;
-      allocationTooltip.hidden = false;
-    });
-    donut.addEventListener("pointerleave", () => { allocationTooltip.hidden = true; });
-  }
-  if (donut && totals.assets > 0) {
-    const colors = [...document.querySelectorAll(".allocation-legend i")].map(item => getComputedStyle(item).backgroundColor);
-    let position = 0;
-    const paths = allocations.map((allocation, index) => {
-      const sweep = (allocation.value / totals.assets) * 360;
-      const start = position;
-      position += sweep;
-      if (!sweep) return "";
-      const startAngle = (start - 90) * Math.PI / 180;
-      const endAngle = (position - 90) * Math.PI / 180;
-      const outerStart = [50 + 48 * Math.cos(startAngle), 50 + 48 * Math.sin(startAngle)];
-      const outerEnd = [50 + 48 * Math.cos(endAngle), 50 + 48 * Math.sin(endAngle)];
-      const innerEnd = [50 + 36 * Math.cos(endAngle), 50 + 36 * Math.sin(endAngle)];
-      const innerStart = [50 + 36 * Math.cos(startAngle), 50 + 36 * Math.sin(startAngle)];
-      const largeArc = sweep > 180 ? 1 : 0;
-      const d = sweep >= 359.999
-        ? "M 50 2 A 48 48 0 1 1 50 98 A 48 48 0 1 1 50 2 M 50 14 A 36 36 0 1 0 50 86 A 36 36 0 1 0 50 14 Z"
-        : `M ${outerStart[0]} ${outerStart[1]} A 48 48 0 ${largeArc} 1 ${outerEnd[0]} ${outerEnd[1]} L ${innerEnd[0]} ${innerEnd[1]} A 36 36 0 ${largeArc} 0 ${innerStart[0]} ${innerStart[1]} Z`;
-      return `<path class="allocation-slice" d="${d}" fill="${colors[index]}" fill-rule="evenodd" />`;
-    });
-    donut.innerHTML = `<svg class="allocation-chart" viewBox="0 0 100 100" aria-hidden="true" focusable="false">${paths.join("")}</svg>`;
-    donut.style.background = "#e2e8e4";
-    donut.setAttribute("aria-label", `Asset allocation: ${allocations.map(item => `${item.label} ${Math.round(item.value / totals.assets * 100)}%`).join(", ")}`);
-  } else if (donut) {
-    donut.innerHTML = "";
-    donut.style.background = "conic-gradient(#e2e8e4 0 100%)";
-    donut.setAttribute("aria-label", "Asset allocation chart: no assets recorded");
-  }
+}
+
+function setMetricTrend(card, currentValue, previousValue) {
+  if (!card) return;
+  const current = Number(currentValue);
+  const previous = Number(previousValue);
+  const trend = !Number.isFinite(current) || !Number.isFinite(previous) || current === previous
+    ? "unchanged"
+    : current > previous ? "increase" : "decrease";
+  card.dataset.trend = trend;
 }
 
 function updateDashboardPowerUpSummary() {
   const totals = getPowerUpReportTotals();
   const period = getReportPeriod();
-  const periodLabel = period === "Year to date" ? "YTD" : period.toUpperCase();
-  const periodButton = document.querySelector(".period-button");
-  if (periodButton) periodButton.innerHTML = `${getReportPeriod()} <svg class="dropdown-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3" /></svg>`;
   const metricCards = document.querySelectorAll(".metric-card");
   const incomeCard = metricCards[1];
   const savingsCard = metricCards[2];
   const spendingCard = metricCards[3];
+  const monthlyComparison = dashboardCashflowSeries();
+  const currentMonth = monthlyComparison.at(-1);
+  const previousMonth = monthlyComparison.at(-2);
+
+  setMetricTrend(incomeCard, currentMonth?.income, previousMonth?.income);
+  setMetricTrend(spendingCard, currentMonth?.expenses, previousMonth?.expenses);
+  const currentSavingsRate = currentMonth?.income > 0 ? currentMonth.savings / currentMonth.income : 0;
+  const previousSavingsRate = previousMonth?.income > 0 ? previousMonth.savings / previousMonth.income : 0;
+  setMetricTrend(savingsCard, currentSavingsRate, previousSavingsRate);
 
   if (incomeCard) {
-    incomeCard.querySelector(".metric-heading span").textContent = `${periodLabel} INCOME`;
+    incomeCard.querySelector(".metric-heading span").textContent = "INCOME";
     incomeCard.querySelector(".metric-value").textContent = formatKsh(totals.reportIncome);
   }
 
@@ -2729,19 +2655,19 @@ function updateDashboardPowerUpSummary() {
     : 0;
   if (savingsCard) {
     savingsCard.querySelector(".metric-value").textContent = savingsRate + "%";
-    savingsCard.querySelector(".positive-pill").textContent = totals.cashAfterSpending < 0 ? "DEFICIT" : "ACTUAL";
+    savingsCard.querySelector(".positive-pill").textContent = totals.cashAfterSpending < 0 ? "DEFICIT" : "";
     savingsCard.querySelector(".positive-pill").classList.toggle("is-deficit", totals.cashAfterSpending < 0);
   }
 
   if (spendingCard) {
-    spendingCard.querySelector(".metric-heading span").textContent = `${periodLabel} SPENDING`;
+    spendingCard.querySelector(".metric-heading span").textContent = "SPENDING";
     spendingCard.querySelector(".metric-value").textContent = formatKsh(totals.spending);
     spendingCard.querySelector(".metric-trailing").textContent =
       `${totals.reportBudget > 0 ? Math.round((totals.spending / totals.reportBudget) * 100) : 0}%`;
     spendingCard.querySelector(".metric-caption .under-budget").textContent =
       formatKsh(Math.abs(totals.cashAfterSpending));
     const caption = spendingCard.querySelector(".metric-caption");
-    if (caption) caption.lastChild.textContent = totals.cashAfterSpending < 0 ? " over income" : " left after spending";
+    if (caption) caption.lastChild.textContent = totals.cashAfterSpending < 0 ? " over income" : " remaining";
     spendingCard.querySelector(".metric-caption .under-budget").classList.toggle("is-deficit", totals.cashAfterSpending < 0);
     const progress = spendingCard.querySelector(".spend-progress");
     if (progress) progress.style.width = `${totals.reportBudget > 0 ? Math.min(100, (totals.spending / totals.reportBudget) * 100) : 0}%`;
@@ -2785,6 +2711,8 @@ function formatCompactKsh(amount) {
 function updateDashboardCashflowChart() {
   const chart = document.querySelector(".cashflow-chart");
   if (!chart) return;
+  const phoneLayout = window.matchMedia("(max-width: 600px)").matches;
+  chart.setAttribute("viewBox", phoneLayout ? "0 0 380 260" : "0 0 760 260");
   const grid = chart.querySelector("[data-chart-grid]");
   const seriesLayer = chart.querySelector("[data-chart-series]");
   const barsLayer = chart.querySelector("[data-chart-bars]");
@@ -2802,8 +2730,8 @@ function updateDashboardCashflowChart() {
   const rawMaximum = Math.max(0, ...values);
   const maximum = rawMaximum === minimum ? minimum + 1 : rawMaximum;
   const range = maximum - minimum;
-  const xStart = 76;
-  const xEnd = 744;
+  const xStart = phoneLayout ? 68 : 76;
+  const xEnd = phoneLayout ? 370 : 744;
   const yStart = 18;
   const yEnd = 211;
   const x = index => xStart + (xEnd - xStart) * index / (months.length - 1);
@@ -2828,11 +2756,14 @@ function updateDashboardCashflowChart() {
     const valueY = y(month[item.key]);
     const barY = Math.min(zeroY, valueY);
     const height = Math.max(1, Math.abs(valueY - zeroY));
-    const barX = x(monthIndex) + (seriesIndex - 1) * 14 - 5;
-    return `<rect class="cashflow-bar ${item.key}" x="${barX}" y="${barY}" width="10" height="${height}" rx="2"><title>${month.month}: ${item.label} ${formatKsh(month[item.key])}</title></rect>`;
+    const barWidth = phoneLayout ? 5 : 10;
+    const barX = x(monthIndex) + (seriesIndex - 1) * (phoneLayout ? 7 : 14) - barWidth / 2;
+    return `<rect class="cashflow-bar ${item.key}" x="${barX}" y="${barY}" width="${barWidth}" height="${height}" rx="2"><title>${month.month}: ${item.label} ${formatKsh(month[item.key])}</title></rect>`;
   }).join("")).join("");
   chart.setAttribute("aria-label", `Last six months. Current recurring monthly income is ${formatKsh(months[months.length - 1].income)}. Recorded spending and remaining income are shown for each month.`);
 }
+
+window.matchMedia("(max-width: 600px)").addEventListener?.("change", updateDashboardCashflowChart);
 
 // Refresh the visible financial page after one of its saved records changes.
 function reportMonthLabel() {
@@ -3836,6 +3767,15 @@ function showPage(page) {
     item.classList.toggle("active", selected);
     item.setAttribute("aria-current", selected ? "page" : "false");
   });
+  const primaryPhonePages = ["Dashboard", "Inventory", "Power-Up", "Quests"];
+  document.querySelectorAll(".mobile-tab").forEach(item => {
+    const selected = item.hasAttribute("data-mobile-more")
+      ? !primaryPhonePages.includes(page)
+      : item.dataset.page === page;
+    item.classList.toggle("is-active", selected);
+    if (selected) item.setAttribute("aria-current", "page");
+    else item.removeAttribute("aria-current");
+  });
   crumb.textContent = page;
   if (page === "Dashboard") {
     window.location.hash = "dashboard";
@@ -4670,15 +4610,6 @@ function collectDashboardRows() {
 
     if (label && value) {
       rows.push([label, value]);
-    }
-  });
-  document.querySelectorAll(".allocation-legend > div").forEach(item => {
-    const label = item.querySelector("span")?.innerText.trim();
-    const value = item.querySelector("strong")?.innerText.trim();
-    const share = item.querySelector("small")?.innerText.trim();
-    if (label && value) {
-      const formattedValue = value + (share ? " (" + share + ")" : "");
-      rows.push(["Asset: " + label, formattedValue]);
     }
   });
   document.querySelectorAll(".quest-row").forEach(item => {
@@ -6003,15 +5934,6 @@ function handleMenuChoice(action) {
     showPublicPage("landing");
     return;
   }
-  if (action.startsWith("period:")) {
-    const period = action.slice("period:".length);
-    localStorage.setItem(reportPeriodStorageKey, period);
-    const button = document.querySelector(".period-button");
-    if (button) button.innerHTML = `${period} <svg class="dropdown-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3" /></svg>`;
-    refreshFinancialPage();
-    showToast(`Showing ${period.toLowerCase()} spending.`);
-    return;
-  }
   if (action.startsWith("date:")) {
     const date = action.slice("date:".length);
     const label = document.querySelector(".date-select-label");
@@ -6133,28 +6055,76 @@ document.addEventListener("keydown", event => {
 
 // Phone sidebar menu: opens from the hamburger, closes on backdrop, Escape, navigation, or leaving phone width.
 const navDrawer = document.querySelector("#mobile-drawer");
-const navToggle = document.querySelector("[data-nav-toggle]");
+const navToggles = [...document.querySelectorAll("[data-nav-toggle]")];
+const mobileMoreMenu = document.querySelector("#mobile-more-menu");
+const mobileMoreToggle = document.querySelector("[data-mobile-more]");
+let drawerOpener = null;
 const phoneNavQuery = window.matchMedia("(max-width: 880px)");
+const compactPhoneQuery = window.matchMedia("(max-width: 600px)");
+const phoneAccountMenu = document.querySelector("#phone-account-menu");
+function closePhoneAccountMenu() {
+  if (phoneAccountMenu) phoneAccountMenu.hidden = true;
+  document.querySelector(".profile-button")?.setAttribute("aria-expanded", "false");
+}
+document.addEventListener("pointerdown", event => {
+  if (!compactPhoneQuery.matches || phoneAccountMenu?.hidden) return;
+  if (event.target.closest(".profile-button, #phone-account-menu")) return;
+  closePhoneAccountMenu();
+}, true);
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && compactPhoneQuery.matches && phoneAccountMenu && !phoneAccountMenu.hidden) {
+    closePhoneAccountMenu();
+    document.querySelector(".profile-button")?.focus();
+  }
+});
+compactPhoneQuery.addEventListener("change", closePhoneAccountMenu);
 
-function setNavDrawer(open, { restoreFocus = true } = {}) {
-  if (!navDrawer || !navToggle) return;
+function setNavDrawer(open, { restoreFocus = true, opener = drawerOpener } = {}) {
+  if (!navDrawer || !navToggles.length) return;
   const wasOpen = appShell.classList.contains("drawer-open");
   appShell.classList.toggle("drawer-open", open);
   document.body.classList.toggle("drawer-scroll-lock", open);
-  navToggle.setAttribute("aria-expanded", String(open));
-  navToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  navToggles.forEach(toggle => {
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  });
   navDrawer.inert = !open;
   if (open) {
+    drawerOpener = opener;
     (navDrawer.querySelector(".drawer-item.active") || navDrawer.querySelector(".drawer-item"))?.focus();
   } else if (wasOpen && restoreFocus) {
-    navToggle.focus();
+    (opener || drawerOpener || navToggles[0])?.focus();
+    drawerOpener = null;
   }
 }
+
+function setMobileMoreMenu(open, { restoreFocus = true } = {}) {
+  if (!mobileMoreMenu || !mobileMoreToggle) return;
+  appShell.classList.toggle("more-menu-open", open);
+  mobileMoreMenu.inert = !open;
+  mobileMoreMenu.setAttribute("aria-hidden", String(!open));
+  mobileMoreToggle.setAttribute("aria-expanded", String(open));
+  mobileMoreToggle.setAttribute("aria-label", open ? "Close more pages" : "Open more pages");
+  if (open) {
+    (mobileMoreMenu.querySelector(".mobile-more-item.active") || mobileMoreMenu.querySelector(".mobile-more-item"))?.focus();
+  } else if (restoreFocus) {
+    mobileMoreToggle.focus();
+  }
+}
+mobileMoreToggle?.addEventListener("click", () => setMobileMoreMenu(!appShell.classList.contains("more-menu-open")));
+mobileMoreMenu?.addEventListener("click", event => {
+  if (event.target.closest(".mobile-more-item")) setMobileMoreMenu(false);
+});
+document.addEventListener("pointerdown", event => {
+  if (!appShell.classList.contains("more-menu-open")) return;
+  if (mobileMoreMenu?.contains(event.target) || mobileMoreToggle?.contains(event.target)) return;
+  setMobileMoreMenu(false, { restoreFocus: false });
+}, true);
 
 // On phones the header's date, currency, privacy and theme buttons live in the sidebar. The real nodes are
 // moved (not cloned) so every querySelector, delegated handler and stored setting keeps working.
 const drawerTools = document.querySelector("[data-drawer-tools]");
-const movableControls = [".date-select", ".theme-toggle"]
+const movableControls = [".date-select", ".currency-select", ".privacy-toggle", ".theme-toggle", ".sign-out-button"]
   .map(selector => document.querySelector(`.topbar-actions ${selector}`))
   .filter(Boolean);
 function placeHeaderControls(isPhone) {
@@ -6170,19 +6140,33 @@ placeHeaderControls(phoneNavQuery.matches);
 phoneNavQuery.addEventListener("change", event => placeHeaderControls(event.matches));
 // Keep the drawer toggle's state independent from menus opened inside the drawer.
 drawerTools?.addEventListener("click", () => setTimeout(() =>
-  navToggle.setAttribute("aria-expanded", String(appShell.classList.contains("drawer-open"))), 0));
+  navToggles.forEach(toggle => toggle.setAttribute("aria-expanded", String(appShell.classList.contains("drawer-open")))), 0));
 
-navToggle?.addEventListener("click", () => setNavDrawer(!appShell.classList.contains("drawer-open")));
+navToggles.forEach(toggle => toggle.addEventListener("click", () => {
+  const opening = !appShell.classList.contains("drawer-open");
+  setNavDrawer(opening, { opener: toggle });
+}));
 navDrawer?.addEventListener("click", event => {
   if (event.target.closest(".drawer-item, .top-brand")) setNavDrawer(false, { restoreFocus: false });
 });
 document.querySelector(".drawer-backdrop")?.addEventListener("click", () => setNavDrawer(false));
 navDrawer?.querySelector(".drawer-close")?.addEventListener("click", () => setNavDrawer(false));
 document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && appShell.classList.contains("more-menu-open")) {
+    setMobileMoreMenu(false);
+    return;
+  }
+  if (event.key === "Tab" && appShell.classList.contains("more-menu-open")) {
+    const focusable = [...mobileMoreMenu.querySelectorAll("button")].filter(item => item.getClientRects().length > 0);
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  }
   if (event.key === "Escape" && appShell.classList.contains("drawer-open") && !document.querySelector(".action-popover")) setNavDrawer(false);
   // Keep Tab focus inside the open drawer.
   if (event.key === "Tab" && appShell.classList.contains("drawer-open")) {
-    const focusable = [...navDrawer.querySelectorAll("button, a[href]")];
+    const focusable = [...navDrawer.querySelectorAll("button, a[href]")].filter(item => item.getClientRects().length > 0);
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
@@ -6190,6 +6174,7 @@ document.addEventListener("keydown", event => {
   }
 });
 phoneNavQuery.addEventListener("change", event => { if (!event.matches) setNavDrawer(false, { restoreFocus: false }); });
+compactPhoneQuery.addEventListener("change", event => { if (!event.matches) setMobileMoreMenu(false, { restoreFocus: false }); });
 phoneNavQuery.addEventListener("change", event => {
   if (!appShell.hidden) return;
   const currentPage = decodeURIComponent(window.location.hash.slice(1));
@@ -6674,6 +6659,21 @@ document.addEventListener("click", event => {
     input?.click();
     return;
   }
+  if (button.matches(".profile-button") && compactPhoneQuery.matches) {
+    const menu = document.querySelector("#phone-account-menu");
+    const open = button.getAttribute("aria-expanded") !== "true";
+    button.setAttribute("aria-expanded", String(open));
+    if (menu) menu.hidden = !open;
+    return;
+  }
+  if (button.matches("[data-phone-sign-out]")) {
+    const profileButton = document.querySelector(".profile-button");
+    const menu = document.querySelector("#phone-account-menu");
+    if (menu) menu.hidden = true;
+    profileButton?.setAttribute("aria-expanded", "false");
+    handleMenuChoice("sign-out");
+    return;
+  }
   if (button.matches(".notification-toggle")) {
     toggleNotificationCenter(button);
     return;
@@ -6753,14 +6753,6 @@ document.addEventListener("click", event => {
     if (["signup", "login", "landing", "terms", "privacy"].includes(action)) {
       showPublicPage(action);
     }
-    return;
-  }
-  if (button.matches(".period-button")) {
-    openMenu(button, [
-      { label: "This month", action: "period:This month" },
-      { label: "Last month", action: "period:Last month" },
-      { label: "Year to date", action: "period:Year to date" }
-    ]);
     return;
   }
   if (button.matches("[data-settings-dropdown]")) {
