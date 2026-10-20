@@ -250,6 +250,7 @@
     let recoveredLocalPower = false;
     let recoveredLocalConsent = false;
     const locallyReconciledPowerTables = new Set();
+    const entireLocalPowerSectionIsEmpty = powerTables.every(({ field }) => !Array.isArray(localPower[field]) || localPower[field].length === 0);
     for (const { table, field } of powerTables) {
       // A cloud account can have other records while its Power-Up tables are still empty.
       // Keep browser data in that case, unless this table had synced records before and was cleared.
@@ -258,12 +259,15 @@
       const remoteIds = new Set(data[table].map(row => String(row.id)));
       const localIds = new Set(localRows.map(item => String(item.id)));
       const unsyncedLocalRows = localRows.filter(item => !baseline.has(String(item.id)) && !remoteIds.has(String(item.id)));
-      const localClear = localPowerIsDirty && localRows.length === 0 && baseline.size > 0;
+      const localClear = localPowerIsDirty && localRows.length === 0 && (baseline.size > 0 || (entireLocalPowerSectionIsEmpty && data[table].length > 0));
       if ((localPowerIsDirty && localRows.length) || localClear) {
         // A dirty empty list means previously synced rows were intentionally removed.
-        // Keep only remote rows created since the last baseline, so another device's
-        // concurrent additions survive while cleared baseline rows are tombstoned.
-        const concurrentRows = data[table].filter(row => !baseline.has(String(row.id)) && !localIds.has(String(row.id)));
+        // With a baseline, keep remote rows created since that pull; without one,
+        // an entirely cleared local section is treated as a full Power-Up deletion.
+        const concurrentRows = localClear && baseline.size === 0
+          ? []
+          : data[table].filter(row => !baseline.has(String(row.id)) && !localIds.has(String(row.id)));
+        if (localClear && baseline.size === 0) saveBaseline(user.id, table, data[table]);
         data[table] = [...localRows.map(item => ({ ...item, details: item })), ...concurrentRows];
         recoveredLocalPower = true;
         locallyReconciledPowerTables.add(table);
