@@ -10115,6 +10115,10 @@ body.theme-dark { background: var(--bg); }
 .app-shell .inventory-account-row { grid-template-columns: 30px minmax(0, 1fr) auto minmax(110px, auto) auto 32px; gap: 12px; min-height: 66px; padding: 7px 4px; border-color: #e7ece8; }
 .app-shell .inventory-account-row:hover { background: #f7faf8; }
 .app-shell .inventory-account-row[hidden] { display: none; }
+.app-shell .inventory-account-group-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding: 11px 4px 7px; border-bottom: 1px solid var(--line); }
+.app-shell .inventory-account-group-heading[hidden] { display: none; }
+.app-shell .inventory-account-group-heading strong { color: var(--text); font: 700 10px var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+.app-shell .inventory-account-group-heading span { padding: 3px 7px; border-radius: 99px; background: var(--panel-2); color: var(--muted); font: 9px var(--sans); }
 .app-shell .inventory-kind-pill { justify-self: start; padding: 4px 8px; border-radius: 20px; font: 600 9px var(--sans); }
 .app-shell .inventory-kind-pill.is-asset { color: #117b59; background: #e3f6ec; }
 .app-shell .inventory-kind-pill.is-liability { color: #b43f43; background: #fff0ef; }

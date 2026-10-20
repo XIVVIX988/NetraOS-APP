@@ -248,22 +248,35 @@
       { table: "spending", field: "spending" }
     ];
     let recoveredLocalPower = false;
+    let recoveredLocalConsent = false;
+    const locallyReconciledPowerTables = new Set();
     for (const { table, field } of powerTables) {
       // A cloud account can have other records while its Power-Up tables are still empty.
       // Keep browser data in that case, unless this table had synced records before and was cleared.
       const baseline = readBaseline(user.id, table);
       const localRows = Array.isArray(localPower[field]) ? localPower[field] : [];
       const remoteIds = new Set(data[table].map(row => String(row.id)));
+      const localIds = new Set(localRows.map(item => String(item.id)));
       const unsyncedLocalRows = localRows.filter(item => !baseline.has(String(item.id)) && !remoteIds.has(String(item.id)));
-      if ((localPowerIsDirty || (!data[table].length && !baseline.size)) && localRows.length) {
-        data[table] = localRows.map(item => ({ ...item, details: item }));
+      const localClear = localPowerIsDirty && localRows.length === 0 && baseline.size > 0;
+      if ((localPowerIsDirty && localRows.length) || localClear) {
+        // A dirty empty list means previously synced rows were intentionally removed.
+        // Keep only remote rows created since the last baseline, so another device's
+        // concurrent additions survive while cleared baseline rows are tombstoned.
+        const concurrentRows = data[table].filter(row => !baseline.has(String(row.id)) && !localIds.has(String(row.id)));
+        data[table] = [...localRows.map(item => ({ ...item, details: item })), ...concurrentRows];
         recoveredLocalPower = true;
+        locallyReconciledPowerTables.add(table);
       } else if (unsyncedLocalRows.length) {
         data[table] = [...data[table], ...unsyncedLocalRows.map(item => ({ ...item, details: item }))];
         recoveredLocalPower = true;
+        locallyReconciledPowerTables.add(table);
       }
     }
-    for (const table of ["entries", "incomes", "budget_lines", "spending", "goals", "audit_log"]) saveBaseline(user.id, table, data[table]);
+    for (const table of ["entries", "incomes", "budget_lines", "spending", "goals", "audit_log"]) {
+      // Keep the pre-edit IDs until pushSnapshot can mark missing cloud rows deleted.
+      if (!locallyReconciledPowerTables.has(table)) saveBaseline(user.id, table, data[table]);
+    }
     saveBaseline(user.id, "achievements", data.achievements, "badge_id");
     saveBaseline(user.id, "currency_rates", data.currency_rates, "currency_code");
     applyingRemote = true;
@@ -286,10 +299,19 @@
       write(keys.currency, data.currency_rates.length ? { active: data.currency_rates.find(row => row.is_active)?.currency_code || "KES", rates: Object.fromEntries(data.currency_rates.map(row => [row.currency_code, Number(row.rate_value)])) } : { active: "KES", rates: { KES: 1 } });
       write(keys.tax, data.tax_profile[0]?.details || { mode: "gross", value: 0 });
       write(keys.audit, data.audit_log.map(row => ({ action: row.action, at: row.occurred_at })).slice(-500));
-      if (data.consents[0]) write(keys.consent, { necessary: data.consents[0].necessary, analytics: data.consents[0].analytics, savedAt: data.consents[0].saved_at });
-      else localStorage.removeItem(keys.consent);
+      const localConsent = local(keys.consent);
+      const localConsentIsDirty = Boolean(dirtyMarkers[keys.consent]);
+      if (localConsent && (!data.consents[0] || localConsentIsDirty)) {
+        // A local choice may not have reached the cloud before a reload. Preserve it
+        // and push it instead of replacing or clearing it from an older snapshot.
+        recoveredLocalConsent = true;
+      } else if (data.consents[0]) {
+        const consentVersion = [cloudSettings.cookieConsentVersion, localConsent?.version, localSettings.cookieConsentVersion]
+          .find(version => Number.isInteger(version) && version > 0) || window.NETRAOS_COOKIE_CONSENT_VERSION || 1;
+        write(keys.consent, { necessary: data.consents[0].necessary, analytics: data.consents[0].analytics, version: consentVersion, savedAt: data.consents[0].saved_at });
+      } else localStorage.removeItem(keys.consent);
     } finally { applyingRemote = false; }
-    return { hasData, recoveredLocalPower, hasProfile: Boolean(cloudProfile), profile: cloudProfile ? { name: cloudProfile.name, email: cloudProfile.email, username: cloudProfile.username, phone: cloudProfile.phone_number || "", sex: cloudProfile.sex || "", dateOfBirth: cloudProfile.date_of_birth || "", image: cloudProfile.avatar_data || "", termsVersion: cloudProfile.terms_version || "", termsAcceptedAt: cloudProfile.terms_accepted_at || "" } : { name: user.user_metadata?.full_name || "", email: user.email || "", username: "", phone: user.user_metadata?.phone_number || "", termsVersion: user.user_metadata?.terms_version || "", termsAcceptedAt: user.user_metadata?.terms_accepted_at || "" } };
+    return { hasData, recoveredLocalPower, recoveredLocalConsent, hasProfile: Boolean(cloudProfile), profile: cloudProfile ? { name: cloudProfile.name, email: cloudProfile.email, username: cloudProfile.username, phone: cloudProfile.phone_number || "", sex: cloudProfile.sex || "", dateOfBirth: cloudProfile.date_of_birth || "", image: cloudProfile.avatar_data || "", termsVersion: cloudProfile.terms_version || "", termsAcceptedAt: cloudProfile.terms_accepted_at || "" } : { name: user.user_metadata?.full_name || "", email: user.email || "", username: "", phone: user.user_metadata?.phone_number || "", termsVersion: user.user_metadata?.terms_version || "", termsAcceptedAt: user.user_metadata?.terms_accepted_at || "" } };
   }
 
   function schedulePush() {
@@ -350,6 +372,7 @@
       } else if (!migrationDeclined && !snapshot.hasData && localProfile) {
         await pushSnapshot(localProfile);
       }
+      if (snapshot.recoveredLocalConsent) await pushSnapshot(localProfile || undefined);
       if (snapshot.recoveredLocalPower && snapshot.hasData && !migrationDeclined) await pushSnapshot(localProfile || undefined);
       if (!window.__netraSyncInterval) {
         window.__netraSyncInterval = window.setInterval(async () => {

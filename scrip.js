@@ -848,6 +848,7 @@ function getStoredSettings() {
       debtNotifications: saved.debtNotifications !== false,
       budgetNotifications: saved.budgetNotifications !== false,
       performanceTelemetryConsent: Boolean(saved.performanceTelemetryConsent),
+      cookieConsentVersion: Number.isInteger(saved.cookieConsentVersion) ? saved.cookieConsentVersion : 0,
       lockTimeoutMinutes: [0, 1, 5, 15].includes(Number(saved.lockTimeoutMinutes)) ? Number(saved.lockTimeoutMinutes) : 0,
       localPinSalt: typeof saved.localPinSalt === "string" ? saved.localPinSalt : "",
       localPinHash: typeof saved.localPinHash === "string" ? saved.localPinHash : "",
@@ -872,7 +873,7 @@ function getStoredSettings() {
       questAnimations: saved.questAnimations !== false
     };
   } catch {
-    return { alwaysShowCents: false, reduceMotion: false, themeMode: "light", darkMode: false, goalNotifications: true, monthlyReminders: true, debtNotifications: true, budgetNotifications: true, performanceTelemetryConsent: false, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 6, accountPinEnabled: false, financialYearStartMonth: 1, paydayAnchorDay: 1, autoLockPromptDismissed: false, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "emerald", showXpPoints: true, questSounds: false, questAnimations: true };
+    return { alwaysShowCents: false, reduceMotion: false, themeMode: "light", darkMode: false, goalNotifications: true, monthlyReminders: true, debtNotifications: true, budgetNotifications: true, performanceTelemetryConsent: false, cookieConsentVersion: 0, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 6, accountPinEnabled: false, financialYearStartMonth: 1, paydayAnchorDay: 1, autoLockPromptDismissed: false, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "emerald", showXpPoints: true, questSounds: false, questAnimations: true };
   }
 }
 
@@ -2749,10 +2750,15 @@ function renderAccountRows(entries) {
       </div>`;
   }
 
+  const groupCounts = {
+    asset: entries.filter(entry => entry.type === "asset").length,
+    liability: entries.filter(entry => entry.type === "liability").length
+  };
   return `
     <div class="inventory-account-rows">
       <div class="inventory-table-head" aria-hidden="true"><span>Item</span><span>Type</span><span>Account / Source</span><span>Value</span><span>Status</span><span></span></div>
-      ${entries.map(entry => `
+      ${[...entries.filter(entry => entry.type === "asset"), ...entries.filter(entry => entry.type === "liability")].map((entry, index, orderedEntries) => `
+        ${index === 0 || orderedEntries[index - 1].type !== entry.type ? `<div class="inventory-account-group-heading" data-inventory-group-heading="${entry.type}"><strong>${entry.type === "asset" ? "Assets" : "Liabilities"}</strong><span>${groupCounts[entry.type]} ${groupCounts[entry.type] === 1 ? "item" : "items"}</span></div>` : ""}
         <div class="inventory-account-row" data-inventory-type="${entry.type}">
           <div class="inventory-row-summary">
             <strong class="inventory-summary-cell inventory-summary-item" data-label="Item">${escapeHTML(entry.name)}</strong>
@@ -6845,6 +6851,7 @@ document.addEventListener("submit", async event => {
       debtNotifications: formData.has("debtNotifications"),
       budgetNotifications: formData.has("budgetNotifications"),
       performanceTelemetryConsent: previousSettings.performanceTelemetryConsent,
+      cookieConsentVersion: previousSettings.cookieConsentVersion,
       financialYearStartMonth: Number(formData.get("financialYearStartMonth")),
       paydayAnchorDay: paydayDay,
       autoLockPromptDismissed: previousSettings.autoLockPromptDismissed,
@@ -7251,6 +7258,9 @@ document.addEventListener("click", event => {
       row.style.display = visible ? "" : "none";
       if (!row.hidden) visibleCount += 1;
     });
+    section.querySelectorAll("[data-inventory-group-heading]").forEach(heading => {
+      heading.hidden = filter !== "all" && heading.dataset.inventoryGroupHeading !== filter;
+    });
     const empty = section.querySelector("[data-inventory-filter-empty]");
     if (empty) empty.hidden = visibleCount !== 0 || rows.length === 0;
     return;
@@ -7519,6 +7529,7 @@ if (window.NetraSupabase?.enabled && !["terms", "privacy", "cookies"].includes(i
 // Bump this when consent categories, choices, or notice meaning change.
 const cookieConsentStorageKey = "netraos-cookie-consent-v1";
 const cookieConsentVersion = 2;
+window.NETRAOS_COOKIE_CONSENT_VERSION = cookieConsentVersion;
 function hasCurrentCookieConsent() {
   try {
     const consent = JSON.parse(localStorage.getItem(cookieConsentStorageKey) || "null");
@@ -7533,6 +7544,7 @@ function saveCookiePreferences(analytics) {
   let settings = {};
   try { settings = JSON.parse(localStorage.getItem(settingsStorageKey) || "{}"); } catch { /* Replace unreadable preferences with a minimal valid settings object. */ }
   settings.performanceTelemetryConsent = Boolean(analytics);
+  settings.cookieConsentVersion = cookieConsentVersion;
   localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
 }
 
