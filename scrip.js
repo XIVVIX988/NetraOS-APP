@@ -1812,7 +1812,7 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>NSSF Tier I &amp; II</strong><small>Apply the current in-app NSSF estimate.</small></span><input name="taxNssf" type="checkbox" ${settings.taxNssf ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>SHIF</strong><small>Apply the current in-app SHIF estimate.</small></span><input name="taxShif" type="checkbox" ${settings.taxShif ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Affordable Housing Levy</strong><small>Apply the in-app 1.5% estimate.</small></span><input name="taxAhl" type="checkbox" ${settings.taxAhl ? "checked" : ""}></label>
-          <div class="settings-pin-fields"><label class="inventory-form-field"><span>Personal relief per month (KSh)</span><input name="personalRelief" type="number" min="0" step="100" value="${settings.personalRelief}"></label><label class="inventory-form-field"><span>Insurance relief per month (KSh)</span><input name="insuranceRelief" type="number" min="0" step="100" value="${settings.insuranceRelief}"></label><label class="inventory-form-field"><span>Other tax relief per month (KSh)</span><input name="customRelief" type="number" min="0" step="100" value="${settings.customRelief}"></label></div>
+          <div class="settings-pin-fields"><label class="inventory-form-field"><span>Personal relief per month (KSh)</span><input name="personalRelief" type="number" min="0" step="100" placeholder="0" value="${settings.personalRelief}"></label><label class="inventory-form-field"><span>Insurance relief per month (KSh)</span><input name="insuranceRelief" type="number" min="0" step="100" placeholder="0" value="${settings.insuranceRelief}"></label><label class="inventory-form-field"><span>Other tax relief per month (KSh)</span><input name="customRelief" type="number" min="0" step="100" placeholder="0" value="${settings.customRelief}"></label></div>
         </section>
         </section>
         <section class="settings-tab-panel" id="settings-panel-backups" role="tabpanel" aria-labelledby="settings-tab-backups" data-settings-panel="backups" tabindex="0" ${activeSettingsTab === "backups" ? "" : "hidden"}>
@@ -3135,7 +3135,7 @@ function openInventoryDialog(action, editId = null) {
             <label class="inventory-form-field"><span>Interest rate (%)</span><input name="interestRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 14"></label>
             <label class="inventory-form-field"><span>Rate type</span><select name="rateType">${interestRateTypes.map(type => `<option>${type}</option>`).join("")}</select></label>
           </div>
-          <label class="inventory-form-field"><span>Minimum monthly installment (KSh)</span><input name="minInstallment" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 8500"></label>
+          <label class="inventory-form-field"><span>Minimum monthly installment (KSh)</span><input name="minInstallment" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></label>
           <div class="liability-rate-row">
             <label class="inventory-form-field"><span>Months remaining</span><input name="tenureMonths" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g. 18"></label>
             <label class="inventory-form-field"><span>Or target payoff date</span><input name="payoffDate" type="date"></label>
@@ -3640,8 +3640,8 @@ function openQuestDialog(questId = "") {
           <label class="inventory-form-field"><span>Category</span><span class="income-category-select-wrap quest-category-select-wrap"><span class="income-category-select-icon quest-category-select-icon" aria-hidden="true">${questCategoryIcon(quest?.category || questCategories[0])}</span><select name="category">${questCategories.map(item => `<option value="${escapeHTML(item)}" ${quest?.category === item ? "selected" : ""}>${escapeHTML(item)}</option>`).join("")}</select></span></label>
           <div class="quest-priority-preview" aria-live="polite"><span>Suggested priority</span><strong data-quest-tier-preview></strong><small>Picked automatically from the goal category</small></div>
         </div>
-        <label class="inventory-form-field"><span>Current amount (KSh)</span><input name="current" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(quest?.current || 0)}" required></label>
-        <label class="inventory-form-field"><span>Target amount (KSh)</span><input name="target" type="number" min="1" step="0.01" inputmode="decimal" value="${Number(quest?.target || 0) || ""}" required></label>
+        <label class="inventory-form-field"><span>Current amount (KSh)</span><input name="current" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" value="${Number(quest?.current || 0)}" required></label>
+        <label class="inventory-form-field"><span>Target amount (KSh)</span><input name="target" type="number" min="1" step="0.01" inputmode="decimal" placeholder="0" value="${Number(quest?.target || 0) || ""}" required></label>
         <label class="inventory-form-field"><span>Target deadline <small>Optional</small></span><input name="deadline" type="date" value="${escapeHTML(quest?.deadline || "")}"></label>
         <small class="liability-hint">With a deadline, NetraOS works out the monthly amount you need to save and warns you if you fall behind.</small>
       </div>
