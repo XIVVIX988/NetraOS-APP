@@ -1027,18 +1027,21 @@ async function verifyLocalPin(pin, settings = getStoredSettings()) {
 }
 
 async function verifyWorkspacePin(pin, settings = getStoredSettings()) {
+  // The device verifier is authoritative for this device and also works offline.
+  // Check it first so an unavailable or stale cloud PIN cannot reject a valid local PIN.
+  if (await verifyLocalPin(pin, settings)) return true;
   const cloud = window.NetraSupabase;
-  if (!cloud?.enabled || !navigator.onLine) return verifyLocalPin(pin, settings);
+  if (!settings.accountPinEnabled || !cloud?.enabled || !navigator.onLine) return false;
   let user;
   try {
     user = await cloud.getUser();
   } catch (error) {
-    if (!navigator.onLine) return verifyLocalPin(pin, settings);
+    if (!navigator.onLine) return false;
     throw error;
   }
-  if (!user) return verifyLocalPin(pin, settings);
+  if (!user) return false;
   const result = await cloud.verifyPin(pin);
-  if (!result || result.reason === "no_pin") return verifyLocalPin(pin, settings);
+  if (!result || result.reason === "no_pin") return false;
   if (result.reason === "locked") {
     const error = new Error("Too many incorrect attempts. The account PIN is temporarily locked.");
     error.locked = true;

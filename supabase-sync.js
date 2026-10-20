@@ -135,8 +135,19 @@
 
       const settings = { ...(local(keys.settings) || {}) };
       delete settings.localPinSalt; delete settings.localPinHash; delete settings.localPinLength;
-      result = await client.from("user_settings").upsert({ user_id: user.id, settings, updated_at: now(), deleted_at: null }, { onConflict: "user_id" });
-      if (result.error) throw result.error;
+      const { data: existingSettings, error: settingsReadError } = await client.from("user_settings")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (settingsReadError) throw settingsReadError;
+      // A device often syncs inventory or quests using an older local settings
+      // snapshot. Only write preferences when this device changed them, otherwise
+      // another device's newer accent/theme choice could be silently overwritten.
+      if (dirtyAtStart[keys.settings] || !existingSettings) {
+        result = await client.from("user_settings").upsert({ user_id: user.id, settings, updated_at: now(), deleted_at: null }, { onConflict: "user_id" });
+        if (result.error) throw result.error;
+      }
 
       const inventory = Array.isArray(local(keys.inventory)) ? local(keys.inventory) : [];
       const entryRows = inventory.map(item => ({
