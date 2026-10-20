@@ -240,8 +240,38 @@
     const cloudProfile = data.user_profiles[0];
     const migrationBackup = local(`netraos-migration-backup-${user.id}`);
     const localPower = migrationBackup?.[keys.power] || local(keys.power) || { incomes: [], budgets: [], spending: [] };
+    const localInventory = migrationBackup?.[keys.inventory] || local(keys.inventory) || [];
     const dirtyMarkers = readDirtyMarkers();
+    const localInventoryIsDirty = Boolean(dirtyMarkers[keys.inventory] || migrationBackup?.[keys.inventory]);
     const localPowerIsDirty = Boolean(dirtyMarkers[keys.power] || migrationBackup?.[keys.power]);
+    let recoveredLocalInventory = false;
+    const locallyReconciledTables = new Set();
+    if (localInventoryIsDirty && Array.isArray(localInventory)) {
+      // Preserve an unsynced local edit (including an amount changed to zero)
+      // instead of replacing it with the older server snapshot on page reload.
+      const baseline = readBaseline(user.id, "entries");
+      const remoteIds = new Set(data.entries.map(row => String(row.id)));
+      const localIds = new Set(localInventory.map(item => String(item.id)));
+      const localClear = localInventory.length === 0 && (baseline.size > 0 || data.entries.length > 0);
+      if (localInventory.length || localClear) {
+        const concurrentRows = localClear && baseline.size === 0
+          ? []
+          : data.entries.filter(row => !baseline.has(String(row.id)) && !localIds.has(String(row.id)));
+        if (localClear && baseline.size === 0) saveBaseline(user.id, "entries", data.entries);
+        data.entries = [
+          ...localInventory.map(item => ({ ...item, details: item })),
+          ...concurrentRows
+        ];
+        recoveredLocalInventory = true;
+        locallyReconciledTables.add("entries");
+      } else if (localInventory.some(item => !baseline.has(String(item.id)) && !remoteIds.has(String(item.id)))) {
+        data.entries = [...data.entries, ...localInventory
+          .filter(item => !baseline.has(String(item.id)) && !remoteIds.has(String(item.id)))
+          .map(item => ({ ...item, details: item }))];
+        recoveredLocalInventory = true;
+        locallyReconciledTables.add("entries");
+      }
+    }
     const powerTables = [
       { table: "incomes", field: "incomes" },
       { table: "budget_lines", field: "budgets" },
@@ -279,7 +309,7 @@
     }
     for (const table of ["entries", "incomes", "budget_lines", "spending", "goals", "audit_log"]) {
       // Keep the pre-edit IDs until pushSnapshot can mark missing cloud rows deleted.
-      if (!locallyReconciledPowerTables.has(table)) saveBaseline(user.id, table, data[table]);
+      if (!locallyReconciledPowerTables.has(table) && !locallyReconciledTables.has(table)) saveBaseline(user.id, table, data[table]);
     }
     saveBaseline(user.id, "achievements", data.achievements, "badge_id");
     saveBaseline(user.id, "currency_rates", data.currency_rates, "currency_code");
@@ -315,7 +345,7 @@
         write(keys.consent, { necessary: data.consents[0].necessary, analytics: data.consents[0].analytics, version: consentVersion, savedAt: data.consents[0].saved_at });
       } else localStorage.removeItem(keys.consent);
     } finally { applyingRemote = false; }
-    return { hasData, recoveredLocalPower, recoveredLocalConsent, hasProfile: Boolean(cloudProfile), profile: cloudProfile ? { name: cloudProfile.name, email: cloudProfile.email, username: cloudProfile.username, phone: cloudProfile.phone_number || "", sex: cloudProfile.sex || "", dateOfBirth: cloudProfile.date_of_birth || "", image: cloudProfile.avatar_data || "", termsVersion: cloudProfile.terms_version || "", termsAcceptedAt: cloudProfile.terms_accepted_at || "" } : { name: user.user_metadata?.full_name || "", email: user.email || "", username: "", phone: user.user_metadata?.phone_number || "", termsVersion: user.user_metadata?.terms_version || "", termsAcceptedAt: user.user_metadata?.terms_accepted_at || "" } };
+    return { hasData, recoveredLocalInventory, recoveredLocalPower, recoveredLocalConsent, hasProfile: Boolean(cloudProfile), profile: cloudProfile ? { name: cloudProfile.name, email: cloudProfile.email, username: cloudProfile.username, phone: cloudProfile.phone_number || "", sex: cloudProfile.sex || "", dateOfBirth: cloudProfile.date_of_birth || "", image: cloudProfile.avatar_data || "", termsVersion: cloudProfile.terms_version || "", termsAcceptedAt: cloudProfile.terms_accepted_at || "" } : { name: user.user_metadata?.full_name || "", email: user.email || "", username: "", phone: "", termsVersion: user.user_metadata?.terms_version || "", termsAcceptedAt: user.user_metadata?.terms_accepted_at || "" } };
   }
 
   function schedulePush() {
@@ -376,6 +406,7 @@
       } else if (!migrationDeclined && !snapshot.hasData && localProfile) {
         await pushSnapshot(localProfile);
       }
+      if (snapshot.recoveredLocalInventory && !migration && !migrationDeclined) await pushSnapshot(localProfile || undefined);
       if (snapshot.recoveredLocalConsent) await pushSnapshot(localProfile || undefined);
       if (snapshot.recoveredLocalPower && snapshot.hasData && !migrationDeclined) await pushSnapshot(localProfile || undefined);
       if (!window.__netraSyncInterval) {
