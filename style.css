@@ -9140,6 +9140,31 @@ body.theme-dark #public-shell .phone-entry-welcome > .auth-fluid-art { filter: s
   .app-shell .settings-panel .settings-field > .payday-input em {
     font-size: 10px;
   }
+
+  .app-shell .settings-panel .payday-anchor-field > .payday-input {
+    flex: 0 0 auto;
+    width: max-content;
+    max-width: none;
+    white-space: nowrap;
+  }
+
+  .app-shell .settings-panel .payday-anchor-field > .payday-input input {
+    width: 52px;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-shell .settings-panel .payday-anchor-field > .payday-input {
+    gap: 4px;
+  }
+
+  .app-shell .settings-panel .payday-anchor-field > .payday-input input {
+    width: 46px;
+  }
+
+  .app-shell .settings-panel .payday-anchor-field > .payday-input em {
+    font-size: 9px;
+  }
 }
 
 
@@ -10815,7 +10840,7 @@ body.theme-dark { background: var(--bg); }
     border-radius: 24px;
   }
   .app-shell[data-accent] .topbar {
-    background: #fff;
+    background: var(--panel);
     color: var(--text);
     border-bottom-color: var(--line);
   }
