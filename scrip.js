@@ -6512,10 +6512,10 @@ document.addEventListener("pointerdown", event => {
   setMobileMoreMenu(false, { restoreFocus: false });
 }, true);
 
-// On phones the header's date, currency, privacy and theme buttons live in the sidebar. The real nodes are
+// On phones the header's date, currency and theme buttons live in the sidebar. The real nodes are
 // moved (not cloned) so every querySelector, delegated handler and stored setting keeps working.
 const drawerTools = document.querySelector("[data-drawer-tools]");
-const movableControls = [".date-select", ".currency-select", ".privacy-toggle", ".theme-toggle", ".sign-out-button"]
+const movableControls = [".date-select", ".currency-select", ".theme-toggle", ".sign-out-button"]
   .map(selector => document.querySelector(`.topbar-actions ${selector}`))
   .filter(Boolean);
 function placeHeaderControls(isPhone) {
@@ -7522,6 +7522,7 @@ const cookieConsentVersion = 2;
 function hasCurrentCookieConsent() {
   try {
     const consent = JSON.parse(localStorage.getItem(cookieConsentStorageKey) || "null");
+    // Reopen the banner only after the consent notice or cookie behavior is deliberately versioned.
     return Boolean(consent && consent.necessary === true && typeof consent.analytics === "boolean" && consent.version === cookieConsentVersion);
   } catch { /* Treat unavailable or unreadable storage as no saved choice. */ }
   return false;

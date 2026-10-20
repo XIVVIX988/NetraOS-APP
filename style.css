@@ -8436,7 +8436,7 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
     stroke-linecap: round;
     stroke-linejoin: round;
   }
-  /* One-row header: [menu] [logo ........ bell profile]. Date, currency, privacy and theme live in the sidebar. */
+  /* One-row header keeps quick actions visible; date, currency and theme live in the sidebar. */
   .app-shell .topbar {
     flex-wrap: nowrap;
     align-items: center;
@@ -10265,8 +10265,8 @@ body.theme-dark { background: var(--bg); }
 @media (max-width: 760px) {
   .app-shell .inventory-table-head { display: none; }
   .app-shell .inventory-row-summary {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px;
-    grid-template-areas: "item item toggle" "account type toggle" "value status toggle";
+    grid-template-columns: minmax(0, 1fr) max-content max-content 32px;
+    grid-template-areas: "item type status toggle" "account account value toggle";
     gap: 7px 10px;
     padding: 10px 2px;
   }
@@ -10276,7 +10276,7 @@ body.theme-dark { background: var(--bg); }
   .app-shell .inventory-summary-cell::before,
   .app-shell .inventory-kind-pill::before,
   .app-shell .inventory-status-pill::before { content: attr(data-label); color: var(--muted); font: 8px var(--mono); letter-spacing: .035em; text-transform: uppercase; }
-  .app-shell .inventory-summary-item { grid-area: item; }
+  .app-shell .inventory-summary-item { grid-area: item; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .app-shell .inventory-account-source { grid-area: account; }
   .app-shell .inventory-account-amount { grid-area: value; }
   .app-shell .inventory-kind-pill { grid-area: type; justify-self: start; }
