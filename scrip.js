@@ -4236,7 +4236,7 @@ function renderPowerUpPage() {
           <h1><span class="power-title-desktop">Give every shilling<br><em>a direction.</em></span><span class="power-title-mobile">Power-Up &amp; Tax</span></h1>
           <p class="welcome-sub">Plan your income, budget, and take-home pay.</p>
         </div>
-        <button class="inventory-action power-heading-add" type="button" data-power-action="income" aria-label="Add income" title="Add income">
+        <button class="inventory-action power-heading-add" type="button" data-power-action="income" aria-label="Add income, budget, or spending" title="Add to Power-Up">
           <span class="power-heading-add-plus" aria-hidden="true">+</span><span class="power-heading-add-label">Add income</span>
         </button>
       </header>
@@ -6299,6 +6299,11 @@ function downloadPDF() {
 // Route menu selections to date, currency, profile, settings, and export actions.
 function handleMenuChoice(action) {
   closePopover();
+  if (action.startsWith("power-add:")) {
+    const kind = action.slice("power-add:".length);
+    if (["income", "budget", "spending"].includes(kind)) openPowerUpDialog(kind);
+    return;
+  }
   if (action.startsWith("delete-quest:")) {
     deleteQuest(action.slice("delete-quest:".length));
     return;
@@ -7251,6 +7256,14 @@ document.addEventListener("click", event => {
     return;
   }
   if (button.matches("[data-power-action]")) {
+    if (button.matches(".power-heading-add") && window.matchMedia("(max-width: 600px)").matches) {
+      openMenu(button, [
+        { label: "Add income", action: "power-add:income" },
+        { label: "Add budget", action: "power-add:budget" },
+        { label: "Record spending", action: "power-add:spending" }
+      ]);
+      return;
+    }
     openPowerUpDialog(button.dataset.powerAction);
     return;
   }
