@@ -10048,6 +10048,40 @@ body.theme-dark { background: var(--bg); }
   background-color: var(--panel);
   border-color: var(--line);
 }
+
+/* On phones, keep the dark workspace center black and lift cards off the page. */
+@media (max-width: 760px) {
+  .app-shell.theme-dark {
+    --bg: #000000;
+    --panel: #151a17;
+    --panel-2: #202723;
+    --line: #3b4840;
+  }
+  body.theme-dark,
+  .app-shell.theme-dark,
+  .app-shell.theme-dark .main-panel,
+  .app-shell.theme-dark .content { background-color: #000000; }
+  .app-shell.theme-dark .panel,
+  .app-shell.theme-dark .metric-card,
+  .app-shell.theme-dark .inventory-summary-card,
+  .app-shell.theme-dark .inventory-list-panel,
+  .app-shell.theme-dark .settings-panel,
+  .app-shell.theme-dark .stats-card,
+  .app-shell.theme-dark .dashboard-card,
+  .app-shell.theme-dark .quest-card,
+  .app-shell.theme-dark .achievement-card {
+    background-color: var(--panel);
+    border-color: var(--line);
+  }
+}
+
+/* Phone quest filters use an accent fill, so keep their selected labels white. */
+@media (max-width: 760px) {
+  .app-shell.theme-dark[data-accent] .quests-page .quest-filter.active,
+  .app-shell.theme-dark[data-accent] .quests-page .quest-filter.active span {
+    color: #ffffff;
+  }
+}
 .app-shell.theme-dark input:not([type="checkbox"]):not([type="radio"]),
 .app-shell.theme-dark select,
 .app-shell.theme-dark textarea,
