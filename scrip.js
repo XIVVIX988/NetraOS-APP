@@ -3381,6 +3381,7 @@ function openPowerUpDialog(kind, editId = null) {
         <label class="inventory-form-field">
           <span data-income-amount-label>${isIncome ? "Amount per month (KSh)" : "Amount (KSh)"}</span>
           <input name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" required>
+          ${isIncome ? `<small data-salary-net-preview hidden></small>` : ""}
         </label>
         ${!isSpending ? `<label class="inventory-form-field budget-repeat-field">
           <span>Repeat this ${isIncome ? "income" : "budget"}</span>
@@ -3411,13 +3412,27 @@ function openPowerUpDialog(kind, editId = null) {
     form.elements.name.value = editing.name || "";
     if (form.elements.category) form.elements.category.value = editing.category || (isIncome ? incomeCategories[0].label : budgetCategories[0]);
     if (form.elements.date) form.elements.date.value = editing.date || (editing.month ? `${editing.month}-01` : getDefaultSpendingDate());
-    form.elements.amount.value = editing.amount ?? "";
+    form.elements.amount.value = isIncome && editing.category === "Salary" ? (editing.grossAmount ?? editing.amount ?? "") : (editing.amount ?? "");
     form.elements.notes.value = editing.notes || "";
     if (form.elements.recurring) form.elements.recurring.checked = isSpending ? editing.recurring === true : editing.recurring !== false;
   }
   const syncIncomeAmountLabel = () => {
     const label = form.querySelector("[data-income-amount-label]");
-    if (label && isIncome) label.textContent = incomeRecurrenceToggle.checked ? "Amount per month (KSh)" : "One-time amount (KSh)";
+    if (label && isIncome) {
+      const salary = incomeCategorySelect.value === "Salary";
+      const base = incomeRecurrenceToggle.checked ? "Amount per month" : "One-time amount";
+      label.textContent = `${base} (KSh)${salary ? " (gross)" : ""}`;
+    }
+  };
+  const syncSalaryNetPreview = () => {
+    if (!isIncome) return;
+    const preview = form.querySelector("[data-salary-net-preview]");
+    const gross = Number(form.elements.amount.value);
+    const isSalary = incomeCategorySelect.value === "Salary";
+    preview.hidden = !isSalary || !Number.isFinite(gross) || gross < 0;
+    if (isSalary && Number.isFinite(gross) && gross >= 0) {
+      preview.textContent = `Estimated take-home (net): ${formatKsh(computeKenyaPayroll(gross).net)}. Saved for your income plan.`;
+    }
   };
   if (incomeRecurrenceToggle) {
     syncIncomeAmountLabel();
@@ -3425,7 +3440,14 @@ function openPowerUpDialog(kind, editId = null) {
   }
   if (incomeCategorySelect) {
     syncIncomeCategoryIcon();
-    incomeCategorySelect.addEventListener("change", syncIncomeCategoryIcon);
+    syncIncomeAmountLabel();
+    syncSalaryNetPreview();
+    incomeCategorySelect.addEventListener("change", () => {
+      syncIncomeCategoryIcon();
+      syncIncomeAmountLabel();
+      syncSalaryNetPreview();
+    });
+    form.elements.amount.addEventListener("input", syncSalaryNetPreview);
   }
   if (budgetCategorySelect) {
     const syncBudgetCategoryIcon = () => {
@@ -3460,7 +3482,9 @@ function openPowerUpDialog(kind, editId = null) {
       amount,
       notes: String(formData.get("notes") || "").trim()
     };
-    const savedEntry = isIncome ? { ...entry, category: String(formData.get("category")), recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() } : isSpending ? { ...entry, date: expenseDate, month: expenseDate.slice(0, 7), category: String(formData.get("category")), recurring: formData.has("recurring") } : { ...entry, category: String(formData.get("category")), recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() };
+    const isSalary = isIncome && String(formData.get("category")) === "Salary";
+    const payroll = isSalary ? computeKenyaPayroll(amount) : null;
+    const savedEntry = isIncome ? { ...entry, amount: payroll ? payroll.net : amount, ...(payroll ? { grossAmount: amount } : {}), category: String(formData.get("category")), recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() } : isSpending ? { ...entry, date: expenseDate, month: expenseDate.slice(0, 7), category: String(formData.get("category")), recurring: formData.has("recurring") } : { ...entry, category: String(formData.get("category")), recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() };
     const entryIndex = data[targetList].findIndex(item => item.id === savedEntry.id);
     if (entryIndex >= 0) data[targetList][entryIndex] = savedEntry;
     else data[targetList].push(savedEntry);
