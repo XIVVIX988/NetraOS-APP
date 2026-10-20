@@ -564,7 +564,7 @@ function formatLoanTenure(loan) {
 
 // Assets Engine: yield tracking, withholding tax, liquidity tiers and portfolio maths.
 const WITHHOLDING_TAX = 0.15;
-const SACCO_SHARE_WITHHOLDING_TAX = 0.10;
+const SACCO_WITHHOLDING_TAX = 0.10;
 const compoundingFrequencies = ["Daily", "Monthly", "Quarterly", "Semi-annual", "Annually", "None (simple / dividend)"];
 const liquidityTiers = ["Immediate (T+0)", "High (T+1)", "Medium (coupon / T+3 to T+7)", "Locked (90+ days / collateral)"];
 const assetCategoryDefaults = {
@@ -595,7 +595,7 @@ function getAssetYield(entry) {
   const treasurySecurity = ["Treasury Bonds", "Treasury Bills"].includes(entry.category);
   const taxRate = entry.category === "Infrastructure Bonds" ? 0
     : treasurySecurity ? WITHHOLDING_TAX
-    : saccoReturn ? SACCO_SHARE_WITHHOLDING_TAX
+    : saccoReturn ? SACCO_WITHHOLDING_TAX
       : returns.taxFree ? 0
       : Number.isFinite(Number(returns.withholdingRate)) ? Number(returns.withholdingRate) : WITHHOLDING_TAX;
   const net = gross * (1 - taxRate);
@@ -3314,7 +3314,7 @@ function openInventoryDialog(action, editId = null) {
         returns = {
           grossRate,
           taxFree,
-          withholdingRate: saccoReturn ? SACCO_SHARE_WITHHOLDING_TAX : taxFree ? 0 : WITHHOLDING_TAX,
+          withholdingRate: saccoReturn ? SACCO_WITHHOLDING_TAX : taxFree ? 0 : WITHHOLDING_TAX,
           compounding: String(formData.get("compounding") || compoundingFrequencies[0]),
           liquidity: String(formData.get("liquidity") || liquidityTiers[0])
         };
@@ -7029,7 +7029,7 @@ document.addEventListener("submit", async event => {
   }
 });
 
-// Route clicks for app actions, dialog controls, profile menus, and theme/privacy toggles.
+// Route clicks for app actions, dialog controls, profile menus, and privacy controls.
 document.addEventListener("click", event => {
   const target = event.target;
   const homeLink = target.closest("[data-home-link]");
