@@ -50,6 +50,7 @@
     border: 1px solid var(--line);
     border-radius: 13px;
     background: var(--panel-2);
+    margin-bottom: 8px;
   }
   .app-shell .settings-mobile-tab {
     min-width: 0;
@@ -11045,4 +11046,28 @@ body.theme-dark { background: var(--bg); }
 
 @media (max-width: 600px) {
   .app-shell #page-content:has(> .welcome-row) > .dashboard-grid .allocation-panel { display: none; }
+}
+
+/* Keep numerals consistent and stable in every app theme and layout. */
+.app-shell { font-variant-numeric: lining-nums; }
+.app-shell :is(
+  .metric-value,
+  .inventory-value,
+  .inventory-account-amount,
+  .inventory-account-count,
+  .nav-count,
+  .level-number,
+  .count-badge,
+  .achievement-filter span,
+  .quest-filter span,
+  .quest-overall-amounts,
+  .quest-card-amounts,
+  .stat-card,
+  .stats-card,
+  .loan-metrics,
+  .asset-engine-kpi,
+  .onboarding-count
+) {
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum" 1, "tnum" 1;
 }
