@@ -3467,6 +3467,19 @@ function openPowerUpDialog(kind, editId = null) {
     }
 
     const totalsAfterUpdate = getPowerUpTotals();
+    const salaryAdded = isIncome && savedEntry.category === "Salary" && Number(amount) > 0 && !editing;
+    if (salaryAdded) {
+      const payday = Number(getStoredSettings().paydayAnchorDay) || 1;
+      const paydayLabel = ordinalDay(payday);
+      createInAppNotification({
+        title: "Set your payday",
+        body: `You added your salary. Your cycle currently starts on the ${paydayLabel} of each month. Set the date that matches when you get paid.`,
+        page: "Settings",
+        actionLabel: "Set payday",
+        actionTarget: "settings:payday",
+        dedupeKey: `salary-payday:${savedEntry.id}`
+      });
+    }
     if (isIncome && getStoredSettings().monthlyReminders) {
       createInAppNotification({ title: "Income plan updated", body: `${name} is in your income plan. Review your monthly plan in Power-Up.`, page: "Power-Up", dedupeKey: `income-plan:${savedEntry.id}:${monthKey()}`, preference: "monthlyReminders" });
     }
@@ -4874,14 +4887,14 @@ function updateNotificationBadge() {
   button.title = `${unread} unread notification${unread === 1 ? "" : "s"}`;
 }
 
-function createInAppNotification({ title, body, page = "Power-Up", dedupeKey = "", preference = "" }) {
+function createInAppNotification({ title, body, page = "Power-Up", actionLabel = "", actionTarget = "", dedupeKey = "", preference = "" }) {
   if (preference && getStoredSettings()[preference] === false) return;
   const items = getInAppNotifications();
   const cutoff = Date.now() - 30 * 86400000;
   if (dedupeKey && items.some(item => item.dedupeKey === dedupeKey && Date.parse(item.createdAt) > cutoff)) return;
   items.unshift({
     id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    title, body, page, dedupeKey, createdAt: new Date().toISOString(), read: false
+    title, body, page, actionLabel, actionTarget, dedupeKey, createdAt: new Date().toISOString(), read: false
   });
   saveInAppNotifications(items);
   if (document.querySelector(".notification-center")) renderNotificationCenter();
@@ -4892,7 +4905,7 @@ function renderNotificationCenter() {
   if (!center) return;
   const items = getInAppNotifications();
   const unread = items.filter(item => !item.read).length;
-  center.innerHTML = `<header class="notification-center-heading"><div><strong>Notifications</strong><span>${unread ? `${unread} unread` : "You’re all caught up"}</span></div><button type="button" data-notification-read-all ${unread ? "" : "disabled"}>Mark all read</button></header>${items.length ? `<div class="notification-center-list">${items.slice(0, 12).map(item => `<article class="notification-item ${item.read ? "is-read" : "is-unread"}"><button class="notification-item-open" type="button" data-notification-open="${escapeHTML(item.id)}"><span class="notification-item-mark" aria-hidden="true">${item.read ? "✓" : "•"}</span><span class="notification-item-copy"><strong>${escapeHTML(item.title || "Update")}</strong><span>${escapeHTML(item.body || "")}</span><time>${escapeHTML(new Date(item.createdAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}</time></span></button><button class="notification-item-dismiss" type="button" data-notification-dismiss="${escapeHTML(item.id)}" aria-label="Dismiss notification">×</button></article>`).join("")}</div>` : `<div class="notification-center-empty"><span aria-hidden="true">♧</span><strong>No notifications yet</strong><p>Quest milestones, plan updates, and spending alerts will appear here.</p></div>`}`;
+  center.innerHTML = `<header class="notification-center-heading"><div><strong>Notifications</strong><span>${unread ? `${unread} unread` : "You’re all caught up"}</span></div><button type="button" data-notification-read-all ${unread ? "" : "disabled"}>Mark all read</button></header>${items.length ? `<div class="notification-center-list">${items.slice(0, 12).map(item => `<article class="notification-item ${item.read ? "is-read" : "is-unread"}"><button class="notification-item-open" type="button" data-notification-open="${escapeHTML(item.id)}"><span class="notification-item-mark" aria-hidden="true">${item.read ? "✓" : "•"}</span><span class="notification-item-copy"><strong>${escapeHTML(item.title || "Update")}</strong><span>${escapeHTML(item.body || "")}</span><time>${escapeHTML(new Date(item.createdAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}</time></span></button>${item.actionLabel && item.actionTarget ? `<button class="notification-item-action" type="button" data-notification-action="${escapeHTML(item.id)}">${escapeHTML(item.actionLabel)} <span aria-hidden="true">↗</span></button>` : ""}<button class="notification-item-dismiss" type="button" data-notification-dismiss="${escapeHTML(item.id)}" aria-label="Dismiss notification">×</button></article>`).join("")}</div>` : `<div class="notification-center-empty"><span aria-hidden="true">♧</span><strong>No notifications yet</strong><p>Quest milestones, plan updates, and spending alerts will appear here.</p></div>`}`;
 }
 
 function closeNotificationCenter() {
@@ -7072,6 +7085,24 @@ document.addEventListener("click", event => {
       const page = item.page;
       closeNotificationCenter();
       if (["Dashboard", "Inventory", "Power-Up", "Quests", "Stats", "Achievements", "Contact", "Profile", "Settings"].includes(page)) showPage(page);
+    }
+    return;
+  }
+  if (button.matches("[data-notification-action]")) {
+    const id = button.dataset.notificationAction;
+    const items = getInAppNotifications();
+    const item = items.find(entry => entry.id === id);
+    if (item) {
+      item.read = true;
+      saveInAppNotifications(items);
+      closeNotificationCenter();
+      if (item.actionTarget === "settings:payday") {
+        activeSettingsTab = "currency";
+        showPage("Settings");
+        const anchor = content.querySelector('[name="paydayAnchorDay"]');
+        anchor?.scrollIntoView({ behavior: "smooth", block: "center" });
+        anchor?.focus({ preventScroll: true });
+      } else if (["Dashboard", "Inventory", "Power-Up", "Quests", "Stats", "Achievements", "Contact", "Profile", "Settings"].includes(item.page)) showPage(item.page);
     }
     return;
   }

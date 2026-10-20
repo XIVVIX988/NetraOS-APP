@@ -2837,10 +2837,13 @@ h1 em {
 @media (max-width: 520px) {
   .stats-primary-panel { padding: 14px 12px; }
   .stats-chart-heading { align-items: flex-start; flex-direction: column; }
-  .stats-cashflow-chart { grid-template-columns: 48px minmax(0, 1fr); grid-template-rows: 140px 20px; }
-  .stats-cf-plot { height: 140px; }
-  .stats-cf-y-axis, .stats-cf-months { font-size: 8px; }
-  .stats-cf-y-axis { padding-right: 4px; }
+  .stats-main-legend { gap: 16px; font-size: 11px; }
+  .stats-main-legend i { width: 10px; height: 10px; }
+  .stats-cashflow-chart { grid-template-columns: 58px minmax(0, 1fr); grid-template-rows: 176px 26px; }
+  .stats-cf-plot { height: 176px; }
+  .stats-cf-y-axis, .stats-cf-months { color: #58675e; font-size: 10px; }
+  .stats-cf-y-axis { padding-right: 5px; }
+  .stats-chart-axis, .stats-chart-month { font-size: 21px; }
   .stats-trend-chart { max-width: 100%; }
   .stats-trend-chart.is-net-worth { height: auto; }
   .stats-savings-view { min-height: 145px; gap: 12px; padding-inline: 0; }
@@ -2850,6 +2853,11 @@ h1 em {
   .stats-savings-copy > strong { font-size: 14px; }
   .stats-more-insights .stats-panels { padding-inline: 8px; }
   .stats-more-insights .stats-panel:last-child { grid-column: auto; }
+}
+
+@media (max-width: 520px) {
+  .app-shell.theme-dark .stats-cf-y-axis,
+  .app-shell.theme-dark .stats-cf-months { color: #c2cbc5; }
 }
 
 @media (max-width: 520px) {
@@ -7571,6 +7579,9 @@ body.reduce-motion .quest-celebration { opacity: 1; transform: none; }
 .notification-item-copy strong { color: #2b4034; font: 700 10px var(--display); }
 .notification-item-copy > span { color: #68776e; font-size: 10px; line-height: 1.45; }
 .notification-item-copy time { color: #8a958e; font: 9px var(--mono); }
+.notification-item-action { grid-column: 1; justify-self: start; margin: 2px 0 0 26px; padding: 5px 8px; border: 0; border-radius: 6px; background: #e8f4ed; color: #147b59; font: 600 9px var(--sans); cursor: pointer; }
+.notification-item-action:hover { background: #dcefe4; }
+.notification-item-action span { margin-left: 3px; }
 .notification-item-dismiss { align-self: start; width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: #819087; font-size: 17px; cursor: pointer; }
 .notification-item-dismiss:hover { background: #edf2ee; color: #34473b; }
 .notification-center-empty { display: grid; justify-items: center; align-content: center; gap: 7px; padding: 32px 20px; text-align: center; }
@@ -7590,6 +7601,8 @@ body.theme-dark .notification-item-copy strong,
 body.theme-dark .notification-center-empty strong { color: #e8eee9; }
 body.theme-dark .notification-item-dismiss { color: #a2ada5; }
 body.theme-dark .notification-item-dismiss:hover { background: #1b2820; color: #e8eee9; }
+body.theme-dark .notification-item-action { background: #173328; color: #91dfb6; }
+body.theme-dark .notification-item-action:hover { background: #204431; }
 
 /* Keep the profile popover readable after it is mounted directly under <body>. */
 body.theme-dark .action-popover {
@@ -9110,14 +9123,22 @@ body.theme-dark #public-shell .phone-entry-welcome > .auth-fluid-art { filter: s
 
   .app-shell .settings-panel .settings-field > select,
   .app-shell .settings-panel .settings-field > .payday-input {
-    flex: 0 1 46%;
+    flex: 0 1 auto;
     min-width: 0;
-    max-width: 46%;
+    max-width: 52%;
+    justify-content: flex-end;
+    gap: 5px;
   }
 
   .app-shell .settings-panel .settings-field > .payday-input input {
-    width: 58px;
+    width: 54px;
     min-width: 0;
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .app-shell .settings-panel .settings-field > .payday-input em {
+    font-size: 10px;
   }
 }
 
