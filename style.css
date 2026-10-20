@@ -10082,6 +10082,19 @@ body.theme-dark { background: var(--bg); }
   .app-shell.theme-dark[data-accent] .quests-page .quest-filter.active span {
     color: #ffffff;
   }
+  .app-shell.theme-dark[data-accent] .achievements-page .achievement-filter.is-active,
+  .app-shell.theme-dark[data-accent] .achievements-page .achievement-filter.is-active span {
+    color: #ffffff;
+  }
+}
+
+/* Highlight important confirmation words clearly in dark FAQ answers. */
+#public-shell.theme-dark .faq-a-inner b,
+.app-shell.theme-dark .cx-faq .faq-a-inner b {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: #332b18;
+  color: #ffe08a;
 }
 .app-shell.theme-dark input:not([type="checkbox"]):not([type="radio"]),
 .app-shell.theme-dark select,
