@@ -295,7 +295,7 @@ const faqCategories = [
   ]},
   { id: "yield", label: "Assets & Yield", items: [
     { q: "Why should I enter annual return rates (% p.a.) on my asset cards?", a: "A return rate lets each asset card on the Inventory page show its <b>net yield</b> and <b>monthly passive income</b>, so you can see what your money earns and compare it with what your loans cost.", action: { label: "Open Inventory", target: "Inventory" } },
-    { q: "Does NetraOS account for Withholding Tax on investment returns?", a: "Yes. Taxable returns use 15% withholding by default, while SACCO share dividends use 10%. Mark an eligible asset <b>tax-free</b> (for example an infrastructure bond) and no withholding is deducted." }
+    { q: "Does NetraOS account for Withholding Tax on investment returns?", a: "Yes. Treasury Bonds and Treasury Bills use 15% withholding, SACCO returns use 10%, and Infrastructure Bonds are recorded at 0% tax." }
   ]},
   { id: "data", label: "Backup & Maintenance", items: [
     { q: "How do I transfer my NetraOS data to a new laptop or phone?", a: "Open Settings and choose <b>Download all data (JSON)</b> and save the file. On the new device open NetraOS, go to Settings and use <b>Restore a JSON backup</b> to bring everything back. A CSV export is available too, and a monthly backup reminder can be switched on.", action: { label: "Open Settings", target: "Settings" } },
@@ -514,7 +514,9 @@ const assetCategories = [
   { name: "Money market funds", icon: "▥" },
   { name: "SACCO deposits", icon: "◈" },
   { name: "SACCO shares", icon: "◈" },
-  { name: "Bonds", icon: "▤" },
+  { name: "Treasury Bonds", icon: "▤" },
+  { name: "Treasury Bills", icon: "▤" },
+  { name: "Infrastructure Bonds", icon: "▤" },
   { name: "Equities", icon: "▲" },
   { name: "Investments", icon: "▥" },
   { name: "Property & vehicles", icon: "⌂" },
@@ -573,7 +575,9 @@ const assetCategoryDefaults = {
   "SACCO deposits": { compounding: "Annually", liquidity: liquidityTiers[3] },
   "SACCO shares": { compounding: "Annually", liquidity: liquidityTiers[3] },
   "SACCO deposits & shares": { compounding: "Annually", liquidity: liquidityTiers[3] },
-  "Bonds": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
+  "Infrastructure Bonds": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
+  "Treasury Bonds": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
+  "Treasury Bills": { compounding: "None (simple / dividend)", liquidity: liquidityTiers[1] },
   "Equities": { compounding: "Annually", liquidity: liquidityTiers[2] },
   "Bonds & equities": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
   "Investments": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
@@ -587,9 +591,13 @@ function getAssetYield(entry) {
   if (!returns || returns.grossRate === null || returns.grossRate === undefined) return null;
   const gross = Number(returns.grossRate);
   if (!Number.isFinite(gross)) return null;
-  const taxRate = returns.taxFree ? 0
-    : Number.isFinite(Number(returns.withholdingRate)) ? Number(returns.withholdingRate)
-      : entry.category === "SACCO shares" ? SACCO_SHARE_WITHHOLDING_TAX : WITHHOLDING_TAX;
+  const saccoReturn = ["SACCO deposits", "SACCO shares", "SACCO deposits & shares"].includes(entry.category);
+  const treasurySecurity = ["Treasury Bonds", "Treasury Bills"].includes(entry.category);
+  const taxRate = entry.category === "Infrastructure Bonds" ? 0
+    : treasurySecurity ? WITHHOLDING_TAX
+    : saccoReturn ? SACCO_SHARE_WITHHOLDING_TAX
+      : returns.taxFree ? 0
+      : Number.isFinite(Number(returns.withholdingRate)) ? Number(returns.withholdingRate) : WITHHOLDING_TAX;
   const net = gross * (1 - taxRate);
   return { gross, net, taxRate, taxFree: taxRate === 0, monthly: Math.round(Number(entry.amount || 0) * net / 100 / 12) };
 }
@@ -627,6 +635,7 @@ const incomeCategories = [
   { label: "Digital content", icon: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg>' },
   { label: "Business", icon: '<svg viewBox="0 0 24 24"><path d="M3 10h18l-2-6H5zM5 10v10h14V10M9 20v-6h6v6M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></svg>' },
   { label: "Investments", icon: '<svg viewBox="0 0 24 24"><path d="M3 18 9 12l4 3 8-9M15 6h6v6"/></svg>' },
+  { label: "Sacco returns", icon: '<svg viewBox="0 0 24 24"><path d="M3 18 9 12l4 3 8-9M15 6h6v6"/></svg>' },
   { label: "Interest", icon: '<svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/><path d="m5 19 14-14"/></svg>' },
   { label: "Digital products", icon: '<svg viewBox="0 0 24 24"><path d="M5 3h14v18H5zM9 12l3 3 3-3M12 8v7"/></svg>' }
 ];
@@ -1758,9 +1767,9 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Privacy Shield shortcut</strong><small>Keyboard shortcut to toggle amount masking.</small></span><select name="privacyShortcut"><option value="Shift+S" ${settings.privacyShortcut === "Shift+S" ? "selected" : ""}>Shift + S</option><option value="Alt+Shift+S" ${settings.privacyShortcut === "Alt+Shift+S" ? "selected" : ""}>Alt + Shift + S</option><option value="Off" ${settings.privacyShortcut === "Off" ? "selected" : ""}>Off</option></select></label>
           <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a four-digit PIN. This device’s saved PIN also works offline.</small></span><select id="lock-timeout-minutes" name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Never</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
           <div class="autolock-options" data-autolock-options ${settings.lockTimeoutMinutes ? "" : "hidden"}>
-            ${(settings.localPinHash || settings.accountPinEnabled) ? '<label class="inventory-form-field"><span>Current four-digit PIN <small>Required to change or remove your PIN</small></span><input name="currentPin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4"></label>' : ""}
+            ${(settings.localPinHash || settings.accountPinEnabled) ? '<label class="inventory-form-field"><span>Current four-digit PIN <small>Required here to change or remove your PIN</small></span><input name="currentPin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4"></label>' : ""}
             <div class="settings-pin-fields"><label class="inventory-form-field"><span>New four-digit PIN <small>Leave blank to keep the current PIN</small></span><input name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label><label class="inventory-form-field"><span>Confirm PIN</span><input name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label></div>
-            ${(settings.localPinHash || settings.accountPinEnabled) ? '<button class="secondary-button pin-recovery-button" type="button" data-pin-recovery>Forgot your current PIN?</button>' : ""}
+            ${(settings.localPinHash || settings.accountPinEnabled) ? '<button class="secondary-button pin-recovery-button" type="button" data-pin-recovery>Forgot PIN? Reset with account password</button>' : ""}
             <label class="settings-field"><span><strong>Remove current PIN</strong><small>Turns off the local screen lock.</small></span><input name="clearPin" type="checkbox"></label>
           </div>
           <div class="settings-audit"><div class="settings-audit-heading"><strong>Recent local security activity</strong><div class="settings-audit-export"><label for="security-audit-period">Download range</label><select id="security-audit-period" data-security-audit-period><option value="24h">Last 24 hours</option><option value="7d">Last 7 days</option><option value="1m">Last 1 month</option><option value="6m">Last 6 months</option><option value="12m">Last 12 months</option></select><button type="button" class="secondary-button" data-security-audit-download>Download list</button></div></div>${recentAudit.length ? `<ul>${recentAudit.map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.timestamp).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>No activity recorded yet.</p>`}</div>
@@ -2689,7 +2698,7 @@ function updateDashboardAssetAllocation() {
   const assets = getInventoryEntries().filter(entry => entry.type === "asset");
   const groups = [
     { name: "Cash", categories: ["Bank accounts", "Mobile money", "Cash & savings"], color: "#12a17a" },
-    { name: "Investments", categories: ["Money market funds", "SACCO deposits", "SACCO shares", "Bonds", "Equities", "Investments"], color: "#5689d6" },
+    { name: "Investments", categories: ["Money market funds", "SACCO deposits", "SACCO shares", "Treasury Bonds", "Treasury Bills", "Infrastructure Bonds", "Bonds", "Equities", "Investments"], color: "#5689d6" },
     { name: "Property", categories: ["Property & vehicles"], color: "#eca842" },
     { name: "Other", categories: ["Other assets"], color: "#8b9992" }
   ].map(group => ({
@@ -3157,17 +3166,27 @@ function openInventoryDialog(action, editId = null) {
     const taxSelect = form.elements.taxTreatment;
     const taxLabel = taxSelect?.closest("label")?.querySelector("span");
     if (!taxSelect) return;
-    if (categorySelect.value === "SACCO shares") {
-      taxSelect.innerHTML = '<option value="sacco-shares">SACCO dividends (10% withholding)</option>';
+    if (["SACCO deposits", "SACCO shares", "SACCO deposits & shares"].includes(categorySelect.value)) {
+      taxSelect.innerHTML = '<option value="sacco-shares">SACCO returns (10% withholding)</option>';
       taxSelect.value = "sacco-shares";
       taxSelect.disabled = true;
-      if (taxLabel) taxLabel.textContent = "Tax on SACCO dividends";
+      if (taxLabel) taxLabel.textContent = "Tax on SACCO returns";
       return;
     }
-    const wasSaccoShares = taxSelect.value === "sacco-shares";
+    if (["Infrastructure Bonds", "Treasury Bonds", "Treasury Bills"].includes(categorySelect.value)) {
+      const infrastructureBond = categorySelect.value === "Infrastructure Bonds";
+      taxSelect.innerHTML = infrastructureBond
+        ? '<option value="exempt">Infrastructure Bonds (0% tax)</option>'
+        : '<option value="taxable">Treasury security (15% withholding)</option>';
+      taxSelect.value = infrastructureBond ? "exempt" : "taxable";
+      taxSelect.disabled = true;
+      if (taxLabel) taxLabel.textContent = "Tax treatment";
+      return;
+    }
+    const wasSpecialTax = taxSelect.value === "sacco-shares" || taxSelect.disabled;
     taxSelect.disabled = false;
-    taxSelect.innerHTML = '<option value="taxable">Taxable (15% withholding)</option><option value="exempt">Tax-free (e.g. infrastructure bond)</option>';
-    if (wasSaccoShares || !["taxable", "exempt"].includes(taxSelect.value)) taxSelect.value = "taxable";
+    taxSelect.innerHTML = '<option value="taxable">Taxable (15% withholding)</option><option value="exempt">Tax-free (eligible asset)</option>';
+    if (wasSpecialTax || !["taxable", "exempt"].includes(taxSelect.value)) taxSelect.value = "taxable";
     if (taxLabel) taxLabel.textContent = "Tax treatment";
   }
 
@@ -3178,14 +3197,14 @@ function openInventoryDialog(action, editId = null) {
     const categories = entryType === "liability"
       ? liabilityCategories
       : [...assetCategories];
-    const legacyAssetCategory = editing?.type === "asset" && ["SACCO deposits & shares", "Bonds & equities"].includes(editing.category)
+    const legacyAssetCategory = editing?.type === "asset" && ["SACCO deposits & shares", "Bonds & equities", "Bonds"].includes(editing.category)
       ? editing.category
       : "";
     if (legacyAssetCategory && !categories.some(category => category.name === legacyAssetCategory)) {
-      const afterCategory = legacyAssetCategory === "SACCO deposits & shares" ? "SACCO deposits" : "Equities";
+      const afterCategory = legacyAssetCategory === "SACCO deposits & shares" ? "SACCO deposits" : legacyAssetCategory === "Bonds" ? "Treasury Bonds" : "Equities";
       categories.splice(assetCategories.findIndex(category => category.name === afterCategory) + 1, 0, {
         name: legacyAssetCategory,
-        icon: legacyAssetCategory === "Bonds & equities" ? "▲" : "◈"
+        icon: legacyAssetCategory === "Bonds & equities" ? "▲" : legacyAssetCategory === "Bonds" ? "▤" : "◈"
       });
     }
     categorySelect.innerHTML = categories
@@ -3222,7 +3241,9 @@ function openInventoryDialog(action, editId = null) {
     }
     if (editing.returns) {
       form.elements.grossRate.value = editing.returns.grossRate ?? "";
-      if (editing.category !== "SACCO shares") form.elements.taxTreatment.value = editing.returns.taxFree ? "exempt" : "taxable";
+      if (!["SACCO deposits", "SACCO shares", "SACCO deposits & shares", "Infrastructure Bonds", "Treasury Bonds", "Treasury Bills"].includes(editing.category)) {
+        form.elements.taxTreatment.value = editing.returns.taxFree ? "exempt" : "taxable";
+      }
       form.elements.compounding.value = editing.returns.compounding || compoundingFrequencies[0];
       form.elements.liquidity.value = editing.returns.liquidity || liquidityTiers[0];
     }
@@ -3285,12 +3306,15 @@ function openInventoryDialog(action, editId = null) {
         return;
       }
       if (grossRate !== null) {
-        const saccoShares = String(formData.get("category")) === "SACCO shares";
-        const taxFree = !saccoShares && formData.get("taxTreatment") === "exempt";
+        const category = String(formData.get("category"));
+        const saccoReturn = ["SACCO deposits", "SACCO shares", "SACCO deposits & shares"].includes(category);
+        const infrastructureBond = category === "Infrastructure Bonds";
+        const treasurySecurity = ["Treasury Bonds", "Treasury Bills"].includes(category);
+        const taxFree = infrastructureBond || (!saccoReturn && !treasurySecurity && formData.get("taxTreatment") === "exempt");
         returns = {
           grossRate,
           taxFree,
-          withholdingRate: saccoShares ? SACCO_SHARE_WITHHOLDING_TAX : taxFree ? 0 : WITHHOLDING_TAX,
+          withholdingRate: saccoReturn ? SACCO_SHARE_WITHHOLDING_TAX : taxFree ? 0 : WITHHOLDING_TAX,
           compounding: String(formData.get("compounding") || compoundingFrequencies[0]),
           liquidity: String(formData.get("liquidity") || liquidityTiers[0])
         };
@@ -3412,26 +3436,31 @@ function openPowerUpDialog(kind, editId = null) {
     form.elements.name.value = editing.name || "";
     if (form.elements.category) form.elements.category.value = editing.category || (isIncome ? incomeCategories[0].label : budgetCategories[0]);
     if (form.elements.date) form.elements.date.value = editing.date || (editing.month ? `${editing.month}-01` : getDefaultSpendingDate());
-    form.elements.amount.value = isIncome && editing.category === "Salary" ? (editing.grossAmount ?? editing.amount ?? "") : (editing.amount ?? "");
+    form.elements.amount.value = isIncome && ["Salary", "Sacco returns"].includes(editing.category) ? (editing.grossAmount ?? editing.amount ?? "") : (editing.amount ?? "");
     form.elements.notes.value = editing.notes || "";
     if (form.elements.recurring) form.elements.recurring.checked = isSpending ? editing.recurring === true : editing.recurring !== false;
   }
   const syncIncomeAmountLabel = () => {
     const label = form.querySelector("[data-income-amount-label]");
     if (label && isIncome) {
-      const salary = incomeCategorySelect.value === "Salary";
+      const grossBased = ["Salary", "Sacco returns"].includes(incomeCategorySelect.value);
       const base = incomeRecurrenceToggle.checked ? "Amount per month" : "One-time amount";
-      label.textContent = `${base} (KSh)${salary ? " (gross)" : ""}`;
+      label.textContent = `${base} (KSh)${grossBased ? " (gross)" : ""}`;
     }
   };
   const syncSalaryNetPreview = () => {
     if (!isIncome) return;
     const preview = form.querySelector("[data-salary-net-preview]");
     const gross = Number(form.elements.amount.value);
-    const isSalary = incomeCategorySelect.value === "Salary";
-    preview.hidden = !isSalary || !Number.isFinite(gross) || gross < 0;
-    if (isSalary && Number.isFinite(gross) && gross >= 0) {
-      preview.textContent = `Estimated take-home (net): ${formatKsh(computeKenyaPayroll(gross).net)}. Saved for your income plan.`;
+    const category = incomeCategorySelect.value;
+    const isSalary = category === "Salary";
+    const isSaccoReturn = category === "Sacco returns";
+    preview.hidden = !(isSalary || isSaccoReturn) || !Number.isFinite(gross) || gross < 0;
+    if ((isSalary || isSaccoReturn) && Number.isFinite(gross) && gross >= 0) {
+      const net = isSalary ? computeKenyaPayroll(gross).net : Math.round(gross * 0.9);
+      preview.textContent = isSalary
+        ? `Estimated take-home (net): ${formatKsh(net)}. Saved for your income plan.`
+        : `After 10% withholding: ${formatKsh(net)} net. Saved for your income plan.`;
     }
   };
   if (incomeRecurrenceToggle) {
@@ -3482,9 +3511,12 @@ function openPowerUpDialog(kind, editId = null) {
       amount,
       notes: String(formData.get("notes") || "").trim()
     };
-    const isSalary = isIncome && String(formData.get("category")) === "Salary";
+    const category = String(formData.get("category"));
+    const isSalary = isIncome && category === "Salary";
+    const isSaccoReturn = isIncome && category === "Sacco returns";
     const payroll = isSalary ? computeKenyaPayroll(amount) : null;
-    const savedEntry = isIncome ? { ...entry, amount: payroll ? payroll.net : amount, ...(payroll ? { grossAmount: amount } : {}), category: String(formData.get("category")), recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() } : isSpending ? { ...entry, date: expenseDate, month: expenseDate.slice(0, 7), category: String(formData.get("category")), recurring: formData.has("recurring") } : { ...entry, category: String(formData.get("category")), recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() };
+    const netAmount = payroll ? payroll.net : isSaccoReturn ? Math.round(amount * 0.9) : amount;
+    const savedEntry = isIncome ? { ...entry, amount: netAmount, ...((isSalary || isSaccoReturn) ? { grossAmount: amount } : {}), category, recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() } : isSpending ? { ...entry, date: expenseDate, month: expenseDate.slice(0, 7), category, recurring: formData.has("recurring") } : { ...entry, category, recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() };
     const entryIndex = data[targetList].findIndex(item => item.id === savedEntry.id);
     if (entryIndex >= 0) data[targetList][entryIndex] = savedEntry;
     else data[targetList].push(savedEntry);
@@ -5413,24 +5445,15 @@ function showEmailCodeChallenge({ email, purpose, title, description, onVerified
 
 function showPinRecovery() {
   const email = String(getStoredProfile()?.email || "").trim();
-  if (!email.includes("@")) { showToast("Add an email address to your local profile before resetting this PIN."); return; }
-  showEmailCodeChallenge({
-    email,
-    purpose: "pin-recovery",
-    title: "Reset your inactivity PIN",
-    description: "Verify your email to choose a new four-digit PIN.",
-    onVerified: showPinRecoveryForm
-  });
-}
-
-function showPinRecoveryForm() {
+  if (!email.includes("@")) { showToast("Your account email is missing. Sign in again before resetting this PIN."); return; }
   const dialog = document.createElement("dialog");
   dialog.className = "inventory-dialog";
   dialog.setAttribute("aria-labelledby", "pin-recovery-title");
   dialog.innerHTML = `
     <form class="inventory-form" novalidate>
-      <header class="inventory-dialog-heading"><div><span class="section-kicker">PIN RECOVERY</span><h2 id="pin-recovery-title">Choose a new PIN</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header>
-      <div class="inventory-form-fields"><p class="reset-copy">Set a new four-digit PIN for your inactivity lock.</p>
+      <header class="inventory-dialog-heading"><div><span class="section-kicker">PIN RECOVERY</span><h2 id="pin-recovery-title">Reset inactivity PIN</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header>
+      <div class="inventory-form-fields"><p class="reset-copy">Re-enter your account password to choose a new four-digit inactivity PIN.</p>
+        <label class="inventory-form-field"><span>Account password</span><input name="accountPassword" type="password" autocomplete="current-password" required></label>
         <label class="inventory-form-field"><span>New four-digit PIN</span><input name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4" required></label>
         <label class="inventory-form-field"><span>Confirm new PIN</span><input name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4" required></label>
         <p class="reset-status" role="status" aria-live="polite" data-pin-recovery-status></p>
@@ -5445,29 +5468,51 @@ function showPinRecoveryForm() {
   dialog.querySelector(".inventory-cancel").addEventListener("click", close);
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   dialog.showModal();
-  form.elements.newPin.focus();
+  form.elements.accountPassword.focus();
   form.addEventListener("submit", async event => {
     event.preventDefault();
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    status.classList.remove("error");
     const pin = String(form.elements.newPin.value || "");
     if (!/^[0-9]{4}$/.test(pin) || pin !== form.elements.confirmPin.value) {
       status.textContent = "Enter and confirm the same four-digit PIN.";
       status.classList.add("error");
+      submit.disabled = false;
       return;
     }
     try {
+      const password = String(form.elements.accountPassword.value || "");
+      const profile = getStoredProfile();
+      const cloud = window.NetraSupabase;
+      if (cloud?.enabled) {
+        const signedInUser = await cloud.getUser();
+        if (!signedInUser?.id) throw new Error("Sign in again before resetting your inactivity PIN.");
+        const { data, error } = await cloud.signIn(email, password);
+        if (error || data?.user?.id !== signedInUser.id) throw new Error("The account password could not be verified. Check it and try again.");
+      } else if (!await verifyLocalPassword(password, profile)) {
+        throw new Error("The account password could not be verified. Check it and try again.");
+      }
       const settings = getStoredSettings();
-      Object.assign(settings, await createLocalPinVerifier(pin), { localPinLength: 4 });
+      const localVerifier = await createLocalPinVerifier(pin);
+      let accountPinEnabled = false;
+      if (cloud?.enabled) {
+        accountPinEnabled = await cloud.setPin(pin);
+        if (!accountPinEnabled && settings.accountPinEnabled) throw new Error("The account PIN service is unavailable, so the existing account PIN could not be replaced. Try again later.");
+      }
+      Object.assign(settings, localVerifier, { localPinLength: 4, accountPinEnabled });
       localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
-      recordSecurityAudit("Reset local inactivity PIN by email verification");
+      recordSecurityAudit("Reset inactivity PIN after account password verification");
       close();
       applyStoredSettings();
       activeSettingsTab = "privacy";
       showPage("Settings");
       scheduleAutoLock();
       showToast("Your inactivity PIN has been reset.");
-    } catch {
-      status.textContent = "Unable to save the new PIN in this browser.";
+    } catch (error) {
+      status.textContent = error?.message || "Unable to save the new PIN.";
       status.classList.add("error");
+      submit.disabled = false;
     }
   });
 }

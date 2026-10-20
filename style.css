@@ -4187,6 +4187,12 @@ body.auth-view {
   box-shadow: 0 7px 16px #13875f2b;
 }
 
+.settings-form .settings-actions .inventory-submit:active {
+  transform: translateY(1px) scale(.96);
+  box-shadow: 0 1px 3px #13875f24;
+  transition-duration: .08s;
+}
+
 .public-footer {
   display: flex;
   justify-content: space-between;
