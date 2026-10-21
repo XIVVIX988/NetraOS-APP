@@ -1821,7 +1821,13 @@ function renderSettingsPage() {
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">BACKUP &amp; DATA</div><h2>Your browser data</h2></div></div>
           <p class="settings-disclosure">Browser storage keeps a working copy and Supabase Auth keeps your sign-in session. Account data syncs to the connected Supabase project when online. NetraOS currently uses no analytics or marketing tracking.</p>
           <label class="settings-field"><span><strong>Monthly backup reminder</strong><small>Remind you in this browser to download a local backup.</small></span><input name="monthlyBackupPrompt" type="checkbox" ${settings.monthlyBackupPrompt ? "checked" : ""}></label>
-          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-cookie-manage>Manage cookie preferences</button><button class="secondary-button" type="button" data-settings-action="export-json">Download all data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">Download all data (CSV)</button><button class="secondary-button" type="button" data-settings-action="download-terms">Download Terms of Service (PDF)</button><button class="secondary-button" type="button" data-settings-action="download-privacy">Download Privacy Policy (PDF)</button><button class="secondary-button" type="button" data-settings-action="download-cookies">Download Cookie Policy (PDF)</button></div>
+          <section class="settings-downloads" aria-labelledby="settings-downloads-heading">
+            <div class="settings-downloads-heading"><h3 id="settings-downloads-heading">Downloads</h3><p>Choose a summary, data backup, or policy to save.</p></div>
+            <div class="settings-download-group"><h4>Financial summary</h4><div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="download-summary-csv">Summary (CSV)</button><button class="secondary-button" type="button" data-settings-action="download-summary-excel">Summary (Excel)</button><button class="secondary-button" type="button" data-settings-action="download-summary-pdf">Financial report (PDF)</button></div></div>
+            <div class="settings-download-group"><h4>Data backup</h4><div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="export-json">All data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">All data (CSV)</button></div></div>
+            <div class="settings-download-group"><h4>Policies</h4><div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="download-terms">Terms of Service (PDF)</button><button class="secondary-button" type="button" data-settings-action="download-privacy">Privacy Policy (PDF)</button><button class="secondary-button" type="button" data-settings-action="download-cookies">Cookie Policy (PDF)</button></div></div>
+          </section>
+          <div class="settings-inline-actions settings-cookie-actions"><button class="secondary-button" type="button" data-cookie-manage>Manage cookie preferences</button></div>
           <label class="settings-import-drop" data-settings-drop><strong>Restore a JSON backup</strong><span>Choose a file or drop it here. Existing matching NetraOS records will be replaced.</span><input name="backupFile" type="file" accept="application/json,.json" data-settings-import></label>
           <p class="legal-links"><a href="#terms" data-public-action="terms">Terms of Service</a><a href="#privacy" data-public-action="privacy">Privacy Policy</a><a href="#cookies" data-public-action="cookies">Cookie Policy</a></p>
         </section>
@@ -7221,6 +7227,9 @@ document.addEventListener("click", event => {
   if (button.matches("[data-settings-action]")) {
     if (button.dataset.settingsAction === "export-json") downloadAllLocalData("json");
     else if (button.dataset.settingsAction === "export-csv") downloadAllLocalData("csv");
+    else if (button.dataset.settingsAction === "download-summary-csv") downloadSummary();
+    else if (button.dataset.settingsAction === "download-summary-excel") downloadExcel();
+    else if (button.dataset.settingsAction === "download-summary-pdf") downloadPDF();
     else if (button.dataset.settingsAction === "manage-rates") openCurrencyRatesDialog();
     else if (button.dataset.settingsAction === "clear-data") clearAllLocalData();
     else if (button.dataset.settingsAction === "delete-account") showPermanentAccountDeletion();

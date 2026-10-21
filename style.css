@@ -128,6 +128,10 @@
   .app-shell .settings-theme-choice button.is-selected { border-color: var(--green); background: var(--green); color: #fff; }
   .app-shell .settings-form .settings-actions { position: static; display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 0 0; border: 0; background: transparent; backdrop-filter: none; }
   .app-shell .settings-form .settings-actions .inventory-submit { width: 100%; }
+  .app-shell .settings-downloads { gap: 12px; margin-top: 12px; padding: 13px; }
+  .app-shell .settings-download-group .settings-inline-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; }
+  .app-shell .settings-download-group .settings-inline-actions button,
+  .app-shell .settings-cookie-actions button { width: 100%; min-height: 42px; text-align: left; }
   .app-shell .settings-danger-zone { border-color: color-mix(in srgb, #c33b37 28%, var(--line)); }
   .app-shell .settings-danger-zone .settings-inline-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
   .app-shell.theme-dark .settings-edit-profile { border-color: color-mix(in srgb, var(--green) 42%, var(--line)); background: color-mix(in srgb, var(--green) 18%, var(--panel)); }
@@ -7853,6 +7857,13 @@ body.theme-dark .theme-toggle[aria-pressed="true"] svg {
 .settings-inline-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 .settings-inline-actions button { min-height: 40px; padding: 9px 13px; border: 1px solid #dce5de; border-radius: 10px; background: #f8faf8; color: #244232; cursor: pointer; font: inherit; font-size: 13px; }
 .settings-inline-actions button:hover { background: #eef5ef; }
+.settings-downloads { display: grid; gap: 14px; margin-top: 16px; padding: 16px; border: 1px solid #e0e8e2; border-radius: 13px; background: #f8faf8; }
+.settings-downloads-heading h3 { margin: 0; color: #263a2e; font: 700 14px var(--display); }
+.settings-downloads-heading p { margin: 4px 0 0; color: #758179; font-size: 11px; line-height: 1.45; }
+.settings-download-group { display: grid; gap: 7px; padding-top: 12px; border-top: 1px solid #e3eae5; }
+.settings-download-group h4 { margin: 0; color: #53645a; font: 600 11px var(--sans); }
+.settings-download-group .settings-inline-actions { margin-top: 0; }
+.settings-cookie-actions { margin-top: 0; }
 .settings-inline-actions .danger-button { border-color: #efd2ce; color: #a23c31; background: #fff8f6; }
 .legal-links { display: flex; gap: 18px; margin: 18px 0 0; font-size: 13px; }
 .cookie-banner { position: fixed; z-index: 9000; right: max(20px, env(safe-area-inset-right)); bottom: max(20px, env(safe-area-inset-bottom)); left: max(20px, env(safe-area-inset-left)); display: flex; align-items: center; justify-content: space-between; gap: 24px; max-width: 900px; margin-inline: auto; padding: 18px 20px; border: 1px solid #d9e3dc; border-radius: 16px; background: #fff; color: #24352a; box-shadow: 0 14px 55px #16251b30; }
@@ -7936,6 +7947,11 @@ body.theme-dark .settings-audit-export select { border-color: #46534a; backgroun
 body.theme-dark .settings-panel .settings-field select { border-color: #46534a; background: #1d2821; color: #e8eee9; }
 body.theme-dark .settings-inline-actions button { border-color: #435148; background: #202b24; color: #e0e8e2; }
 body.theme-dark .settings-inline-actions button:hover { background: #2b3a30; }
+body.theme-dark .settings-downloads { border-color: #38483e; background: #151c18; }
+body.theme-dark .settings-downloads-heading h3 { color: var(--text); }
+body.theme-dark .settings-downloads-heading p,
+body.theme-dark .settings-download-group h4 { color: var(--muted); }
+body.theme-dark .settings-download-group { border-color: var(--line); }
 body.theme-dark .settings-inline-actions .danger-button { border-color: #68413b; color: #ffc1b6; background: #30211f; }
 body.theme-dark .legal-links a { color: #a6d3b5; }
 body.theme-dark .security-lock-screen { background: #101713; color: #e9f0eb; }
