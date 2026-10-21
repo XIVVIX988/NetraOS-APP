@@ -10151,6 +10151,7 @@ body.theme-dark { background: var(--bg); }
 .app-shell .inventory-heading .welcome-sub { max-width: none; font-size: 12px; }
 .app-shell .inventory-heading .inventory-action { gap: 8px; }
 .app-shell .inventory-add-plus { display: inline-grid; width: 18px; height: 18px; place-items: center; border: 1px solid currentColor; border-radius: 50%; font: 500 15px/1 var(--sans); }
+.app-shell .power-heading-add-plus { display: inline-grid; width: 18px; height: 18px; place-items: center; border: 1px solid currentColor; border-radius: 50%; font: 500 15px/1 var(--sans); }
 .app-shell .inventory-summary-card { min-height: 96px; gap: 5px; padding: 16px 18px; }
 .app-shell .inventory-summary-card:nth-child(1) { border-color: #cce8da; background: #f0faf4; }
 .app-shell .inventory-summary-card:nth-child(2) { border-color: #f1d8d8; background: #fff5f4; }
@@ -10869,11 +10870,10 @@ body.theme-dark { background: var(--bg); }
     border-radius: 50%;
   }
   .app-shell .power-page > .inventory-heading .power-heading-add-plus {
-    display: grid;
-    width: 100%;
-    height: 100%;
-    place-items: center;
-    font: 400 26px/1 var(--sans);
+    width: auto;
+    height: auto;
+    border: 0;
+    font: 400 25px/1 var(--sans);
   }
   .app-shell .power-page > .inventory-heading .power-heading-add-label { display: none; }
 }

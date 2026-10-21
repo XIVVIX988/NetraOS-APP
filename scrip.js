@@ -4234,7 +4234,7 @@ function renderPowerListPanel(key, heading, kicker, rows, totalLabel, total, pho
         <div><div class="section-kicker">${kicker}</div><h2>${heading}</h2></div>
         ${phone
           ? `<button class="inventory-add-small" type="button" data-power-action="${key}" aria-label="Add ${heading.toLowerCase()}">${plusIcon}<span class="add-label">Add ${key}</span></button>`
-          : `<button class="inventory-action" type="button" data-power-action="${key}">${plusIcon} Add ${key}</button>`}
+          : `<button class="inventory-action" type="button" data-power-action="${key}"><span class="inventory-add-plus" aria-hidden="true">+</span> Add ${key}</button>`}
       </div>
       <div class="power-list-body">
         <div class="power-rows">${rows}</div>
@@ -4302,7 +4302,7 @@ function renderPowerUpPage() {
           <p class="welcome-sub">Plan your income, budget, and take-home pay.</p>
         </div>
         <button class="inventory-action power-heading-add" type="button" data-power-action="income" aria-label="Add income, budget, or spending" title="Add to Power-Up">
-          <span class="power-heading-add-plus" aria-hidden="true">+</span><span class="power-heading-add-label">Add income</span>
+          <span class="inventory-add-plus power-heading-add-plus" aria-hidden="true">+</span><span class="power-heading-add-label">Add income</span>
         </button>
       </header>
 
