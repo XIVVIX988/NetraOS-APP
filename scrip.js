@@ -648,6 +648,7 @@ const reportPeriodStorageKey = "netraos-report-period-v1";
 const statsSnapshotStorageKey = "netraos-stats-networth-snapshots-v1";
 let statsRangeMonths = 6;
 let statsMobileView = "cash-flow";
+let statsMoreInsightsOpen = false;
 const currencyStorageKey = "netraos-currency-v1";
 const privacyModeStorageKey = "netraos-privacy-mode-v1";
 const currencyAmountPattern = /(?:KSh|USh|TSh|KES|USD|EUR|GBP|UGX|TZS|[$€£])\s*[+-]?\s*\d[\d,]*(?:\.\d+)?/i;
@@ -3915,6 +3916,7 @@ function renderStatsPage() {
       .reduce((sum, item) => sum + Number(item.amount || 0), 0);
     return { category, planned, spent };
   }).filter(item => item.planned > 0 || item.spent > 0);
+  const totalCategorySpending = categories.reduce((sum, item) => sum + item.spent, 0);
   const maxCategory = Math.max(1, ...categories.map(item => Math.max(item.planned, item.spent)));
   const assetMix = assetCategories.map(category => ({
     name: category.name,
@@ -3925,7 +3927,7 @@ function renderStatsPage() {
   const categoryRows = categories.length
     ? categories.map(item => `
         <div class="stats-category-row">
-          <div class="stats-category-heading"><strong>${escapeHTML(item.category)}</strong><span>${formatKsh(item.spent)} <small>spent</small></span></div>
+          <div class="stats-category-heading"><strong>${escapeHTML(item.category)}</strong><span>${formatKsh(item.spent)} <small>spent · ${totalCategorySpending ? Math.round((item.spent / totalCategorySpending) * 100) : 0}% of total</small></span></div>
           <div class="stats-pair-bars"><i class="planned-bar" style="width:${Math.round((item.planned / maxCategory) * 100)}%"></i><i class="spent-bar" style="width:${Math.round((item.spent / maxCategory) * 100)}%"></i></div>
           <small class="stats-planned-label">${formatKsh(item.planned)} planned</small>
         </div>`).join("")
@@ -3978,7 +3980,7 @@ function renderStatsPage() {
         </div>
       </section>
       <aside class="stats-key-insight"><span class="stats-key-insight-icon" aria-hidden="true">✦</span><div><strong>Key Insight</strong><p>${escapeHTML(getStatsMobileInsight(statsMobileView, monthlySeries, balance.netWorth))}</p></div></aside>
-      <details class="stats-more-insights">
+      <details class="stats-more-insights" ${statsMoreInsightsOpen ? "open" : ""}>
         <summary class="stats-more-heading"><div><h2>More insights</h2><p>Supporting details for your budget, assets, and goals.</p></div><span class="stats-more-chevron" aria-hidden="true"></span></summary>
         <section class="stats-panels">
         <article class="panel stats-panel">
@@ -4000,6 +4002,10 @@ function renderStatsPage() {
     </section>
     ${renderAppFooter()}`;
 }
+
+document.addEventListener("toggle", event => {
+  if (event.target.matches?.("details.stats-more-insights")) statsMoreInsightsOpen = event.target.open;
+}, true);
 
 document.addEventListener("click", event => {
   const tab = event.target.closest("button[data-stats-view]");
