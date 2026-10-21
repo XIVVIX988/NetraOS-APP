@@ -8682,6 +8682,9 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
 .quest-card-header { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .quest-card-icon { flex: none; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; background: color-mix(in srgb, var(--quest-accent, #168660) 13%, white); color: var(--quest-accent, #168660); font-size: 19px; }
 .quest-card-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.quest-card-icon .quest-icon-default { display: none; }
+.quest-card-icon.is-complete .quest-icon-default { display: inline; }
+.quest-card-icon .quest-icon-category { display: grid; place-items: center; }
 .quest-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .quest-card-icon.is-complete { background: #e9f2fb; color: #4281aa; }
 .quest-card-title-group { flex: 1; min-width: 0; }
@@ -10693,8 +10696,8 @@ body.theme-dark { background: var(--bg); }
     font: 400 25px/1 var(--sans);
   }
   .app-shell .quest-heading-add-label { display: none; }
-  .app-shell .quests-page > .quest-overview,
-  .app-shell .quests-page > .quest-plan-insight { display: none; }
+  .app-shell .quests-page > .quest-overview { display: none; }
+  .app-shell .quests-page > .quest-plan-insight { display: flex; order: 1; }
   .app-shell .quests-page > .quest-page-panel {
     margin: 0;
     padding: 0;
