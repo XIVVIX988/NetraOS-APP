@@ -3584,7 +3584,7 @@ function renderQuestsPage() {
           <p class="welcome-sub">Set a goal. Track progress. Celebrate each win.</p>
         </div>
         <button class="inventory-action quest-heading-add" type="button" data-quest-action="add" aria-label="Create a quest" ${canAddQuest ? "" : "disabled"} title="${canAddQuest ? "Create a quest" : "Complete or remove an active quest to make room"}">
-          <span class="quest-heading-add-plus" aria-hidden="true">+</span><span class="quest-heading-add-label">New quest</span>
+          <span class="inventory-add-plus quest-heading-add-plus" aria-hidden="true">+</span><span class="quest-heading-add-label">New quest</span>
         </button>
       </header>
       <section class="quest-overview" aria-label="Quest overview">
