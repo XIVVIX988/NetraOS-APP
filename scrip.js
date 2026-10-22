@@ -285,7 +285,7 @@ const faqCategories = [
     { q: "What is the Privacy Shield, and how do I use it?", a: "The Privacy Shield is a toggle for viewing your numbers in public. Click the eye icon in the top bar, or press <kbd>Shift</kbd> + <kbd>S</kbd>, and every currency figure is masked until you switch it off again. You can change the shortcut to <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>, or turn it off, in Settings.", action: { label: "Open Settings", target: "Settings" } }
   ]},
   { id: "dispatch", label: "Income & Auto-Router", items: [
-    { q: "How does NetraOS help me split my paycheck?", a: "Today you stay in control: record income sources and budget lines in Power-Up, then fund your quests as you go. Your PDF report adds a month-ahead view with a savings target and a suggested goal top-up. The <b>Smart Auto-Router</b> is <b>coming soon</b>. It is designed to reserve living costs first, then minimum loan payments, then extra payments on your costliest debt (the Debt Avalanche method), and finally spread what is left across your quests by priority and deadline.", action: { label: "Open Power-Up", target: "Power-Up" } },
+    { q: "How does NetraOS help me split my paycheck?", a: "Record recurring monthly income in Power-Up to receive an optional in-app suggestion based on net income: 55% for essentials, 10% for debt or investment, 15% for short-term goals, 15% for long-term goals, and 5% for flexible spending. The suggestion includes the rent cap, prioritizes an incomplete emergency fund, and uses quest deadlines and priority to split goal contributions. You stay in control and choose whether to follow it. The <b>Smart Auto-Router</b> is <b>coming soon</b>; it is designed to make and apply transfers automatically.", action: { label: "Open Power-Up", target: "Power-Up" } },
     { q: "Can I override or adjust the Auto-Router's suggestion?", a: "Yes, by design. Nothing in NetraOS moves money for you, and the Auto-Router will only propose a split that you can adjust, uncheck or change before you apply it." },
     { q: "What happens when a quest reaches 100% completion?", a: "NetraOS marks the quest <b>Complete</b>, shows a milestone celebration, and counts it toward your Achievements. You can then point the same monthly saving at your next goal.", action: { label: "Open Quests", target: "Quests" } }
   ]},
@@ -604,6 +604,7 @@ function getAssetYield(entry) {
 
 const budgetCategories = [
   "Housing",
+  "Insurance",
   "School fees",
   "Food & groceries",
   "Transport",
@@ -617,6 +618,7 @@ const budgetCategories = [
 ];
 const budgetCategoryIcons = {
   "Housing": '<svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  "Insurance": '<svg viewBox="0 0 24 24"><path d="m12 3 8 3v5c0 5-3.2 8-8 10-4.8-2-8-5-8-10V6l8-3Z"/><path d="m9 12 2 2 4-4"/></svg>',
   "School fees": '<svg viewBox="0 0 24 24"><path d="m2 9 10-5 10 5-10 5L2 9Z"/><path d="M6 11v5c3.5 2.7 8.5 2.7 12 0v-5M22 9v6"/></svg>',
   "Food & groceries": '<svg viewBox="0 0 24 24"><path d="M4 10h16l-1 10H5L4 10ZM3 10l2-6h14l2 6M9 4v6m6-6v6M9 14v3m6-3v3"/></svg>',
   "Transport": '<svg viewBox="0 0 24 24"><path d="M5 16 4 9l2-4h12l2 4-1 7M5 16h14M7 16v3m10-3v3M4 9h16M7 13h.01M17 13h.01"/></svg>',
@@ -1781,7 +1783,7 @@ function renderSettingsPage() {
         </section>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">REMINDERS</div><h2>What to keep an eye on</h2></div></div>
           <label class="settings-field"><span><strong>Quest milestones</strong><small>In-app notices for quest progress milestones and completions.</small></span><input name="goalNotifications" type="checkbox" ${settings.goalNotifications ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Income plan updates</strong><small>In-app reminders after an income source is added or changed.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Income plan updates</strong><small>In-app 55/10/15/15/5 budget suggestions after monthly income changes.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Debt payoff</strong><small>In-app notices when a liability is marked as paid off.</small></span><input name="debtNotifications" type="checkbox" ${settings.debtNotifications ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Spending shortfall</strong><small>In-app notices if recorded spending moves above planned income.</small></span><input name="budgetNotifications" type="checkbox" ${settings.budgetNotifications ? "checked" : ""}></label>
         </section>
@@ -1962,6 +1964,7 @@ function enterApp(profile, { restoredSession = false, page = "Dashboard" } = {})
   publicShell.hidden = true;
   appShell.hidden = false;
   showPage(page);
+  notifyBudgetRuleSuggestion();
   if (!restoredSession) recordSecurityAudit("Local profile signed in");
   scheduleAutoLock();
   maybePromptForBackup();
@@ -3357,6 +3360,8 @@ function openInventoryDialog(action, editId = null) {
       return;
     }
 
+    if (updatedEntry.type === "liability" || editing?.type === "liability") notifyBudgetRuleSuggestion();
+
     dialog.close();
     dialog.remove();
     content.innerHTML = renderInventoryPage();
@@ -3554,7 +3559,11 @@ function openPowerUpDialog(kind, editId = null) {
       });
     }
     if (isIncome && getStoredSettings().monthlyReminders) {
-      createInAppNotification({ title: "Income plan updated", body: `${name} is in your income plan. Review your monthly plan in Power-Up.`, page: "Power-Up", dedupeKey: `income-plan:${savedEntry.id}:${monthKey()}`, preference: "monthlyReminders" });
+      const recurringNetIncome = budgetTotalForMonth(data.incomes.filter(item => item.recurring !== false), monthKey());
+      if (recurringNetIncome > 0) notifyBudgetRuleSuggestion();
+      else createInAppNotification({ title: "Income plan updated", body: `${name} is in your income plan. Add a recurring monthly income source to get a personalized budget split.`, page: "Power-Up", actionLabel: "Review income", actionTarget: "Power-Up", dedupeKey: `income-plan:${savedEntry.id}:${monthKey()}`, preference: "monthlyReminders" });
+    } else if (!isIncome && !isSpending) {
+      notifyBudgetRuleSuggestion();
     }
     const spendingShortfall = getStoredSettings().budgetNotifications && totalsAfterUpdate.reportIncome > 0 && totalsAfterUpdate.cashAfterSpending < 0 && totalsBeforeUpdate.cashAfterSpending >= 0;
     if (spendingShortfall) {
@@ -3704,6 +3713,7 @@ function openQuestDialog(questId = "") {
       showToast("Unable to save this quest in browser storage.");
       return;
     }
+    notifyBudgetRuleSuggestion();
     dialog.close();
     refreshFinancialPage();
     if (!wasComplete && questProgress(updatedQuest) === 100) {
@@ -4976,6 +4986,126 @@ function createInAppNotification({ title, body, page = "Power-Up", actionLabel =
   });
   saveInAppNotifications(items);
   if (document.querySelector(".notification-center")) renderNotificationCenter();
+}
+
+function buildBudgetRuleSuggestion(netMonthlyIncome) {
+  const income = Math.max(0, Number(netMonthlyIncome) || 0);
+  if (!income) return "";
+  const power = getPowerUpData();
+  const month = monthKey();
+  const budgetFor = category => budgetTotalForMonth(power.budgets.filter(item => item.recurring !== false), month, category);
+  const recurringMonthlyExpenses = budgetTotalForMonth(
+    power.budgets.filter(item => item.recurring !== false && !["Savings", "Investments"].includes(item.category)),
+    month
+  );
+  const essentials = budgetFor("Housing") + budgetFor("Food & groceries") + budgetFor("Insurance");
+  const essentialLimit = income * 0.55;
+  const monthlyRentCap = income / 6;
+  const rentPlan = power.budgets
+    .filter(item => budgetAppliesInMonth(item, month) && item.category === "Housing" && /\brent\b/i.test(item.name || ""))
+    .reduce((total, item) => total + Number(item.amount || 0), 0);
+  const activeDebt = getInventoryEntries().some(item => item.type === "liability" && Number(item.amount) > 0);
+  const quests = getQuests();
+  const emergencyFund = quests.find(quest => quest.category === "Emergency Buffer" || /emergency fund/i.test(quest.name || ""));
+  const emergencyFundTarget = recurringMonthlyExpenses > 0 ? recurringMonthlyExpenses * 6 : Number(emergencyFund?.target || 0);
+  const emergencyFundSaved = Number(emergencyFund?.current || 0);
+  const emergencyFundRemaining = Math.max(0, emergencyFundTarget - emergencyFundSaved);
+  const emergencyFundComplete = emergencyFundTarget > 0 && emergencyFundRemaining === 0;
+  const activeGoals = activeQuests(quests);
+  const goalMonths = quest => quest.deadline && quest.deadline > localDateValue() ? monthsUntil(quest.deadline) : null;
+  const shortGoals = activeGoals.filter(quest => quest !== emergencyFund && goalMonths(quest) !== null && goalMonths(quest) <= 36);
+  const longGoals = activeGoals.filter(quest => quest !== emergencyFund && goalMonths(quest) !== null && goalMonths(quest) >= 60);
+  const priorityWeight = quest => Math.max(1, 4 - questPriorityTier(quest.category));
+  const byPriority = (a, b) => questPriorityTier(a.category) - questPriorityTier(b.category) || (goalMonths(a) ?? 9999) - (goalMonths(b) ?? 9999);
+  const shareByPriority = (amount, goals) => {
+    const weightTotal = goals.reduce((total, quest) => total + priorityWeight(quest), 0);
+    return goals.map(quest => ({ quest, amount: weightTotal ? amount * priorityWeight(quest) / weightTotal : 0 }));
+  };
+
+  const shortTermAmount = income * 0.15;
+  const shortShares = [];
+  let shortReserve = 0;
+  if (!emergencyFundComplete) {
+    const emergencyShare = shortTermAmount * 0.8;
+    const otherGoalShare = shortTermAmount - emergencyShare;
+    shortShares.push({ quest: emergencyFund, label: emergencyFund?.name || "Emergency fund reserve", amount: emergencyShare });
+    if (shortGoals.length) shortShares.push(...shareByPriority(otherGoalShare, shortGoals));
+    else shortReserve = otherGoalShare;
+  } else if (shortGoals.length) {
+    const ranked = [...shortGoals].sort(byPriority);
+    const top = ranked[0];
+    shortShares.push({ quest: top, amount: shortTermAmount * 0.6 });
+    const remaining = shortTermAmount * 0.4;
+    if (ranked.length > 1) shortShares.push(...shareByPriority(remaining, ranked.slice(1)));
+    else shortReserve = remaining;
+  } else {
+    shortReserve = shortTermAmount;
+  }
+
+  const longTermAmount = income * 0.15;
+  const longShares = longGoals.length ? shareByPriority(longTermAmount, longGoals) : [];
+  const longReserve = longGoals.length ? 0 : longTermAmount;
+  const amountLines = shares => shares.map(({ quest, label, amount }) => `${label || quest?.name || "Goal"}: ${formatKsh(Math.round(amount))}`).join(", ");
+  const plannedEssentialPercent = income ? essentials / income * 100 : 0;
+  const lines = [
+    `Suggested monthly split from ${formatKsh(income)} net income: essentials up to 55% (${formatKsh(essentialLimit)}); ${activeDebt ? "debt payments" : "investments"} 10% (${formatKsh(income * 0.1)}); short-term goals 15% (${formatKsh(shortTermAmount)}); long-term goals 15% (${formatKsh(longTermAmount)}); flexible spending 5% (${formatKsh(income * 0.05)}).`,
+    recurringMonthlyExpenses > 0
+      ? `Emergency fund target: 6 months of recurring monthly expenses (${formatKsh(recurringMonthlyExpenses)} × 6) = ${formatKsh(emergencyFundTarget)}. Saved: ${formatKsh(emergencyFundSaved)}; still needed: ${formatKsh(emergencyFundRemaining)}. Savings and investment budget lines are excluded. Create or update your Emergency Buffer quest target to match.`
+      : "Add recurring monthly expense budgets to calculate a six-month emergency fund target.",
+    `Short term: ${!emergencyFundComplete ? `80% (${formatKsh(shortTermAmount * 0.8)}) to ${emergencyFund?.name || "an emergency fund reserve"}${shortGoals.length ? `, remaining 20% by goal priority (${amountLines(shortShares.slice(1))})` : `; hold the remaining 20% (${formatKsh(shortReserve)}) in short-term savings`}` : shortGoals.length ? `60% to the highest-priority goal (${amountLines(shortShares.slice(0, 1))})${shortShares.length > 1 ? `; remaining 40% shared by priority (${amountLines(shortShares.slice(1))})` : `; hold the unassigned 40% (${formatKsh(shortReserve)}) in short-term savings`}` : `no eligible goals yet; hold the full ${formatKsh(shortReserve)} in short-term savings`}.`,
+    longShares.length ? `Split the long-term allocation by goal priority: ${amountLines(longShares)}. Keep it for 5+ year goals.` : `No 5+ year goal is eligible yet; hold ${formatKsh(longReserve)} in a long-term reserve and set goal deadlines.`,
+    `Annual rent cap: ${formatKsh(income * 2)} (about ${formatKsh(monthlyRentCap)} per month).`
+  ];
+
+  if (essentials > 0) {
+    const over = essentials - essentialLimit;
+    lines.push(over > 0
+      ? `Your planned housing, food, and insurance exceed the 55% ceiling by ${formatKsh(over)} (${plannedEssentialPercent.toFixed(1)}% of income). Review rent and housing, grocery costs, and insurance options; protect necessary food and coverage. If the costs cannot change now, temporarily reduce flexible spending and goal contributions while you work toward the safe zone.`
+      : `Your planned housing, food, and insurance use ${plannedEssentialPercent.toFixed(1)}% of income, within the 55% ceiling.`);
+  } else {
+    lines.push("Add separate Housing, Food & groceries, and Insurance budgets to check whether essentials fit the 55% ceiling.");
+  }
+  if (rentPlan > monthlyRentCap) {
+    lines.push(`Your planned rent exceeds its cap by ${formatKsh(rentPlan - monthlyRentCap)} per month; consider a lower-cost housing option or renegotiating rent.`);
+  } else if (!rentPlan) {
+    lines.push("Add a Housing budget line named Rent to check it against the rent cap.");
+  }
+  if (shortReserve || longReserve) lines.push("Add goal deadlines to classify targets: within 3 years for short-term, or 5+ years for long-term.");
+  return lines.join(" ");
+}
+
+function notifyBudgetRuleSuggestion() {
+  if (getStoredSettings().monthlyReminders === false) return;
+  const power = getPowerUpData();
+  const month = monthKey();
+  const netIncome = budgetTotalForMonth(power.incomes.filter(item => item.recurring !== false), month);
+  if (netIncome <= 0) return;
+  const recurringExpenses = budgetTotalForMonth(power.budgets.filter(item => item.recurring !== false && !["Savings", "Investments"].includes(item.category)), month);
+  const essentialBudgets = ["Housing", "Food & groceries", "Insurance"].map(category => budgetTotalForMonth(power.budgets.filter(item => item.recurring !== false), month, category));
+  const rentBudget = power.budgets.filter(item => item.recurring !== false && budgetAppliesInMonth(item, month) && item.category === "Housing" && /\brent\b/i.test(item.name || "")).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const hasDebt = getInventoryEntries().some(item => item.type === "liability" && Number(item.amount) > 0);
+  const goals = getQuests().map(quest => ({
+    id: quest.id,
+    category: quest.category || "",
+    deadline: quest.deadline || "",
+    target: Number(quest.target || 0),
+    complete: questProgress(quest) >= 100
+  })).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const emergencyGoal = getQuests().find(quest => quest.category === "Emergency Buffer" || /emergency fund/i.test(quest.name || ""));
+  const emergencyTarget = recurringExpenses > 0 ? recurringExpenses * 6 : Number(emergencyGoal?.target || 0);
+  const emergencyComplete = emergencyTarget > 0 && Number(emergencyGoal?.current || 0) >= emergencyTarget;
+  const fingerprintSource = JSON.stringify({ month, netIncome, recurringExpenses, essentialBudgets, rentBudget, hasDebt, goals, emergencyComplete });
+  let fingerprint = 2166136261;
+  for (let index = 0; index < fingerprintSource.length; index += 1) fingerprint = Math.imul(fingerprint ^ fingerprintSource.charCodeAt(index), 16777619);
+  createInAppNotification({
+    title: "Your monthly budget suggestion is ready",
+    body: buildBudgetRuleSuggestion(netIncome),
+    page: "Power-Up",
+    actionLabel: "Review plan",
+    actionTarget: "Power-Up",
+    dedupeKey: `budget-rule-55-10-15-15-5:${month}:${(fingerprint >>> 0).toString(36)}`,
+    preference: "monthlyReminders"
+  });
 }
 
 function renderNotificationCenter() {
