@@ -295,7 +295,7 @@ const faqCategories = [
   ]},
   { id: "yield", label: "Assets & Yield", items: [
     { q: "Why should I enter annual return rates (% p.a.) on my asset cards?", a: "A return rate lets each asset card on the Inventory page show its <b>net yield</b> and <b>monthly passive income</b>, so you can see what your money earns and compare it with what your loans cost.", action: { label: "Open Inventory", target: "Inventory" } },
-    { q: "Does NetraOS account for Withholding Tax on investment returns?", a: "Yes. Treasury Bonds and Treasury Bills use 15% withholding, SACCO returns use 10%, and Infrastructure Bonds are recorded at 0% tax." }
+    { q: "Does NetraOS account for Withholding Tax on investment returns?", a: "Yes. Treasury Bonds and Treasury Bills apply 15% withholding when you withdraw, SACCO returns apply 10% on withdrawal, and Infrastructure Bonds have no withholding tax." }
   ]},
   { id: "data", label: "Backup & Maintenance", items: [
     { q: "How do I transfer my NetraOS data to a new laptop or phone?", a: "Open Settings and choose <b>Download all data (JSON)</b> and save the file. On the new device open NetraOS, go to Settings and use <b>Restore a JSON backup</b> to bring everything back. A CSV export is available too, and a monthly backup reminder can be switched on.", action: { label: "Open Settings", target: "Settings" } },
@@ -565,6 +565,7 @@ function formatLoanTenure(loan) {
 // Assets Engine: yield tracking, withholding tax, liquidity tiers and portfolio maths.
 const WITHHOLDING_TAX = 0.15;
 const SACCO_WITHHOLDING_TAX = 0.10;
+let assetGrowthTimer = 0;
 const compoundingFrequencies = ["Daily", "Monthly", "Quarterly", "Semi-annual", "Annually", "None (simple / dividend)"];
 const liquidityTiers = ["Immediate (T+0)", "High (T+1)", "Medium (coupon / T+3 to T+7)", "Locked (90+ days / collateral)"];
 const assetCategoryDefaults = {
@@ -585,21 +586,73 @@ const assetCategoryDefaults = {
   "Other assets": { compounding: "None (simple / dividend)", liquidity: liquidityTiers[2] }
 };
 
-// Per-asset yield: apply the asset's withholding rate and calculate monthly income.
+function assetWithholdingRate(entry) {
+  if (entry?.category === "Infrastructure Bonds") return 0;
+  if (["Treasury Bonds", "Treasury Bills"].includes(entry?.category)) return WITHHOLDING_TAX;
+  if (["SACCO deposits", "SACCO shares", "SACCO deposits & shares"].includes(entry?.category)) return SACCO_WITHHOLDING_TAX;
+  if (entry?.returns?.taxFree) return 0;
+  return Number.isFinite(Number(entry?.returns?.withholdingRate)) ? Number(entry.returns.withholdingRate) : WITHHOLDING_TAX;
+}
+
+function assetDailyGrossRate(entry) {
+  const annualRate = Number(entry?.returns?.grossRate) / 100;
+  if (!Number.isFinite(annualRate) || annualRate <= 0) return 0;
+  const compoundingPeriods = {
+    Daily: 365, Monthly: 12, Quarterly: 4, "Semi-annual": 2, Annually: 1,
+    "None (simple / dividend)": 0
+  }[entry.returns?.compounding || ""];
+  if (!compoundingPeriods) return annualRate / 365;
+  return Math.pow(1 + annualRate / compoundingPeriods, compoundingPeriods / 365) - 1;
+}
+
+function updateAssetBalancesDaily() {
+  if (!localAppSessionActive) return;
+  const entries = getInventoryEntries();
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  let changed = false;
+  for (const entry of entries) {
+    if (entry.type !== "asset" || !entry.returns) continue;
+    let through = entry.growthThroughDate;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(through || "")) {
+      if (/^\d{4}-\d{2}$/.test(entry.growthThroughMonth || "")) {
+        const [year, month] = entry.growthThroughMonth.split("-").map(Number);
+        through = `${year}-${String(month).padStart(2, "0")}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`;
+      } else {
+        through = today;
+      }
+      entry.growthThroughDate = through;
+      changed = true;
+    }
+    let cursor = new Date(`${through}T12:00:00`);
+    while (`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}` < today) {
+      cursor.setDate(cursor.getDate() + 1);
+      const dailyRate = assetDailyGrossRate(entry);
+      if (dailyRate > 0 && Number.isFinite(Number(entry.amount))) {
+        const isSimpleReturn = entry.returns?.compounding === "None (simple / dividend)";
+        const growthBase = isSimpleReturn ? Number(entry.growthBasis ?? entry.amount) : Number(entry.amount);
+        entry.amount = Math.round((Number(entry.amount) + growthBase * dailyRate) * 100) / 100;
+        if (entry.growthBasis === undefined) entry.growthBasis = growthBase;
+      }
+      entry.growthThroughDate = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`;
+      changed = true;
+    }
+  }
+  if (changed) {
+    saveInventoryEntries(entries);
+    updateDashboardInventorySummary();
+    if (!appShell.hidden && crumb.textContent === "Inventory") content.innerHTML = renderInventoryPage();
+  }
+}
+
+// Show gross yield; withholding is recorded only when the user withdraws.
 function getAssetYield(entry) {
   const returns = entry && entry.returns;
   if (!returns || returns.grossRate === null || returns.grossRate === undefined) return null;
   const gross = Number(returns.grossRate);
   if (!Number.isFinite(gross)) return null;
-  const saccoReturn = ["SACCO deposits", "SACCO shares", "SACCO deposits & shares"].includes(entry.category);
-  const treasurySecurity = ["Treasury Bonds", "Treasury Bills"].includes(entry.category);
-  const taxRate = entry.category === "Infrastructure Bonds" ? 0
-    : treasurySecurity ? WITHHOLDING_TAX
-    : saccoReturn ? SACCO_WITHHOLDING_TAX
-      : returns.taxFree ? 0
-      : Number.isFinite(Number(returns.withholdingRate)) ? Number(returns.withholdingRate) : WITHHOLDING_TAX;
-  const net = gross * (1 - taxRate);
-  return { gross, net, taxRate, taxFree: taxRate === 0, monthly: Math.round(Number(entry.amount || 0) * net / 100 / 12) };
+  const taxRate = assetWithholdingRate(entry);
+  return { gross, net: gross, taxRate, taxFree: taxRate === 0, daily: Math.round(Number(entry.amount || 0) * gross / 100 / 365 * 100) / 100 };
 }
 
 const budgetCategories = [
@@ -1964,6 +2017,8 @@ function enterApp(profile, { restoredSession = false, page = "Dashboard" } = {})
   publicShell.hidden = true;
   appShell.hidden = false;
   showPage(page);
+  updateAssetBalancesDaily();
+  if (!assetGrowthTimer) assetGrowthTimer = window.setInterval(updateAssetBalancesDaily, 60 * 60 * 1000);
   notifyBudgetRuleSuggestion();
   if (!restoredSession) recordSecurityAudit("Local profile signed in");
   scheduleAutoLock();
@@ -2813,9 +2868,9 @@ function renderAccountRows(entries) {
               return `<span class="loan-metrics asset-metrics">
                 <span><small>CATEGORY / LOCATION</small><b>${escapeHTML(entry.category)}</b></span>
                 <span><small>OUTSTANDING BALANCE</small><b>${formatKsh(entry.amount)}</b></span>
-                <span><small>EXPECTED RETURN</small><b>${rate(y.gross)} gross · ${rate(y.net)} net (${y.taxFree ? "tax-free" : `${Math.round(y.taxRate * 100)}% withholding`})</b></span>
+                <span><small>EXPECTED RETURN</small><b>${rate(y.gross)} gross p.a. · ${y.taxFree ? "no withdrawal withholding" : `${Math.round(y.taxRate * 100)}% withholding on withdrawal`}</b></span>
                 <span><small>COMPOUNDING / LIQUIDITY</small><b>${escapeHTML(r.compounding || "Not set")} · ${escapeHTML(r.liquidity || "Not set")}</b></span>
-                <span><small>MONTHLY PASSIVE YIELD</small><b>${formatKsh(y.monthly)}/mo</b></span>
+                <span><small>ESTIMATED DAILY GROSS GROWTH</small><b>${formatKsh(y.daily)}/day</b></span>
               </span>`;
             })()}
           </span>
@@ -3129,16 +3184,20 @@ function openInventoryDialog(action, editId = null) {
           <span id="inventory-amount-label">Current balance (KSh)</span>
           <input name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" required>
         </label>
+        <label class="inventory-form-field withdrawal-field" hidden>
+          <span>Withdrawal amount (KSh)</span>
+          <input name="withdrawalAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0">
+        </label>
         <div class="inventory-form-fields asset-fields">
           <div class="liability-rate-row">
             <label class="inventory-form-field"><span>Expected annual return (% gross)</span><input name="grossRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 11.5"></label>
-            <label class="inventory-form-field"><span>Tax treatment</span><select name="taxTreatment"><option value="taxable">Taxable (15% withholding)</option><option value="exempt">Tax-free (e.g. infrastructure bond)</option></select></label>
+            <label class="inventory-form-field"><span>Tax treatment</span><select name="taxTreatment"><option value="taxable">15% withholding on withdrawal</option><option value="exempt">No withholding on withdrawal</option></select></label>
           </div>
           <div class="liability-rate-row">
             <label class="inventory-form-field"><span>Compounding</span><select name="compounding">${compoundingFrequencies.map(item => `<option>${item}</option>`).join("")}</select></label>
             <label class="inventory-form-field"><span>Liquidity tier</span><select name="liquidity">${liquidityTiers.map(item => `<option>${item}</option>`).join("")}</select></label>
           </div>
-          <small class="liability-hint asset-net-hint">Optional. Leave the return blank for assets that earn nothing; NetraOS works out net yield and monthly passive income.</small>
+          <small class="liability-hint asset-net-hint">Optional. Add an annual gross return for estimated daily growth. Growth accrues once per day using the selected compounding method; withholding is estimated on the earnings portion when you record a withdrawal.</small>
         </div>
         <div class="inventory-form-fields liability-fields" hidden>
           <label class="inventory-form-field"><span>Lender / type</span><select name="lenderType">${lenderTypes.map(type => `<option>${type}</option>`).join("")}</select></label>
@@ -3181,7 +3240,7 @@ function openInventoryDialog(action, editId = null) {
     const taxLabel = taxSelect?.closest("label")?.querySelector("span");
     if (!taxSelect) return;
     if (["SACCO deposits", "SACCO shares", "SACCO deposits & shares"].includes(categorySelect.value)) {
-      taxSelect.innerHTML = '<option value="sacco-shares">SACCO returns (10% withholding)</option>';
+      taxSelect.innerHTML = '<option value="sacco-shares">10% withholding on withdrawal</option>';
       taxSelect.value = "sacco-shares";
       taxSelect.disabled = true;
       if (taxLabel) taxLabel.textContent = "Tax on SACCO returns";
@@ -3190,8 +3249,8 @@ function openInventoryDialog(action, editId = null) {
     if (["Infrastructure Bonds", "Treasury Bonds", "Treasury Bills"].includes(categorySelect.value)) {
       const infrastructureBond = categorySelect.value === "Infrastructure Bonds";
       taxSelect.innerHTML = infrastructureBond
-        ? '<option value="exempt">Infrastructure Bonds (0% tax)</option>'
-        : '<option value="taxable">Treasury security (15% withholding)</option>';
+        ? '<option value="exempt">Infrastructure Bonds (no withholding)</option>'
+        : '<option value="taxable">Treasury security (15% withholding on withdrawal)</option>';
       taxSelect.value = infrastructureBond ? "exempt" : "taxable";
       taxSelect.disabled = true;
       if (taxLabel) taxLabel.textContent = "Tax treatment";
@@ -3199,7 +3258,7 @@ function openInventoryDialog(action, editId = null) {
     }
     const wasSpecialTax = taxSelect.value === "sacco-shares" || taxSelect.disabled;
     taxSelect.disabled = false;
-    taxSelect.innerHTML = '<option value="taxable">Taxable (15% withholding)</option><option value="exempt">Tax-free (eligible asset)</option>';
+    taxSelect.innerHTML = '<option value="taxable">15% withholding on withdrawal</option><option value="exempt">No withholding on withdrawal</option>';
     if (wasSpecialTax || !["taxable", "exempt"].includes(taxSelect.value)) taxSelect.value = "taxable";
     if (taxLabel) taxLabel.textContent = "Tax treatment";
   }
@@ -3228,6 +3287,12 @@ function openInventoryDialog(action, editId = null) {
     const isLiability = entryType === "liability";
     dialog.querySelector(".liability-fields").hidden = !isLiability;
     dialog.querySelector(".asset-fields").hidden = isLiability;
+    const withdrawalField = dialog.querySelector(".withdrawal-field");
+    const withdrawalInput = form.elements.withdrawalAmount;
+    const supportsWithdrawal = editing?.type === "asset" && Boolean(editing.returns);
+    withdrawalField.hidden = !supportsWithdrawal;
+    if (withdrawalInput) withdrawalInput.required = false;
+    if (supportsWithdrawal) form.elements.amount.readOnly = true;
     if (!isLiability) refreshAssetTaxTreatment();
     applyAssetDefaults();
     dialog.querySelector("#inventory-amount-label").textContent = isLiability ? "Current outstanding principal (KSh)" : "Current balance (KSh)";
@@ -3254,6 +3319,7 @@ function openInventoryDialog(action, editId = null) {
       form.elements.payoffDate.value = editing.loan.payoffDate || "";
     }
     if (editing.returns) {
+      form.elements.withdrawalAmount.value = "";
       form.elements.grossRate.value = editing.returns.grossRate ?? "";
       if (!["SACCO deposits", "SACCO shares", "SACCO deposits & shares", "Infrastructure Bonds", "Treasury Bonds", "Treasury Bills"].includes(editing.category)) {
         form.elements.taxTreatment.value = editing.returns.taxFree ? "exempt" : "taxable";
@@ -3278,8 +3344,14 @@ function openInventoryDialog(action, editId = null) {
     const formData = new FormData(form);
     const amount = Number(formData.get("amount"));
     const name = String(formData.get("name") || "").trim();
+    const withdrawalRaw = String(formData.get("withdrawalAmount") || "").trim();
+    const withdrawalAmount = withdrawalRaw === "" ? 0 : Number(withdrawalRaw);
 
     if (!name || !Number.isFinite(amount) || amount < 0) return;
+    if (withdrawalRaw !== "" && (!Number.isFinite(withdrawalAmount) || withdrawalAmount <= 0 || withdrawalAmount > Number(editing?.amount || 0))) {
+      showToast("Enter a withdrawal between zero and the current asset balance.");
+      return;
+    }
 
     const entryType = String(formData.get("type"));
     let loan = null;
@@ -3336,15 +3408,31 @@ function openInventoryDialog(action, editId = null) {
     }
 
     const entries = getInventoryEntries();
+    let savedAmount = amount;
+    let growthBasis = editing ? Number(editing.growthBasis ?? editing.amount) + amount - Number(editing.amount) : amount;
+    let withdrawalTax = 0;
+    if (editing?.type === "asset" && editing.returns && withdrawalAmount > 0) {
+      const priorBalance = Number(editing.amount || 0);
+      const priorBasis = Math.max(0, Number(editing.growthBasis ?? priorBalance));
+      const gainRatio = priorBalance > 0 ? Math.max(0, (priorBalance - priorBasis) / priorBalance) : 0;
+      const taxableGain = withdrawalAmount * gainRatio;
+      withdrawalTax = taxableGain * assetWithholdingRate(editing);
+      savedAmount = Math.max(0, Math.round((priorBalance - withdrawalAmount) * 100) / 100);
+      growthBasis = Math.max(0, Math.round((priorBasis - withdrawalAmount * (1 - gainRatio)) * 100) / 100);
+    }
     const updatedEntry = {
       id: editing?.id || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       type: entryType,
       name,
       category: String(formData.get("category")),
-      amount,
+      amount: savedAmount,
       mobileType: String(formData.get("category") === "Mobile money" ? formData.get("mobileType") || "Mobile wallet" : ""),
       mobileReference: String(formData.get("category") === "Mobile money" ? formData.get("mobileReference") || "" : "").trim(),
       notes: String(formData.get("notes") || "").trim(),
+      ...(entryType === "asset" ? {
+        growthThroughDate: editing?.growthThroughDate || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`,
+        growthBasis
+      } : {}),
       ...(loan ? { loan } : {}),
       ...(returns ? { returns } : {})
     };
@@ -3370,7 +3458,9 @@ function openInventoryDialog(action, editId = null) {
       const installment = Number(editing.loan?.minInstallment || 0);
       createInAppNotification({ title: "Liability marked as paid off", body: installment > 0 ? `${name} is now recorded at zero. Its recorded monthly installment is ${formatKsh(installment)}.` : `${name} is now recorded at zero in Inventory.`, page: "Inventory", dedupeKey: `liability-paid:${updatedEntry.id}`, preference: "debtNotifications" });
     }
-    showToast(wasLiabilityPaidOff && debtNoticeEnabled ? `${name} marked paid off. See Notifications for details.` : editing ? `${name} updated.` : `${name} added to your inventory.`);
+    showToast(withdrawalAmount > 0
+      ? `${formatKsh(withdrawalAmount - withdrawalTax)} withdrawn after ${formatKsh(withdrawalTax)} withholding on earnings.`
+      : wasLiabilityPaidOff && debtNoticeEnabled ? `${name} marked paid off. See Notifications for details.` : editing ? `${name} updated.` : `${name} added to your inventory.`);
   });
 
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
@@ -3657,8 +3747,8 @@ function openQuestDialog(questId = "") {
           <label class="inventory-form-field"><span>Category</span><span class="income-category-select-wrap quest-category-select-wrap"><span class="income-category-select-icon quest-category-select-icon" aria-hidden="true">${questCategoryIcon(quest?.category || questCategories[0])}</span><select name="category">${questCategories.map(item => `<option value="${escapeHTML(item)}" ${quest?.category === item ? "selected" : ""}>${escapeHTML(item)}</option>`).join("")}</select></span></label>
           <div class="quest-priority-preview" aria-live="polite"><span>Suggested priority</span><strong data-quest-tier-preview></strong><small>Picked automatically from the goal category</small></div>
         </div>
-        <label class="inventory-form-field"><span>Current amount (KSh)</span><input name="current" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" value="${Number(quest?.current || 0) || ""}" required></label>
-        <label class="inventory-form-field"><span>Target amount (KSh)</span><input name="target" type="number" min="1" step="0.01" inputmode="decimal" placeholder="0" value="${Number(quest?.target || 0) || ""}" required></label>
+        <label class="inventory-form-field"><span>Current amount (KSh)</span><input name="current" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(quest?.current || 0) || ""}" required></label>
+        <label class="inventory-form-field"><span>Target amount (KSh)</span><input name="target" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(quest?.target || 0) || ""}" required></label>
         <label class="inventory-form-field"><span>Target deadline <small>Optional</small></span><input name="deadline" type="date" value="${escapeHTML(quest?.deadline || "")}"></label>
         <small class="liability-hint">With a deadline, NetraOS works out the monthly amount you need to save and warns you if you fall behind.</small>
       </div>
@@ -3685,8 +3775,8 @@ function openQuestDialog(questId = "") {
     event.preventDefault();
     const formData = new FormData(form);
     const name = String(formData.get("name") || "").trim();
-    const current = Number(formData.get("current"));
-    const target = Number(formData.get("target"));
+    const current = Number(String(formData.get("current") || "").trim().replace(",", "."));
+    const target = Number(String(formData.get("target") || "").trim().replace(",", "."));
     if (!name || !Number.isFinite(current) || !Number.isFinite(target) || current < 0 || target <= 0) return;
     const wasComplete = quest ? questProgress(quest) === 100 : false;
     const previousProgress = quest ? questProgress(quest) : 0;
@@ -4068,6 +4158,14 @@ function renderAchievementsPage() {
   const quests = getQuests();
   const completedQuests = quests.filter(quest => questProgress(quest) >= 100);
   const completedInCategory = category => completedQuests.filter(quest => quest.category === category).length;
+  const emergencyFundQuest = quests.find(quest => quest.category === "Emergency Buffer" || /emergency fund/i.test(quest.name || ""));
+  const currentMonth = monthKey();
+  const recurringMonthlyExpenses = budgetTotalForMonth(
+    power.budgets.filter(item => item.recurring !== false && !["Savings", "Investments"].includes(item.category)),
+    currentMonth
+  );
+  const emergencyFundTarget = recurringMonthlyExpenses > 0 ? recurringMonthlyExpenses * 6 : Number(emergencyFundQuest?.target || 0);
+  const emergencyFundSaved = Number(emergencyFundQuest?.current || 0);
   const spendingMonths = new Set(power.spending.map(item => item.month || String(item.date || "").slice(0, 7)).filter(month => /^\d{4}-\d{2}$/.test(month))).size;
   const investmentAssets = assets.filter(item => item.category === "Investments").length;
   const candidates = [
@@ -4085,7 +4183,7 @@ function renderAchievementsPage() {
     { id: "goal-reached", name: "First goal achieved", detail: "Complete any financial quest.", progress: completedQuests.length, target: 1, format: "count", icon: "goal", tone: "#d7a42d" },
     { id: "goals-achieved-3", name: "Goal setter", detail: "Complete three financial quests.", progress: completedQuests.length, target: 3, format: "count", icon: "goal", tone: "#c58b28" },
     { id: "goals-achieved-5", name: "Quest champion", detail: "Complete five financial quests.", progress: completedQuests.length, target: 5, format: "count", icon: "goal", tone: "#a97822" },
-    { id: "emergency-goal-achieved", name: "Emergency fund builder", detail: "Complete an Emergency Buffer quest.", progress: completedInCategory("Emergency Buffer"), target: 1, format: "count", icon: "emergency", tone: "#d19b28" },
+    { id: "emergency-goal-achieved", name: "Emergency fund builder", detail: recurringMonthlyExpenses > 0 ? "Save six months of recurring monthly expenses in your emergency fund." : "Complete an Emergency Buffer quest.", progress: emergencyFundSaved, target: emergencyFundTarget || 1, format: recurringMonthlyExpenses > 0 ? "money" : "count", icon: "emergency", tone: "#d19b28" },
     { id: "debt-goal-achieved", name: "Debt goal achieved", detail: "Complete a Debt Eradication quest.", progress: completedInCategory("Debt Eradication"), target: 1, format: "count", icon: "debt", tone: "#4387b7" },
     { id: "asset-goal-achieved", name: "Asset goal achieved", detail: "Complete an Asset Accumulation quest.", progress: completedInCategory("Asset Accumulation"), target: 1, format: "count", icon: "investment", tone: "#219b73" },
     { id: "retirement-goal-achieved", name: "Future funder", detail: "Complete a Retirement & Financial Independence quest.", progress: completedInCategory("Retirement & Financial Independence"), target: 1, format: "count", icon: "retirement", tone: "#765ea5" },
@@ -4164,6 +4262,7 @@ document.addEventListener("click", event => {
 
 // Select a page, refresh its data, and update the active tab and URL.
 function showPage(page) {
+  updateAssetBalancesDaily();
   if (crumb.textContent === "Settings" && page !== "Settings") {
     setAccent(getStoredSettings().accentProfile);
   }
@@ -5093,17 +5192,53 @@ function notifyBudgetRuleSuggestion() {
   })).sort((a, b) => String(a.id).localeCompare(String(b.id)));
   const emergencyGoal = getQuests().find(quest => quest.category === "Emergency Buffer" || /emergency fund/i.test(quest.name || ""));
   const emergencyTarget = recurringExpenses > 0 ? recurringExpenses * 6 : Number(emergencyGoal?.target || 0);
-  const emergencyComplete = emergencyTarget > 0 && Number(emergencyGoal?.current || 0) >= emergencyTarget;
+  const emergencySaved = Number(emergencyGoal?.current || 0);
+  const emergencyComplete = emergencyTarget > 0 && emergencySaved >= emergencyTarget;
   const fingerprintSource = JSON.stringify({ month, netIncome, recurringExpenses, essentialBudgets, rentBudget, hasDebt, goals, emergencyComplete });
   let fingerprint = 2166136261;
   for (let index = 0; index < fingerprintSource.length; index += 1) fingerprint = Math.imul(fingerprint ^ fingerprintSource.charCodeAt(index), 16777619);
+  const essentialLimit = netIncome * 0.55;
+  const essentials = essentialBudgets.reduce((sum, amount) => sum + amount, 0);
+  const message = essentials > essentialLimit
+    ? "Your essential bills are above the suggested range. Open your plan for a few ideas to make room."
+    : emergencyTarget > 0 && !emergencyComplete
+      ? "Your emergency fund is still building toward six months of expenses. Open your plan for the next step."
+      : rentBudget > netIncome / 6
+        ? "Your rent is above the suggested limit for your income. Open your plan to review it."
+        : "Your monthly plan is ready. Open it for a few clear next steps.";
+  const dedupeKey = `budget-rule-55-10-15-15-5:${month}:${(fingerprint >>> 0).toString(36)}`;
+  const existingNotifications = getInAppNotifications();
+  let migrated = false;
+  existingNotifications.forEach(item => {
+    if (!String(item.dedupeKey || "").startsWith("budget-rule-55-10-15-15-5:") || item.dedupeKey === dedupeKey) return;
+    if (item.body !== "Your monthly plan has changed. Open it to see the latest next steps.") {
+      item.title = "Monthly plan update";
+      item.body = "Your monthly plan has changed. Open it to see the latest next steps.";
+      item.actionLabel = "Review plan";
+      item.actionTarget = "Power-Up";
+      item.page = "Power-Up";
+      migrated = true;
+    }
+  });
+  if (migrated) saveInAppNotifications(existingNotifications);
+  const existingCurrent = existingNotifications.find(item => item.dedupeKey === dedupeKey);
+  if (existingCurrent) {
+    existingCurrent.title = "A quick look at your monthly plan";
+    existingCurrent.body = message;
+    existingCurrent.actionLabel = "Review plan";
+    existingCurrent.actionTarget = "Power-Up";
+    existingCurrent.page = "Power-Up";
+    saveInAppNotifications(existingNotifications);
+    if (document.querySelector(".notification-center")) renderNotificationCenter();
+    return;
+  }
   createInAppNotification({
-    title: "Your monthly budget suggestion is ready",
-    body: buildBudgetRuleSuggestion(netIncome),
+    title: "A quick look at your monthly plan",
+    body: message,
     page: "Power-Up",
     actionLabel: "Review plan",
     actionTarget: "Power-Up",
-    dedupeKey: `budget-rule-55-10-15-15-5:${month}:${(fingerprint >>> 0).toString(36)}`,
+    dedupeKey,
     preference: "monthlyReminders"
   });
 }
@@ -5113,10 +5248,25 @@ function renderNotificationCenter() {
   if (!center) return;
   const items = getInAppNotifications();
   const unread = items.filter(item => !item.read).length;
-  center.innerHTML = `<header class="notification-center-heading"><div><strong>Notifications</strong><span>${unread ? `${unread} unread` : "You’re all caught up"}</span></div><button type="button" data-notification-read-all ${unread ? "" : "disabled"}>Mark all read</button></header>${items.length ? `<div class="notification-center-list">${items.slice(0, 12).map(item => `<article class="notification-item ${item.read ? "is-read" : "is-unread"}"><button class="notification-item-open" type="button" data-notification-open="${escapeHTML(item.id)}"><span class="notification-item-mark" aria-hidden="true">${item.read ? "✓" : "•"}</span><span class="notification-item-copy"><strong>${escapeHTML(item.title || "Update")}</strong><span>${escapeHTML(item.body || "")}</span><time>${escapeHTML(new Date(item.createdAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}</time></span></button>${item.actionLabel && item.actionTarget ? `<button class="notification-item-action" type="button" data-notification-action="${escapeHTML(item.id)}">${escapeHTML(item.actionLabel)} <span aria-hidden="true">↗</span></button>` : ""}<button class="notification-item-dismiss" type="button" data-notification-dismiss="${escapeHTML(item.id)}" aria-label="Dismiss notification">×</button></article>`).join("")}</div>` : `<div class="notification-center-empty"><span aria-hidden="true">♧</span><strong>No notifications yet</strong><p>Quest milestones, plan updates, and spending alerts will appear here.</p></div>`}`;
+  const selected = activeNotificationId ? items.find(item => item.id === activeNotificationId) : null;
+  if (activeNotificationId && !selected) activeNotificationId = "";
+  const dateLabel = item => escapeHTML(new Date(item.createdAt).toLocaleString([], { weekday: "long", month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }));
+  const action = item => item.actionLabel && item.actionTarget ? `<button class="notification-detail-action" type="button" data-notification-action="${escapeHTML(item.id)}">${escapeHTML(item.actionLabel)} <span aria-hidden="true">↗</span></button>` : "";
+  const heading = selected
+    ? `<header class="notification-center-heading notification-detail-heading"><button type="button" data-notification-back aria-label="Back to notifications">← <span>All notifications</span></button><div><strong>Notification</strong><span>${unread ? `${unread} unread` : "You’re all caught up"}</span></div></header>`
+    : `<header class="notification-center-heading"><div><strong>Notifications</strong><span>${unread ? `${unread} unread` : "You’re all caught up"}</span></div><button type="button" data-notification-read-all ${unread ? "" : "disabled"}>Mark all read</button></header>`;
+  const content = selected
+    ? `<article class="notification-detail"><div class="notification-detail-meta"><span class="notification-detail-mark" aria-hidden="true">✓</span><time>${dateLabel(selected)}</time></div><h2>${escapeHTML(selected.title || "Update")}</h2><p>${escapeHTML(selected.body || "")}</p>${action(selected)}</article>`
+    : items.length
+      ? `<div class="notification-center-list">${items.slice(0, 12).map(item => `<article class="notification-item ${item.read ? "is-read" : "is-unread"}"><button class="notification-item-open" type="button" data-notification-open="${escapeHTML(item.id)}"><span class="notification-item-mark" aria-hidden="true">${item.read ? "✓" : "•"}</span><span class="notification-item-copy"><strong>${escapeHTML(item.title || "Update")}</strong><span>${escapeHTML(item.body || "")}</span><time>${escapeHTML(new Date(item.createdAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}</time></span></button><button class="notification-item-dismiss" type="button" data-notification-dismiss="${escapeHTML(item.id)}" aria-label="Dismiss notification">×</button></article>`).join("")}</div>`
+      : `<div class="notification-center-empty"><span aria-hidden="true">♧</span><strong>No notifications yet</strong><p>Quest milestones, plan updates, and spending alerts will appear here.</p></div>`;
+  center.innerHTML = `${heading}${content}`;
 }
 
+let activeNotificationId = "";
+
 function closeNotificationCenter() {
+  activeNotificationId = "";
   document.querySelector(".notification-center")?.remove();
   document.querySelector(".notification-toggle")?.setAttribute("aria-expanded", "false");
 }
@@ -6418,6 +6568,52 @@ function downloadPDF() {
   ]);
 
   const tips = [];
+  const currentMonthKey = monthKey();
+  const recurringNetIncome = budgetTotalForMonth(power.incomes.filter(item => item.recurring !== false), currentMonthKey);
+  if (recurringNetIncome > 0) {
+    const essentialLines = ["Housing", "Food & groceries", "Insurance"].map(category => ({
+      category,
+      amount: budgetTotalForMonth(power.budgets.filter(item => item.recurring !== false), currentMonthKey, category)
+    }));
+    const essentialTotal = essentialLines.reduce((sum, item) => sum + item.amount, 0);
+    const essentialCeiling = recurringNetIncome * 0.55;
+    const recurringExpenses = budgetTotalForMonth(power.budgets.filter(item => item.recurring !== false && !["Savings", "Investments"].includes(item.category)), currentMonthKey);
+    const emergencyQuest = quests.find(quest => quest.category === "Emergency Buffer" || /emergency fund/i.test(quest.name || ""));
+    const emergencyTarget = recurringExpenses * 6;
+    const emergencyRemaining = Math.max(0, emergencyTarget - Number(emergencyQuest?.current || 0));
+    const shortGoalCount = goalQuests.filter(quest => quest !== emergencyQuest && quest.deadline && quest.deadline > localDateValue() && monthsUntil(quest.deadline) <= 36).length;
+    const rentBudget = power.budgets.filter(item => item.recurring !== false && budgetAppliesInMonth(item, currentMonthKey) && item.category === "Housing" && /\brent\b/i.test(item.name || "")).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const hasActiveDebt = liabilities.some(item => Number(item.amount) > 0);
+    const shortTermRule = emergencyTarget > 0 && emergencyRemaining > 0
+      ? `Of the ${money(recurringNetIncome * 0.15)} for nearer goals, send most toward your emergency savings until it can cover six months.`
+      : emergencyTarget > 0 && shortGoalCount
+        ? `Use ${money(recurringNetIncome * 0.15)} for nearer goals; after the emergency fund is ready, put 60% toward the top-priority goal and share 40% among the others by priority`
+        : emergencyTarget > 0
+          ? `Use ${money(recurringNetIncome * 0.15)} for nearer goals, divided by priority`
+          : `Use ${money(recurringNetIncome * 0.15)} for nearer goals and add recurring expense budgets to set your emergency savings target`;
+    tips.push({
+      p: "LOW",
+      title: "Give your take-home pay a simple plan",
+      detail: `Try to keep housing, food and insurance within ${money(essentialCeiling)} (about 55% of net pay). Put ${money(recurringNetIncome * 0.1)} toward ${hasActiveDebt ? "debt" : "investments"}; ${shortTermRule}; divide ${money(recurringNetIncome * 0.15)} among long-term goals by priority; and keep ${money(recurringNetIncome * 0.05)} for everyday extras.`
+    });
+    if (essentialTotal > essentialCeiling) {
+      const largest = [...essentialLines].sort((a, b) => b.amount - a.amount).find(item => item.amount > 0);
+      tips.push({ p: "HIGH", title: "Make room in your essential costs", detail: `Housing, food and insurance are ${money(essentialTotal - essentialCeiling)} above the suggested limit. Review ${largest?.category.toLowerCase() || "these costs"} first; protect necessary food and insurance cover.` });
+    }
+    if (rentBudget > recurringNetIncome / 6) {
+      tips.push({ p: "HIGH", title: "Review your rent level", detail: `Your rent is about ${money(rentBudget - recurringNetIncome / 6)} above the monthly guide. The yearly rent guide is no more than two months of net pay.` });
+    }
+    if (emergencyTarget > 0 && emergencyRemaining > 0) {
+      tips.push({ p: "MEDIUM", title: emergencyQuest ? "Build your emergency savings" : "Set an emergency savings goal", detail: emergencyQuest
+        ? `A useful target is six months of recurring expenses (${money(emergencyTarget)}). About ${money(emergencyRemaining)} remains; direct most of the nearer-goal savings here until you reach it.`
+        : `Six months of your recurring expenses is about ${money(emergencyTarget)}. Create an Emergency Buffer quest to track it, then direct most of your nearer-goal savings there.` });
+    }
+    const hasShortGoal = goalQuests.some(quest => quest !== emergencyQuest && quest.deadline && quest.deadline > localDateValue() && monthsUntil(quest.deadline) <= 36);
+    const hasLongGoal = goalQuests.some(quest => quest !== emergencyQuest && quest.deadline && monthsUntil(quest.deadline) >= 60);
+    if (!hasShortGoal || !hasLongGoal) {
+      tips.push({ p: "LOW", title: "Add dates to your goals", detail: `Set a target date within three years for nearer goals, or five years or more for long-term goals. When the emergency fund is ready, the nearer-goal amount can follow goal priority.` });
+    }
+  }
   if (plan.income === 0) tips.push({ p: "HIGH", title: "Record your income", detail: "No income is recorded, so savings and debt ratios cannot be measured. Add your salary and other sources in Power-Up." });
   if (monthlyView && liveSavingsRate !== null) {
     if (liveSavingsRate < 10) tips.push({ p: "HIGH", title: "Lift your savings rate", detail: `Your savings rate is ${pct(liveSavingsRate)}. Moving toward 20% means setting aside about ${money(plan.income * 0.2)} next month, mainly by trimming flexible categories.` });
@@ -6442,7 +6638,7 @@ function downloadPDF() {
   if (!tips.length) tips.push({ p: "GOOD", title: "Add data to unlock suggestions", detail: "Record accounts, income, a budget and spending, and this section will give tailored guidance for next month." });
   const order = { HIGH: 0, MEDIUM: 1, LOW: 2, GOOD: 3 };
   const tipColor = { HIGH: C.red, MEDIUM: C.amber, LOW: C.blue, GOOD: C.green };
-  tips.sort((a, b) => order[a.p] - order[b.p]).slice(0, 6).forEach((tip, index) => {
+  tips.sort((a, b) => order[a.p] - order[b.p]).slice(0, 8).forEach((tip, index) => {
     const lines = wrap(tip.detail, 7.8, false, CW - 74);
     const h = 34 + lines.length * 11;
     ensure(h + 8);
@@ -7309,10 +7505,14 @@ document.addEventListener("click", event => {
     if (item) {
       item.read = true;
       saveInAppNotifications(items);
-      const page = item.page;
-      closeNotificationCenter();
-      if (["Dashboard", "Inventory", "Power-Up", "Quests", "Stats", "Achievements", "Contact", "Profile", "Settings"].includes(page)) showPage(page);
+      activeNotificationId = id;
+      renderNotificationCenter();
     }
+    return;
+  }
+  if (button.matches("[data-notification-back]")) {
+    activeNotificationId = "";
+    renderNotificationCenter();
     return;
   }
   if (button.matches("[data-notification-action]")) {
@@ -7322,6 +7522,7 @@ document.addEventListener("click", event => {
     if (item) {
       item.read = true;
       saveInAppNotifications(items);
+      activeNotificationId = "";
       closeNotificationCenter();
       if (item.actionTarget === "settings:payday") {
         activeSettingsTab = "currency";
@@ -7839,3 +8040,95 @@ document.addEventListener("click", event => {
   if (event.target.closest("[data-cookie-manage]")) openCookiePreferences();
 });
 showCookieBanner();
+
+// Fixed help answers keep this chat private, predictable, and independent of AI services.
+const scriptedHelpTopics = [
+  { id: "greeting", question: "What can you help me with?", keywords: [], answer: "Hello! Welcome to NetraOS. I can help you understand your finances, plan a budget, track goals and assets, and find your way around the app. What would you like help with?", followUps: ["start", "budget", "emergency", "assets", "payday", "reports"] },
+  { id: "start", question: "How do I get started?", keywords: ["start", "getting started", "begin", "setup", "set up"], answer: "Welcome! To get a useful overview, add your income, recurring budget, assets, and debts. You can update these details whenever things change.", page: "Inventory", pageLabel: "Go to Inventory", followUps: ["budget", "emergency", "reports"] },
+  { id: "budget", question: "How does the budget suggestion work?", keywords: ["budget", "split", "55", "allocation", "income rule"], answer: "The suggested monthly plan sets aside up to 55% for essentials, 10% for debt repayment or investing, 15% for short-term goals, 15% for long-term goals, and 5% for everyday spending. It uses your take-home pay. If essentials are over the suggested limit, you’ll see ideas for bringing the plan back into balance.", page: "Power-Up", pageLabel: "Go to Power-Up", followUps: ["emergency", "rent", "goals"] },
+  { id: "emergency", question: "How much should my emergency fund be?", keywords: ["emergency", "rainy day", "six months", "6 months", "fund target"], answer: "A helpful target is six months of your recurring monthly expenses. While you’re building the fund, most of the short-term savings share goes toward it. Your budget and progress can help you see how close you are.", page: "Power-Up", pageLabel: "Review my budget", followUps: ["budget", "savings", "goals"] },
+  { id: "rent", question: "What is the rent limit?", keywords: ["rent", "annual rent", "two months", "2 months"], answer: "As a planning guideline, aim to keep a year’s rent at or below two months of your total monthly net salary. This can help keep housing costs within a manageable range.", page: "Power-Up", pageLabel: "Go to Power-Up", followUps: ["budget", "emergency"] },
+  { id: "goals", question: "How are goals prioritized?", keywords: ["goal", "goals", "priority", "short term", "long term", "quest"], answer: "Short-term goals are for plans you expect to reach within three years. Long-term goals are for five years or more. If several goals share a budget, their portions are divided in proportion to their priority.", page: "Quests", pageLabel: "Go to Quests", followUps: ["emergency", "budget"] },
+  { id: "assets", question: "How are my assets projected to grow?", keywords: ["asset", "assets", "growth", "return", "yield", "interest", "tax", "withholding", "sacco", "bond"], answer: "Your growth estimate is based on the rates and details entered for each asset, and is calculated daily. When you withdraw, withholding tax applies to the earnings portion: 10% for SACCO returns, 15% for Treasury Bonds and Treasury Bills, and 0% for Infrastructure Bonds.", page: "Inventory", pageLabel: "Go to Inventory", followUps: ["reports", "privacy"] },
+  { id: "payday", question: "Where can I change my payday?", keywords: ["payday", "pay day", "salary date", "pay date", "cycle", "salary"], answer: "You can update your payday and cycle anchor in Settings. Choose the date your income usually arrives so your monthly plan follows your pay cycle.", page: "Settings", pageLabel: "Go to Settings", followUps: ["start", "privacy"] },
+  { id: "reports", question: "Where are downloads and my summary?", keywords: ["download", "downloads", "summary", "pdf", "report", "export"], answer: "In Settings, open Downloads to choose a report or data export. Your summary report can also include suggestions based on the financial information you’ve entered.", page: "Settings", pageLabel: "Go to Downloads in Settings", followUps: ["budget", "privacy"] },
+  { id: "privacy", question: "How does my data stay private?", keywords: ["privacy", "data", "security", "account", "sync", "backup", "delete"], answer: "Your information is used to show your financial overview and related suggestions. Keep your sign-in details private. You can review the account, backup, and export options available to you in Settings.", page: "Settings", pageLabel: "Go to Settings", followUps: ["reports", "payday"] }
+];
+let helpChatOpen = false;
+const helpChatHistory = [{ role: "assistant", text: "Hello! Welcome to NetraOS. I can help with budgeting, savings goals, assets, settings, and reports. What would you like to know?" }];
+
+function renderHelpChat() {
+  const root = document.querySelector("[data-help-chat]");
+  if (!root) return;
+  const launcher = root.querySelector("[data-help-chat-toggle]");
+  const panel = root.querySelector("#help-chat-panel");
+  launcher.setAttribute("aria-expanded", String(helpChatOpen));
+  panel.hidden = !helpChatOpen;
+  const messages = root.querySelector("[data-help-chat-messages]");
+  messages.innerHTML = helpChatHistory.map(message => `<div class="help-chat-message is-${message.role}"><span>${message.role === "assistant" ? "NETRAOS ASSISTANT" : "YOU"}</span><p>${escapeHTML(message.text)}</p>${message.page ? `<button type="button" class="help-chat-page-link" data-help-chat-page="${escapeHTML(message.page)}">${escapeHTML(message.pageLabel)}</button>` : ""}</div>`).join("");
+  const suggestionKeys = helpChatHistory.at(-1)?.followUps || ["start", "budget", "emergency", "assets", "payday", "reports"];
+  root.querySelector("[data-help-chat-suggestions]").innerHTML = suggestionKeys.map(id => {
+    const topic = scriptedHelpTopics.find(item => item.id === id);
+    return topic ? `<button type="button" data-help-chat-question="${topic.id}">${escapeHTML(topic.question)}</button>` : "";
+  }).join("");
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function answerHelpQuestion(question, topicId) {
+  const normalizedQuestion = question.toLowerCase().trim();
+  const isGreeting = /^(hi|hello|hey|good morning|good afternoon|good evening|howdy)[!.\s]*$/.test(normalizedQuestion);
+  const isThanks = /^(thanks|thank you|many thanks|appreciate it)[!.\s]*$/.test(normalizedQuestion);
+  const topic = scriptedHelpTopics.find(item => item.id === topicId)
+    || (isGreeting ? scriptedHelpTopics.find(item => item.id === "greeting") : null)
+    || (isThanks ? { answer: "You’re welcome! Is there anything else I can help you with?", followUps: ["budget", "emergency", "goals", "assets", "payday", "reports"] } : null)
+    || scriptedHelpTopics.find(item => item.keywords.some(keyword => normalizedQuestion.includes(keyword)));
+  helpChatHistory.push({ role: "user", text: question });
+  if (topic) {
+    helpChatHistory.push({ role: "assistant", text: topic.answer, page: topic.page, pageLabel: topic.pageLabel, followUps: topic.followUps });
+  } else {
+    helpChatHistory.push({ role: "assistant", text: "I’m sorry, I couldn’t find an answer to that. I can help with budgeting, emergency savings, goals, assets, payday, privacy, or downloads. Could you try asking in a different way?", followUps: ["budget", "emergency", "goals", "assets", "payday", "reports"] });
+  }
+  if (helpChatHistory.length > 18) helpChatHistory.splice(1, 2);
+  renderHelpChat();
+}
+
+document.addEventListener("click", event => {
+  const toggle = event.target.closest("[data-help-chat-toggle]");
+  if (toggle) {
+    helpChatOpen = !helpChatOpen;
+    renderHelpChat();
+    if (helpChatOpen) document.querySelector("#help-chat-input")?.focus();
+    return;
+  }
+  if (event.target.closest("[data-help-chat-close]")) {
+    helpChatOpen = false;
+    renderHelpChat();
+    document.querySelector("[data-help-chat-toggle]")?.focus();
+    return;
+  }
+  const questionButton = event.target.closest("[data-help-chat-question]");
+  if (questionButton) {
+    const topic = scriptedHelpTopics.find(item => item.id === questionButton.dataset.helpChatQuestion);
+    if (topic) answerHelpQuestion(topic.question, topic.id);
+    return;
+  }
+  const pageButton = event.target.closest("[data-help-chat-page]");
+  if (pageButton) {
+    showPage(pageButton.dataset.helpChatPage);
+    helpChatOpen = false;
+    renderHelpChat();
+  }
+});
+
+document.addEventListener("submit", event => {
+  const form = event.target.closest("[data-help-chat-form]");
+  if (!form) return;
+  event.preventDefault();
+  const input = form.elements.question;
+  const question = input.value.trim();
+  if (!question) return;
+  input.value = "";
+  answerHelpQuestion(question);
+  input.focus();
+});
+renderHelpChat();
