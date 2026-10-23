@@ -33,6 +33,17 @@ In **Authentication → URL Configuration**:
 
 Signup confirmation and password recovery now return to the published GitHub Pages app. For signups started from the local preview, confirmation still returns to GitHub Pages so users complete authentication on the published app.
 
+### Enable Google sign-in
+
+The login and signup forms include a **Continue with Google** button. To enable it:
+
+1. In Google Cloud, create an OAuth client with application type **Web application**. Add `https://xivvix988.github.io` as an authorized JavaScript origin. For local browser development, also add `http://127.0.0.1:5500` and/or `http://localhost:5500`.
+2. In the Supabase Dashboard, open **Authentication → Sign In / Providers → Google**, enable Google, and enter the Google client ID and client secret.
+3. Copy the callback URL shown in Supabase’s Google provider settings into the Google OAuth client’s **Authorized redirect URIs**. This is the Supabase Auth callback, not the GitHub Pages app URL.
+4. Confirm the app URL and local development URLs above are in Supabase **Authentication → URL Configuration → Redirect URLs**.
+
+Keep the Google client secret in the Supabase Dashboard; do not put it in `supabase-config.js` or another browser file. Google sign-in requires an internet connection and redirects back to the app after authentication.
+
 Keep email confirmation enabled. Supabase’s default email sender is best-effort and limited to two emails per hour; on newer free projects it may only deliver to addresses belonging to the project organization. Configure custom SMTP under **Authentication → Emails → SMTP Settings** before inviting ordinary users or launching publicly.
 
 ## 4. Serve the app

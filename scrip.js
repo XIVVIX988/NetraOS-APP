@@ -256,6 +256,7 @@ const settingsStorageKey = "netraos-settings-v1";
 const securityAuditStorageKey = "netraos-security-audit-v1";
 const notificationStorageKey = "netraos-in-app-notifications-v1";
 const termsVersion = "2026-10-18.1";
+const googleOAuthConsentStorageKey = "netraos-google-oauth-terms-consent-v1";
 let autoLockTimer = 0;
 let backupPromptTimer = 0;
 let autoLockNudgeTimer = 0;
@@ -605,6 +606,39 @@ function assetDailyGrossRate(entry) {
   return Math.pow(1 + annualRate / compoundingPeriods, compoundingPeriods / 365) - 1;
 }
 
+function loanDailyInterest(entry) {
+  const loan = entry?.loan;
+  const rate = Number(loan?.interestRate);
+  if (!loan || !Number.isFinite(rate) || rate <= 0) return 0;
+  const kind = String(loan.rateType || "");
+  if (kind.startsWith("per day")) return Number(entry.amount) * rate / 100;
+  if (kind.startsWith("per month")) return Number(entry.amount) * rate / 100 / 30.4375;
+  if (kind === "flat rate") return Number(loan.interestBasis ?? entry.amount) * rate / 100 / 365;
+  return Number(entry.amount) * rate / 100 / 365;
+}
+
+function loanPayoffEstimate(principal, loan, months) {
+  const balance = Number(principal);
+  const rate = Number(loan?.interestRate);
+  const term = Math.floor(Number(months));
+  if (loan?.interestRate === null || loan?.interestRate === undefined || loan?.interestRate === "" || !Number.isFinite(balance) || balance < 0 || !Number.isFinite(rate) || rate < 0 || term < 1) return null;
+  const kind = String(loan.rateType || "");
+  let monthlyRate = rate / 100 / 12;
+  if (kind.startsWith("per month")) monthlyRate = rate / 100;
+  else if (kind.startsWith("per day")) monthlyRate = Math.pow(1 + rate / 100, 30.4375) - 1;
+  const totalInterest = kind === "flat rate"
+    ? balance * monthlyRate * term
+    : monthlyRate === 0
+      ? 0
+      : (balance * monthlyRate / (1 - Math.pow(1 + monthlyRate, -term))) * term - balance;
+  if (!Number.isFinite(monthlyRate) || !Number.isFinite(totalInterest)) return null;
+  return {
+    months: term,
+    totalInterest: Math.max(0, totalInterest),
+    monthlyPayment: (balance + Math.max(0, totalInterest)) / term
+  };
+}
+
 function updateAssetBalancesDaily() {
   if (!localAppSessionActive) return;
   const entries = getInventoryEntries();
@@ -612,6 +646,36 @@ function updateAssetBalancesDaily() {
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   let changed = false;
   for (const entry of entries) {
+    if (entry.type === "liability" && entry.loan) {
+      const loan = entry.loan;
+      let through = loan.interestThroughDate;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(through || "")) {
+        loan.interestThroughDate = today;
+        loan.interestMonth = today.slice(0, 7);
+        loan.interestAccruedThisMonth = 0;
+        if (loan.interestBasis === undefined) loan.interestBasis = Number(entry.amount);
+        changed = true;
+        continue;
+      }
+      let cursor = new Date(`${through}T12:00:00`);
+      while (`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}` < today) {
+        cursor.setDate(cursor.getDate() + 1);
+        const day = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`;
+        const dayMonth = day.slice(0, 7);
+        if (loan.interestMonth !== dayMonth) {
+          loan.interestMonth = dayMonth;
+          loan.interestAccruedThisMonth = 0;
+        }
+        const interest = loanDailyInterest(entry);
+        if (interest > 0 && Number.isFinite(interest)) {
+          entry.amount = Math.round((Number(entry.amount) + interest) * 100) / 100;
+          loan.interestAccruedThisMonth = Math.round((Number(loan.interestAccruedThisMonth || 0) + interest) * 100) / 100;
+        }
+        loan.interestThroughDate = day;
+        changed = true;
+      }
+      continue;
+    }
     if (entry.type !== "asset" || !entry.returns) continue;
     let through = entry.growthThroughDate;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(through || "")) {
@@ -640,8 +704,11 @@ function updateAssetBalancesDaily() {
   }
   if (changed) {
     saveInventoryEntries(entries);
+    const questProgressChanged = syncLinkedAssetQuests(entries);
     updateDashboardInventorySummary();
+    if (questProgressChanged) updateDashboardQuests();
     if (!appShell.hidden && crumb.textContent === "Inventory") content.innerHTML = renderInventoryPage();
+    else if (questProgressChanged && !appShell.hidden && crumb.textContent === "Quests") content.innerHTML = renderQuestsPage();
   }
 }
 
@@ -1312,14 +1379,14 @@ function getLegalDocument(page) {
     <h2>Ownership and intellectual property</h2><p>NetraOS and its operator or licensors retain rights in the NetraOS name and brand, logos, interface, design assets, software, and original content. These Terms grant you a limited, personal, revocable right to use the service. You may not copy, redistribute, sell, or reuse protected materials without prior permission, except where applicable law permits.</p>
     <h2>Suspension and termination</h2><p>NetraOS may restrict, suspend, or terminate access if it reasonably believes you have materially breached these Terms, created a security risk, or used the service unlawfully. Where practical, we will notify you and provide a way to address the issue. You may stop using the service at any time and may request account deletion through Settings.</p>
     <h2>Availability and limits</h2><p>The service is provided on an "as is" and "as available" basis. Features may change, and sign-in or synchronization may be interrupted by maintenance, network conditions, or third-party service outages. To the maximum extent permitted by law, NetraOS and its operator are not liable for indirect, incidental, special, consequential, or punitive loss, including lost profits, data, or access, arising from use or inability to use the service. Nothing in these Terms excludes liability or rights that applicable law does not allow to be excluded or limited. Keep independent backups of important information.</p>
-    <h2>Third-party services and sharing</h2><p>Sign-in and cloud synchronization depend on Supabase and an internet connection. Links to email, telephone, WhatsApp, social networks, and device sharing tools open services outside NetraOS. Their terms and privacy practices apply when you choose to use them.</p>
+    <h2>Third-party services and sharing</h2><p>Sign-in and cloud synchronization depend on Supabase and an internet connection. If you choose Google sign-in, Google also processes the authentication request under its terms and privacy practices. Links to email, telephone, WhatsApp, social networks, and device sharing tools open services outside NetraOS. Their terms and privacy practices apply when you choose to use them.</p>
     <h2>Governing law</h2><p>These Terms are governed by the laws of Kenya. Courts in Kenya will have jurisdiction over disputes, subject to any mandatory consumer protections or dispute rights that apply to you under other laws.</p>
     <h2>Contact</h2><p>For general support, email <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a>. For security or privacy concerns, email <a href="mailto:security@netraos.io">security@netraos.io</a>.</p>` : isPrivacy ? `
     <h2>Who operates NetraOS</h2><p>NetraOS is operated from Nairobi, Kenya, using the name NetraOS Technologies Lab in its public contact details at The Mirage Towers, 8th Floor, Tower 2, Chiromo Road, Westlands, Nairobi, Kenya. For privacy requests, contact <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a>. For security concerns, contact <a href="mailto:security@netraos.io">security@netraos.io</a>.</p>
-    <h2>Information collected or stored</h2><p>Information you provide includes your name, username, email address, password at sign-in, optional phone number, optional profile details such as date of birth and sex, and profile photo. Account records also include an account identifier, authentication session, and the accepted Terms version and time. NetraOS stores financial entries (assets, liabilities, income, budgets, spending, and tax-planning inputs), quests, progress and achievements, preferences, cookie choices, and limited security activity such as actions recorded in the app. Password authentication is handled by Supabase Auth; NetraOS does not store your password in its application profile. The app does not request or process payment card details, and it has no payment processor.</p>
-    <h2>Technical data and provider logs</h2><p>When your browser connects to NetraOS, Supabase, the Supabase client CDN, or Google Fonts, the relevant service may receive technical request data such as your IP address, browser and device information, requested resource, and request time as part of delivering and securing the connection. The NetraOS application does not read or store your IP address or use it for profiling. The website host and service providers may keep server or security logs under their own settings and policies; the NetraOS operator does not control all such logs.</p>
+    <h2>Information collected or stored</h2><p>Information you provide includes your name, username, email address, password when you use email-and-password sign-in, basic profile details provided by Google if you choose Google sign-in, optional phone number, optional profile details such as date of birth and sex, and profile photo. Account records also include an account identifier, authentication session, and the accepted Terms version and time. NetraOS stores financial entries (assets, liabilities, income, budgets, spending, and tax-planning inputs), quests, progress and achievements, preferences, cookie choices, and limited security activity such as actions recorded in the app. Supabase Auth handles authentication; NetraOS does not store your password in its application profile. The app does not request or process payment card details, and it has no payment processor.</p>
+    <h2>Technical data and provider logs</h2><p>When your browser connects to NetraOS, Supabase, Google for authentication if you choose Google sign-in, the Supabase client CDN, or Google Fonts, the relevant service may receive technical request data such as your IP address, browser and device information, requested resource, and request time as part of delivering and securing the connection. The NetraOS application does not read or store your IP address or use it for profiling. The website host and service providers may keep server or security logs under their own settings and policies; the NetraOS operator does not control all such logs.</p>
     <h2>Why information is used</h2><p>Information is used to create and secure your account, display and calculate the financial views and estimates you request, save preferences, synchronize your records, record required consent choices, and protect the service. The Contact form prepares a message in your email application; it is not sent to NetraOS until you choose to send it. Information you provide is needed for the features that use it; optional phone and profile details can be left blank. NetraOS does not use your information for profiling or automated decisions that produce legal or similarly significant effects. Security and service operation may require limited processing by providers.</p>
-    <h2>Storage and service providers</h2><p>NetraOS keeps a local working copy in your browser. When you are signed in and online, account data is sent to the Supabase project connected to this app for authentication, database storage, and synchronization. The project owner selects its hosting region and configuration; provider processing locations may be outside your country, so check the connected project's settings and provider terms for current locations and safeguards. The configured web deployment uses GitHub Pages, loads the Supabase client from jsDelivr, and may load fonts from Google Fonts. These services may receive request metadata such as IP address and browser details. Email, phone, WhatsApp, social media, and your device's share service receive information only when you choose to open them and send or share something. NetraOS does not sell personal information, share it for cross-context behavioral advertising, run advertising pixels, or use an analytics service in this version.</p>
+    <h2>Storage and service providers</h2><p>NetraOS keeps a local working copy in your browser. When you are signed in and online, account data is sent to the Supabase project connected to this app for authentication, database storage, and synchronization. If you select Google sign-in, Google handles the authentication step and shares basic profile information with Supabase Auth to establish your account. The project owner selects its hosting region and configuration; provider processing locations may be outside your country, so check the connected project's settings and provider terms for current locations and safeguards. The configured web deployment uses GitHub Pages, loads the Supabase client from jsDelivr, and may load fonts from Google Fonts. These services may receive request metadata such as IP address and browser details. Email, phone, WhatsApp, social media, and your device's share service receive information only when you choose to open them and send or share something. NetraOS does not sell personal information, share it for cross-context behavioral advertising, run advertising pixels, or use an analytics service in this version.</p>
     <h2>Cookies and similar storage</h2><p>NetraOS currently uses essential browser storage, including local storage for your working records, settings, and consent choice, and Supabase Auth browser storage for your sign-in session. These features support functions you request. This version sets no analytics or marketing cookies, tracking pixels, or performance telemetry. Details and browser controls are in the <a href="#cookies" data-public-action="cookies">Cookie Policy</a>.</p>
     <h2>Security and retention</h2><p>Cloud requests use HTTPS to the configured Supabase service. Supabase Auth handles password authentication, and Supabase database access policies are used to restrict account records. Browser-local records are not encrypted by NetraOS; the optional PIN hides the workspace but does not encrypt data. Security and availability also depend on the website host and Supabase project configuration. Local copies remain until you clear browser data or reset the app. Synced account records are retained in the connected project while the account is active and until a deletion request succeeds or they are otherwise removed. Provider logs and backups may follow provider retention practices.</p>
     <h2>Your choices and rights</h2><p>You can review and correct profile and financial details in Settings, export data, clear this device's browser copy, or request deletion of your account and synced records. Under Kenya's Data Protection Act, where it applies, data subject rights include being informed about use, access, objection to processing, correction of false or misleading data, and deletion of false or misleading data. California privacy laws, where they apply, may provide rights to know/access, correct, delete, and opt out of sale or sharing; NetraOS does not sell personal information or share it for cross-context behavioral advertising. Other laws, including European data protection law where it applies, may provide rights such as erasure, restriction, portability, objection, and withdrawing consent where processing relies on consent. Contact <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a> to make a privacy request; use <a href="mailto:security@netraos.io">security@netraos.io</a> for a security issue. Factory reset clears this device's app data and requests removal of synced database records but keeps the Supabase Auth identity. Permanent account deletion removes the Auth identity and linked synced records after the app confirms success. Exported files and copies on other devices are not erased automatically.</p>
@@ -1691,9 +1758,12 @@ function showPublicPage(page = "landing") {
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
             <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" ${isSignup ? 'minlength="8"' : ""} placeholder="${isSignup ? "At least 8 characters" : "Your password"}" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="#cookies" target="_blank" rel="noopener">Cookie Policy</a>.</span></label>` : ""}
+            ${isSignup ? "" : `<label class="terms-consent google-terms-consent"><input name="googleTermsConsent" type="checkbox"><span>If this is your first time using Google to sign in, I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="#cookies" target="_blank" rel="noopener">Cookie Policy</a>.</span></label>`}
             ${isSignup ? "" : '<button class="auth-reset-password" type="button" data-password-reset>Forgot your password?</button>'}
             <div class="auth-error" role="status" aria-live="polite" hidden></div>
             <button class="public-primary auth-submit" type="submit">${isSignup ? "Create account" : "Log in"}</button>
+            <div class="auth-divider"><span>OR</span></div>
+            <button class="auth-google-button" type="button" data-google-signin><span class="google-g-mark" aria-hidden="true">G</span>Continue with Google</button>
           </form>
           <p class="auth-switch">${isSignup ? "Already have an account?" : "New to NetraOS?"} <button type="button" data-public-action="${isSignup ? "login" : "signup"}">${isSignup ? "Log in" : "Create an account"}</button></p>
           <p class="auth-preview-note">Your email and password protect sign-in. Confirmation and password-reset links arrive by email, and records sync when you’re online.</p>
@@ -1701,6 +1771,46 @@ function showPublicPage(page = "landing") {
         </section>
       </div>`;
   }
+  const googleSignInButton = publicShell.querySelector("[data-google-signin]");
+  googleSignInButton?.addEventListener("click", async () => {
+    const authForm = googleSignInButton.closest("[data-auth-form]");
+    const authError = authForm?.querySelector(".auth-error");
+    const showGoogleError = message => {
+      if (!authError) return;
+      authError.textContent = message;
+      authError.classList.remove("success");
+      authError.hidden = false;
+    };
+    const isSignup = authForm?.dataset.authForm === "signup";
+    const hasConsent = isSignup ? authForm.elements.acceptTerms?.checked : authForm.elements.googleTermsConsent?.checked;
+    if (!hasConsent) {
+      showGoogleError(isSignup
+        ? "Please accept the Terms and acknowledge the Privacy Policy before creating an account."
+        : "Please accept the Terms and acknowledge the Privacy Policy to continue with Google.");
+      return;
+    }
+    if (!window.NetraSupabase?.enabled) {
+      showGoogleError("Google sign-in isn’t available just now because the sign-in service couldn’t connect.");
+      return;
+    }
+    googleSignInButton.disabled = true;
+    googleSignInButton.textContent = "Connecting to Google…";
+    try {
+      sessionStorage.setItem(googleOAuthConsentStorageKey, "1");
+      const isLocalHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+      const redirectTo = isLocalHost
+        ? `${window.location.origin}${window.location.pathname}`
+        : window.NETRAOS_SUPABASE_CONFIG?.authRedirectUrl || `${window.location.origin}${window.location.pathname}`;
+      const result = await window.NetraSupabase.signInWithGoogle(redirectTo);
+      if (result.error) throw result.error;
+    } catch (error) {
+      sessionStorage.removeItem(googleOAuthConsentStorageKey);
+      googleSignInButton.disabled = false;
+      googleSignInButton.innerHTML = '<span class="google-g-mark" aria-hidden="true">G</span>Continue with Google';
+      console.error("Google sign-in could not start:", error?.message || error);
+      showGoogleError(friendlyAuthMessage(error, "Google sign-in couldn’t start. Check the provider setup and try again."));
+    }
+  });
   applyStoredSettings();
   if (["landing", "login", "signup"].includes(page)) window.setTimeout(showCookieBanner, 0);
 }
@@ -2157,6 +2267,28 @@ function saveQuests(quests) {
   localStorage.setItem(questStorageKey, JSON.stringify(quests));
 }
 
+function syncLinkedAssetQuests(entries = getInventoryEntries()) {
+  const linkedAssets = entries.filter(entry => entry.type === "asset" && entry.questId);
+  if (!linkedAssets.length) return false;
+  const quests = getQuests();
+  let changed = false;
+  for (const asset of linkedAssets) {
+    const quest = quests.find(item => item.id === asset.questId);
+    if (!quest) continue;
+    const current = Number(asset.amount || 0);
+    if (Number(quest.current || 0) !== current) {
+      quest.current = current;
+      changed = true;
+    }
+  }
+  if (changed) saveQuests(quests);
+  return changed;
+}
+
+function linkedAssetForQuest(questId) {
+  return getInventoryEntries().find(entry => entry.type === "asset" && entry.questId === questId) || null;
+}
+
 function questProgress(quest) {
   const target = Number(quest.target || 0);
   return target > 0 ? Math.min(100, Math.round((Number(quest.current || 0) / target) * 100)) : 0;
@@ -2350,6 +2482,7 @@ function renderQuestRows(quests, dashboard = false) {
 
 function renderQuestCard(quest) {
   const progress = questProgress(quest);
+  const linkedAsset = linkedAssetForQuest(quest.id);
   const complete = progress === 100;
   const pace = questPace(quest);
   const deadline = quest.deadline
@@ -2381,6 +2514,7 @@ function renderQuestCard(quest) {
           <span class="quest-card-detail"><small>CATEGORY / PRIORITY</small><b><span class="quest-card-category-icon" aria-hidden="true">${questCategoryIcon(quest.category)}</span>${escapeHTML(quest.category || "Personal goal")} · ${escapeHTML(questTierLabel(quest))}</b></span>
           <span class="quest-card-detail"><small>DEADLINE</small><b>${escapeHTML(deadline)}</b></span>
           <span class="quest-card-detail"><small>MONTHLY PACE</small><b>${escapeHTML(monthly)}</b></span>
+          ${linkedAsset ? `<span class="quest-card-detail"><small>LINKED ASSET</small><b>${escapeHTML(linkedAsset.name)}</b></span>` : ""}
         </div>
       </details>
     </article>`;
@@ -2855,8 +2989,18 @@ function renderAccountRows(entries) {
             ${entry.notes ? `<small class="inventory-account-notes">${escapeHTML(entry.notes)}</small>` : ""}
             ${entry.loan ? `<span class="loan-metrics">
               <span><small>LENDER / TYPE</small><b>${escapeHTML(entry.loan.lenderType)}</b></span>
-              <span><small>OUTSTANDING PRINCIPAL</small><b>${formatKsh(entry.amount)}</b></span>
+              <span><small>OUTSTANDING BALANCE</small><b>${formatKsh(entry.amount)}</b></span>
               <span><small>INTEREST (APR / TYPE)</small><b>${escapeHTML(formatLoanRate(entry.loan))}</b></span>
+              <span><small>INTEREST INCURRED THIS MONTH</small><b>${formatKsh(entry.loan.interestAccruedThisMonth || 0)}</b></span>
+              ${(() => {
+                const term = entry.loan.tenureMonths ?? (entry.loan.payoffDate ? monthsUntil(entry.loan.payoffDate) : null);
+                const estimate = loanPayoffEstimate(entry.amount, entry.loan, term);
+                if (!estimate) return "";
+                const faster = term > 1 ? loanPayoffEstimate(entry.amount, entry.loan, term - 1) : null;
+                return `<span><small>ESTIMATED INTEREST IN ${term} MONTHS</small><b>${formatKsh(estimate.totalInterest)}</b></span>
+                  <span><small>PAYMENT NEEDED EACH MONTH</small><b>${formatKsh(estimate.monthlyPayment)}</b></span>
+                  <span><small>SAVING IF PAID 1 MONTH SOONER</small><b>${faster ? formatKsh(Math.max(0, estimate.totalInterest - faster.totalInterest)) : "Already 1 month"}</b></span>`;
+              })()}
               <span><small>MIN. MONTHLY INSTALLMENT</small><b>${entry.loan.minInstallment === null ? "Not set" : formatKsh(entry.loan.minInstallment) + "/mo"}</b></span>
               <span><small>REMAINING TENURE</small><b>${escapeHTML(formatLoanTenure(entry.loan))}</b></span>
             </span>` : ""}
@@ -3135,6 +3279,11 @@ function refreshFinancialPage() {
 // Dialog builders collect or edit financial records without leaving the current page.
 function openInventoryDialog(action, editId = null) {
   const editing = editId ? getInventoryEntries().find(item => item.id === editId) : null;
+  const editingLinkedQuestId = editing?.type === "asset" ? editing.questId || "" : "";
+  const otherLinkedQuestIds = new Set(getInventoryEntries()
+    .filter(item => item.type === "asset" && item.id !== editing?.id && item.questId)
+    .map(item => item.questId));
+  const availableAssetQuests = getQuests().filter(quest => quest.id === editingLinkedQuestId || !otherLinkedQuestIds.has(quest.id));
   const fixedType = action === "add-asset"
     ? "asset"
     : action === "add-liability"
@@ -3197,6 +3346,14 @@ function openInventoryDialog(action, editId = null) {
             <label class="inventory-form-field"><span>Compounding</span><select name="compounding">${compoundingFrequencies.map(item => `<option>${item}</option>`).join("")}</select></label>
             <label class="inventory-form-field"><span>Liquidity tier</span><select name="liquidity">${liquidityTiers.map(item => `<option>${item}</option>`).join("")}</select></label>
           </div>
+          <div class="asset-quest-link">
+            <label><input type="checkbox" name="linkQuest" ${editingLinkedQuestId ? "checked" : ""}> <span>Link this asset to a quest</span></label>
+            <select name="questId" ${editingLinkedQuestId ? "" : "disabled"} aria-label="Choose a quest">
+              <option value="">Choose a quest</option>
+              ${availableAssetQuests.map(quest => `<option value="${escapeHTML(quest.id)}" ${quest.id === editingLinkedQuestId ? "selected" : ""}>${escapeHTML(quest.name)}</option>`).join("")}
+            </select>
+            <small>When linked, the asset balance automatically updates that quest’s progress.</small>
+          </div>
           <small class="liability-hint asset-net-hint">Optional. Add an annual gross return for estimated daily growth. Growth accrues once per day using the selected compounding method; withholding is estimated on the earnings portion when you record a withdrawal.</small>
         </div>
         <div class="inventory-form-fields liability-fields" hidden>
@@ -3212,6 +3369,7 @@ function openInventoryDialog(action, editId = null) {
           </div>
           <small class="liability-hint">Enter months remaining or a payoff date; the other is worked out for you.</small>
         </div>
+        <div class="loan-payoff-preview" data-loan-payoff-preview hidden aria-live="polite"></div>
         <label class="inventory-form-field">
           <span>Notes <small>Optional</small></span>
           <textarea name="notes" rows="3" maxlength="500" placeholder="Add a note about this item"></textarea>
@@ -3227,6 +3385,40 @@ function openInventoryDialog(action, editId = null) {
   const form = dialog.querySelector(".inventory-form");
   const typeSelect = dialog.querySelector("#inventory-entry-type");
   const categorySelect = dialog.querySelector("#inventory-entry-category");
+  const linkQuestToggle = form.elements.linkQuest;
+  const questSelect = form.elements.questId;
+  linkQuestToggle?.addEventListener("change", () => {
+    questSelect.disabled = !linkQuestToggle.checked;
+  });
+
+  function refreshLoanPayoffPreview() {
+    const preview = dialog.querySelector("[data-loan-payoff-preview]");
+    if (!preview) return;
+    const amount = Number(form.elements.amount.value);
+    const rateRaw = String(form.elements.interestRate.value || "").trim();
+    const dateValue = String(form.elements.payoffDate.value || "");
+    const monthsRaw = String(form.elements.tenureMonths.value || "").trim();
+    const months = monthsRaw ? Number(monthsRaw) : dateValue ? monthsUntil(dateValue) : null;
+    const estimate = rateRaw && months ? loanPayoffEstimate(amount, {
+      interestRate: Number(rateRaw),
+      rateType: form.elements.rateType.value
+    }, months) : null;
+    preview.hidden = !estimate || typeSelect?.value === "asset";
+    if (!estimate) {
+      preview.innerHTML = "";
+      return;
+    }
+    const faster = months > 1 ? loanPayoffEstimate(amount, {
+      interestRate: Number(rateRaw),
+      rateType: form.elements.rateType.value
+    }, months - 1) : null;
+    preview.innerHTML = `<div><small>ESTIMATED INTEREST OVER ${estimate.months} MONTHS</small><strong>${formatKsh(estimate.totalInterest)}</strong></div><div><small>PAYMENT NEEDED EACH MONTH</small><strong>${formatKsh(estimate.monthlyPayment)}</strong></div><div><small>ESTIMATED SAVING IF PAID 1 MONTH SOONER</small><strong>${faster ? formatKsh(Math.max(0, estimate.totalInterest - faster.totalInterest)) : "Already 1 month"}</strong></div><p>Estimate uses the current balance and rate. Actual lender calculations, fees and payment timing may differ.</p>`;
+  }
+
+  ["amount", "interestRate", "rateType", "tenureMonths", "payoffDate"].forEach(name => {
+    form.elements[name]?.addEventListener("input", refreshLoanPayoffPreview);
+    form.elements[name]?.addEventListener("change", refreshLoanPayoffPreview);
+  });
 
   function applyAssetDefaults() {
     const defaults = assetCategoryDefaults[categorySelect.value];
@@ -3297,6 +3489,7 @@ function openInventoryDialog(action, editId = null) {
     applyAssetDefaults();
     dialog.querySelector("#inventory-amount-label").textContent = isLiability ? "Current outstanding principal (KSh)" : "Current balance (KSh)";
     dialog.querySelector("h2").textContent = editing ? "Edit " + (isLiability ? "liability" : "asset") : isLiability ? "Add a liability" : "Add an inventory item";
+    refreshLoanPayoffPreview();
   }
 
   refreshCategories();
@@ -3379,7 +3572,11 @@ function openInventoryDialog(action, editId = null) {
         rateType: String(formData.get("rateType") || interestRateTypes[0]),
         minInstallment,
         tenureMonths,
-        payoffDate
+        payoffDate,
+        interestThroughDate: editing?.loan?.interestThroughDate || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`,
+        interestMonth: editing?.loan?.interestMonth || monthKey(new Date()),
+        interestAccruedThisMonth: editing?.loan?.interestAccruedThisMonth || 0,
+        interestBasis: editing?.loan?.interestBasis ?? amount
       };
     }
 
@@ -3405,6 +3602,11 @@ function openInventoryDialog(action, editId = null) {
           liquidity: String(formData.get("liquidity") || liquidityTiers[0])
         };
       }
+    }
+
+    if (entryType === "asset" && formData.get("linkQuest") && !availableAssetQuests.some(quest => quest.id === String(formData.get("questId") || ""))) {
+      showToast("Choose a quest to link, or turn off the link toggle.");
+      return;
     }
 
     const entries = getInventoryEntries();
@@ -3433,6 +3635,7 @@ function openInventoryDialog(action, editId = null) {
         growthThroughDate: editing?.growthThroughDate || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`,
         growthBasis
       } : {}),
+      ...(entryType === "asset" && formData.get("linkQuest") && formData.get("questId") ? { questId: String(formData.get("questId")) } : {}),
       ...(loan ? { loan } : {}),
       ...(returns ? { returns } : {})
     };
@@ -3443,6 +3646,7 @@ function openInventoryDialog(action, editId = null) {
 
     try {
       saveInventoryEntries(entries);
+      if (updatedEntry.type === "asset") syncLinkedAssetQuests(entries);
     } catch {
       showToast("Unable to save this item in browser storage.");
       return;
@@ -3730,6 +3934,7 @@ function renderQuestEmptyState(filter, canAddQuest) {
 function openQuestDialog(questId = "") {
   const quests = getQuests();
   const quest = quests.find(item => item.id === questId);
+  const linkedAsset = quest ? linkedAssetForQuest(quest.id) : null;
   if (questId && !quest) return;
   if (!quest && activeQuests(quests).length >= 4) {
     showToast("You can have up to four active quests. Complete or delete one to make room.");
@@ -3747,7 +3952,8 @@ function openQuestDialog(questId = "") {
           <label class="inventory-form-field"><span>Category</span><span class="income-category-select-wrap quest-category-select-wrap"><span class="income-category-select-icon quest-category-select-icon" aria-hidden="true">${questCategoryIcon(quest?.category || questCategories[0])}</span><select name="category">${questCategories.map(item => `<option value="${escapeHTML(item)}" ${quest?.category === item ? "selected" : ""}>${escapeHTML(item)}</option>`).join("")}</select></span></label>
           <div class="quest-priority-preview" aria-live="polite"><span>Suggested priority</span><strong data-quest-tier-preview></strong><small>Picked automatically from the goal category</small></div>
         </div>
-        <label class="inventory-form-field"><span>Current amount (KSh)</span><input name="current" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(quest?.current || 0) || ""}" required></label>
+        <label class="inventory-form-field"><span>${linkedAsset ? "Linked asset balance (KSh)" : "Current amount (KSh)"}</span><input name="current" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(linkedAsset?.amount ?? quest?.current ?? 0) || ""}" ${linkedAsset ? "readonly" : ""} required></label>
+        ${linkedAsset ? `<small class="liability-hint">Progress follows the linked asset, ${escapeHTML(linkedAsset.name)}. Edit the asset to change its balance or unlink it.</small>` : ""}
         <label class="inventory-form-field"><span>Target amount (KSh)</span><input name="target" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(quest?.target || 0) || ""}" required></label>
         <label class="inventory-form-field"><span>Target deadline <small>Optional</small></span><input name="deadline" type="date" value="${escapeHTML(quest?.deadline || "")}"></label>
         <small class="liability-hint">With a deadline, NetraOS works out the monthly amount you need to save and warns you if you fall behind.</small>
@@ -3777,7 +3983,9 @@ function openQuestDialog(questId = "") {
     const name = String(formData.get("name") || "").trim();
     const current = Number(String(formData.get("current") || "").trim().replace(",", "."));
     const target = Number(String(formData.get("target") || "").trim().replace(",", "."));
-    if (!name || !Number.isFinite(current) || !Number.isFinite(target) || current < 0 || target <= 0) return;
+    const currentLinkedAsset = quest ? linkedAssetForQuest(quest.id) : null;
+    const savedCurrent = currentLinkedAsset ? Number(currentLinkedAsset.amount) : current;
+    if (!name || !Number.isFinite(savedCurrent) || !Number.isFinite(target) || savedCurrent < 0 || target <= 0) return;
     const wasComplete = quest ? questProgress(quest) === 100 : false;
     const previousProgress = quest ? questProgress(quest) : 0;
     const deadline = String(formData.get("deadline") || "");
@@ -3789,7 +3997,7 @@ function openQuestDialog(questId = "") {
     const updatedQuest = {
       ...(quest || {}),
       id: quest?.id || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      name, current, target,
+      name, current: savedCurrent, target,
       category,
       tier: questPriorityTier(category),
       deadline,
@@ -3875,6 +4083,15 @@ function deleteQuest(button) {
   const id = typeof button === "string" ? button : button.dataset.deleteQuest;
   if (!id) return;
   try {
+    const entries = getInventoryEntries();
+    let unlinked = false;
+    entries.forEach(entry => {
+      if (entry.type === "asset" && entry.questId === id) {
+        delete entry.questId;
+        unlinked = true;
+      }
+    });
+    if (unlinked) saveInventoryEntries(entries);
     const quests = getQuests().filter(quest => quest.id !== id);
     saveQuests(quests);
     recordSecurityAudit("Removed a savings quest");
@@ -7913,12 +8130,28 @@ if (window.NetraSupabase?.enabled && !["terms", "privacy", "cookies"].includes(i
       return;
     }
     if (!data.session) {
+      if (sessionStorage.getItem(googleOAuthConsentStorageKey) === "1") {
+        sessionStorage.removeItem(googleOAuthConsentStorageKey);
+        window.history.replaceState(null, "", `${window.location.pathname}#login`);
+        showPublicPage("login");
+        showToast("Google sign-in didn’t complete. Try again or use email and password.");
+      }
       if (confirmationReturn) {
         window.history.replaceState(null, "", `${window.location.pathname}#login`);
         showPublicPage("login");
         showToast("Your email is confirmed. Please sign in to open your dashboard.");
       }
       return;
+    }
+    if (sessionStorage.getItem(googleOAuthConsentStorageKey) === "1") {
+      sessionStorage.removeItem(googleOAuthConsentStorageKey);
+      if (!data.session.user?.user_metadata?.terms_version) {
+        const termsResult = await window.NetraSupabase.acceptTerms({
+          terms_version: termsVersion,
+          terms_accepted_at: new Date().toISOString()
+        });
+        if (termsResult.error) throw termsResult.error;
+      }
     }
     if (confirmationReturn) {
       // The email confirmation callback may itself establish a session. Clear only

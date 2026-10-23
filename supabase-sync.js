@@ -38,6 +38,7 @@
     currency: "netraos-currency-v1", tax: "netraos-tax-v1", audit: "netraos-security-audit-v1",
     consent: "netraos-cookie-consent-v1"
   };
+  const activeAccountStorageKey = "netraos-active-cloud-account-v1";
   const local = key => { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } };
   const write = (key, value) => localStorage.setItem(key, JSON.stringify(value));
   const dirtyStorageKey = "netraos-sync-dirty-v1";
@@ -370,10 +371,33 @@
     return Boolean((local(keys.inventory) || []).length || (local(keys.power)?.incomes || []).length || (local(keys.power)?.budgets || []).length || (local(keys.power)?.spending || []).length || (local(keys.quests) || []).length);
   }
 
+  function clearLocalAccountState() {
+    if (syncTimer) clearTimeout(syncTimer);
+    syncTimer = 0;
+    pendingSync = false;
+    dirtyLocal = false;
+    applyingRemote = true;
+    try {
+      Object.values(keys).forEach(key => localStorage.removeItem(key));
+      localStorage.removeItem(dirtyStorageKey);
+    } finally {
+      applyingRemote = false;
+    }
+  }
+
+  function stashLocalAccountState(userId) {
+    if (!userId || !hasLocalRecords()) return;
+    const backupKey = `netraos-migration-backup-${userId}`;
+    const snapshot = Object.fromEntries(Object.values(keys).map(key => [key, local(key)]));
+    localStorage.setItem(backupKey, JSON.stringify(snapshot));
+  }
+
   window.NetraSupabase = {
     enabled: true, client,
     signUp: (email, password, metadata) => client.auth.signUp({ email, password, options: { data: metadata, emailRedirectTo: confirmationRedirectUrl() } }),
     signIn: (email, password) => client.auth.signInWithPassword({ email, password }),
+    signInWithGoogle: redirectTo => client.auth.signInWithOAuth({ provider: "google", options: { redirectTo } }),
+    acceptTerms: metadata => client.auth.updateUser({ data: metadata }),
     resetPassword: email => client.auth.resetPasswordForEmail(email, { redirectTo: passwordRecoveryRedirectUrl() }),
     updatePassword: password => client.auth.updateUser({ password }),
     signOut: options => client.auth.signOut(options),
@@ -381,8 +405,27 @@
     bootstrap: async () => {
       const user = await currentUser();
       if (!user) return null;
-      const localCandidate = local(keys.profile);
-      const localProfile = localCandidate?.email?.toLowerCase() === (user.email || "").toLowerCase() ? localCandidate : null;
+      let localCandidate = local(keys.profile);
+      const activeAccountId = localStorage.getItem(activeAccountStorageKey);
+      const localEmail = String(localCandidate?.email || "").trim().toLowerCase();
+      const currentEmail = String(user.email || "").trim().toLowerCase();
+      const profileMatchesAccount = localCandidate?.id
+        ? String(localCandidate.id) === String(user.id) || (localEmail && localEmail === currentEmail)
+        : Boolean(localEmail && localEmail === currentEmail);
+      const accountSwitch = Boolean(
+        (activeAccountId && activeAccountId !== String(user.id)) ||
+        ((localCandidate || hasLocalRecords()) && !profileMatchesAccount)
+      );
+      if (accountSwitch) {
+        const previousAccountId = activeAccountId || localCandidate?.id;
+        const canSafelyStash = activeAccountId
+          ? activeAccountId !== String(user.id)
+          : Boolean(localCandidate?.id && String(localCandidate.id) === String(previousAccountId));
+        if (canSafelyStash) stashLocalAccountState(String(previousAccountId));
+        clearLocalAccountState();
+        localCandidate = null;
+      }
+      const localProfile = localEmail && localEmail === currentEmail ? localCandidate : null;
       const localHasData = hasLocalRecords();
       const backupKey = `netraos-migration-backup-${user.id}`;
       const declinedKey = `netraos-migration-declined-${user.id}`;
@@ -398,7 +441,9 @@
         window.dispatchEvent(new CustomEvent("netraos-sync-error"));
         return { ...fallback, id: user.id, email: user.email || fallback.email };
       }
-      const migration = migrationDeclined ? null : priorBackup || (!snapshot.hasData && localHasData ? cachedLocal : null);
+      // A browser copy may be migrated only when its saved profile belongs to this
+      // same account. Never offer data left by a different person on this device.
+      const migration = migrationDeclined ? null : priorBackup || (!snapshot.hasData && localProfile && localHasData ? cachedLocal : null);
       if (migration) {
         write(backupKey, migration);
         applyingRemote = true;
@@ -439,6 +484,7 @@
       delete activeProfile.passwordSalt;
       delete activeProfile.passwordIterations;
       write(keys.profile, activeProfile);
+      localStorage.setItem(activeAccountStorageKey, String(user.id));
       return activeProfile;
     },
     saveProfile: async profile => { write(keys.profile, profile); await pushSnapshot(profile); },
