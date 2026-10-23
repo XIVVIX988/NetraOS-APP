@@ -1150,22 +1150,24 @@ async function verifyLocalPin(pin, settings = getStoredSettings()) {
 }
 
 async function verifyWorkspacePin(pin, settings = getStoredSettings()) {
-  // Account PINs must stay consistent across devices. Prefer the account verifier
-  // while online, and use the device verifier when offline or when cloud PINs are
-  // unavailable so the saved device PIN remains usable without a connection.
-  if (!settings.accountPinEnabled) return verifyLocalPin(pin, settings);
+  // A device PIN is a valid unlock credential for this PC even when the account
+  // PIN has since changed on another device. Check the local verifier first, then
+  // use the account verifier so the current account PIN also works on this PC.
+  const hasLocalVerifier = Boolean(settings.localPinHash && settings.localPinSalt);
+  if (hasLocalVerifier && await verifyLocalPin(pin, settings)) return true;
+  if (!settings.accountPinEnabled) return false;
   const cloud = window.NetraSupabase;
-  if (!cloud?.enabled || !navigator.onLine) return verifyLocalPin(pin, settings);
+  if (!cloud?.enabled || !navigator.onLine) return false;
   let user;
   try {
     user = await cloud.getUser();
   } catch (error) {
-    if (!navigator.onLine) return verifyLocalPin(pin, settings);
+    if (!navigator.onLine) return false;
     throw error;
   }
-  if (!user) return verifyLocalPin(pin, settings);
+  if (!user) return false;
   const result = await cloud.verifyPin(pin);
-  if (!result || result.reason === "no_pin") return verifyLocalPin(pin, settings);
+  if (!result || result.reason === "no_pin") return false;
   if (result.reason === "locked") {
     const error = new Error("Too many incorrect attempts. The account PIN is temporarily locked.");
     error.locked = true;
@@ -1824,17 +1826,31 @@ function showPasswordResetForm() {
   document.body.append(dialog);
   const form = dialog.querySelector("form");
   const status = dialog.querySelector(".reset-status");
+  const submitButton = form.querySelector('[type="submit"]');
   dialog.addEventListener("cancel", event => event.preventDefault());
   dialog.addEventListener("submit", async event => {
     event.preventDefault();
+    if (submitButton.disabled) return;
     const password = String(form.elements.password.value || "");
     if (password.length < 8) { status.textContent = "A password with at least 8 characters is needed."; status.classList.add("error"); return; }
-    const result = await window.NetraSupabase.updatePassword(password);
-    if (result.error) { status.textContent = friendlyAuthMessage(result.error, "We couldn’t update your password just now. Please try again."); status.classList.add("error"); return; }
-    await window.NetraSupabase.signOut();
-    dialog.close();
-    showPublicPage("login");
-    showToast("Your password has been updated. You can sign in with it now.");
+    submitButton.disabled = true;
+    submitButton.textContent = "Saving…";
+    status.textContent = "";
+    status.classList.remove("error");
+    try {
+      const result = await window.NetraSupabase.updatePassword(password);
+      if (result?.error) throw result.error;
+      const signOutResult = await window.NetraSupabase.signOut();
+      if (signOutResult?.error) throw signOutResult.error;
+      dialog.close();
+      showPublicPage("login");
+      showToast("Your password has been updated. You can sign in with it now.");
+    } catch (error) {
+      status.textContent = friendlyAuthMessage(error, "We couldn’t update your password just now. Please try again.");
+      status.classList.add("error");
+      submitButton.disabled = false;
+      submitButton.textContent = "Save password";
+    }
   });
   dialog.addEventListener("close", () => {
     dialog.remove();
@@ -8092,7 +8108,7 @@ if (["login", "signup", "terms", "privacy", "cookies"].includes(initialPage)) {
 }
 
 window.addEventListener("netraos-auth-event", event => {
-  if (event.detail?.event === "PASSWORD_RECOVERY") {
+  if (event.detail?.event === "PASSWORD_RECOVERY" && event.detail?.session) {
     window.history.replaceState(null, "", `${window.location.pathname}#login`);
     showPasswordResetForm();
   }
@@ -8121,9 +8137,14 @@ if (window.NetraSupabase?.enabled && !["terms", "privacy", "cookies"].includes(i
   window.NetraSupabase.getSession().then(async ({ data, error }) => {
     if (error) throw error;
     if (passwordRecoveryReturn) {
-      window.history.replaceState(null, "", `${window.location.pathname}#login`);
-      if (data.session) showPasswordResetForm();
+      if (data.session) {
+        window.history.replaceState(null, "", `${window.location.pathname}#login`);
+        showPasswordResetForm();
+      }
       else {
+        // Only discard the recovery URL once session restoration has completed.
+        // Supabase needs its callback parameters to exchange the recovery token.
+        window.history.replaceState(null, "", `${window.location.pathname}#login`);
         showPublicPage("login");
         showToast("This password reset link may have expired. Request a fresh link and open it on this device.");
       }
