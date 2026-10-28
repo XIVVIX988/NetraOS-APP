@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">Good Gadgets KE</title>
+  <desc id="desc">A red and charcoal logo for a modern electronics and smart-device shop.</desc>
+  <defs>
+    <linearGradient id="red" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff4b43"/>
+      <stop offset="1" stop-color="#d71920"/>
+    </linearGradient>
+  </defs>
+  <!-- Standalone emblem: a connected G and signal mark, designed to remain legible at small sizes. -->
+  <g transform="translate(86 83)">
+    <rect x="0" y="0" width="174" height="174" rx="48" fill="#17191e"/>
+    <path d="M116 53a53 53 0 1 0 8 62h-37" fill="none" stroke="#fff" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M116 115h24" fill="none" stroke="url(#red)" stroke-width="17" stroke-linecap="round"/>
+    <circle cx="134" cy="115" r="8" fill="url(#red)"/>
+    <path d="M111 39q24-21 48 0M121 51q14-12 28 0" fill="none" stroke="url(#red)" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="135" cy="61" r="5" fill="url(#red)"/>
+  </g>
+  <text x="300" y="187" fill="#17191e" font-family="Arial, Helvetica, sans-serif" font-size="100" font-weight="800" letter-spacing="-4">GOOD</text>
+  <text x="299" y="292" fill="#17191e" font-family="Arial, Helvetica, sans-serif" font-size="83" font-weight="800" letter-spacing="-2">GADGETS</text>
+  <text x="759" y="292" fill="url(#red)" font-family="Arial, Helvetica, sans-serif" font-size="83" font-weight="800" letter-spacing="-2">KE</text>
+  <path d="M302 328h690" stroke="#e6e7ea" stroke-width="2"/>
+  <text x="304" y="382" fill="#5f636b" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" letter-spacing="5">SMART TECH  •  BETTER LIVING</text>
+  <path d="M304 412h52" stroke="url(#red)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M950 412h52" stroke="url(#red)" stroke-width="5" stroke-linecap="round"/>
+</svg>
