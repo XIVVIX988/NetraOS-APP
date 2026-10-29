@@ -11150,23 +11150,24 @@ body.theme-dark { background: var(--bg); }
 
 /* In-app scripted help chat */
 .help-chat { position: fixed; z-index: 35; right: 24px; bottom: 24px; font-family: var(--sans); }
+.help-chat:has(.help-chat-panel:not([hidden]))::before { content: ""; position: fixed; z-index: -1; inset: 0; pointer-events: none; background: rgb(15 20 17 / 12%); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
 .help-chat-launcher { display: grid; place-items: center; width: 54px; height: 54px; border: 0; border-radius: 50%; background: var(--gold); color: #fff; box-shadow: 0 8px 24px #0003; cursor: pointer; }
 .help-chat-launcher > span:first-child { font: 700 27px/1 var(--display); }
-.help-chat-panel { position: absolute; right: 0; bottom: 68px; display: grid; grid-template-rows: auto minmax(120px, 1fr) auto auto auto; width: min(380px, calc(100vw - 32px)); height: min(590px, calc(100dvh - 120px)); overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: var(--panel); color: var(--text); box-shadow: 0 18px 60px #0003; }
+.help-chat-panel { position: absolute; right: 0; bottom: 68px; display: grid; grid-template-rows: auto minmax(120px, 1fr) auto auto auto; width: min(380px, calc(100vw - 32px)); height: min(590px, calc(100dvh - 120px)); overflow: hidden; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 20px; background: var(--panel); color: var(--text); box-shadow: 0 18px 60px #0003; }
 .help-chat-panel[hidden] { display: none; }
 .help-chat-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
 .help-chat-header h2 { margin: 2px 0 0; font: 700 18px/1.2 var(--display); color: var(--text); }
 .help-chat-kicker, .help-chat-message > span { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .11em; }
 .help-chat-header > button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font-size: 23px; line-height: 1; cursor: pointer; }
-.help-chat-messages { display: flex; flex-direction: column; gap: 12px; overflow: auto; padding: 15px; }
+.help-chat-messages { display: flex; min-height: 0; flex-direction: column; gap: 12px; overflow-y: auto; overscroll-behavior-y: contain; touch-action: pan-y; padding: 15px; }
 .help-chat-message { max-width: 90%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; background: var(--panel-2); }
 .help-chat-message.is-user { align-self: flex-end; border-color: color-mix(in srgb, var(--gold) 30%, var(--line)); border-radius: 14px 14px 4px 14px; background: color-mix(in srgb, var(--gold) 10%, var(--panel)); }
 .help-chat-message p { margin: 5px 0 0; color: var(--text); font-size: 13px; line-height: 1.5; }
 .help-chat-page-link { margin-top: 9px; padding: 0; border: 0; background: none; color: var(--gold-bright); font: 700 12px var(--sans); cursor: pointer; }
-.help-chat-suggestions { display: flex; gap: 7px; overflow-x: auto; padding: 9px 12px; border-top: 1px solid var(--line); }
+.help-chat-suggestions { display: flex; gap: 7px; overflow-x: auto; overscroll-behavior: contain; padding: 9px 12px; border-top: 1px solid var(--line); }
 .help-chat-suggestions button { flex: 0 0 auto; max-width: 200px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--text); font: 600 11px var(--sans); cursor: pointer; }
 .help-chat-form { display: flex; gap: 8px; padding: 10px 12px 4px; }
-.help-chat-form input { min-width: 0; flex: 1; height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); color: var(--text); font: 13px var(--sans); }
+.help-chat-form input { min-width: 0; flex: 1; height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); color: var(--text) !important; -webkit-text-fill-color: var(--text); caret-color: var(--text); opacity: 1; font: 13px var(--sans); }
 .help-chat-form button { display: grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 12px; background: var(--gold); color: #fff; cursor: pointer; }
 .help-chat-form svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .help-chat-note { margin: 3px 12px 10px; color: var(--muted); font-size: 10px; line-height: 1.35; }

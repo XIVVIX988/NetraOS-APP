@@ -6697,6 +6697,20 @@ function downloadPDF() {
   if (planRows.length) table([{ label: "ITEM", w: 0.36, bold: true }, { label: "TYPE", w: 0.16 }, { label: "CATEGORY", w: 0.3 }, { label: "MONTHLY AMOUNT", w: 0.18, align: "r", bold: true }], planRows);
   else note("No income or budget lines recorded yet.");
 
+  const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1, 12);
+  const anticipatedMonth = monthKey(nextMonthDate);
+  const anticipatedBudgets = power.budgets.filter(item => budgetAppliesInMonth(item, anticipatedMonth));
+  const anticipatedBudgetTotal = budgetTotalForMonth(power.budgets, anticipatedMonth);
+  const anticipatedMonthLabel = nextMonthDate.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  section("UPCOMING PLAN", `Anticipated budget · ${anticipatedMonthLabel}`);
+  if (anticipatedBudgets.length) {
+    table(
+      [{ label: "BUDGET", w: 0.36, bold: true }, { label: "CATEGORY", w: 0.25 }, { label: "SCHEDULE", w: 0.21 }, { label: "AMOUNT", w: 0.18, align: "r", bold: true }],
+      anticipatedBudgets.map(item => [item.name, item.category || "Other", item.recurring === false ? "One-time" : "Repeats monthly", money(item.amount)]),
+      { total: [`Expected budget · ${anticipatedMonthLabel}`, money(anticipatedBudgetTotal)] }
+    );
+  } else note(`No budget lines are scheduled for ${anticipatedMonthLabel}.`);
+
   section("SPENDING", `Recorded expenses (${period.toLowerCase()})`);
   if (reportSpending.length) {
     table(
