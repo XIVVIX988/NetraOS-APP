@@ -519,6 +519,7 @@ const assetCategories = [
   { name: "Treasury Bills", icon: "▤" },
   { name: "Infrastructure Bonds", icon: "▤" },
   { name: "Equities", icon: "▲" },
+  { name: "Cryptocurrency", icon: "₿" },
   { name: "Investments", icon: "▥" },
   { name: "Property & vehicles", icon: "⌂" },
   { name: "Other assets", icon: "◇" }
@@ -581,6 +582,7 @@ const assetCategoryDefaults = {
   "Treasury Bonds": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
   "Treasury Bills": { compounding: "None (simple / dividend)", liquidity: liquidityTiers[1] },
   "Equities": { compounding: "Annually", liquidity: liquidityTiers[2] },
+  "Cryptocurrency": { compounding: "None (simple / dividend)", liquidity: liquidityTiers[0] },
   "Bonds & equities": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
   "Investments": { compounding: "Semi-annual", liquidity: liquidityTiers[2] },
   "Property & vehicles": { compounding: "None (simple / dividend)", liquidity: liquidityTiers[3] },
@@ -2917,7 +2919,7 @@ function updateDashboardAssetAllocation() {
   const assets = getInventoryEntries().filter(entry => entry.type === "asset");
   const groups = [
     { name: "Cash", categories: ["Bank accounts", "Mobile money", "Cash & savings"], color: "#12a17a" },
-    { name: "Investments", categories: ["Money market funds", "SACCO deposits", "SACCO shares", "Treasury Bonds", "Treasury Bills", "Infrastructure Bonds", "Bonds", "Equities", "Investments"], color: "#5689d6" },
+    { name: "Investments", categories: ["Money market funds", "SACCO deposits", "SACCO shares", "Treasury Bonds", "Treasury Bills", "Infrastructure Bonds", "Bonds", "Equities", "Cryptocurrency", "Investments"], color: "#5689d6" },
     { name: "Property", categories: ["Property & vehicles"], color: "#eca842" },
     { name: "Other", categories: ["Other assets"], color: "#8b9992" }
   ].map(group => ({
@@ -3161,6 +3163,7 @@ function updateDashboardPowerUpSummary() {
   }
 
   if (spendingCard) {
+    spendingCard.dataset.cashflow = totals.cashAfterSpending < 0 ? "deficit" : "within-income";
     spendingCard.querySelector(".metric-heading span").textContent = "SPENDING";
     spendingCard.querySelector(".metric-value").textContent = formatKsh(totals.spending);
     spendingCard.querySelector(".metric-trailing").textContent =
@@ -6580,7 +6583,7 @@ function downloadPDF() {
     { label: "Bank accounts", cats: ["Bank accounts"], color: C.green },
     { label: "Mobile money", cats: ["Mobile money"], color: C.gold },
     { label: "Cash & savings", cats: ["Cash & savings"], color: C.blue },
-    { label: "Investments", cats: ["Investments"], color: C.purple },
+    { label: "Investments", cats: ["Money market funds", "SACCO deposits", "SACCO shares", "Treasury Bonds", "Treasury Bills", "Infrastructure Bonds", "Bonds", "Equities", "Cryptocurrency", "Investments"], color: C.purple },
     { label: "Property & other", cats: ["Property & vehicles", "Other assets"], color: C.red }
   ].map(group => ({ ...group, value: sum(assets.filter(item => group.cats.includes(item.category))) }));
   const assetTotal = assetGroups.reduce((acc, g) => acc + g.value, 0);

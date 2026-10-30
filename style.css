@@ -11176,3 +11176,7 @@ body.theme-dark { background: var(--bg); }
   .help-chat { right: 14px; bottom: calc(82px + env(safe-area-inset-bottom)); }
   .help-chat-panel { position: fixed; right: 10px; bottom: calc(146px + env(safe-area-inset-bottom)); width: calc(100vw - 20px); max-width: 420px; height: min(70dvh, 570px); }
 }
+
+/* A spending deficit is a warning state, regardless of the month-over-month trend. */
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="deficit"] { --trend-accent: #d5524b; --trend-ink: #ad3833; }
+.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="deficit"] { --trend-accent: #ef7770; --trend-ink: #ffb6b0; }
