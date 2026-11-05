@@ -1536,6 +1536,9 @@ function showPhoneSplash() {
   const splash = publicShell.querySelector("[data-phone-splash]");
   window.setTimeout(() => splash?.classList.add("is-loading"), 3000);
   window.setTimeout(() => {
+    // Session restoration can open the dashboard while the phone splash is
+    // waiting. Do not let this stale timer replace an authenticated workspace.
+    if (localAppSessionActive || !appShell.hidden) return;
     if (!phoneNavQuery.matches) { showPublicPage("landing"); return; }
     let introSeen = false;
     try { introSeen = localStorage.getItem(phoneIntroStorageKey) === "true"; } catch { /* Treat unavailable storage as a first visit. */ }
@@ -8380,6 +8383,13 @@ if (window.NetraSupabase?.enabled && !["terms", "privacy", "cookies"].includes(i
     else showPreferredNamePrompt(profile);
   }).catch(error => {
     console.error("Unable to restore the Supabase session:", error);
+    // enterApp() reveals the workspace before its nonessential startup tasks run.
+    // If one of those tasks fails, keep the already restored, authenticated
+    // workspace visible instead of flashing back to the login screen.
+    if (!appShell.hidden) {
+      showToast("Your account is open, but some startup tasks could not finish.");
+      return;
+    }
     showPublicPage("login");
     showToast(friendlyAuthMessage(error, "We couldn’t connect to your account right now. Please check your connection; we’ll try again when you’re back online."));
   });
