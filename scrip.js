@@ -45,6 +45,7 @@ const publicShell = document.querySelector("#public-shell");
 const appShell = document.querySelector(".app-shell");
 let activePowerTab = "income";
 let activeQuestFilter = "active";
+let spendingListExpanded = false;
 let activeAchievementFilter = "earned";
 let activeSettingsTab = "profile";
 let settingsTabsMediaQuery = null;
@@ -706,7 +707,7 @@ function updateAssetBalancesDaily() {
   }
   if (changed) {
     saveInventoryEntries(entries);
-    const questProgressChanged = syncLinkedAssetQuests(entries);
+    const questProgressChanged = syncLinkedInventoryQuests(entries);
     updateDashboardInventorySummary();
     if (questProgressChanged) updateDashboardQuests();
     if (!appShell.hidden && crumb.textContent === "Inventory") content.innerHTML = renderInventoryPage();
@@ -2285,15 +2286,15 @@ function saveQuests(quests) {
   localStorage.setItem(questStorageKey, JSON.stringify(quests));
 }
 
-function syncLinkedAssetQuests(entries = getInventoryEntries()) {
-  const linkedAssets = entries.filter(entry => entry.type === "asset" && entry.questId);
-  if (!linkedAssets.length) return false;
+function syncLinkedInventoryQuests(entries = getInventoryEntries()) {
+  const linkedEntries = entries.filter(entry => entry.questId);
+  if (!linkedEntries.length) return false;
   const quests = getQuests();
   let changed = false;
-  for (const asset of linkedAssets) {
-    const quest = quests.find(item => item.id === asset.questId);
+  for (const entry of linkedEntries) {
+    const quest = quests.find(item => item.id === entry.questId);
     if (!quest) continue;
-    const current = Number(asset.amount || 0);
+    const current = Number(entry.amount || 0);
     if (Number(quest.current || 0) !== current) {
       quest.current = current;
       changed = true;
@@ -2303,8 +2304,8 @@ function syncLinkedAssetQuests(entries = getInventoryEntries()) {
   return changed;
 }
 
-function linkedAssetForQuest(questId) {
-  return getInventoryEntries().find(entry => entry.type === "asset" && entry.questId === questId) || null;
+function linkedInventoryItemForQuest(questId) {
+  return getInventoryEntries().find(entry => entry.questId === questId) || null;
 }
 
 function questProgress(quest) {
@@ -2500,7 +2501,7 @@ function renderQuestRows(quests, dashboard = false) {
 
 function renderQuestCard(quest) {
   const progress = questProgress(quest);
-  const linkedAsset = linkedAssetForQuest(quest.id);
+  const linkedInventoryItem = linkedInventoryItemForQuest(quest.id);
   const complete = progress === 100;
   const pace = questPace(quest);
   const deadline = quest.deadline
@@ -2532,7 +2533,7 @@ function renderQuestCard(quest) {
           <span class="quest-card-detail"><small>CATEGORY / PRIORITY</small><b><span class="quest-card-category-icon" aria-hidden="true">${questCategoryIcon(quest.category)}</span>${escapeHTML(quest.category || "Personal goal")} · ${escapeHTML(questTierLabel(quest))}</b></span>
           <span class="quest-card-detail"><small>DEADLINE</small><b>${escapeHTML(deadline)}</b></span>
           <span class="quest-card-detail"><small>MONTHLY PACE</small><b>${escapeHTML(monthly)}</b></span>
-          ${linkedAsset ? `<span class="quest-card-detail"><small>LINKED ASSET</small><b>${escapeHTML(linkedAsset.name)}</b></span>` : ""}
+          ${linkedInventoryItem ? `<span class="quest-card-detail"><small>LINKED ${linkedInventoryItem.type.toUpperCase()}</small><b>${escapeHTML(linkedInventoryItem.name)}</b></span>` : ""}
         </div>
       </details>
     </article>`;
@@ -3298,9 +3299,9 @@ function refreshFinancialPage() {
 // Dialog builders collect or edit financial records without leaving the current page.
 function openInventoryDialog(action, editId = null) {
   const editing = editId ? getInventoryEntries().find(item => item.id === editId) : null;
-  const editingLinkedQuestId = editing?.type === "asset" ? editing.questId || "" : "";
+  const editingLinkedQuestId = editing?.questId || "";
   const otherLinkedQuestIds = new Set(getInventoryEntries()
-    .filter(item => item.type === "asset" && item.id !== editing?.id && item.questId)
+    .filter(item => item.id !== editing?.id && item.questId)
     .map(item => item.questId));
   const availableAssetQuests = getQuests().filter(quest => quest.id === editingLinkedQuestId || !otherLinkedQuestIds.has(quest.id));
   const fixedType = action === "add-asset"
@@ -3365,14 +3366,6 @@ function openInventoryDialog(action, editId = null) {
             <label class="inventory-form-field"><span>Compounding</span><select name="compounding">${compoundingFrequencies.map(item => `<option>${item}</option>`).join("")}</select></label>
             <label class="inventory-form-field"><span>Liquidity tier</span><select name="liquidity">${liquidityTiers.map(item => `<option>${item}</option>`).join("")}</select></label>
           </div>
-          <div class="asset-quest-link">
-            <label><input type="checkbox" name="linkQuest" ${editingLinkedQuestId ? "checked" : ""}> <span>Link this asset to a quest</span></label>
-            <select name="questId" ${editingLinkedQuestId ? "" : "disabled"} aria-label="Choose a quest">
-              <option value="">Choose a quest</option>
-              ${availableAssetQuests.map(quest => `<option value="${escapeHTML(quest.id)}" ${quest.id === editingLinkedQuestId ? "selected" : ""}>${escapeHTML(quest.name)}</option>`).join("")}
-            </select>
-            <small>When linked, the asset balance automatically updates that quest’s progress.</small>
-          </div>
           <small class="liability-hint asset-net-hint">Optional. Add an annual gross return for estimated daily growth. Growth accrues once per day using the selected compounding method; withholding is estimated on the earnings portion when you record a withdrawal.</small>
         </div>
         <div class="inventory-form-fields liability-fields" hidden>
@@ -3387,6 +3380,14 @@ function openInventoryDialog(action, editId = null) {
             <label class="inventory-form-field"><span>Or target payoff date</span><input name="payoffDate" type="date"></label>
           </div>
           <small class="liability-hint">Enter months remaining or a payoff date; the other is worked out for you.</small>
+        </div>
+        <div class="asset-quest-link inventory-quest-link">
+          <label><input type="checkbox" name="linkQuest" ${editingLinkedQuestId ? "checked" : ""}> <span data-quest-link-label>Link this ${editing?.type === "liability" ? "liability" : "asset"} to a quest</span></label>
+          <select name="questId" ${editingLinkedQuestId ? "" : "disabled"} aria-label="Choose a quest">
+            <option value="">Choose a quest</option>
+            ${availableAssetQuests.map(quest => `<option value="${escapeHTML(quest.id)}" ${quest.id === editingLinkedQuestId ? "selected" : ""}>${escapeHTML(quest.name)}</option>`).join("")}
+          </select>
+          <small data-quest-link-help>When linked, this balance automatically updates that quest’s progress.</small>
         </div>
         <div class="loan-payoff-preview" data-loan-payoff-preview hidden aria-live="polite"></div>
         <label class="inventory-form-field">
@@ -3409,6 +3410,13 @@ function openInventoryDialog(action, editId = null) {
   linkQuestToggle?.addEventListener("change", () => {
     questSelect.disabled = !linkQuestToggle.checked;
   });
+  const refreshQuestLinkCopy = () => {
+    const type = fixedType || typeSelect?.value || editing?.type || "asset";
+    dialog.querySelector("[data-quest-link-label]").textContent = `Link this ${type} to a quest`;
+    dialog.querySelector("[data-quest-link-help]").textContent = type === "liability"
+      ? "When linked, the outstanding balance automatically updates that quest’s progress."
+      : "When linked, the asset balance automatically updates that quest’s progress.";
+  };
 
   function refreshLoanPayoffPreview() {
     const preview = dialog.querySelector("[data-loan-payoff-preview]");
@@ -3496,6 +3504,7 @@ function openInventoryDialog(action, editId = null) {
       .join("");
     dialog.querySelector(".mobile-money-fields").hidden = categorySelect.value !== "Mobile money";
     const isLiability = entryType === "liability";
+    refreshQuestLinkCopy();
     dialog.querySelector(".liability-fields").hidden = !isLiability;
     dialog.querySelector(".asset-fields").hidden = isLiability;
     const withdrawalField = dialog.querySelector(".withdrawal-field");
@@ -3623,7 +3632,7 @@ function openInventoryDialog(action, editId = null) {
       }
     }
 
-    if (entryType === "asset" && formData.get("linkQuest") && !availableAssetQuests.some(quest => quest.id === String(formData.get("questId") || ""))) {
+    if (formData.get("linkQuest") && !availableAssetQuests.some(quest => quest.id === String(formData.get("questId") || ""))) {
       showToast("Choose a quest to link, or turn off the link toggle.");
       return;
     }
@@ -3654,7 +3663,7 @@ function openInventoryDialog(action, editId = null) {
         growthThroughDate: editing?.growthThroughDate || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`,
         growthBasis
       } : {}),
-      ...(entryType === "asset" && formData.get("linkQuest") && formData.get("questId") ? { questId: String(formData.get("questId")) } : {}),
+      ...(formData.get("linkQuest") && formData.get("questId") ? { questId: String(formData.get("questId")) } : {}),
       ...(loan ? { loan } : {}),
       ...(returns ? { returns } : {})
     };
@@ -3665,7 +3674,7 @@ function openInventoryDialog(action, editId = null) {
 
     try {
       saveInventoryEntries(entries);
-      if (updatedEntry.type === "asset") syncLinkedAssetQuests(entries);
+      if (updatedEntry.questId || editing?.questId) syncLinkedInventoryQuests(entries);
     } catch {
       showToast("Unable to save this item in browser storage.");
       return;
@@ -3953,7 +3962,7 @@ function renderQuestEmptyState(filter, canAddQuest) {
 function openQuestDialog(questId = "") {
   const quests = getQuests();
   const quest = quests.find(item => item.id === questId);
-  const linkedAsset = quest ? linkedAssetForQuest(quest.id) : null;
+  const linkedInventoryItem = quest ? linkedInventoryItemForQuest(quest.id) : null;
   if (questId && !quest) return;
   if (!quest && activeQuests(quests).length >= 4) {
     showToast("You can have up to four active quests. Complete or delete one to make room.");
@@ -3971,8 +3980,8 @@ function openQuestDialog(questId = "") {
           <label class="inventory-form-field"><span>Category</span><span class="income-category-select-wrap quest-category-select-wrap"><span class="income-category-select-icon quest-category-select-icon" aria-hidden="true">${questCategoryIcon(quest?.category || questCategories[0])}</span><select name="category">${questCategories.map(item => `<option value="${escapeHTML(item)}" ${quest?.category === item ? "selected" : ""}>${escapeHTML(item)}</option>`).join("")}</select></span></label>
           <div class="quest-priority-preview" aria-live="polite"><span>Suggested priority</span><strong data-quest-tier-preview></strong><small>Picked automatically from the goal category</small></div>
         </div>
-        <label class="inventory-form-field"><span>${linkedAsset ? "Linked asset balance (KSh)" : "Current amount (KSh)"}</span><input name="current" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(linkedAsset?.amount ?? quest?.current ?? 0) || ""}" ${linkedAsset ? "readonly" : ""} required></label>
-        ${linkedAsset ? `<small class="liability-hint">Progress follows the linked asset, ${escapeHTML(linkedAsset.name)}. Edit the asset to change its balance or unlink it.</small>` : ""}
+        <label class="inventory-form-field"><span>${linkedInventoryItem ? `Linked ${linkedInventoryItem.type} balance (KSh)` : "Current amount (KSh)"}</span><input name="current" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(linkedInventoryItem?.amount ?? quest?.current ?? 0) || ""}" ${linkedInventoryItem ? "readonly" : ""} required></label>
+        ${linkedInventoryItem ? `<small class="liability-hint">Progress follows the linked ${linkedInventoryItem.type}, ${escapeHTML(linkedInventoryItem.name)}. Edit that inventory item to change its balance or unlink it.</small>` : ""}
         <label class="inventory-form-field"><span>Target amount (KSh)</span><input name="target" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(quest?.target || 0) || ""}" required></label>
         <label class="inventory-form-field"><span>Target deadline <small>Optional</small></span><input name="deadline" type="date" value="${escapeHTML(quest?.deadline || "")}"></label>
         <small class="liability-hint">With a deadline, NetraOS works out the monthly amount you need to save and warns you if you fall behind.</small>
@@ -4002,8 +4011,8 @@ function openQuestDialog(questId = "") {
     const name = String(formData.get("name") || "").trim();
     const current = Number(String(formData.get("current") || "").trim().replace(",", "."));
     const target = Number(String(formData.get("target") || "").trim().replace(",", "."));
-    const currentLinkedAsset = quest ? linkedAssetForQuest(quest.id) : null;
-    const savedCurrent = currentLinkedAsset ? Number(currentLinkedAsset.amount) : current;
+    const currentLinkedInventoryItem = quest ? linkedInventoryItemForQuest(quest.id) : null;
+    const savedCurrent = currentLinkedInventoryItem ? Number(currentLinkedInventoryItem.amount) : current;
     if (!name || !Number.isFinite(savedCurrent) || !Number.isFinite(target) || savedCurrent < 0 || target <= 0) return;
     const wasComplete = quest ? questProgress(quest) === 100 : false;
     const previousProgress = quest ? questProgress(quest) : 0;
@@ -4105,7 +4114,7 @@ function deleteQuest(button) {
     const entries = getInventoryEntries();
     let unlinked = false;
     entries.forEach(entry => {
-      if (entry.type === "asset" && entry.questId === id) {
+      if (entry.questId === id) {
         delete entry.questId;
         unlinked = true;
       }
@@ -4585,7 +4594,7 @@ function showPage(page) {
   `;
 }
 
-function renderPowerListPanel(key, heading, kicker, rows, totalLabel, total, phone = false) {
+function renderPowerListPanel(key, heading, kicker, rows, totalLabel, total, phone = false, listControl = "") {
   return `
     <article class="panel power-list-panel">
       <div class="panel-heading">
@@ -4596,6 +4605,7 @@ function renderPowerListPanel(key, heading, kicker, rows, totalLabel, total, pho
       </div>
       <div class="power-list-body">
         <div class="power-rows">${rows}</div>
+        ${listControl}
         <div class="inventory-panel-total"><span>${totalLabel}</span><strong>${formatKsh(total)}</strong></div>
       </div>
     </article>`;
@@ -4634,8 +4644,10 @@ function renderPowerUpPage() {
           <button class="inventory-delete" type="button" data-delete-power-item="budget" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete budget line">×</button>
         </div>`).join("")
     : `<div class="power-empty">No budget lines yet. Add a monthly plan for your spending.</div>`;
+  const recentSpending = reportSpending.slice().sort((a, b) => String(b.date || b.month || "").localeCompare(String(a.date || a.month || "")));
+  const visibleSpending = spendingListExpanded ? recentSpending : recentSpending.slice(0, 5);
   const spendingRows = reportSpending.length
-    ? reportSpending.map(item => `
+    ? visibleSpending.map(item => `
         <div class="power-row">
           <span class="power-row-icon spending-icon" aria-hidden="true">${budgetCategoryIcons[item.category] || budgetCategoryIcons.Other}</span>
           <span class="power-row-name">
@@ -4647,6 +4659,9 @@ function renderPowerUpPage() {
           <button class="inventory-delete" type="button" data-delete-power-item="spending" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete spending item">×</button>
         </div>`).join("")
     : `<div class="power-empty">No spending recorded for ${getReportPeriod().toLowerCase()}. Add an expense for ${reportMonthLabel()}.</div>`;
+  const spendingListControl = recentSpending.length > 5
+    ? `<div class="power-list-expand"><button type="button" data-spending-list-toggle aria-expanded="${spendingListExpanded}">${spendingListExpanded ? "Show recent 5" : `Show all ${recentSpending.length} entries`}</button></div>`
+    : "";
   const savingsRate = totals.reportIncome > 0
     ? Math.round((totals.cashAfterSpending / totals.reportIncome) * 1000) / 10
     : 0;
@@ -4701,7 +4716,7 @@ function renderPowerUpPage() {
         <section class="power-tab-panel" id="power-panel-budget" role="tabpanel" aria-labelledby="power-tab-budget" data-power-panel="budget" ${activePowerTab !== "budget" ? "hidden" : ""}>
           <div class="power-desktop-budget-layout">
             ${renderPowerListPanel("budget", "Monthly budget", "MONEY WITH A JOB", budgetRows, "Total planned budget", totals.budget)}
-            ${renderPowerListPanel("spending", "Monthly spending", "MONEY SPENT", spendingRows, "Total monthly spending", totals.spending)}
+            ${renderPowerListPanel("spending", "Monthly spending", "MONEY SPENT", spendingRows, "Total monthly spending", totals.spending, false, spendingListControl)}
           </div>
         </section>
       </section>
@@ -4711,7 +4726,7 @@ function renderPowerUpPage() {
         <section class="inventory-columns power-columns" aria-label="Income and monthly budget">
           ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Total monthly income", totals.income, true)}
           ${renderPowerListPanel("budget", "Monthly budget", "MONEY WITH A JOB", budgetRows, "Total planned budget", totals.budget, true)}
-          ${renderPowerListPanel("spending", "Monthly spending", "MONEY SPENT", spendingRows, "Total monthly spending", totals.spending, true)}
+          ${renderPowerListPanel("spending", "Monthly spending", "MONEY SPENT", spendingRows, "Total monthly spending", totals.spending, true, spendingListControl)}
         </section>
       </section>
     </section>
@@ -4953,6 +4968,11 @@ function syncAllTaxPanels(state, sourcePanel = null, sourceElement = null) {
 }
 
 document.addEventListener("click", event => {
+  if (event.target.closest("[data-spending-list-toggle]")) {
+    spendingListExpanded = !spendingListExpanded;
+    refreshFinancialPage();
+    return;
+  }
   const tab = event.target.closest("[data-power-tab]");
   if (!tab) return;
   const workspace = tab.closest(".power-desktop-workspace");

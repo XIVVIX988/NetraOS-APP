@@ -3134,6 +3134,23 @@ h1 em {
   margin-top: 12px;
 }
 
+.power-list-expand {
+  display: flex;
+  justify-content: center;
+  padding: 7px 0 2px;
+}
+
+.power-list-expand button {
+  border: 0;
+  background: transparent;
+  color: #27805e;
+  font: 600 12px var(--sans);
+  cursor: pointer;
+}
+
+.power-list-expand button:hover { text-decoration: underline; }
+.app-shell.theme-dark .power-list-expand button { color: #8bc9a9; }
+
 .power-row {
   min-height: 58px;
   display: grid;
