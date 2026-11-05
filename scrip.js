@@ -1749,6 +1749,32 @@ function renderFluidArt() {
         </div>`;
 }
 
+function signupPasswordRequirements(password) {
+  return {
+    length: Array.from(password).length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    special: /[^A-Za-z0-9\s]/.test(password),
+    number: /[0-9]/.test(password)
+  };
+}
+
+function updateSignupPasswordChips(form) {
+  const input = form?.querySelector('input[name="password"]');
+  const group = form?.querySelector("[data-password-rules]");
+  if (!input || !group) return signupPasswordRequirements("");
+  const rules = signupPasswordRequirements(input.value);
+  let satisfied = 0;
+  group.querySelectorAll("[data-password-rule]").forEach(chip => {
+    const passed = Boolean(rules[chip.dataset.passwordRule]);
+    chip.classList.toggle("is-met", passed);
+    chip.querySelector("span").textContent = passed ? "✓" : "○";
+    chip.setAttribute("aria-label", `${chip.textContent.trim().replace(/^[✓○]\s*/, "")}: ${passed ? "met" : "not met"}`);
+    if (passed) satisfied += 1;
+  });
+  group.setAttribute("aria-label", `Password requirements: ${satisfied} of 4 met`);
+  return rules;
+}
+
 function showPublicPage(page = "landing") {
   if (page === "landing" && window.matchMedia("(max-width: 880px)").matches) {
     showPhoneWelcome();
@@ -1833,6 +1859,7 @@ function showPublicPage(page = "landing") {
             ${isSignup ? `<label class="inventory-form-field"><span>Phone number <small>Optional</small></span><input name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="e.g. +254 712 345 678"></label>` : ""}
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
             <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" ${isSignup ? 'minlength="8"' : ""} placeholder="${isSignup ? "At least 8 characters" : "Your password"}" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
+            ${isSignup ? `<ul class="password-rules" data-password-rules role="group" aria-label="Password requirements"><li data-password-rule="length"><span aria-hidden="true">○</span> 8+ characters</li><li data-password-rule="uppercase"><span aria-hidden="true">○</span> One uppercase letter</li><li data-password-rule="special"><span aria-hidden="true">○</span> One special character</li><li data-password-rule="number"><span aria-hidden="true">○</span> One number</li></ul>` : ""}
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="#cookies" target="_blank" rel="noopener">Cookie Policy</a>.</span></label>` : ""}
             ${isSignup ? "" : `<label class="terms-consent google-terms-consent"><input name="googleTermsConsent" type="checkbox"><span>If this is your first time using Google to sign in, I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="#cookies" target="_blank" rel="noopener">Cookie Policy</a>.</span></label>`}
             ${isSignup ? "" : '<button class="auth-reset-password" type="button" data-password-reset>Forgot your password?</button>'}
@@ -1847,6 +1874,12 @@ function showPublicPage(page = "landing") {
           </div>
         </section>
       </div>`;
+  }
+  const signupPasswordForm = publicShell.querySelector('[data-auth-form="signup"]');
+  if (signupPasswordForm) {
+    const passwordInput = signupPasswordForm.querySelector('input[name="password"]');
+    passwordInput?.addEventListener("input", () => updateSignupPasswordChips(signupPasswordForm));
+    updateSignupPasswordChips(signupPasswordForm);
   }
   const googleSignInButton = publicShell.querySelector("[data-google-signin]");
   googleSignInButton?.addEventListener("click", async () => {
@@ -7551,9 +7584,12 @@ document.addEventListener("submit", async event => {
       error.classList.remove("success");
       error.hidden = false;
     };
-    if (!email.includes("@") || !password || (isSignup && password.length < 8)) {
+    const passwordRules = isSignup ? signupPasswordRequirements(password) : null;
+    const signupPasswordValid = !isSignup || Object.values(passwordRules).every(Boolean);
+    if (!email.includes("@") || !password || !signupPasswordValid) {
+      if (isSignup) updateSignupPasswordChips(form);
       fail(isSignup
-        ? "A valid email address and a password with at least 8 characters are needed."
+        ? "Use a password with at least 8 characters, one uppercase letter, one special character, and one number."
         : "A valid email address and password are needed.");
       return;
     }
