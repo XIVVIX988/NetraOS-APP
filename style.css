@@ -9906,8 +9906,6 @@ body.theme-dark { background: var(--bg); }
 .app-shell .income-card .metric-value { color: #21678f; }
 .app-shell .savings-card { border-color: #f0e5c9; background: linear-gradient(145deg, #fff, #fffbf0); }
 .app-shell .savings-card .metric-value { color: #87631c; }
-.app-shell .spending-card { border-color: #f3dddd; background: linear-gradient(145deg, #fff, #fff5f4); }
-.app-shell .spending-card .metric-value { color: #a9403e; }
 .app-shell .networth-card { border-color: #d5eadf; background: linear-gradient(145deg, #fff, #eff9f3); }
 .app-shell .networth-card .metric-value { color: #12664b; }
 .app-shell .metric-card { position: relative; }
@@ -9960,7 +9958,6 @@ body.theme-dark { background: var(--bg); }
 .app-shell.theme-dark .networth-card { background: linear-gradient(145deg, #10251c, #0d1d16); }
 .app-shell.theme-dark .income-card { background: linear-gradient(145deg, #101d25, #0c171e); }
 .app-shell.theme-dark .savings-card { background: linear-gradient(145deg, #252114, #1b180f); }
-.app-shell.theme-dark .spending-card { background: linear-gradient(145deg, #281a1a, #1b1212); }
 .app-shell.theme-dark .metric-value { color: var(--text); }
 .app-shell.theme-dark .cashflow-gridline { stroke: #29352e; }
 .app-shell.theme-dark .cashflow-axis-label,
@@ -10238,7 +10235,6 @@ body.theme-dark { background: var(--bg); }
 .app-shell.theme-dark .networth-card { background: linear-gradient(145deg, #1b3328, #182a21); }
 .app-shell.theme-dark .income-card { background: linear-gradient(145deg, #1b303a, #192832); }
 .app-shell.theme-dark .savings-card { background: linear-gradient(145deg, #35301e, #2b2618); }
-.app-shell.theme-dark .spending-card { background: linear-gradient(145deg, #382624, #2c1d1c); }
 .app-shell.theme-dark .cashflow-gridline,
 .app-shell.theme-dark .chart-grid line,
 .app-shell.theme-dark .chart-grid path,
@@ -10565,13 +10561,6 @@ body.theme-dark { background: var(--bg); }
   }
   #page-content:has(> .welcome-row) > .metrics-grid .income-card .metric-heading,
   #page-content:has(> .welcome-row) > .metrics-grid .income-card .metric-value { color: #21678f; }
-  #page-content:has(> .welcome-row) > .metrics-grid .spending-card {
-    border-color: color-mix(in srgb, #df716a 40%, var(--line));
-    border-left: 3px solid #df716a;
-    background: linear-gradient(135deg, color-mix(in srgb, #df716a 12%, var(--panel)), var(--panel));
-  }
-  #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-heading,
-  #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-value { color: #a9403e; }
   .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .networth-card {
     border-color: color-mix(in srgb, #48c594 54%, var(--line));
     border-left-color: #48c594;
@@ -10586,13 +10575,6 @@ body.theme-dark { background: var(--bg); }
   }
   .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .income-card .metric-heading,
   .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .income-card .metric-value { color: #a5dcf7; }
-  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card {
-    border-color: color-mix(in srgb, #e47b73 54%, var(--line));
-    border-left-color: #e47b73;
-    background: linear-gradient(135deg, color-mix(in srgb, #e47b73 18%, var(--panel)), var(--panel));
-  }
-  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-heading,
-  .app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-value { color: #ffb1a9; }
 }
 
 
@@ -11219,39 +11201,3 @@ body.theme-dark { background: var(--bg); }
   .help-chat-panel { position: fixed; right: 10px; bottom: calc(146px + env(safe-area-inset-bottom)); width: calc(100vw - 20px); max-width: 420px; height: min(70dvh, 570px); }
 }
 
-/* Spending uses the cashflow result as its status color, independent of trend. */
-.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] {
-  --trend-accent: #29936a;
-  --trend-ink: #176348;
-  border-color: color-mix(in srgb, #29936a 42%, var(--line)) !important;
-  border-left: 3px solid #29936a !important;
-  background: linear-gradient(135deg, color-mix(in srgb, #29936a 13%, var(--panel)), var(--panel)) !important;
-}
-.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="deficit"] {
-  --trend-accent: #d5524b;
-  --trend-ink: #ad3833;
-  border-color: color-mix(in srgb, #d5524b 52%, var(--line)) !important;
-  border-left: 3px solid #d5524b !important;
-  background: linear-gradient(135deg, color-mix(in srgb, #d5524b 24%, var(--panel)), color-mix(in srgb, #d5524b 8%, var(--panel))) !important;
-}
-.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow] .metric-heading,
-.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow] .metric-value { color: var(--trend-ink) !important; }
-.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] .under-budget,
-.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] .metric-trailing { color: #176348; }
-.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] .spend-progress { background: #29936a; }
-.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] {
-  --trend-accent: #51c28f;
-  --trend-ink: #a0e7c2;
-  border-color: color-mix(in srgb, #51c28f 55%, var(--line)) !important;
-  border-left-color: #51c28f !important;
-  background: linear-gradient(135deg, color-mix(in srgb, #51c28f 17%, var(--panel)), var(--panel)) !important;
-}
-.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="deficit"] {
-  --trend-accent: #ef7770;
-  --trend-ink: #ffb6b0;
-  border-color: color-mix(in srgb, #ef7770 60%, var(--line)) !important;
-  border-left-color: #ef7770 !important;
-  background: linear-gradient(135deg, color-mix(in srgb, #ef7770 25%, var(--panel)), color-mix(in srgb, #ef7770 10%, var(--panel))) !important;
-}
-.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] .under-budget,
-.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] .metric-trailing { color: #a0e7c2; }
