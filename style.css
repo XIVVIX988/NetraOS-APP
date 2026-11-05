@@ -3549,6 +3549,81 @@ h1 em {
   box-shadow: 0 24px 70px #18251e30;
 }
 
+.inventory-dialog.onboarding-dialog {
+  width: min(720px, calc(100% - 24px));
+  max-height: min(92dvh, 900px);
+}
+
+.onboarding-dialog .inventory-form {
+  padding: clamp(20px, 4vw, 34px);
+}
+
+.onboarding-progress-wrap {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+  color: #718078;
+  font: 600 10px var(--sans);
+  letter-spacing: .08em;
+}
+
+.onboarding-progress-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e8eee9;
+}
+
+.onboarding-progress-track i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent, #13875f);
+  transition: width .2s ease;
+}
+
+.onboarding-copy {
+  margin: 0 0 20px;
+  color: #657169;
+  font: 400 14px/1.55 var(--sans);
+}
+
+.onboarding-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.onboarding-tour-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid #e4ebe6;
+  border-radius: 12px;
+  background: #f7faf8;
+  color: #526158;
+  font: 400 14px/1.6 var(--sans);
+}
+
+.onboarding-tour-card > span {
+  color: var(--accent, #13875f);
+  font-size: 24px;
+}
+
+.onboarding-tour-card p { margin: 0; }
+
+.onboarding-actions {
+  flex-wrap: wrap;
+}
+
+.onboarding-error:empty { display: none; }
+
+@media (max-width: 600px) {
+  .onboarding-fields { grid-template-columns: 1fr; }
+  .onboarding-actions { justify-content: stretch; }
+  .onboarding-actions button { flex: 1 1 auto; }
+}
+
 .inventory-dialog::backdrop {
   background: #1e292380;
   backdrop-filter: blur(3px);

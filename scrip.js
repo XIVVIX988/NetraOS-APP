@@ -2020,7 +2020,7 @@ function showPublicPage(page = "landing") {
     googleSignInButton.disabled = true;
     googleSignInButton.textContent = "Connecting to Google…";
     try {
-      sessionStorage.setItem(googleOAuthConsentStorageKey, "1");
+      sessionStorage.setItem(googleOAuthConsentStorageKey, isSignup ? "signup" : "login");
       const isLocalHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
       const redirectTo = isLocalHost
         ? `${window.location.origin}${window.location.pathname}`
@@ -6286,43 +6286,225 @@ async function confirmEmailChallenge(pending, code, purpose) {
 }
 
 function showPreferredNamePrompt(profile) {
+  // Keep the app visible behind onboarding so the tour can show each real section.
+  if (appShell.hidden) enterApp(profile);
+  const currentSettings = getStoredSettings();
+  const state = {
+    preferredName: profile.username || String(profile.name || "").trim().split(/\s+/)[0] || "",
+    sex: profile.sex || "",
+    dateOfBirth: profile.dateOfBirth || "",
+    themeMode: currentSettings.themeMode,
+    accentProfile: currentSettings.accentProfile,
+    financialYearStartMonth: currentSettings.financialYearStartMonth,
+    paydayAnchorDay: currentSettings.paydayAnchorDay,
+    goalCategory: questCategories[0],
+    goalName: "",
+    goalTarget: "",
+    goalCurrent: "0",
+    goalDeadline: "",
+    monthlyContribution: "",
+    fundingApproach: "monthly"
+  };
+  const tour = [
+    { page: "Dashboard", title: "Your dashboard", copy: "Start here for your net worth, income, savings rate, spending, and next steps." },
+    { page: "Inventory", title: "Assets and liabilities", copy: "Record what you own and owe. You can link an asset or liability to a quest so progress follows its balance." },
+    { page: "Power-Up", title: "Income and monthly plan", copy: "Log income, set budget lines, and record spending. The dashboard compares spending with income." },
+    { page: "Quests", title: "Goals with momentum", copy: "Track savings or debt payoff goals, set deadlines, and review the monthly pace needed." },
+    { page: "Stats", title: "Patterns and reports", copy: "Review cash flow, savings, and net worth over time, then download a report when you need one." },
+    { page: "Settings", title: "Make NetraOS yours", copy: "Change your profile, theme, accent, payday cycle, privacy, and security preferences at any time." }
+  ];
+  const questionSteps = ["profile", "preferences", "goal", "target", "plan"];
+  const totalSteps = questionSteps.length + tour.length;
+  let step = 0;
   const dialog = document.createElement("dialog");
-  dialog.className = "inventory-dialog";
-  dialog.setAttribute("aria-labelledby", "preferred-name-title");
+  dialog.className = "inventory-dialog onboarding-dialog";
+  dialog.setAttribute("aria-labelledby", "onboarding-title");
   dialog.innerHTML = `
     <form class="inventory-form" novalidate>
-      <header class="inventory-dialog-heading"><div><span class="section-kicker">A QUICK HELLO</span><h2 id="preferred-name-title">Welcome to NetraOS</h2></div></header>
-      <div class="inventory-form-fields">
-        <p class="reset-copy">What name do you prefer being called?</p>
-        <label class="inventory-form-field"><span>Your preferred name</span><input name="preferredName" type="text" autocomplete="nickname" maxlength="40" placeholder="The name you go by" required></label>
-        <p class="reset-status" role="alert" aria-live="polite" data-preferred-name-error></p>
-      </div>
-      <footer class="inventory-dialog-actions"><button class="inventory-submit" type="submit">Continue</button></footer>
+      <header class="inventory-dialog-heading"><div><span class="section-kicker" data-onboarding-kicker>WELCOME TO NETRAOS</span><h2 id="onboarding-title" data-onboarding-title></h2></div></header>
+      <div class="onboarding-progress-wrap"><span data-onboarding-step-count></span><div class="onboarding-progress-track"><i data-onboarding-progress></i></div></div>
+      <p class="onboarding-copy" data-onboarding-copy></p>
+      <div class="inventory-form-fields onboarding-fields" data-onboarding-fields></div>
+      <p class="reset-status onboarding-error" role="alert" aria-live="polite" data-onboarding-error></p>
+      <footer class="inventory-dialog-actions onboarding-actions"><button class="inventory-cancel" type="button" data-onboarding-back>Back</button><button class="secondary-button" type="button" data-onboarding-skip>Skip question</button><button class="inventory-submit" type="button" data-onboarding-next>Continue</button></footer>
     </form>`;
   document.body.append(dialog);
   const form = dialog.querySelector("form");
-  const error = dialog.querySelector("[data-preferred-name-error]");
-  form.addEventListener("submit", event => {
-    event.preventDefault();
-    const preferredName = String(form.elements.preferredName.value || "").trim().replace(/\s+/g, " ");
-    if (!preferredName) {
-      error.textContent = "Enter the name you’d like us to use.";
-      form.elements.preferredName.focus();
+  const title = dialog.querySelector("[data-onboarding-title]");
+  const copy = dialog.querySelector("[data-onboarding-copy]");
+  const fields = dialog.querySelector("[data-onboarding-fields]");
+  const error = dialog.querySelector("[data-onboarding-error]");
+  const stepCount = dialog.querySelector("[data-onboarding-step-count]");
+  const progress = dialog.querySelector("[data-onboarding-progress]");
+  const backButton = dialog.querySelector("[data-onboarding-back]");
+  const skipButton = dialog.querySelector("[data-onboarding-skip]");
+  const nextButton = dialog.querySelector("[data-onboarding-next]");
+
+  const captureStep = ({ skip = false } = {}) => {
+    const kind = questionSteps[step];
+    if (!kind) return true;
+    if (kind === "profile") {
+      const name = String(form.elements.preferredName.value || "").trim().replace(/\s+/g, " ");
+      const dob = String(form.elements.dateOfBirth.value || "");
+      if (!skip && !name) { error.textContent = "Add the name you’d like NetraOS to use, or skip this question."; return false; }
+      if (!skip && dob && dob > localDateValue()) { error.textContent = "Date of birth cannot be in the future."; return false; }
+      if (name) state.preferredName = name;
+      if (["female", "male", "intersex", "other"].includes(form.elements.sex.value)) state.sex = form.elements.sex.value;
+      if (!dob || dob <= localDateValue()) state.dateOfBirth = dob;
+    } else if (kind === "preferences") {
+      state.themeMode = ["light", "dark", "system"].includes(form.elements.themeMode.value) ? form.elements.themeMode.value : state.themeMode;
+      state.accentProfile = ACCENT_IDS.includes(form.elements.accentProfile.value) ? form.elements.accentProfile.value : state.accentProfile;
+      const fiscalMonth = Number(form.elements.financialYearStartMonth.value);
+      const payday = Number(String(form.elements.paydayAnchorDay.value || "").trim());
+      if (!skip && (!Number.isInteger(fiscalMonth) || fiscalMonth < 1 || fiscalMonth > 12)) { error.textContent = "Choose a valid financial year start month."; return false; }
+      if (!skip && (!Number.isInteger(payday) || payday < 1 || payday > 31)) { error.textContent = "Choose a payday from 1 to 31, or skip this question."; return false; }
+      if (Number.isInteger(fiscalMonth) && fiscalMonth >= 1 && fiscalMonth <= 12) state.financialYearStartMonth = fiscalMonth;
+      if (Number.isInteger(payday) && payday >= 1 && payday <= 31) state.paydayAnchorDay = payday;
+    } else if (kind === "goal") {
+      state.goalCategory = questCategories.includes(form.elements.goalCategory.value) ? form.elements.goalCategory.value : state.goalCategory;
+      state.goalName = String(form.elements.goalName.value || "").trim().replace(/\s+/g, " ");
+    } else if (kind === "target") {
+      const targetRaw = String(form.elements.goalTarget.value || "").trim();
+      const currentRaw = String(form.elements.goalCurrent.value || "0").trim();
+      const target = targetRaw ? Number(targetRaw) : 0;
+      const current = currentRaw ? Number(currentRaw) : 0;
+      const deadline = String(form.elements.goalDeadline.value || "");
+      if (!skip && state.goalName && (!Number.isFinite(target) || target <= 0)) { error.textContent = "Add a target above zero for this goal, or go back and skip the goal."; return false; }
+      if (!skip && (!Number.isFinite(current) || current < 0 || (target > 0 && current > target))) { error.textContent = "Current progress must be zero or more and cannot exceed the target."; return false; }
+      if (!skip && deadline && deadline <= localDateValue()) { error.textContent = "Choose a future target date, or skip the date."; return false; }
+      if (targetRaw && Number.isFinite(target) && target > 0) state.goalTarget = String(target);
+      if (Number.isFinite(current) && current >= 0 && (!target || current <= target)) state.goalCurrent = String(current);
+      state.goalDeadline = deadline > localDateValue() ? deadline : "";
+    } else if (kind === "plan") {
+      const contributionRaw = String(form.elements.monthlyContribution.value || "").trim();
+      const contribution = contributionRaw ? Number(contributionRaw) : 0;
+      if (!skip && contributionRaw && (!Number.isFinite(contribution) || contribution < 0)) { error.textContent = "Enter a valid monthly amount or skip this question."; return false; }
+      state.monthlyContribution = contributionRaw && Number.isFinite(contribution) && contribution > 0 ? String(contribution) : "";
+      state.fundingApproach = ["monthly", "flexible", "unsure"].includes(form.elements.fundingApproach.value) ? form.elements.fundingApproach.value : "unsure";
+    }
+    error.textContent = "";
+    return true;
+  };
+
+  const renderStep = () => {
+    const kind = questionSteps[step];
+    const tourIndex = step - questionSteps.length;
+    const tourStep = tour[tourIndex];
+    stepCount.textContent = `STEP ${step + 1} OF ${totalSteps}`;
+    progress.style.width = `${((step + 1) / totalSteps) * 100}%`;
+    backButton.hidden = step === 0;
+    error.textContent = "";
+    skipButton.textContent = tourStep ? "Skip tour" : "Skip question";
+    nextButton.textContent = step === totalSteps - 1 ? "Finish setup" : tourStep ? "Next stop" : "Continue";
+    if (tourStep) {
+      showPage(tourStep.page);
+      dialog.querySelector("[data-onboarding-kicker]").textContent = `QUICK TOUR · ${tourIndex + 1} OF ${tour.length}`;
+      title.textContent = tourStep.title;
+      copy.textContent = tourStep.copy;
+      fields.innerHTML = `<div class="onboarding-tour-card"><span aria-hidden="true">${["◉", "▤", "↗", "◎", "▥", "⚙"][tourIndex]}</span><p>Look around this section behind the guide. Select <b>Next stop</b> to continue or <b>Skip tour</b> to finish.</p></div>`;
+      skipButton.textContent = "Skip tour";
       return;
     }
-    const completedProfile = { ...profile, username: preferredName };
+    dialog.querySelector("[data-onboarding-kicker]").textContent = "WELCOME TO NETRAOS · SETUP";
+    if (kind === "profile") {
+      title.textContent = "A little about you";
+      copy.textContent = "Choose how we address you. The other details are optional and can be skipped.";
+      fields.innerHTML = `
+        <label class="inventory-form-field"><span>Preferred name</span><input name="preferredName" type="text" autocomplete="nickname" maxlength="40" value="${escapeHTML(state.preferredName)}" placeholder="The name you go by"></label>
+        <label class="inventory-form-field"><span>Sex <small>Optional</small></span><select name="sex"><option value="">Prefer not to say</option>${[["female", "Female"], ["male", "Male"], ["intersex", "Intersex"], ["other", "Other"]].map(([value, label]) => `<option value="${value}" ${state.sex === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
+        <label class="inventory-form-field profile-dob-field"><span>Date of birth <small>Optional</small></span><input name="dateOfBirth" type="date" max="${localDateValue()}" value="${escapeHTML(state.dateOfBirth)}"></label>`;
+    } else if (kind === "preferences") {
+      title.textContent = "Set your preferences";
+      copy.textContent = "Pick the look and calendar settings that fit you. You can change them later in Settings.";
+      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      fields.innerHTML = `
+        <label class="inventory-form-field"><span>Preferred theme</span><select name="themeMode"><option value="light" ${state.themeMode === "light" ? "selected" : ""}>Light</option><option value="dark" ${state.themeMode === "dark" ? "selected" : ""}>Dark</option><option value="system" ${state.themeMode === "system" ? "selected" : ""}>Use device setting</option></select></label>
+        <label class="inventory-form-field"><span>Accent color</span><select name="accentProfile">${[["emerald", "Emerald Terminal"], ["amber", "Cyber Amber"], ["matrix", "Matrix Green"], ["blue", "Classic Blue"], ["violet", "Electric Violet"], ["coral", "Sunset Coral"], ["aqua", "Aqua Teal"]].map(([value, label]) => `<option value="${value}" ${state.accentProfile === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
+        <label class="inventory-form-field"><span>Financial year starts</span><select name="financialYearStartMonth">${months.map((month, index) => `<option value="${index + 1}" ${state.financialYearStartMonth === index + 1 ? "selected" : ""}>${month}</option>`).join("")}</select></label>
+        <label class="inventory-form-field"><span>Payday / cycle start day</span><input name="paydayAnchorDay" type="number" min="1" max="31" step="1" inputmode="numeric" value="${state.paydayAnchorDay}"><small>Your monthly cycle starts on this day; shorter months use their last day.</small></label>`;
+    } else if (kind === "goal") {
+      title.textContent = "What would you like to work toward first?";
+      copy.textContent = "Choose a focus and name your first goal. You can skip this question and create a quest later.";
+      fields.innerHTML = `
+        <label class="inventory-form-field"><span>Goal area</span><select name="goalCategory">${questCategories.map(category => `<option value="${escapeHTML(category)}" ${state.goalCategory === category ? "selected" : ""}>${escapeHTML(category)}</option>`).join("")}</select></label>
+        <label class="inventory-form-field"><span>Goal name <small>Optional</small></span><input name="goalName" type="text" maxlength="60" value="${escapeHTML(state.goalName)}" placeholder="e.g. Emergency fund, clear my car loan"></label>`;
+    } else if (kind === "target") {
+      title.textContent = "Set a target and timeframe";
+      copy.textContent = "A target and deadline let NetraOS work out the monthly pace. Skip any detail you’re not ready to set.";
+      fields.innerHTML = `
+        <label class="inventory-form-field"><span>Target amount (KSh)</span><input name="goalTarget" type="number" min="1" step="0.01" inputmode="decimal" value="${escapeHTML(state.goalTarget)}" placeholder="e.g. 100000"></label>
+        <label class="inventory-form-field"><span>Already saved or repaid (KSh) <small>Optional</small></span><input name="goalCurrent" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHTML(state.goalCurrent)}"></label>
+        <label class="inventory-form-field"><span>Target date <small>Optional</small></span><input name="goalDeadline" type="date" min="${localDateValue()}" value="${escapeHTML(state.goalDeadline)}"></label>`;
+    } else {
+      title.textContent = "How do you plan to make progress?";
+      copy.textContent = "Choose a style that feels realistic. With a target date, the quest will also show the monthly pace needed.";
+      fields.innerHTML = `
+        <label class="inventory-form-field"><span>My approach</span><select name="fundingApproach"><option value="monthly" ${state.fundingApproach === "monthly" ? "selected" : ""}>Set aside a regular amount each month</option><option value="flexible" ${state.fundingApproach === "flexible" ? "selected" : ""}>Contribute when I can</option><option value="unsure" ${state.fundingApproach === "unsure" ? "selected" : ""}>I’m still figuring it out</option></select></label>
+        <label class="inventory-form-field"><span>Amount I could contribute each month (KSh) <small>Optional</small></span><input name="monthlyContribution" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHTML(state.monthlyContribution)}" placeholder="Leave blank if you’re not sure yet"></label>`;
+    }
+  };
+
+  const finish = () => {
+    const preferredName = state.preferredName.trim().replace(/\s+/g, " ");
+    if (!preferredName) { step = 0; renderStep(); error.textContent = "Add a preferred name or use the name on your account."; return; }
+    const hasGoal = Boolean(state.goalName);
+    const target = Number(state.goalTarget);
+    const current = Number(state.goalCurrent || 0);
+    if (hasGoal && (!Number.isFinite(target) || target <= 0)) { step = 3; renderStep(); error.textContent = "Add a target amount for this goal, or go back and clear the goal name."; return; }
+    if (hasGoal && (!Number.isFinite(current) || current < 0 || current > target)) { step = 3; renderStep(); error.textContent = "Current progress must be between zero and the target."; return; }
+    if (hasGoal && activeQuests().length >= 4) { step = 2; renderStep(); error.textContent = "You already have four active quests. Finish or remove one before adding this goal."; return; }
+    const completedProfile = { ...profile, username: preferredName, sex: state.sex, dateOfBirth: state.dateOfBirth };
+    const settings = getStoredSettings();
+    settings.themeMode = state.themeMode;
+    settings.darkMode = state.themeMode === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : state.themeMode === "dark";
+    settings.accentProfile = state.accentProfile;
+    settings.financialYearStartMonth = state.financialYearStartMonth;
+    settings.paydayAnchorDay = state.paydayAnchorDay;
     try {
       saveStoredProfile(completedProfile);
+      localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
+      if (hasGoal) {
+        const now = new Date().toISOString();
+        saveQuests([...getQuests(), {
+          id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          name: state.goalName,
+          current,
+          target,
+          category: state.goalCategory,
+          tier: questPriorityTier(state.goalCategory),
+          deadline: state.goalDeadline,
+          createdAt: now,
+          startAmount: current,
+          monthlyContribution: Number(state.monthlyContribution) || 0,
+          fundingApproach: state.fundingApproach
+        }]);
+      }
       enterApp(completedProfile);
       dialog.close();
+      showToast(hasGoal ? "Your setup is complete and your first quest is ready." : "Your setup is complete. You can create a quest whenever you’re ready.");
     } catch {
-      error.textContent = "Unable to save your profile. Check browser storage and try again.";
+      error.textContent = "Unable to save your setup. Check browser storage and try again.";
     }
+  };
+
+  backButton.addEventListener("click", () => { if (step > 0) { step -= 1; renderStep(); } });
+  skipButton.addEventListener("click", () => {
+    if (step >= questionSteps.length) { finish(); return; }
+    captureStep({ skip: true });
+    step = Math.min(totalSteps - 1, step + 1);
+    renderStep();
   });
+  nextButton.addEventListener("click", () => {
+    if (step < questionSteps.length && !captureStep()) return;
+    if (step === totalSteps - 1) { finish(); return; }
+    step += 1;
+    renderStep();
+  });
+  form.addEventListener("submit", event => { event.preventDefault(); nextButton.click(); });
   dialog.addEventListener("cancel", event => event.preventDefault());
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  renderStep();
   dialog.showModal();
-  form.elements.preferredName.focus();
 }
 function showEmailCodeChallenge({ email, purpose, title, description, onVerified }) {
   let pending = null;
@@ -8644,8 +8826,10 @@ if (!activePinLockoutUntil && window.NetraSupabase?.enabled && !["terms", "priva
       }
       return;
     }
+    let googleOAuthIntent = "";
+    try { googleOAuthIntent = sessionStorage.getItem(googleOAuthConsentStorageKey) || ""; } catch { /* Continue without the optional redirect marker. */ }
     if (!data.session) {
-      if (sessionStorage.getItem(googleOAuthConsentStorageKey) === "1") {
+      if (googleOAuthIntent) {
         sessionStorage.removeItem(googleOAuthConsentStorageKey);
         window.history.replaceState(null, "", `${window.location.pathname}#login`);
         showPublicPage("login");
@@ -8658,7 +8842,7 @@ if (!activePinLockoutUntil && window.NetraSupabase?.enabled && !["terms", "priva
       }
       return;
     }
-    if (sessionStorage.getItem(googleOAuthConsentStorageKey) === "1") {
+    if (googleOAuthIntent) {
       sessionStorage.removeItem(googleOAuthConsentStorageKey);
       if (!data.session.user?.user_metadata?.terms_version) {
         const termsResult = await window.NetraSupabase.acceptTerms({
@@ -8684,7 +8868,8 @@ if (!activePinLockoutUntil && window.NetraSupabase?.enabled && !["terms", "priva
     if (localAppSessionActive) return;
     const profile = await window.NetraSupabase.bootstrap();
     if (!profile) throw new Error("Your session is active, but NetraOS could not load your account.");
-    if (profile.username) enterApp(profile, { restoredSession: true, page: appRouteByHash[initialPage.toLowerCase()] || "Dashboard" });
+    if (googleOAuthIntent === "signup") showPreferredNamePrompt(profile);
+    else if (profile.username) enterApp(profile, { restoredSession: true, page: appRouteByHash[initialPage.toLowerCase()] || "Dashboard" });
     else showPreferredNamePrompt(profile);
   }).catch(error => {
     console.error("Unable to restore the Supabase session:", error);
@@ -8734,7 +8919,7 @@ function openCookiePreferences() {
   dialog.className = "cookie-dialog";
   dialog.dataset.cookieDialog = "";
   dialog.setAttribute("aria-labelledby", "cookie-dialog-title");
-  dialog.innerHTML = `<form method="dialog"><div class="section-kicker">PRIVACY PREFERENCES</div><h2 id="cookie-dialog-title">Manage cookie choices</h2><p>Essential browser storage and the Supabase Auth session support the app. NetraOS currently uses no analytics or marketing trackers. Optional analytics is not active; this choice records whether you would allow it if introduced later.</p><label class="cookie-choice"><span><strong>Essential browser and session storage</strong><small>Always on · Saves your local copy, preferences, and sign-in session.</small></span><input type="checkbox" checked disabled aria-label="Essential browser and session storage are always on"></label><label class="cookie-choice"><span><strong>Analytics and performance</strong><small>Not active in this version. If introduced, it stays off until you allow it.</small></span><input name="analytics" type="checkbox" ${analytics ? "checked" : ""}></label><div class="cookie-choice cookie-choice-disabled"><span><strong>Marketing and tracking</strong><small>Not used by NetraOS.</small></span><span aria-label="Not used">Not used</span></div><p class="cookie-policy-note">Read the <a href="#cookies" data-public-action="cookies" target="_blank" rel="noopener">Cookie Policy</a> or use your browser settings to clear or block site data.</p><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-cancel>Cancel</button><button type="button" class="cookie-button secondary" data-cookie-reject>Reject optional</button><button type="submit" class="cookie-button">Save choices</button></div></form>`;
+  dialog.innerHTML = `<form method="dialog"><div class="section-kicker">YOUR CHOICES</div><h2 id="cookie-dialog-title">Choose what feels right</h2><p>NetraOS remembers your settings and keeps you signed in on this device. We don’t use advertising cookies, and we don’t currently collect information about how you use the app. You can choose whether we may do that if this changes later.</p><label class="cookie-choice"><span><strong>Keep the app working</strong><small>Always on · Remembers your settings and sign-in on this device.</small></span><input type="checkbox" checked disabled aria-label="App settings and sign-in storage are always on"></label><label class="cookie-choice"><span><strong>Help us improve NetraOS</strong><small>Optional · We don’t collect this information now. If that changes, we’ll only do it if you say yes.</small></span><input name="analytics" type="checkbox" ${analytics ? "checked" : ""}></label><div class="cookie-choice cookie-choice-disabled"><span><strong>Advertising and tracking</strong><small>We don’t use these.</small></span><span aria-label="Not used">Not used</span></div><p class="cookie-policy-note">For more details, see our <a href="#cookies" data-public-action="cookies" target="_blank" rel="noopener">Cookie Policy</a>. You can also clear saved site data in your browser settings.</p><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-cancel>Close</button><button type="button" class="cookie-button secondary" data-cookie-reject>No thanks</button><button type="submit" class="cookie-button">Save my choice</button></div></form>`;
   document.body.append(dialog);
   dialog.querySelector("[data-cookie-cancel]").addEventListener("click", () => dialog.close());
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
@@ -8742,7 +8927,7 @@ function openCookiePreferences() {
     try {
       saveCookiePreferences(false);
       dialog.close();
-      showToast("Optional cookie and tracking choices rejected.");
+      showToast("Your choice has been saved.");
     } catch {
       showToast("Unable to save your choice in browser storage.");
     }
@@ -8752,7 +8937,7 @@ function openCookiePreferences() {
     try {
       saveCookiePreferences(dialog.elements.analytics.checked);
       dialog.close();
-      showToast("Cookie choices saved.");
+      showToast("Your choice has been saved.");
     } catch {
       showToast("Unable to save preferences in browser storage.");
     }
@@ -8769,13 +8954,13 @@ function showCookieBanner() {
   banner.className = "cookie-banner";
   banner.dataset.cookieBanner = "";
   banner.setAttribute("aria-label", "Cookie and browser storage notice");
-  banner.innerHTML = `<div class="cookie-banner-copy"><strong>Cookies and browser storage</strong><p>Essential storage keeps NetraOS working. No analytics or marketing trackers are active. Choose whether to allow optional analytics if introduced later.</p><a href="#cookies" data-public-action="cookies">Read the Cookie Policy</a></div><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-manage>Manage</button><button type="button" class="cookie-button secondary" data-cookie-reject>Reject optional</button><button type="button" class="cookie-button" data-cookie-accept>Accept optional</button></div>`;
+  banner.innerHTML = `<div class="cookie-banner-copy"><strong>A quick note about cookies</strong><p>We remember your settings and keep you signed in on this device. We don’t use advertising cookies or collect information about how you use the app. You can choose whether we may do that if this changes later.</p><a href="#cookies" data-public-action="cookies">Learn more</a></div><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-manage>Choose settings</button><button type="button" class="cookie-button secondary" data-cookie-reject>No thanks</button><button type="button" class="cookie-button" data-cookie-accept>That’s okay</button></div>`;
   document.body.append(banner);
   banner.querySelector("[data-cookie-accept]").addEventListener("click", () => {
     try {
       saveCookiePreferences(true);
       banner.remove();
-      showToast("Optional cookie choice saved.");
+      showToast("Your choice has been saved.");
     } catch {
       showToast("Unable to save your choice in browser storage.");
     }
@@ -8784,7 +8969,7 @@ function showCookieBanner() {
     try {
       saveCookiePreferences(false);
       banner.remove();
-      showToast("Optional cookies and tracking rejected.");
+      showToast("Your choice has been saved.");
     } catch {
       showToast("Unable to save your choice in browser storage.");
     }
