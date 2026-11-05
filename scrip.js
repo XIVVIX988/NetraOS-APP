@@ -1311,7 +1311,7 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
   let attempts = getPinFailureCount();
   let lockoutStarted = false;
   let checkingPin = false;
-  const redirectToLoginAfterPinFailure = remaining => {
+  const redirectToLoginAfterPinFailure = () => {
     recordSecurityAudit("Signed out after an incorrect workspace PIN");
     localAppSessionActive = false;
     clearSessionInactivityTracking();
@@ -1327,7 +1327,6 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
     }
     lockScreen.remove();
     showPublicPage("login");
-    showToast(`Incorrect PIN. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining before the one-minute lockout. Sign in to try again.`);
   };
   const lockOutAndSignOut = () => {
     if (lockoutStarted) return;
@@ -1403,9 +1402,8 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
       if (attempts >= 3) {
         lockOutAndSignOut();
       } else {
-        const remaining = 3 - attempts;
         pinInput.focus();
-        window.setTimeout(() => redirectToLoginAfterPinFailure(remaining), 450);
+        window.setTimeout(redirectToLoginAfterPinFailure, 450);
       }
     } finally {
       checkingPin = false;
@@ -1987,6 +1985,15 @@ function showPublicPage(page = "landing") {
     passwordInput?.addEventListener("input", updatePasswordFeedback);
     confirmInput?.addEventListener("input", updatePasswordFeedback);
     updateSignupPasswordChips(signupPasswordForm);
+  }
+  if (page === "login" && getPinFailureCount() > 0) {
+    const remaining = Math.max(0, 3 - getPinFailureCount());
+    const authError = publicShell.querySelector('[data-auth-form="login"] .auth-error');
+    if (authError) {
+      authError.textContent = `The workspace PIN was incorrect. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining before a one-minute lockout. Sign in to try again.`;
+      authError.classList.remove("success");
+      authError.hidden = false;
+    }
   }
   const googleSignInButton = publicShell.querySelector("[data-google-signin]");
   googleSignInButton?.addEventListener("click", async () => {
