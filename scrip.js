@@ -2293,21 +2293,36 @@ function syncLinkedInventoryQuests(entries = getInventoryEntries()) {
   if (!linkedEntries.length) return false;
   const quests = getQuests();
   let changed = false;
+  let inventoryChanged = false;
   for (const entry of linkedEntries) {
     const quest = quests.find(item => item.id === entry.questId);
     if (!quest) continue;
-    const current = Number(entry.amount || 0);
+    if (entry.type === "liability" && quest.category === "Debt Eradication" && !Number.isFinite(Number(entry.questStartAmount))) {
+      entry.questStartAmount = Number(entry.amount || 0);
+      inventoryChanged = true;
+    }
+    const current = linkedInventoryQuestCurrent(entry, quest);
     if (Number(quest.current || 0) !== current) {
       quest.current = current;
       changed = true;
     }
   }
+  if (inventoryChanged) saveInventoryEntries(entries);
   if (changed) saveQuests(quests);
   return changed;
 }
 
 function linkedInventoryItemForQuest(questId) {
   return getInventoryEntries().find(entry => entry.questId === questId) || null;
+}
+
+function linkedInventoryQuestCurrent(entry, quest) {
+  const balance = Number(entry.amount || 0);
+  if (entry.type === "liability" && quest.category === "Debt Eradication") {
+    const startingBalance = Number(entry.questStartAmount ?? balance);
+    return Math.max(0, startingBalance - balance);
+  }
+  return balance;
 }
 
 function questProgress(quest) {
@@ -2449,6 +2464,8 @@ function getMilestonesEngine(quests = getQuests()) {
 }
 
 function renderQuestMetrics(quest) {
+  const linkedItem = linkedInventoryItemForQuest(quest.id);
+  const debtPayoffQuest = linkedItem?.type === "liability" && quest.category === "Debt Eradication";
   const pace = questPace(quest);
   const progress = questProgress(quest);
   const monthly = progress === 100 ? "Funded" : pace.required === null ? "Set a deadline" : `${formatKsh(Math.ceil(pace.required))}/mo`;
@@ -2461,7 +2478,8 @@ function renderQuestMetrics(quest) {
   const velocity = pace.velocity !== null ? ` · saving ${formatKsh(Math.round(pace.velocity))}/mo` : "";
   return `<span class="loan-metrics quest-metrics">
     <span><small>CATEGORY / PRIORITY</small><b>${escapeHTML(quest.category || "Not set")} · ${escapeHTML(questTierLabel(quest))}</b></span>
-    <span><small>TARGET &amp; CURRENT</small><b>${formatKsh(quest.current)} of ${formatKsh(quest.target)}</b></span>
+    <span><small>${debtPayoffQuest ? "REPAID / TARGET" : "TARGET &amp; CURRENT"}</small><b>${formatKsh(quest.current)} of ${formatKsh(quest.target)}</b></span>
+    ${debtPayoffQuest ? `<span><small>STILL OWED</small><b>${formatKsh(linkedItem.amount)}</b></span>` : ""}
     <span><small>DEADLINE</small><b>${escapeHTML(deadline)}</b></span>
     <span><small>REQUIRED MONTHLY</small><b>${escapeHTML(monthly)}</b></span>
     <span><small>PACE</small><b class="pace-${pace.status}">${escapeHTML(paceText)}${escapeHTML(velocity)}</b></span>
@@ -2478,6 +2496,8 @@ function renderQuestRows(quests, dashboard = false) {
   return sortQuestsByPriority(quests).map(quest => {
     const progress = questProgress(quest);
     const pace = questPace(quest);
+    const linkedItem = linkedInventoryItemForQuest(quest.id);
+    const debtPayoffQuest = linkedItem?.type === "liability" && quest.category === "Debt Eradication";
     return `
       <div class="quest-row ${progress === 100 ? "is-complete" : ""}" data-quest-id="${escapeHTML(quest.id)}">
         <span class="quest-icon shield">${progress === 100 ? "✦" : questNavigationIcon}</span>
@@ -2488,7 +2508,7 @@ function renderQuestRows(quests, dashboard = false) {
             <span class="quest-tier tier-${questPriorityTier(quest.category)}">TIER ${questPriorityTier(quest.category)}</span>
             <span class="quest-xp quest-xp-earned">+${questXp(quest)} XP</span>
           </div>
-          <div class="quest-meta">${formatKsh(quest.current)} <span>of</span> ${formatKsh(quest.target)}${dashboard && progress < 100 && pace.required !== null ? ` <span>·</span> ${formatKsh(Math.ceil(pace.required))}/mo needed` : ""}</div>
+          <div class="quest-meta">${debtPayoffQuest ? `Repaid ${formatKsh(quest.current)} · Owed ${formatKsh(linkedItem.amount)} · Target ${formatKsh(quest.target)}` : `${formatKsh(quest.current)} <span>of</span> ${formatKsh(quest.target)}`}${dashboard && progress < 100 && pace.required !== null ? ` <span>·</span> ${formatKsh(Math.ceil(pace.required))}/mo needed` : ""}</div>
           <div class="quest-track"><i style="width:${progress}%"></i></div>
           ${dashboard ? "" : renderQuestMetrics(quest)}
         </div>
@@ -2504,6 +2524,7 @@ function renderQuestRows(quests, dashboard = false) {
 function renderQuestCard(quest) {
   const progress = questProgress(quest);
   const linkedInventoryItem = linkedInventoryItemForQuest(quest.id);
+  const debtPayoffQuest = linkedInventoryItem?.type === "liability" && quest.category === "Debt Eradication";
   const complete = progress === 100;
   const pace = questPace(quest);
   const deadline = quest.deadline
@@ -2526,7 +2547,7 @@ function renderQuestCard(quest) {
         </div>
       </header>
       <div class="quest-card-progress">
-        <div class="quest-card-amounts" aria-label="Saved ${formatKsh(quest.current)} of target ${formatKsh(quest.target)}"><span>Saved <strong>${formatKsh(quest.current)}</strong></span><span>Target <strong>${formatKsh(quest.target)}</strong></span></div>
+        <div class="quest-card-amounts ${debtPayoffQuest ? "is-debt-payoff" : ""}" aria-label="${debtPayoffQuest ? `Repaid ${formatKsh(quest.current)}; still owed ${formatKsh(linkedInventoryItem.amount)}; target ${formatKsh(quest.target)}` : `Saved ${formatKsh(quest.current)} of target ${formatKsh(quest.target)}`}" >${debtPayoffQuest ? `<span>Repaid <strong>${formatKsh(quest.current)}</strong></span><span>Owed <strong>${formatKsh(linkedInventoryItem.amount)}</strong></span><span>Target <strong>${formatKsh(quest.target)}</strong></span>` : `<span>Saved <strong>${formatKsh(quest.current)}</strong></span><span>Target <strong>${formatKsh(quest.target)}</strong></span>`}</div>
         <div class="quest-track" role="progressbar" aria-label="${escapeHTML(quest.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><i style="width:${progress}%"></i></div>
       </div>
       <details class="quest-card-details">
@@ -3982,8 +4003,8 @@ function openQuestDialog(questId = "") {
           <label class="inventory-form-field"><span>Category</span><span class="income-category-select-wrap quest-category-select-wrap"><span class="income-category-select-icon quest-category-select-icon" aria-hidden="true">${questCategoryIcon(quest?.category || questCategories[0])}</span><select name="category">${questCategories.map(item => `<option value="${escapeHTML(item)}" ${quest?.category === item ? "selected" : ""}>${escapeHTML(item)}</option>`).join("")}</select></span></label>
           <div class="quest-priority-preview" aria-live="polite"><span>Suggested priority</span><strong data-quest-tier-preview></strong><small>Picked automatically from the goal category</small></div>
         </div>
-        <label class="inventory-form-field"><span>${linkedInventoryItem ? `Linked ${linkedInventoryItem.type} balance (KSh)` : "Current amount (KSh)"}</span><input name="current" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(linkedInventoryItem?.amount ?? quest?.current ?? 0) || ""}" ${linkedInventoryItem ? "readonly" : ""} required></label>
-        ${linkedInventoryItem ? `<small class="liability-hint">Progress follows the linked ${linkedInventoryItem.type}, ${escapeHTML(linkedInventoryItem.name)}. Edit that inventory item to change its balance or unlink it.</small>` : ""}
+        <label class="inventory-form-field"><span data-quest-current-label>${linkedInventoryItem?.type === "liability" && quest?.category === "Debt Eradication" ? "Amount repaid (KSh)" : linkedInventoryItem ? `Linked ${linkedInventoryItem.type} balance (KSh)` : "Current amount (KSh)"}</span><input name="current" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(linkedInventoryItem ? linkedInventoryQuestCurrent(linkedInventoryItem, quest) : quest?.current ?? 0) || ""}" ${linkedInventoryItem ? "readonly" : ""} required></label>
+        ${linkedInventoryItem ? `<small class="liability-hint" data-linked-quest-help>${linkedInventoryItem.type === "liability" && quest?.category === "Debt Eradication" ? `Progress follows repayments on ${escapeHTML(linkedInventoryItem.name)}. ${formatKsh(linkedInventoryItem.amount)} is still owed.` : `Progress follows the linked ${linkedInventoryItem.type}, ${escapeHTML(linkedInventoryItem.name)}. Edit that inventory item to change its balance or unlink it.`}</small>` : ""}
         <label class="inventory-form-field"><span>Target amount (KSh)</span><input name="target" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(quest?.target || 0) || ""}" required></label>
         <label class="inventory-form-field"><span>Target deadline <small>Optional</small></span><input name="deadline" type="date" value="${escapeHTML(quest?.deadline || "")}"></label>
         <small class="liability-hint">With a deadline, NetraOS works out the monthly amount you need to save and warns you if you fall behind.</small>
@@ -3993,6 +4014,16 @@ function openQuestDialog(questId = "") {
   document.body.append(dialog);
   const form = dialog.querySelector(".inventory-form");
   const questCategorySelect = form.querySelector('select[name="category"]');
+  const questCurrentInput = form.elements.current;
+  const updateQuestCurrentCopy = () => {
+    if (!linkedInventoryItem) return;
+    const debtPayoffQuest = linkedInventoryItem.type === "liability" && questCategorySelect.value === "Debt Eradication";
+    form.querySelector("[data-quest-current-label]").textContent = debtPayoffQuest ? "Amount repaid (KSh)" : `Linked ${linkedInventoryItem.type} balance (KSh)`;
+    questCurrentInput.value = String(linkedInventoryQuestCurrent(linkedInventoryItem, { category: questCategorySelect.value }) || "");
+    form.querySelector("[data-linked-quest-help]").textContent = debtPayoffQuest
+      ? `Progress follows repayments on ${linkedInventoryItem.name}. ${formatKsh(linkedInventoryItem.amount)} is still owed.`
+      : `Progress follows the linked ${linkedInventoryItem.type}, ${linkedInventoryItem.name}. Edit that inventory item to change its balance or unlink it.`;
+  };
   const questCategoryPreview = form.querySelector(".quest-category-select-icon");
   const questTierPreview = form.querySelector("[data-quest-tier-preview]");
   const updateQuestCategoryPreview = () => {
@@ -4004,6 +4035,7 @@ function openQuestDialog(questId = "") {
   questCategorySelect.addEventListener("change", () => {
     questCategoryPreview.innerHTML = questCategoryIcon(questCategorySelect.value);
     updateQuestCategoryPreview();
+    updateQuestCurrentCopy();
   });
   dialog.querySelector(".inventory-dialog-close").addEventListener("click", () => dialog.close());
   dialog.querySelector(".inventory-cancel").addEventListener("click", () => dialog.close());
@@ -4013,8 +4045,9 @@ function openQuestDialog(questId = "") {
     const name = String(formData.get("name") || "").trim();
     const current = Number(String(formData.get("current") || "").trim().replace(",", "."));
     const target = Number(String(formData.get("target") || "").trim().replace(",", "."));
+    const category = String(formData.get("category") || questCategories[0]);
     const currentLinkedInventoryItem = quest ? linkedInventoryItemForQuest(quest.id) : null;
-    const savedCurrent = currentLinkedInventoryItem ? Number(currentLinkedInventoryItem.amount) : current;
+    const savedCurrent = currentLinkedInventoryItem ? linkedInventoryQuestCurrent(currentLinkedInventoryItem, { category }) : current;
     if (!name || !Number.isFinite(savedCurrent) || !Number.isFinite(target) || savedCurrent < 0 || target <= 0) return;
     const wasComplete = quest ? questProgress(quest) === 100 : false;
     const previousProgress = quest ? questProgress(quest) : 0;
@@ -4023,7 +4056,6 @@ function openQuestDialog(questId = "") {
       showToast("Choose a deadline in the future.");
       return;
     }
-    const category = String(formData.get("category") || questCategories[0]);
     const updatedQuest = {
       ...(quest || {}),
       id: quest?.id || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -4037,6 +4069,7 @@ function openQuestDialog(questId = "") {
     const updatedQuests = quest ? quests.map(item => item.id === quest.id ? updatedQuest : item) : [...quests, updatedQuest];
     try {
       saveQuests(updatedQuests);
+      syncLinkedInventoryQuests();
     } catch {
       showToast("Unable to save this quest in browser storage.");
       return;

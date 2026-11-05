@@ -10820,6 +10820,8 @@ body.theme-dark { background: var(--bg); }
     margin-bottom: 6px;
   }
   .app-shell .quests-page .quest-card-amounts > span { font-size: 0; }
+  .app-shell .quests-page .quest-card-amounts.is-debt-payoff > span { font-size: 10px; }
+  .app-shell .quests-page .quest-card-amounts.is-debt-payoff > span:first-child::after { content: none; }
   .app-shell .quests-page .quest-card-amounts > span:first-child::after {
     content: "/";
     margin-left: 7px;
