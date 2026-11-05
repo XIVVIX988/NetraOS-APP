@@ -705,12 +705,14 @@ function updateAssetBalancesDaily() {
       changed = true;
     }
   }
-  if (changed) {
-    saveInventoryEntries(entries);
-    const questProgressChanged = syncLinkedInventoryQuests(entries);
+  if (changed) saveInventoryEntries(entries);
+  // Reconcile linked quest progress on every refresh, including when no daily
+  // growth ran. This repairs stale local or freshly synced quest values.
+  const questProgressChanged = syncLinkedInventoryQuests(entries);
+  if (changed || questProgressChanged) {
     updateDashboardInventorySummary();
     if (questProgressChanged) updateDashboardQuests();
-    if (!appShell.hidden && crumb.textContent === "Inventory") content.innerHTML = renderInventoryPage();
+    if (changed && !appShell.hidden && crumb.textContent === "Inventory") content.innerHTML = renderInventoryPage();
     else if (questProgressChanged && !appShell.hidden && crumb.textContent === "Quests") content.innerHTML = renderQuestsPage();
   }
 }
