@@ -19,7 +19,10 @@
 
   const client = sdk.createClient(config.url, config.publishableKey, {
     // Keep auth across page reloads and new tabs in this browser.
-    auth: { persistSession: true, storage: window.localStorage, autoRefreshToken: true, detectSessionInUrl: true }
+    auth: {
+      persistSession: true, storage: window.localStorage, autoRefreshToken: true, detectSessionInUrl: true,
+      experimental: { passkey: true }
+    }
   });
   const confirmationRedirectUrl = () => {
     const url = new URL(config.authRedirectUrl || `${location.origin}${location.pathname}`, location.href);
@@ -396,6 +399,11 @@
     enabled: true, client,
     signUp: (email, password, metadata) => client.auth.signUp({ email, password, options: { data: metadata, emailRedirectTo: confirmationRedirectUrl() } }),
     signIn: (email, password) => client.auth.signInWithPassword({ email, password }),
+    signInWithPasskey: () => client.auth.signInWithPasskey(),
+    registerPasskey: () => client.auth.registerPasskey(),
+    listPasskeys: () => client.auth.passkey.list(),
+    deletePasskey: passkeyId => client.auth.passkey.delete({ passkeyId }),
+    get passkeySupported() { return typeof client.auth.signInWithPasskey === "function" && typeof client.auth.registerPasskey === "function"; },
     signInWithGoogle: redirectTo => client.auth.signInWithOAuth({ provider: "google", options: { redirectTo } }),
     acceptTerms: metadata => client.auth.updateUser({ data: metadata }),
     resetPassword: email => client.auth.resetPasswordForEmail(email, { redirectTo: passwordRecoveryRedirectUrl() }),

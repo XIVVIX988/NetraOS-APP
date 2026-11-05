@@ -1769,11 +1769,12 @@ function showPublicPage(page = "landing") {
             ${isSignup ? "" : '<button class="auth-reset-password" type="button" data-password-reset>Forgot your password?</button>'}
             <div class="auth-error" role="status" aria-live="polite" hidden></div>
             <button class="public-primary auth-submit" type="submit">${isSignup ? "Create account" : "Log in"}</button>
+            ${isSignup ? "" : '<button class="auth-passkey-button" type="button" data-passkey-signin>Use a passkey / fingerprint</button>'}
             <div class="auth-divider"><span>OR</span></div>
             <button class="auth-google-button" type="button" data-google-signin><span class="google-g-mark" aria-hidden="true">G</span>Continue with Google</button>
           </form>
           <p class="auth-switch">${isSignup ? "Already have an account?" : "New to NetraOS?"} <button type="button" data-public-action="${isSignup ? "login" : "signup"}">${isSignup ? "Log in" : "Create an account"}</button></p>
-          <p class="auth-preview-note">Your email and password protect sign-in. Confirmation and password-reset links arrive by email, and records sync when you’re online.</p>
+          <p class="auth-preview-note">${isSignup ? "Your account is protected by your password. Confirmation links arrive by email, and records sync when you’re online." : "Sign in with your password or a passkey. Passkeys can use Windows Hello or your device’s fingerprint reader."}</p>
           </div>
         </section>
       </div>`;
@@ -1816,6 +1817,35 @@ function showPublicPage(page = "landing") {
       googleSignInButton.innerHTML = '<span class="google-g-mark" aria-hidden="true">G</span>Continue with Google';
       console.error("Google sign-in could not start:", error?.message || error);
       showGoogleError(friendlyAuthMessage(error, "Google sign-in couldn’t start. Check the provider setup and try again."));
+    }
+  });
+  const passkeySignInButton = publicShell.querySelector("[data-passkey-signin]");
+  passkeySignInButton?.addEventListener("click", async () => {
+    const authForm = passkeySignInButton.closest("[data-auth-form]");
+    const authError = authForm?.querySelector(".auth-error");
+    const showError = message => {
+      authError.textContent = message;
+      authError.classList.remove("success");
+      authError.hidden = false;
+    };
+    if (!window.NetraSupabase?.enabled || !window.NetraSupabase.passkeySupported) {
+      showError("Passkey sign-in isn’t available in this browser or sign-in service yet.");
+      return;
+    }
+    passkeySignInButton.disabled = true;
+    passkeySignInButton.textContent = "Waiting for your passkey…";
+    try {
+      const result = await window.NetraSupabase.signInWithPasskey();
+      if (result.error) throw result.error;
+      const profile = await window.NetraSupabase.bootstrap();
+      if (!profile) throw new Error("Passkey sign-in worked, but your account data couldn’t be loaded.");
+      if (!profile.username) showPreferredNamePrompt(profile);
+      else enterApp(profile);
+    } catch (error) {
+      console.error("Passkey sign-in failed:", { code: error?.code, message: error?.message || String(error) });
+      showError(friendlyAuthMessage(error, "Passkey sign-in couldn’t finish. You can still use your email and password."));
+      passkeySignInButton.disabled = false;
+      passkeySignInButton.textContent = "Use a passkey / fingerprint";
     }
   });
   applyStoredSettings();
@@ -1963,6 +1993,12 @@ function renderSettingsPage() {
             ${(settings.localPinHash || settings.accountPinEnabled) ? '<button class="secondary-button pin-recovery-button" type="button" data-pin-recovery>Forgot PIN? Reset with account password</button>' : ""}
             <label class="settings-field"><span><strong>Remove current PIN</strong><small>Turns off the local screen lock.</small></span><input name="clearPin" type="checkbox"></label>
           </div>
+          <div class="settings-passkeys" data-passkey-settings>
+            <div class="settings-passkeys-heading"><strong>Fingerprint and passkeys</strong><small>Use Windows Hello, a fingerprint reader, or another device passkey to sign in.</small></div>
+            <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="register-passkey">Add a passkey</button><button class="secondary-button" type="button" data-settings-action="refresh-passkeys">Refresh list</button></div>
+            <p class="passkey-status" data-passkey-status role="status" aria-live="polite"></p>
+            <ul class="passkey-list" data-passkey-list></ul>
+          </div>
           <div class="settings-audit"><div class="settings-audit-heading"><strong>Recent local security activity</strong><div class="settings-audit-export"><label for="security-audit-period">Download range</label><select id="security-audit-period" data-security-audit-period><option value="24h">Last 24 hours</option><option value="7d">Last 7 days</option><option value="1m">Last 1 month</option><option value="6m">Last 6 months</option><option value="12m">Last 12 months</option></select><button type="button" class="secondary-button" data-security-audit-download>Download list</button></div></div>${recentAudit.length ? `<ul>${recentAudit.map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.timestamp).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>No activity recorded yet.</p>`}</div>
         </section>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">REMINDERS</div><h2>What to keep an eye on</h2></div></div>
@@ -2024,6 +2060,56 @@ function renderSettingsPage() {
     ${renderAppFooter()}`;
 }
 
+async function refreshPasskeyList(section) {
+  if (!section) return;
+  const status = section.querySelector("[data-passkey-status]");
+  const list = section.querySelector("[data-passkey-list]");
+  if (!window.NetraSupabase?.enabled || !window.NetraSupabase.passkeySupported) {
+    status.textContent = "Passkeys are unavailable until they are enabled for this Supabase project and supported by this browser.";
+    return;
+  }
+  status.textContent = "Loading passkeys…";
+  try {
+    const result = await window.NetraSupabase.listPasskeys();
+    if (result.error) throw result.error;
+    const passkeys = Array.isArray(result.data) ? result.data : [];
+    status.textContent = passkeys.length ? `${passkeys.length} passkey${passkeys.length === 1 ? "" : "s"} registered to this account.` : "No passkeys registered yet.";
+    list.innerHTML = passkeys.map(passkey => `<li><span><strong>${escapeHTML(passkey.friendly_name || "Passkey")}</strong><small>${escapeHTML(passkey.last_used_at ? `Last used ${new Date(passkey.last_used_at).toLocaleDateString()}` : `Added ${new Date(passkey.created_at).toLocaleDateString()}`)}</small></span><button type="button" class="secondary-button" data-delete-passkey="${escapeHTML(passkey.id)}">Remove</button></li>`).join("");
+  } catch (error) {
+    status.textContent = friendlyAuthMessage(error, "Couldn’t load passkeys. Check that passkeys are enabled in Supabase Auth settings.");
+    list.replaceChildren();
+  }
+}
+
+async function handlePasskeySettingsAction(action, button) {
+  const section = button.closest("[data-passkey-settings]");
+  const status = section?.querySelector("[data-passkey-status]");
+  if (!section || !status) return;
+  if (!window.NetraSupabase?.enabled || !window.NetraSupabase.passkeySupported) {
+    status.textContent = "Passkeys are unavailable until they are enabled for this Supabase project and supported by this browser.";
+    return;
+  }
+  button.disabled = true;
+  try {
+    if (action === "register-passkey") {
+      const result = await window.NetraSupabase.registerPasskey();
+      if (result.error) throw result.error;
+      status.textContent = "Passkey added. You can use it the next time you sign in.";
+      recordSecurityAudit("Added an account passkey");
+    } else if (action === "delete-passkey") {
+      const result = await window.NetraSupabase.deletePasskey(button.dataset.deletePasskey);
+      if (result.error) throw result.error;
+      status.textContent = "Passkey removed.";
+      recordSecurityAudit("Removed an account passkey");
+    }
+    await refreshPasskeyList(section);
+  } catch (error) {
+    status.textContent = friendlyAuthMessage(error, "Couldn’t complete the passkey request.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
 function setupSettingsTabs(root = content) {
   const tabs = [...root.querySelectorAll("[data-settings-tab]")];
   if (!tabs.length) return;
@@ -2033,6 +2119,7 @@ function setupSettingsTabs(root = content) {
   const themeSelect = root.querySelector('select[name="themeMode"]');
   const themeButtons = [...root.querySelectorAll("[data-theme-mode]")];
   const profileTab = root.querySelector(".settings-profile-tab");
+  refreshPasskeyList(root.querySelector("[data-passkey-settings]"));
   const editProfileButton = root.querySelector("[data-settings-edit-profile]");
   const mobileGroupForId = id => id === "profile" ? "profile" : id === "privacy" ? "security" : "preferences";
   const activate = (id, focusTab = false) => {
@@ -7356,6 +7443,9 @@ function friendlyAuthMessage(error, fallback = "We couldn’t complete that just
   if (/weak password|password.*too short/.test(message)) {
     return "A password with at least 8 characters is needed.";
   }
+  if (/passkey_disabled/.test(message)) {
+    return "Passkeys aren’t enabled for this Supabase project yet. Enable Authentication → Passkeys in the Supabase Dashboard, then try again.";
+  }
   if (/failed to fetch|network|load failed|fetch error/.test(message)) {
     return "We couldn’t reach the sign-in service just now. A connection check and another try may help.";
   }
@@ -7875,6 +7965,10 @@ document.addEventListener("click", event => {
     downloadSecurityAudit(period);
     return;
   }
+  if (button.matches("[data-delete-passkey]")) {
+    void handlePasskeySettingsAction("delete-passkey", button);
+    return;
+  }
   if (button.matches("[data-pin-recovery]")) {
     showPinRecovery();
     return;
@@ -7886,6 +7980,7 @@ document.addEventListener("click", event => {
     else if (button.dataset.settingsAction === "download-summary-excel") downloadExcel();
     else if (button.dataset.settingsAction === "download-summary-pdf") downloadPDF();
     else if (button.dataset.settingsAction === "manage-rates") openCurrencyRatesDialog();
+    else if (["register-passkey", "refresh-passkeys"].includes(button.dataset.settingsAction)) void handlePasskeySettingsAction(button.dataset.settingsAction, button);
     else if (button.dataset.settingsAction === "clear-data") clearAllLocalData();
     else if (button.dataset.settingsAction === "delete-account") showPermanentAccountDeletion();
     else if (button.dataset.settingsAction === "download-terms") downloadLegalDocument("terms");

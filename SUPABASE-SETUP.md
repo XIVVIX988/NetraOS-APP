@@ -44,6 +44,14 @@ The login and signup forms include a **Continue with Google** button. To enable 
 
 Keep the Google client secret in the Supabase Dashboard; do not put it in `supabase-config.js` or another browser file. Google sign-in requires an internet connection and redirects back to the app after authentication.
 
+### Enable fingerprint and passkey sign-in
+
+NetraOS supports Supabase Passkeys, an experimental Supabase Auth feature. A passkey can prompt Windows Hello (including a fingerprint reader), a device PIN, or a security key; the exact prompt depends on the device. Users add a passkey from **Settings → Security** after signing in, then choose **Use a passkey / fingerprint** on the login page.
+
+Before using it, open **Authentication → Passkeys** in the Supabase Dashboard and enable passkey authentication. Set the relying party display name to `NetraOS`, the relying party ID to `xivvix988.github.io`, and the allowed origin to `https://xivvix988.github.io`. Keep this relying party ID stable after users register passkeys; changing it invalidates existing credentials. Passkeys require HTTPS (the published site uses HTTPS). The desktop app loads the same hosted origin.
+
+Passkey support is experimental in Supabase Auth. Existing email/password and Google sign-in remain available. The app uses `@supabase/supabase-js` 2.105.0, which includes the passkey client API.
+
 Keep email confirmation enabled. Supabase’s default email sender is best-effort and limited to two emails per hour; on newer free projects it may only deliver to addresses belonging to the project organization. Configure custom SMTP under **Authentication → Emails → SMTP Settings** before inviting ordinary users or launching publicly.
 
 ## 4. Serve the app

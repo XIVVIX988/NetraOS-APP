@@ -4562,6 +4562,21 @@ body.theme-dark #public-shell .auth-error.success {
   border-top: 1px solid #edf1ee;
 }
 
+.settings-passkeys { display: grid; gap: 10px; padding: 14px 0; border-top: 1px solid #edf1ee; }
+.settings-passkeys-heading { display: grid; gap: 4px; }
+.settings-passkeys-heading strong { color: #354139; font: 600 12px var(--sans); }
+.settings-passkeys-heading small, .passkey-status { color: #748078; font: 12px/1.45 var(--sans); }
+.passkey-status { margin: 0; }
+.passkey-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.passkey-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid #e2e9e4; border-radius: 9px; }
+.passkey-list li > span { display: grid; gap: 3px; min-width: 0; }
+.passkey-list li strong { overflow-wrap: anywhere; color: #354139; font: 600 12px var(--sans); }
+.passkey-list li small { color: #748078; font: 11px var(--sans); }
+.app-shell.theme-dark .settings-passkeys { border-color: var(--line); }
+.app-shell.theme-dark .settings-passkeys-heading strong, .app-shell.theme-dark .passkey-list li strong { color: var(--text); }
+.app-shell.theme-dark .settings-passkeys-heading small, .app-shell.theme-dark .passkey-status, .app-shell.theme-dark .passkey-list li small { color: var(--muted); }
+.app-shell.theme-dark .passkey-list li { border-color: var(--line); }
+
 .settings-field > span {
   display: grid;
   gap: 4px;
@@ -9039,6 +9054,10 @@ body.theme-dark .phone-splash-name span { color: #9ed7b7; }
 #public-shell .auth-form .inventory-form-field input:focus { border-color: #29936a; box-shadow: 0 0 0 3px #16875f18; }
 #public-shell .auth-submit { min-height: 49px; border-radius: 12px; background: linear-gradient(105deg, #15835d, #087450); box-shadow: 0 8px 18px #0c754e24; }
 #public-shell .auth-submit:hover { background: linear-gradient(105deg, #0d704e, #075f43); }
+#public-shell .auth-passkey-button { width: 100%; min-height: 47px; border: 1px solid #d8e1db; border-radius: 12px; background: #f5faf6; color: #236046; font: 600 14px var(--sans); cursor: pointer; }
+#public-shell .auth-passkey-button:hover { border-color: #a9c8b4; background: #edf6ef; }
+#public-shell .auth-passkey-button:disabled { opacity: .7; cursor: wait; }
+#public-shell .auth-passkey-button:focus-visible { outline: 3px solid #0f7659; outline-offset: 3px; }
 #public-shell .auth-divider { display: flex; align-items: center; gap: 12px; margin: 17px 0; color: #87958c; font: 10px var(--mono); letter-spacing: .08em; }
 #public-shell .auth-divider::before,
 #public-shell .auth-divider::after { flex: 1; height: 1px; content: ""; background: #e2e9e4; }
@@ -9067,6 +9086,8 @@ body.theme-dark #public-shell .auth-divider::before,
 body.theme-dark #public-shell .auth-divider::after { background: #34463b; }
 body.theme-dark #public-shell .auth-google-button { border-color: #3a5144; background: #111a15; color: #e8f1eb; }
 body.theme-dark #public-shell .auth-google-button:hover { background: #1d2a22; }
+body.theme-dark #public-shell .auth-passkey-button { border-color: #3a5144; background: #111a15; color: #d4e8da; }
+body.theme-dark #public-shell .auth-passkey-button:hover { background: #1d2a22; }
 body.theme-dark #public-shell .auth-preview-note { border-color: #2b3c32; }
 body.theme-dark #public-shell .auth-page > .auth-back { border-color: #b5ebce80; background: #0f3428a8; color: #d6f4e1; }
 @media (min-width: 601px) {
@@ -11198,6 +11219,39 @@ body.theme-dark { background: var(--bg); }
   .help-chat-panel { position: fixed; right: 10px; bottom: calc(146px + env(safe-area-inset-bottom)); width: calc(100vw - 20px); max-width: 420px; height: min(70dvh, 570px); }
 }
 
-/* A spending deficit is a warning state, regardless of the month-over-month trend. */
-.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="deficit"] { --trend-accent: #d5524b; --trend-ink: #ad3833; }
-.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="deficit"] { --trend-accent: #ef7770; --trend-ink: #ffb6b0; }
+/* Spending uses the cashflow result as its status color, independent of trend. */
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] {
+  --trend-accent: #29936a;
+  --trend-ink: #176348;
+  border-color: color-mix(in srgb, #29936a 42%, var(--line)) !important;
+  border-left: 3px solid #29936a !important;
+  background: linear-gradient(135deg, color-mix(in srgb, #29936a 13%, var(--panel)), var(--panel)) !important;
+}
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="deficit"] {
+  --trend-accent: #d5524b;
+  --trend-ink: #ad3833;
+  border-color: color-mix(in srgb, #d5524b 52%, var(--line)) !important;
+  border-left: 3px solid #d5524b !important;
+  background: linear-gradient(135deg, color-mix(in srgb, #d5524b 24%, var(--panel)), color-mix(in srgb, #d5524b 8%, var(--panel))) !important;
+}
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow] .metric-heading,
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow] .metric-value { color: var(--trend-ink) !important; }
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] .under-budget,
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] .metric-trailing { color: #176348; }
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] .spend-progress { background: #29936a; }
+.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] {
+  --trend-accent: #51c28f;
+  --trend-ink: #a0e7c2;
+  border-color: color-mix(in srgb, #51c28f 55%, var(--line)) !important;
+  border-left-color: #51c28f !important;
+  background: linear-gradient(135deg, color-mix(in srgb, #51c28f 17%, var(--panel)), var(--panel)) !important;
+}
+.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="deficit"] {
+  --trend-accent: #ef7770;
+  --trend-ink: #ffb6b0;
+  border-color: color-mix(in srgb, #ef7770 60%, var(--line)) !important;
+  border-left-color: #ef7770 !important;
+  background: linear-gradient(135deg, color-mix(in srgb, #ef7770 25%, var(--panel)), color-mix(in srgb, #ef7770 10%, var(--panel))) !important;
+}
+.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] .under-budget,
+.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] .metric-trailing { color: #a0e7c2; }
