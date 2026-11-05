@@ -1214,11 +1214,12 @@ function scheduleAutoLock() {
   autoLockTimer = window.setTimeout(lockWorkspace, settings.lockTimeoutMinutes * 60 * 1000);
 }
 
-function lockWorkspace() {
+function lockWorkspace({ onLaunch = false } = {}) {
   if (appShell.hidden) return;
   const settings = getStoredSettings();
-  if ((!settings.localPinHash && !settings.accountPinEnabled) || !settings.lockTimeoutMinutes) return;
+  if ((!settings.localPinHash && !settings.accountPinEnabled) || (!onLaunch && !settings.lockTimeoutMinutes)) return;
   if (settings.accountPinEnabled && !settings.localPinHash && !navigator.onLine) return;
+  window.clearTimeout(autoLockTimer);
   appShell.hidden = true;
   publicShell.hidden = true;
   document.querySelector("#security-lock-screen")?.remove();
@@ -1228,7 +1229,7 @@ function lockWorkspace() {
   lockScreen.dataset.accent = appShell.dataset.accent || "emerald";
   lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">NETRAOS · SESSION LOCK</span><h1 id="security-lock-title">Your workspace is locked.</h1><p>Enter your ${settings.localPinLength}-digit PIN to continue. This screen lock does not encrypt browser storage.</p><form><label for="security-unlock-pin">${settings.localPinLength}-digit PIN</label><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${settings.localPinLength}}" maxlength="${settings.localPinLength}" required><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Unlock workspace</button></form></section>`;
   document.body.append(lockScreen);
-  recordSecurityAudit("Workspace locked after inactivity");
+  recordSecurityAudit(onLaunch ? "Workspace locked on launch" : "Workspace locked after inactivity");
   const form = lockScreen.querySelector("form");
   const pinInput = form.elements.pin;
   const error = lockScreen.querySelector(".security-lock-error");
@@ -2247,6 +2248,7 @@ function enterApp(profile, { restoredSession = false, page = "Dashboard" } = {})
   scheduleAutoLockNudge({ force: true });
   scheduleShortcutPrompt();
   showCookieBanner();
+  if (restoredSession) lockWorkspace({ onLaunch: true });
 }
 
 function scheduleShortcutPrompt() {
