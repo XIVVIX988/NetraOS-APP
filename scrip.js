@@ -253,6 +253,9 @@ function toggleInformationCard(card, expanded) {
 const profileStorageKey = "netraos-profile-v1";
 const sessionStorageKey = "netraos-local-session-v1";
 const pinLockoutStorageKey = "netraos-pin-lockout-until-v1";
+const pinFailuresStorageKey = "netraos-pin-failures-v1";
+const sessionLastActivityStorageKey = "netraos-session-last-activity-v1";
+const sessionInactivityLimitMs = 20 * 60 * 1000;
 let localAppSessionActive = false;
 const settingsStorageKey = "netraos-settings-v1";
 const securityAuditStorageKey = "netraos-security-audit-v1";
@@ -260,6 +263,7 @@ const notificationStorageKey = "netraos-in-app-notifications-v1";
 const termsVersion = "2026-10-18.1";
 const googleOAuthConsentStorageKey = "netraos-google-oauth-terms-consent-v1";
 let autoLockTimer = 0;
+let sessionLogoutTimer = 0;
 let backupPromptTimer = 0;
 let autoLockNudgeTimer = 0;
 let shortcutPromptTimer = 0;
@@ -1215,6 +1219,65 @@ async function verifyAccountPassword(password) {
   return !error && data?.user?.id === currentUser.id;
 }
 
+function getSessionLastActivityAt() {
+  try { return Number(localStorage.getItem(sessionLastActivityStorageKey)) || 0; } catch { return 0; }
+}
+
+function clearSessionInactivityTracking() {
+  window.clearTimeout(sessionLogoutTimer);
+  sessionLogoutTimer = 0;
+  try { localStorage.removeItem(sessionLastActivityStorageKey); } catch { /* Activity tracking is cleared in memory. */ }
+}
+
+function getPinFailureCount() {
+  try { return Math.max(0, Math.min(3, Number(localStorage.getItem(pinFailuresStorageKey)) || 0)); } catch { return 0; }
+}
+
+function setPinFailureCount(count) {
+  try { localStorage.setItem(pinFailuresStorageKey, String(Math.max(0, Math.min(3, count)))); } catch { /* Keep the current-screen attempt count if storage is unavailable. */ }
+}
+
+function clearPinFailureCount() {
+  try { localStorage.removeItem(pinFailuresStorageKey); } catch { /* Expired in memory as well. */ }
+}
+
+function endSessionForInactivity() {
+  if (!localAppSessionActive) return;
+  recordSecurityAudit("Signed out after 20 minutes of inactivity");
+  localAppSessionActive = false;
+  window.clearTimeout(autoLockTimer);
+  window.clearTimeout(autoLockNudgeTimer);
+  window.clearInterval(assetGrowthTimer);
+  assetGrowthTimer = 0;
+  clearSessionInactivityTracking();
+  try { localStorage.removeItem(sessionStorageKey); } catch { /* Legacy marker only. */ }
+  document.querySelector("#security-lock-screen")?.remove();
+  if (window.NetraSupabase?.enabled) {
+    window.NetraSupabase.signOut({ scope: "local" }).catch(error => {
+      console.warn("Unable to clear the local Supabase session after inactivity:", error.message);
+    });
+  }
+  showPublicPage("login");
+  showToast("You were signed out after 20 minutes of inactivity.");
+}
+
+function scheduleSessionLogout({ markActivity = false } = {}) {
+  window.clearTimeout(sessionLogoutTimer);
+  sessionLogoutTimer = 0;
+  if (!localAppSessionActive) return;
+  let lastActivityAt = getSessionLastActivityAt();
+  if (markActivity || !lastActivityAt) {
+    lastActivityAt = Date.now();
+    try { localStorage.setItem(sessionLastActivityStorageKey, String(lastActivityAt)); } catch { /* Keep the timer active for this session. */ }
+  }
+  const remaining = sessionInactivityLimitMs - (Date.now() - lastActivityAt);
+  if (remaining <= 0) {
+    endSessionForInactivity();
+    return;
+  }
+  sessionLogoutTimer = window.setTimeout(endSessionForInactivity, remaining);
+}
+
 // Lock the visible workspace after inactivity when a local PIN and timeout are configured.
 function scheduleAutoLock() {
   window.clearTimeout(autoLockTimer);
@@ -1245,12 +1308,31 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
   const pinInput = form.elements.pin;
   const error = lockScreen.querySelector(".security-lock-error");
   const submitButton = form.querySelector("button[type='submit']");
-  let attempts = 0;
+  let attempts = getPinFailureCount();
   let lockoutStarted = false;
   let checkingPin = false;
+  const redirectToLoginAfterPinFailure = remaining => {
+    recordSecurityAudit("Signed out after an incorrect workspace PIN");
+    localAppSessionActive = false;
+    clearSessionInactivityTracking();
+    window.clearTimeout(autoLockTimer);
+    window.clearTimeout(autoLockNudgeTimer);
+    window.clearInterval(assetGrowthTimer);
+    assetGrowthTimer = 0;
+    try { localStorage.removeItem(sessionStorageKey); } catch { /* Legacy marker only. */ }
+    if (window.NetraSupabase?.enabled) {
+      window.NetraSupabase.signOut({ scope: "local" }).catch(signOutError => {
+        console.warn("Unable to clear the local Supabase session after an incorrect PIN:", signOutError.message);
+      });
+    }
+    lockScreen.remove();
+    showPublicPage("login");
+    showToast(`Incorrect PIN. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining before the one-minute lockout. Sign in to try again.`);
+  };
   const lockOutAndSignOut = () => {
     if (lockoutStarted) return;
     lockoutStarted = true;
+    setPinFailureCount(3);
     pinInput.disabled = true;
     submitButton.disabled = true;
     error.textContent = "Too many incorrect PIN attempts. You’re signed out; sign in again in one minute.";
@@ -1259,6 +1341,7 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
     try { localStorage.setItem(pinLockoutStorageKey, String(lockedUntil)); } catch { /* Keep the current-screen lockout even without writable storage. */ }
     recordSecurityAudit("Signed out after repeated incorrect PIN attempts");
     localAppSessionActive = false;
+    clearSessionInactivityTracking();
     window.clearTimeout(autoLockNudgeTimer);
     if (window.NetraSupabase?.enabled) {
       window.NetraSupabase.signOut({ scope: "local" }).catch(signOutError => {
@@ -1267,6 +1350,7 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
     }
     window.setTimeout(() => {
       try { localStorage.removeItem(pinLockoutStorageKey); } catch { /* The in-memory lockout has expired. */ }
+      clearPinFailureCount();
       lockScreen.remove();
       showPublicPage("login");
       showToast("You were signed out after three incorrect PIN attempts.");
@@ -1290,6 +1374,7 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
     try {
       if (!await verifyWorkspacePin(pinInput.value, settings)) throw new Error("PIN did not match.");
       lockScreen.remove();
+      clearPinFailureCount();
       appShell.hidden = false;
       publicShell.hidden = true;
       recordSecurityAudit("Workspace unlocked");
@@ -1307,16 +1392,21 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
         return;
       }
       attempts += 1;
+      setPinFailureCount(attempts);
       pinInput.value = "";
       const card = lockScreen.querySelector(".security-lock-card");
       card.classList.remove("is-shaking");
       void card.offsetWidth;
       card.classList.add("is-shaking");
-      error.textContent = attempts >= 3 ? "Too many incorrect attempts. You’re signed out; sign in again in one minute." : "That PIN did not match. Try again.";
+      error.textContent = attempts >= 3 ? "Too many incorrect attempts. You’re signed out; sign in again in one minute." : `That PIN did not match. ${3 - attempts} attempt${3 - attempts === 1 ? "" : "s"} remaining.`;
       error.hidden = false;
       if (attempts >= 3) {
         lockOutAndSignOut();
-      } else pinInput.focus();
+      } else {
+        const remaining = 3 - attempts;
+        pinInput.focus();
+        window.setTimeout(() => redirectToLoginAfterPinFailure(remaining), 450);
+      }
     } finally {
       checkingPin = false;
     }
@@ -1342,6 +1432,7 @@ function showPinLockoutScreen(until) {
     }
     window.clearInterval(timer);
     try { localStorage.removeItem(pinLockoutStorageKey); } catch { /* Expired in memory as well. */ }
+    clearPinFailureCount();
     lockScreen.remove();
     showPublicPage("login");
     showToast("You can sign in again now.");
@@ -1350,9 +1441,12 @@ function showPinLockoutScreen(until) {
   updateCountdown();
 }
 
-// Restart the inactivity countdown on deliberate user input while the app is active.
+// Restart inactivity timers on deliberate user activity, including while the PIN screen is open.
 ["pointerdown", "keydown", "touchstart"].forEach(eventName => {
-  document.addEventListener(eventName, scheduleAutoLock, { passive: eventName !== "keydown" });
+  document.addEventListener(eventName, () => {
+    scheduleAutoLock();
+    scheduleSessionLogout({ markActivity: true });
+  }, { passive: eventName !== "keydown" });
 });
 window.addEventListener("online", scheduleAutoLock);
 function lockWorkspaceOnPhoneBackground() {
@@ -1361,6 +1455,7 @@ function lockWorkspaceOnPhoneBackground() {
 }
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") lockWorkspaceOnPhoneBackground();
+  else scheduleSessionLogout();
 });
 window.addEventListener("pagehide", lockWorkspaceOnPhoneBackground);
 
@@ -1860,6 +1955,7 @@ function showPublicPage(page = "landing") {
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>
             <div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="${isSignup ? "new-password" : "current-password"}" ${isSignup ? 'minlength="8"' : ""} placeholder="${isSignup ? "At least 8 characters" : "Your password"}" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>
             ${isSignup ? `<ul class="password-rules" data-password-rules role="group" aria-label="Password requirements"><li data-password-rule="length"><span aria-hidden="true">○</span> 8+ characters</li><li data-password-rule="uppercase"><span aria-hidden="true">○</span> One uppercase letter</li><li data-password-rule="special"><span aria-hidden="true">○</span> One special character</li><li data-password-rule="number"><span aria-hidden="true">○</span> One number</li></ul>` : ""}
+            ${isSignup ? `<label class="inventory-form-field"><span>Re-enter password</span><span class="password-field"><input name="confirmPassword" aria-label="Re-enter password" type="password" autocomplete="new-password" placeholder="Re-enter your password" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show re-entered password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 19 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span><small class="password-match" data-password-match hidden></small></label>` : ""}
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="#cookies" target="_blank" rel="noopener">Cookie Policy</a>.</span></label>` : ""}
             ${isSignup ? "" : `<label class="terms-consent google-terms-consent"><input name="googleTermsConsent" type="checkbox"><span>If this is your first time using Google to sign in, I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="#cookies" target="_blank" rel="noopener">Cookie Policy</a>.</span></label>`}
             ${isSignup ? "" : '<button class="auth-reset-password" type="button" data-password-reset>Forgot your password?</button>'}
@@ -1878,7 +1974,18 @@ function showPublicPage(page = "landing") {
   const signupPasswordForm = publicShell.querySelector('[data-auth-form="signup"]');
   if (signupPasswordForm) {
     const passwordInput = signupPasswordForm.querySelector('input[name="password"]');
-    passwordInput?.addEventListener("input", () => updateSignupPasswordChips(signupPasswordForm));
+    const confirmInput = signupPasswordForm.querySelector('input[name="confirmPassword"]');
+    const matchStatus = signupPasswordForm.querySelector("[data-password-match]");
+    const updatePasswordFeedback = () => {
+      updateSignupPasswordChips(signupPasswordForm);
+      if (!confirmInput || !matchStatus) return;
+      matchStatus.hidden = !confirmInput.value;
+      const matches = Boolean(confirmInput.value) && confirmInput.value === passwordInput.value;
+      matchStatus.textContent = matches ? "Passwords match." : "Passwords don’t match yet.";
+      matchStatus.classList.toggle("is-match", matches);
+    };
+    passwordInput?.addEventListener("input", updatePasswordFeedback);
+    confirmInput?.addEventListener("input", updatePasswordFeedback);
     updateSignupPasswordChips(signupPasswordForm);
   }
   const googleSignInButton = publicShell.querySelector("[data-google-signin]");
@@ -2332,6 +2439,12 @@ function setupSettingsTabs(root = content) {
 // Start the local session, apply the profile and preferences, and open the dashboard.
 function enterApp(profile, { restoredSession = false, page = "Dashboard" } = {}) {
   localAppSessionActive = true;
+  const lastActivityAt = getSessionLastActivityAt();
+  if (restoredSession && lastActivityAt && Date.now() - lastActivityAt >= sessionInactivityLimitMs) {
+    endSessionForInactivity();
+    return;
+  }
+  scheduleSessionLogout({ markActivity: !restoredSession || !lastActivityAt });
   setProfileName(profile.username || profile.name);
   applyProfileAvatar();
   applyStoredSettings();
@@ -2347,7 +2460,7 @@ function enterApp(profile, { restoredSession = false, page = "Dashboard" } = {})
   scheduleAutoLockNudge({ force: true });
   scheduleShortcutPrompt();
   showCookieBanner();
-  if (restoredSession) lockWorkspace({ onLaunch: true });
+  if (restoredSession || getPinFailureCount() > 0) lockWorkspace({ onLaunch: true });
 }
 
 function scheduleShortcutPrompt() {
@@ -4213,7 +4326,7 @@ function openQuestDialog(questId = "") {
         ${linkedInventoryItem ? `<small class="liability-hint" data-linked-quest-help>${linkedInventoryItem.type === "liability" && quest?.category === "Debt Eradication" ? `Progress follows repayments on ${escapeHTML(linkedInventoryItem.name)}. ${formatKsh(linkedInventoryItem.amount)} is still owed.` : `Progress follows the linked ${linkedInventoryItem.type}, ${escapeHTML(linkedInventoryItem.name)}. Edit that inventory item to change its balance or unlink it.`}</small>` : ""}
         <label class="inventory-form-field" data-quest-target-field ${linkedInventoryItem?.type === "liability" && quest?.category === "Debt Eradication" ? "hidden" : ""}><span>Target amount (KSh)</span><input name="target" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(quest?.target || 0) || ""}" ${linkedInventoryItem?.type === "liability" && quest?.category === "Debt Eradication" ? "" : "required"}></label>
         <label class="inventory-form-field"><span>Target deadline <small>Optional</small></span><input name="deadline" type="date" value="${escapeHTML(quest?.deadline || "")}"></label>
-        <small class="liability-hint">With a deadline, NetraOS works out the monthly amount you need to save and warns you if you fall behind.</small>
+        <small class="liability-hint" data-quest-pace-hint></small>
       </div>
       <footer class="inventory-dialog-actions"><button class="inventory-cancel" type="button">Cancel</button><button class="inventory-submit" type="submit">${quest ? "Save progress" : "Create quest"}</button></footer>
     </form>`;
@@ -4238,6 +4351,32 @@ function openQuestDialog(questId = "") {
       ? `Progress follows repayments on ${linkedInventoryItem.name}. ${formatKsh(linkedInventoryItem.amount)} is still owed.`
       : `Progress follows the linked ${linkedInventoryItem.type}, ${linkedInventoryItem.name}. Edit that inventory item to change its balance or unlink it.`;
   };
+  const questPaceHint = form.querySelector("[data-quest-pace-hint]");
+  const updateQuestPaceHint = () => {
+    const debtQuest = questCategorySelect.value === "Debt Eradication";
+    const linkedDebtPayoffQuest = linkedInventoryItem?.type === "liability" && debtQuest;
+    const verb = debtQuest ? "repay" : "save";
+    const current = Number(String(questCurrentInput.value || "0").replace(",", ".")) || 0;
+    const target = linkedDebtPayoffQuest
+      ? Number(linkedInventoryItem.questStartAmount ?? linkedInventoryItem.amount ?? 0)
+      : Number(String(questTargetInput.value || "0").replace(",", ".")) || 0;
+    const remaining = Math.max(0, target - current);
+    const deadline = form.elements.deadline.value;
+    if (target <= 0) {
+      questPaceHint.textContent = "Set a target amount to see the remaining amount and monthly pace.";
+    } else if (remaining === 0) {
+      questPaceHint.textContent = debtQuest ? "This debt repayment quest is complete." : "This quest is fully funded.";
+    } else if (!deadline) {
+      questPaceHint.textContent = `Add a deadline to see how much to ${verb} each month to reach this goal.`;
+    } else {
+      const pace = questPace({ target, current, deadline });
+      if (pace.overdue) {
+        questPaceHint.textContent = `${formatKsh(remaining)} remains to ${verb}; this deadline has passed. Choose a future deadline to calculate a monthly pace.`;
+      } else {
+        questPaceHint.textContent = `About ${formatKsh(Math.ceil(pace.required))} per month will ${verb} the remaining ${formatKsh(remaining)} by the deadline.`;
+      }
+    }
+  };
   const questCategoryPreview = form.querySelector(".quest-category-select-icon");
   const questTierPreview = form.querySelector("[data-quest-tier-preview]");
   const updateQuestCategoryPreview = () => {
@@ -4251,7 +4390,13 @@ function openQuestDialog(questId = "") {
     updateQuestCategoryPreview();
     updateQuestCurrentCopy();
     updateQuestTargetField();
+    updateQuestPaceHint();
   });
+  [questCurrentInput, questTargetInput, form.elements.deadline].forEach(input => {
+    input.addEventListener("input", updateQuestPaceHint);
+    input.addEventListener("change", updateQuestPaceHint);
+  });
+  updateQuestPaceHint();
   dialog.querySelector(".inventory-dialog-close").addEventListener("click", () => dialog.close());
   dialog.querySelector(".inventory-cancel").addEventListener("click", () => dialog.close());
   form.addEventListener("submit", event => {
@@ -7259,6 +7404,7 @@ function handleMenuChoice(action) {
   }
   if (action === "sign-out") {
     localAppSessionActive = false;
+    clearSessionInactivityTracking();
     try { localStorage.removeItem(sessionStorageKey); } catch {}
     window.clearTimeout(autoLockNudgeTimer);
     if (window.NetraSupabase?.enabled) window.NetraSupabase.signOut().catch(error => console.warn("Supabase sign-out failed:", error.message));
@@ -7591,6 +7737,11 @@ document.addEventListener("submit", async event => {
       fail(isSignup
         ? "Use a password with at least 8 characters, one uppercase letter, one special character, and one number."
         : "A valid email address and password are needed.");
+      return;
+    }
+    if (isSignup && password !== String(formData.get("confirmPassword") || "")) {
+      fail("The passwords don’t match. Re-enter the same password in both fields.");
+      form.querySelector('input[name="confirmPassword"]')?.focus();
       return;
     }
 

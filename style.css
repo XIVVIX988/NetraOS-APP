@@ -8485,8 +8485,13 @@ body.theme-dark .inventory-dialog .liability-hint { color: #8e9b92; }
 .password-rules li { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid #dce4de; border-radius: 999px; background: #f4f7f5; color: #65736a; font-size: 10px; line-height: 1; transition: color .16s, border-color .16s, background-color .16s; }
 .password-rules li > span { font-size: 12px; font-weight: 700; }
 .password-rules li.is-met { border-color: #9ed4b2; background: #e9f7ee; color: #167247; }
+.password-match { display: block; min-height: 14px; margin-top: 6px; color: #a23c31; font-size: 11px; }
+.password-match.is-match { color: #167247; }
+.password-match[hidden] { display: none; }
 #public-shell.theme-dark .password-rules li { border-color: #3c4940; background: #202a23; color: #a2ada5; }
 #public-shell.theme-dark .password-rules li.is-met { border-color: #337b54; background: #20372a; color: #8fe0af; }
+#public-shell.theme-dark .password-match { color: #ffaaa5; }
+#public-shell.theme-dark .password-match.is-match { color: #8fe0af; }
 #public-shell.theme-dark .password-toggle { color: #a2ada5; }
 #public-shell.theme-dark .password-toggle:hover { background: #26302a; color: #e1c267; }
 
