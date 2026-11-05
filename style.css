@@ -7981,6 +7981,15 @@ body.theme-dark .cookie-button:not(.secondary) { border-color: #41956e; backgrou
 .security-lock-card p { color: #58675e; line-height: 1.6; }
 .security-lock-card form { display: grid; gap: 12px; margin-top: 22px; }
 .security-lock-card input { padding: 13px; border: 1px solid #cbd7cf; border-radius: 10px; background: #f8faf8; color: #1c2b21; font: inherit; letter-spacing: .2em; }
+.security-lock-card.is-shaking { animation: security-lock-shake .42s ease-in-out; }
+@keyframes security-lock-shake {
+  0%, 100% { transform: translateX(0); }
+  18%, 54%, 90% { transform: translateX(-8px); }
+  36%, 72% { transform: translateX(8px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .security-lock-card.is-shaking { animation: none; }
+}
 .security-lock-error { margin: 0; color: #a23c31 !important; }
 .security-lock-error[hidden] { display: none; }
 .positive-pill.is-deficit, .metric-caption .under-budget.is-deficit { color: #b3423a; }
