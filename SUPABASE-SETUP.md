@@ -33,7 +33,7 @@ In **Authentication → URL Configuration**:
 
 Signup confirmation and password recovery now return to the published GitHub Pages app. For signups started from the local preview, confirmation still returns to GitHub Pages so users complete authentication on the published app.
 
-### Enable Google sign-in
+### Enable Google and Facebook sign-in
 
 The login and signup forms include a **Continue with Google** button. To enable it:
 
@@ -41,6 +41,8 @@ The login and signup forms include a **Continue with Google** button. To enable 
 2. In the Supabase Dashboard, open **Authentication → Sign In / Providers → Google**, enable Google, and enter the Google client ID and client secret.
 3. Copy the callback URL shown in Supabase’s Google provider settings into the Google OAuth client’s **Authorized redirect URIs**. This is the Supabase Auth callback, not the GitHub Pages app URL.
 4. Confirm the app URL and local development URLs above are in Supabase **Authentication → URL Configuration → Redirect URLs**.
+
+For Facebook sign-in, create a Facebook app with Facebook Login enabled. In the Facebook Login settings, add the Supabase callback URL shown in the Supabase Facebook provider settings to **Valid OAuth Redirect URIs**. Then enable Facebook under Supabase **Authentication → Sign In / Providers → Facebook** and enter the Facebook App ID and App Secret. Keep the app secret in Supabase only. The app’s signup page requires the existing Terms checkbox before starting Google or Facebook signup; the login page does not show that checkbox.
 
 Keep the Google client secret in the Supabase Dashboard; do not put it in `supabase-config.js` or another browser file. Google sign-in requires an internet connection and redirects back to the app after authentication.
 

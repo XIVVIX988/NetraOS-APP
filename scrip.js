@@ -1955,13 +1955,13 @@ function showPublicPage(page = "landing") {
             ${isSignup ? `<ul class="password-rules" data-password-rules role="group" aria-label="Password requirements"><li data-password-rule="length"><span aria-hidden="true">○</span> 8+ characters</li><li data-password-rule="uppercase"><span aria-hidden="true">○</span> One uppercase letter</li><li data-password-rule="special"><span aria-hidden="true">○</span> One special character</li><li data-password-rule="number"><span aria-hidden="true">○</span> One number</li></ul>` : ""}
             ${isSignup ? `<label class="inventory-form-field"><span>Re-enter password</span><span class="password-field"><input name="confirmPassword" aria-label="Re-enter password" type="password" autocomplete="new-password" placeholder="Re-enter your password" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show re-entered password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 19 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span><small class="password-match" data-password-match hidden></small></label>` : ""}
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="#cookies" target="_blank" rel="noopener">Cookie Policy</a>.</span></label>` : ""}
-            ${isSignup ? "" : `<label class="terms-consent google-terms-consent"><input name="googleTermsConsent" type="checkbox"><span>If this is your first time using Google to sign in, I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="#cookies" target="_blank" rel="noopener">Cookie Policy</a>.</span></label>`}
             ${isSignup ? "" : '<button class="auth-reset-password" type="button" data-password-reset>Forgot your password?</button>'}
             <div class="auth-error" role="status" aria-live="polite" hidden></div>
             <button class="public-primary auth-submit" type="submit">${isSignup ? "Create account" : "Log in"}</button>
             ${isSignup ? "" : '<button class="auth-passkey-button" type="button" data-passkey-signin>Use a passkey / fingerprint</button>'}
             <div class="auth-divider"><span>OR</span></div>
-            <button class="auth-google-button" type="button" data-google-signin><span class="google-g-mark" aria-hidden="true">G</span>Continue with Google</button>
+            <button class="auth-google-button" type="button" data-oauth-signin="google"><span class="google-g-mark" aria-hidden="true">G</span>Continue with Google</button>
+            <button class="auth-google-button auth-facebook-button" type="button" data-oauth-signin="facebook"><span class="facebook-f-mark" aria-hidden="true">f</span>Continue with Facebook</button>
           </form>
           <p class="auth-switch">${isSignup ? "Already have an account?" : "New to NetraOS?"} <button type="button" data-public-action="${isSignup ? "login" : "signup"}">${isSignup ? "Log in" : "Create an account"}</button></p>
           <p class="auth-preview-note">${isSignup ? "Your account is protected by your password. Confirmation links arrive by email, and records sync when you’re online." : "Sign in with your password or a passkey. Passkeys can use Windows Hello or your device’s fingerprint reader."}</p>
@@ -1995,9 +1995,10 @@ function showPublicPage(page = "landing") {
       authError.hidden = false;
     }
   }
-  const googleSignInButton = publicShell.querySelector("[data-google-signin]");
-  googleSignInButton?.addEventListener("click", async () => {
-    const authForm = googleSignInButton.closest("[data-auth-form]");
+  publicShell.querySelectorAll("[data-oauth-signin]").forEach(oauthButton => oauthButton.addEventListener("click", async () => {
+    const provider = oauthButton.dataset.oauthSignin;
+    const providerName = provider === "facebook" ? "Facebook" : "Google";
+    const authForm = oauthButton.closest("[data-auth-form]");
     const authError = authForm?.querySelector(".auth-error");
     const showGoogleError = message => {
       if (!authError) return;
@@ -2006,35 +2007,34 @@ function showPublicPage(page = "landing") {
       authError.hidden = false;
     };
     const isSignup = authForm?.dataset.authForm === "signup";
-    const hasConsent = isSignup ? authForm.elements.acceptTerms?.checked : authForm.elements.googleTermsConsent?.checked;
-    if (!hasConsent) {
-      showGoogleError(isSignup
-        ? "Please accept the Terms and acknowledge the Privacy Policy before creating an account."
-        : "Please accept the Terms and acknowledge the Privacy Policy to continue with Google.");
+    if (isSignup && !authForm.elements.acceptTerms?.checked) {
+      showGoogleError("Please accept the Terms and acknowledge the Privacy Policy before creating an account.");
       return;
     }
     if (!window.NetraSupabase?.enabled) {
-      showGoogleError("Google sign-in isn’t available just now because the sign-in service couldn’t connect.");
+      showGoogleError(`${providerName} sign-in isn’t available just now because the sign-in service couldn’t connect.`);
       return;
     }
-    googleSignInButton.disabled = true;
-    googleSignInButton.textContent = "Connecting to Google…";
+    oauthButton.disabled = true;
+    oauthButton.textContent = `Connecting to ${providerName}…`;
     try {
       sessionStorage.setItem(googleOAuthConsentStorageKey, isSignup ? "signup" : "login");
       const isLocalHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
       const redirectTo = isLocalHost
         ? `${window.location.origin}${window.location.pathname}`
         : window.NETRAOS_SUPABASE_CONFIG?.authRedirectUrl || `${window.location.origin}${window.location.pathname}`;
-      const result = await window.NetraSupabase.signInWithGoogle(redirectTo);
+      const result = await window.NetraSupabase[provider === "facebook" ? "signInWithFacebook" : "signInWithGoogle"](redirectTo);
       if (result.error) throw result.error;
     } catch (error) {
       sessionStorage.removeItem(googleOAuthConsentStorageKey);
-      googleSignInButton.disabled = false;
-      googleSignInButton.innerHTML = '<span class="google-g-mark" aria-hidden="true">G</span>Continue with Google';
-      console.error("Google sign-in could not start:", error?.message || error);
-      showGoogleError(friendlyAuthMessage(error, "Google sign-in couldn’t start. Check the provider setup and try again."));
+      oauthButton.disabled = false;
+      oauthButton.innerHTML = provider === "facebook"
+        ? '<span class="facebook-f-mark" aria-hidden="true">f</span>Continue with Facebook'
+        : '<span class="google-g-mark" aria-hidden="true">G</span>Continue with Google';
+      console.error(`${providerName} sign-in could not start:`, error?.message || error);
+      showGoogleError(friendlyAuthMessage(error, `${providerName} sign-in couldn’t start. Check the provider setup and try again.`));
     }
-  });
+  }));
   const passkeySignInButton = publicShell.querySelector("[data-passkey-signin]");
   passkeySignInButton?.addEventListener("click", async () => {
     const authForm = passkeySignInButton.closest("[data-auth-form]");
@@ -8831,9 +8831,10 @@ if (!activePinLockoutUntil && window.NetraSupabase?.enabled && !["terms", "priva
     if (!data.session) {
       if (googleOAuthIntent) {
         sessionStorage.removeItem(googleOAuthConsentStorageKey);
-        window.history.replaceState(null, "", `${window.location.pathname}#login`);
-        showPublicPage("login");
-        showToast("Google sign-in didn’t complete. Try again or use email and password.");
+        const returnPage = googleOAuthIntent === "signup" ? "signup" : "login";
+        window.history.replaceState(null, "", `${window.location.pathname}#${returnPage}`);
+        showPublicPage(returnPage);
+        showToast("Social sign-in didn’t complete. Try again or use email and password.");
       }
       if (confirmationReturn) {
         window.history.replaceState(null, "", `${window.location.pathname}#login`);
@@ -8842,8 +8843,8 @@ if (!activePinLockoutUntil && window.NetraSupabase?.enabled && !["terms", "priva
       }
       return;
     }
-    if (googleOAuthIntent) {
-      sessionStorage.removeItem(googleOAuthConsentStorageKey);
+    if (googleOAuthIntent) sessionStorage.removeItem(googleOAuthConsentStorageKey);
+    if (googleOAuthIntent === "signup") {
       if (!data.session.user?.user_metadata?.terms_version) {
         const termsResult = await window.NetraSupabase.acceptTerms({
           terms_version: termsVersion,
@@ -8851,6 +8852,13 @@ if (!activePinLockoutUntil && window.NetraSupabase?.enabled && !["terms", "priva
         });
         if (termsResult.error) throw termsResult.error;
       }
+    }
+    if (googleOAuthIntent === "login" && !data.session.user?.user_metadata?.terms_version) {
+      await window.NetraSupabase.signOut({ scope: "local" });
+      window.history.replaceState(null, "", `${window.location.pathname}#signup`);
+      showPublicPage("signup");
+      showToast("To create a new account, choose Create an account and accept the terms first.");
+      return;
     }
     if (confirmationReturn) {
       // The email confirmation callback may itself establish a session. Clear only

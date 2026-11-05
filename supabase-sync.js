@@ -405,6 +405,8 @@
     deletePasskey: passkeyId => client.auth.passkey.delete({ passkeyId }),
     get passkeySupported() { return typeof client.auth.signInWithPasskey === "function" && typeof client.auth.registerPasskey === "function"; },
     signInWithGoogle: redirectTo => client.auth.signInWithOAuth({ provider: "google", options: { redirectTo } }),
+    signInWithFacebook: redirectTo => client.auth.signInWithOAuth({ provider: "facebook", options: { redirectTo } }),
+    signInWithFacebook: redirectTo => client.auth.signInWithOAuth({ provider: "facebook", options: { redirectTo } }),
     acceptTerms: metadata => client.auth.updateUser({ data: metadata }),
     resetPassword: email => client.auth.resetPasswordForEmail(email, { redirectTo: passwordRecoveryRedirectUrl() }),
     updatePassword: password => client.auth.updateUser({ password }),
