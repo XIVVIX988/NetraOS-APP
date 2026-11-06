@@ -406,6 +406,7 @@
     get passkeySupported() { return typeof client.auth.signInWithPasskey === "function" && typeof client.auth.registerPasskey === "function"; },
     signInWithGoogle: redirectTo => client.auth.signInWithOAuth({ provider: "google", options: { redirectTo } }),
     signInWithFacebook: redirectTo => client.auth.signInWithOAuth({ provider: "facebook", options: { redirectTo } }),
+    signInWithApple: redirectTo => client.auth.signInWithOAuth({ provider: "apple", options: { redirectTo } }),
     signInWithFacebook: redirectTo => client.auth.signInWithOAuth({ provider: "facebook", options: { redirectTo } }),
     acceptTerms: metadata => client.auth.updateUser({ data: metadata }),
     resetPassword: email => client.auth.resetPasswordForEmail(email, { redirectTo: passwordRecoveryRedirectUrl() }),

@@ -9160,7 +9160,10 @@ body.theme-dark .phone-splash-name span { color: #9ed7b7; }
 #public-shell .auth-google-button:hover { background: #f7faf8; border-color: #b9c9be; }
 #public-shell .auth-google-button:disabled { opacity: .7; cursor: wait; }
 #public-shell .google-g-mark { font: 700 19px Arial, sans-serif; background: conic-gradient(from -45deg, #4285f4 0 25%, #34a853 25% 50%, #fbbc05 50% 75%, #ea4335 75%); color: transparent; background-clip: text; -webkit-background-clip: text; }
-#public-shell .facebook-f-mark { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #0866ff; color: #fff; font: 700 17px/1 Arial, sans-serif; }
+#public-shell .auth-social-links { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: -3px; color: #829087; font-size: 12px; }
+#public-shell .auth-social-link { padding: 3px 2px; border: 0; background: transparent; color: #37634d; font: 600 12px var(--sans); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+#public-shell .auth-social-link:hover { color: #14734f; }
+#public-shell .auth-social-link:disabled { opacity: .65; cursor: wait; }
 #public-shell .auth-google-button:focus-visible { outline: 3px solid #0f7659; outline-offset: 3px; }
 #public-shell .auth-switch button { color: #11764f; }
 body.theme-dark #public-shell .auth-page { background: linear-gradient(180deg, #173e2e 0%, #16251d 46%, #000000 78%); }
@@ -9181,6 +9184,7 @@ body.theme-dark #public-shell .auth-divider::before,
 body.theme-dark #public-shell .auth-divider::after { background: #34463b; }
 body.theme-dark #public-shell .auth-google-button { border-color: #3a5144; background: #111a15; color: #e8f1eb; }
 body.theme-dark #public-shell .auth-google-button:hover { background: #1d2a22; }
+body.theme-dark #public-shell .auth-social-link { color: #a6d3b5; }
 body.theme-dark #public-shell .auth-passkey-button { border-color: #3a5144; background: #111a15; color: #d4e8da; }
 body.theme-dark #public-shell .auth-passkey-button:hover { background: #1d2a22; }
 body.theme-dark #public-shell .auth-preview-note { border-color: #2b3c32; }
