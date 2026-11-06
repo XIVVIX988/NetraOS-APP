@@ -1961,7 +1961,8 @@ function showPublicPage(page = "landing") {
             ${isSignup ? "" : '<button class="auth-passkey-button" type="button" data-passkey-signin>Use a passkey / fingerprint</button>'}
             <div class="auth-divider"><span>OR</span></div>
             <button class="auth-google-button" type="button" data-oauth-signin="google"><span class="google-g-mark" aria-hidden="true">G</span>Continue with Google</button>
-            <div class="auth-social-links" aria-label="Other sign-in options"><button class="auth-social-link" type="button" data-oauth-signin="facebook">Facebook</button><span aria-hidden="true">·</span><button class="auth-social-link" type="button" data-oauth-signin="apple">Apple</button></div>
+            <p class="auth-social-prompt">Or continue with</p>
+            <div class="auth-social-links" aria-label="Other sign-in options"><a class="auth-social-link" href="#facebook-signin" data-oauth-signin="facebook">Facebook</a><span aria-hidden="true">·</span><a class="auth-social-link" href="#apple-signin" data-oauth-signin="apple">Apple</a></div>
           </form>
           <p class="auth-switch">${isSignup ? "Already have an account?" : "New to NetraOS?"} <button type="button" data-public-action="${isSignup ? "login" : "signup"}">${isSignup ? "Log in" : "Create an account"}</button></p>
           <p class="auth-preview-note">${isSignup ? "Your account is protected by your password. Confirmation links arrive by email, and records sync when you’re online." : "Sign in with your password or a passkey. Passkeys can use Windows Hello or your device’s fingerprint reader."}</p>
@@ -1995,7 +1996,9 @@ function showPublicPage(page = "landing") {
       authError.hidden = false;
     }
   }
-  publicShell.querySelectorAll("[data-oauth-signin]").forEach(oauthButton => oauthButton.addEventListener("click", async () => {
+  publicShell.querySelectorAll("[data-oauth-signin]").forEach(oauthButton => oauthButton.addEventListener("click", async event => {
+    event.preventDefault();
+    if (oauthButton.getAttribute("aria-disabled") === "true") return;
     const provider = oauthButton.dataset.oauthSignin;
     const providerName = provider === "facebook" ? "Facebook" : provider === "apple" ? "Apple" : "Google";
     const authForm = oauthButton.closest("[data-auth-form]");
@@ -2015,7 +2018,7 @@ function showPublicPage(page = "landing") {
       showGoogleError(`${providerName} sign-in isn’t available just now because the sign-in service couldn’t connect.`);
       return;
     }
-    oauthButton.disabled = true;
+    oauthButton.setAttribute("aria-disabled", "true");
     oauthButton.textContent = `Connecting to ${providerName}…`;
     try {
       sessionStorage.setItem(googleOAuthConsentStorageKey, isSignup ? "signup" : "login");
@@ -2028,7 +2031,7 @@ function showPublicPage(page = "landing") {
       if (result.error) throw result.error;
     } catch (error) {
       sessionStorage.removeItem(googleOAuthConsentStorageKey);
-      oauthButton.disabled = false;
+      oauthButton.removeAttribute("aria-disabled");
       if (provider === "google") {
         oauthButton.innerHTML = '<span class="google-g-mark" aria-hidden="true">G</span>Continue with Google';
       } else {
