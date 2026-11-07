@@ -11424,3 +11424,57 @@ body.theme-dark { background: var(--bg); }
   .app-shell .settings-form .settings-actions .inventory-submit,
   .app-shell .settings-profile-form .account-form-actions .inventory-submit { min-height: 48px; border-radius: 14px; font-size: 14px; }
 }
+
+/* ---- Phone Settings typography: native system font and app-sized type scale ---- */
+@media (max-width: 600px) {
+  .app-shell .settings-page {
+    --sans: system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, "DM Sans", sans-serif;
+    font-family: var(--sans);
+    -webkit-text-size-adjust: 100%;
+    letter-spacing: 0;
+  }
+  .app-shell .settings-page .settings-mobile-bar strong { font-size: 18px; font-weight: 600; }
+  .app-shell .settings-page .settings-menu-group h3 { font-size: 13px; font-weight: 600; letter-spacing: .01em; }
+  .app-shell .settings-page .settings-menu-row { font-size: 16px; font-weight: 500; min-height: 56px; }
+  .app-shell .settings-page .settings-form .settings-field > span strong { font-size: 15px; font-weight: 600; line-height: 1.3; }
+  .app-shell .settings-page .settings-form .settings-field > span small { font-size: 13px; line-height: 1.4; }
+  .app-shell .settings-page .section-kicker { font-size: 11px; font-weight: 600; letter-spacing: .08em; }
+  .app-shell .settings-page .panel-heading h2 { font-size: 18px; font-weight: 700; }
+  .app-shell .settings-page .settings-disclosure,
+  .app-shell .settings-page .account-notice p,
+  .app-shell .settings-page .settings-import-drop span,
+  .app-shell .settings-page .settings-downloads-heading p { font-size: 13px; line-height: 1.5; }
+  .app-shell .settings-page .inventory-form-field > span { font-size: 14px; font-weight: 600; }
+  .app-shell .settings-page .inventory-form-field small { font-size: 12.5px; }
+  /* 16px inputs stop iOS from zooming the page on focus. */
+  .app-shell .settings-page input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .app-shell .settings-page select,
+  .app-shell .settings-page textarea { font-size: 16px; min-height: 46px; }
+  .app-shell .settings-page .settings-field select { font-size: 15px; min-height: 42px; }
+  .app-shell .settings-page .settings-dropdown-button { font-size: 15px; min-height: 42px; }
+  .app-shell .settings-page .settings-import-drop strong { font-size: 15px; }
+  .app-shell .settings-page .settings-import-drop input { font-size: 13px; }
+  .app-shell .settings-page .settings-inline-actions button,
+  .app-shell .settings-page .secondary-button,
+  .app-shell .settings-page .danger-button { font-size: 15px; font-weight: 600; min-height: 46px; }
+  .app-shell .settings-page .settings-theme-choice button { font-size: 14px; min-height: 42px; }
+  .app-shell .settings-page .settings-profile-panel .profile-summary strong { font-size: 16px; }
+  .app-shell .settings-page .settings-profile-panel .profile-summary small { font-size: 13px; }
+  .app-shell .settings-page .settings-profile-mobile-details span { font-size: 13px; }
+  .app-shell .settings-page .settings-profile-mobile-details strong { font-size: 15px; }
+  .app-shell .settings-page .settings-edit-profile { font-size: 13px; min-height: 40px; }
+  .app-shell .settings-page .settings-download-group h4,
+  .app-shell .settings-page .settings-passkeys-heading strong { font-size: 14px; }
+  .app-shell .settings-page .settings-passkeys-heading small,
+  .app-shell .settings-page .passkey-status,
+  .app-shell .settings-page .passkey-list li small,
+  .app-shell .settings-page .settings-audit,
+  .app-shell .settings-page .settings-audit time,
+  .app-shell .settings-page .settings-audit-export label,
+  .app-shell .settings-page .legal-links a { font-size: 13px; }
+  .app-shell .settings-page .passkey-list li strong { font-size: 14px; }
+  .app-shell .settings-page .settings-form .settings-actions .inventory-submit,
+  .app-shell .settings-page .settings-profile-form .account-form-actions .inventory-submit { font-size: 16px; font-weight: 600; min-height: 50px; }
+  .app-shell .settings-page .settings-actions > span,
+  .app-shell .settings-page .account-form-actions > span { font-size: 12.5px; }
+}
