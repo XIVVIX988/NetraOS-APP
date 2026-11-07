@@ -2610,7 +2610,46 @@ function getQuests() {
 }
 
 function saveQuests(quests) {
+  let previousQuests = [];
+  let earnedIds = [];
+  try {
+    previousQuests = JSON.parse(localStorage.getItem(questStorageKey) || "[]");
+    if (!Array.isArray(previousQuests)) previousQuests = [];
+  } catch { /* Treat an unreadable prior list as a new quest list. */ }
   localStorage.setItem(questStorageKey, JSON.stringify(quests));
+  try {
+    const saved = JSON.parse(localStorage.getItem(achievementStorageKey) || "[]");
+    if (Array.isArray(saved)) earnedIds = saved.filter(id => typeof id === "string");
+  } catch { /* Achievements can be rebuilt from quest progress. */ }
+  const earned = new Set(earnedIds);
+  const previousById = new Map(previousQuests.map(item => [String(item.id), item]));
+  const unlocked = [];
+  const milestoneLabels = { 25: "Quarterway there", 50: "Halfway there", 75: "Three-quarters there" };
+  for (const quest of quests) {
+    if (!(Number(quest.target) > 0)) continue;
+    const before = questProgress(previousById.get(String(quest.id)) || { target: quest.target, current: 0 });
+    const after = questProgress(quest);
+    for (const threshold of [25, 50, 75]) {
+      const id = `quest-${quest.id}-${threshold}`;
+      if (before < threshold && after >= threshold && !earned.has(id)) {
+        earned.add(id);
+        unlocked.push({ id, quest, threshold, label: milestoneLabels[threshold] });
+      }
+    }
+  }
+  if (unlocked.length) {
+    try { localStorage.setItem(achievementStorageKey, JSON.stringify([...earned])); } catch { /* The achievement still appears from its current quest progress. */ }
+    unlocked.forEach(item => createInAppNotification({
+      title: "Quest achievement unlocked",
+      body: `${item.quest.name} reached ${item.threshold}% — ${item.label}.`,
+      page: "Achievements",
+      actionLabel: "View achievements",
+      actionTarget: "Achievements",
+      dedupeKey: `quest-achievement:${item.id}`,
+      preference: "goalNotifications"
+    }));
+  }
+  return unlocked;
 }
 
 function syncLinkedInventoryQuests(entries = getInventoryEntries()) {
@@ -2640,7 +2679,15 @@ function syncLinkedInventoryQuests(entries = getInventoryEntries()) {
     }
   }
   if (inventoryChanged) saveInventoryEntries(entries);
-  if (changed) saveQuests(quests);
+  if (changed) {
+    const unlocked = saveQuests(quests);
+    if (unlocked?.length && !appShell.hidden) {
+      const last = unlocked[unlocked.length - 1];
+      showToast(unlocked.length === 1
+        ? `${last.label} achievement unlocked for ${last.quest.name}.`
+        : `${unlocked.length} progress achievements unlocked for ${last.quest.name}.`);
+    }
+  }
   return changed;
 }
 
@@ -2660,6 +2707,20 @@ function linkedInventoryQuestCurrent(entry, quest) {
 function questProgress(quest) {
   const target = Number(quest.target || 0);
   return target > 0 ? Math.min(100, Math.round((Number(quest.current || 0) / target) * 100)) : 0;
+}
+
+function questMilestoneHint(progress, target, current) {
+  if (!(Number(target) > 0)) return "Set a target to unlock quarterway, halfway, and three-quarters achievements.";
+  const pct = Math.max(0, Math.min(100, Number(progress) || 0));
+  if (pct >= 100) return "All three progress achievements are unlocked. This quest is complete.";
+  const next = [
+    { threshold: 25, label: "Quarterway there" },
+    { threshold: 50, label: "Halfway there" },
+    { threshold: 75, label: "Three-quarters there" }
+  ].find(item => pct < item.threshold);
+  if (!next) return "All three progress achievements are unlocked. Keep going toward 100% completion.";
+  const needed = Math.max(0, Number(target || 0) * next.threshold / 100 - Number(current || 0));
+  return `Next achievement: ${next.label} at ${next.threshold}% — ${formatKsh(Math.ceil(needed))} more progress needed.`;
 }
 
 function activeQuests(quests = getQuests()) {
@@ -4366,6 +4427,8 @@ function openQuestDialog(questId = "") {
   };
   const questPaceHint = form.querySelector("[data-quest-pace-hint]");
   const updateQuestPaceHint = () => {
+    // Rebuild from current form values; don't append to the previous live hint.
+    questPaceHint.textContent = "";
     const debtQuest = questCategorySelect.value === "Debt Eradication";
     const linkedDebtPayoffQuest = linkedInventoryItem?.type === "liability" && debtQuest;
     const verb = debtQuest ? "repay" : "save";
@@ -4389,6 +4452,8 @@ function openQuestDialog(questId = "") {
         questPaceHint.textContent = `About ${formatKsh(Math.ceil(pace.required))} per month will ${verb} the remaining ${formatKsh(remaining)} by the deadline.`;
       }
     }
+    const progress = target > 0 ? Math.min(100, Math.round(current / target * 100)) : 0;
+    questPaceHint.textContent = `${questPaceHint.textContent} ${questMilestoneHint(progress, target, current)}`;
   };
   const questCategoryPreview = form.querySelector(".quest-category-select-icon");
   const questTierPreview = form.querySelector("[data-quest-tier-preview]");
@@ -4426,7 +4491,6 @@ function openQuestDialog(questId = "") {
     const savedCurrent = currentLinkedInventoryItem ? linkedInventoryQuestCurrent(currentLinkedInventoryItem, { category }) : current;
     if (!name || !Number.isFinite(savedCurrent) || !Number.isFinite(target) || savedCurrent < 0 || target <= 0) return;
     const wasComplete = quest ? questProgress(quest) === 100 : false;
-    const previousProgress = quest ? questProgress(quest) : 0;
     const deadline = String(formData.get("deadline") || "");
     if (deadline && !quest && deadline <= localDateValue()) {
       showToast("Choose a deadline in the future.");
@@ -4443,8 +4507,9 @@ function openQuestDialog(questId = "") {
       startAmount: quest?.startAmount ?? (quest?.createdAt ? 0 : current)
     };
     const updatedQuests = quest ? quests.map(item => item.id === quest.id ? updatedQuest : item) : [...quests, updatedQuest];
+    let unlockedAchievements = [];
     try {
-      saveQuests(updatedQuests);
+      unlockedAchievements = saveQuests(updatedQuests) || [];
       syncLinkedInventoryQuests();
     } catch {
       showToast("Unable to save this quest in browser storage.");
@@ -4462,10 +4527,12 @@ function openQuestDialog(questId = "") {
         window.setTimeout(() => showToast(`Overflow: re-route this monthly saving to ${next.name}${need !== null ? ` (needs ${formatKsh(Math.ceil(need))}/mo)` : ""}.`), 1200);
       }
     } else {
-      const newProgress = questProgress(updatedQuest);
-      const crossed = [75, 50, 25].find(threshold => previousProgress < threshold && newProgress >= threshold);
-      if (crossed) createInAppNotification({ title: `${crossed}% quest milestone`, body: `${name} has reached ${crossed}% progress. Keep going at your own pace.`, page: "Quests", dedupeKey: `quest-progress:${updatedQuest.id}:${crossed}`, preference: "goalNotifications" });
-      showToast(quest ? "Quest progress updated." : `${name} added to your quests.`);
+      if (unlockedAchievements.length) {
+        const last = unlockedAchievements[unlockedAchievements.length - 1];
+        showToast(unlockedAchievements.length === 1
+          ? `${last.label} achievement unlocked for ${name}.`
+          : `${unlockedAchievements.length} progress achievements unlocked for ${name}.`);
+      } else showToast(quest ? "Quest progress updated." : `${name} added to your quests.`);
     }
   });
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
@@ -4848,6 +4915,21 @@ function renderAchievementsPage() {
     { id: "net-worth-1m", name: "Net worth: 1 million", detail: "Reach 1,000,000 in net worth.", progress: Math.max(0, balance.netWorth), target: 1000000, format: "money", icon: "networth", tone: "#235d83" },
     { id: "positive-flow", name: "Positive cash flow", detail: "Finish a reporting period with income above expenses.", progress: totals.reportIncome > 0 && totals.cashAfterSpending > 0 ? 1 : 0, target: 1, format: "count", icon: "surplus", tone: "#179678" }
   ];
+  const questMilestoneLabels = { 25: "Quarterway there", 50: "Halfway there", 75: "Three-quarters there" };
+  quests.forEach(quest => {
+    if (!(Number(quest.target) > 0)) return;
+    const progress = questProgress(quest);
+    [25, 50, 75].forEach(threshold => candidates.push({
+      id: `quest-${quest.id}-${threshold}`,
+      name: `${questMilestoneLabels[threshold]} · ${quest.name}`,
+      detail: `Reach ${threshold}% progress on ${quest.name}.`,
+      progress: Math.min(progress, threshold),
+      target: threshold,
+      format: "count",
+      icon: "goal",
+      tone: questCategoryAccent(quest.category)
+    }));
+  });
   let previouslyEarned = [];
   try {
     const stored = JSON.parse(localStorage.getItem(achievementStorageKey) || "[]");
@@ -5921,7 +6003,7 @@ function renderNotificationCenter() {
   const action = item => item.actionLabel && item.actionTarget ? `<button class="notification-detail-action" type="button" data-notification-action="${escapeHTML(item.id)}">${escapeHTML(item.actionLabel)} <span aria-hidden="true">↗</span></button>` : "";
   const heading = selected
     ? `<header class="notification-center-heading notification-detail-heading"><button type="button" data-notification-back aria-label="Back to notifications">← <span>All notifications</span></button><div><strong>Notification</strong><span>${unread ? `${unread} unread` : "You’re all caught up"}</span></div></header>`
-    : `<header class="notification-center-heading"><div><strong>Notifications</strong><span>${unread ? `${unread} unread` : "You’re all caught up"}</span></div><button type="button" data-notification-read-all ${unread ? "" : "disabled"}>Mark all read</button></header>`;
+    : `<header class="notification-center-heading"><div><strong>Notifications</strong><span>${unread ? `${unread} unread` : "You’re all caught up"}</span></div><div class="notification-center-actions"><button type="button" data-notification-read-all ${unread ? "" : "disabled"}>Mark all read</button><button type="button" data-notification-clear-all ${items.length ? "" : "disabled"}>Clear all</button></div></header>`;
   const content = selected
     ? `<article class="notification-detail"><div class="notification-detail-meta"><span class="notification-detail-mark" aria-hidden="true">✓</span><time>${dateLabel(selected)}</time></div><h2>${escapeHTML(selected.title || "Update")}</h2><p>${escapeHTML(selected.body || "")}</p>${action(selected)}</article>`
     : items.length
@@ -5948,6 +6030,24 @@ function toggleNotificationCenter(button) {
   center.className = "notification-center";
   center.setAttribute("role", "dialog");
   center.setAttribute("aria-label", "Notifications");
+  center.addEventListener("click", event => {
+    const dismiss = event.target.closest("[data-notification-dismiss]");
+    if (dismiss) {
+      event.stopPropagation();
+      const id = dismiss.dataset.notificationDismiss;
+      saveInAppNotifications(getInAppNotifications().filter(item => item.id !== id));
+      if (activeNotificationId === id) activeNotificationId = "";
+      renderNotificationCenter();
+      return;
+    }
+    const clearAll = event.target.closest("[data-notification-clear-all]");
+    if (clearAll && !clearAll.disabled) {
+      event.stopPropagation();
+      activeNotificationId = "";
+      saveInAppNotifications([]);
+      renderNotificationCenter();
+    }
+  });
   document.body.append(center);
   button.setAttribute("aria-expanded", "true");
   button.setAttribute("aria-haspopup", "dialog");

@@ -7685,6 +7685,7 @@ body.reduce-motion .quest-celebration { opacity: 1; transform: none; }
 .notification-center { position: fixed; z-index: 1200; width: min(380px, calc(100vw - 24px)); max-height: min(540px, calc(100vh - 24px)); display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; border: 1px solid #dce6df; border-radius: 14px; background: #fff; color: #263a2f; box-shadow: 0 18px 50px #14251e26; }
 .notification-center-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 15px; border-bottom: 1px solid #e8eeea; }
 .notification-center-heading > div { display: grid; gap: 3px; }
+.notification-center-actions { display: flex; align-items: center; gap: 6px; }
 .notification-center-heading strong { font: 700 13px var(--display); }
 .notification-center-heading span { color: #7d8981; font-size: 9px; }
 .notification-center-heading button { padding: 6px 8px; border: 0; border-radius: 7px; background: #edf6f1; color: #147b59; font: 600 9px var(--sans); cursor: pointer; }
@@ -11341,5 +11342,39 @@ body.theme-dark { background: var(--bg); }
 @media (max-width: 760px) {
   .help-chat { right: 14px; bottom: calc(82px + env(safe-area-inset-bottom)); }
   .help-chat-panel { position: fixed; right: 10px; bottom: calc(146px + env(safe-area-inset-bottom)); width: calc(100vw - 20px); max-width: 420px; height: min(70dvh, 570px); }
+}
+
+/* Larger, more comfortable type for the signed-in mobile workspace. */
+@media (max-width: 880px) {
+  .app-shell #page-content { -webkit-text-size-adjust: 108%; text-size-adjust: 108%; }
+  .app-shell #page-content :is(
+    p, li, .welcome-sub, .inventory-note, .inventory-account-source,
+    .liability-hint, .quest-plan-insight, .quest-empty-state p,
+    .dashboard-next-action p, .settings-disclosure, .cx-note,
+    .cx-faq .faq-a-inner p, .allocation-empty
+  ) { font-size: 14px !important; line-height: 1.5; }
+  .app-shell #page-content :is(
+    .section-kicker, .eyebrow, .inventory-label, .metric-heading,
+    .metric-foot, .metric-caption, .chart-period-label, .chart-legend,
+    .cashflow-month-label, .inventory-account-count, .quest-card-amounts,
+    .quest-card-detail small, .quest-overview-card .inventory-label,
+    .settings-field small, .cx-social-copy span
+  ) { font-size: 12px !important; }
+  .app-shell .mobile-tab { font-size: 12px !important; }
+  .app-shell .notification-center :is(.notification-center-heading span, .notification-item-copy > span, .notification-item-copy time, .notification-center-empty p) {
+    font-size: 12px !important;
+    line-height: 1.5;
+  }
+  body dialog.inventory-dialog .inventory-form-field > span,
+  body dialog.inventory-dialog .reset-copy,
+  body dialog.inventory-dialog .reset-status,
+  body dialog.inventory-dialog .liability-hint,
+  body dialog.inventory-dialog .onboarding-copy { font-size: 14px !important; line-height: 1.5; }
+  body dialog.inventory-dialog .inventory-form-field input,
+  body dialog.inventory-dialog .inventory-form-field select,
+  body dialog.inventory-dialog .inventory-form-field textarea { font-size: 16px !important; }
+  .help-chat-message p { font-size: 15px; }
+  .help-chat-kicker, .help-chat-note { font-size: 12px; }
+  .help-chat-form input { font-size: 16px; }
 }
 
