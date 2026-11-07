@@ -961,10 +961,10 @@ function getPowerUpReportTotals() {
 // Read and save the browser-local profile and preference settings.
 const ACCENT_IDS = ["leo", "pwani", "kitenge", "mukimo"];
 const ACCENT_PRESETS = [
-  { id: "leo", name: "Leo", primary: "#16471c", accent: "#c9f05b", surface: "#fffafa" },
-  { id: "pwani", name: "Pwani", primary: "#286780", accent: "#f4bf4d", surface: "#fffafa" },
-  { id: "kitenge", name: "Kitenge", primary: "#b83720", accent: "#f2b632", surface: "#fff8ee" },
-  { id: "mukimo", name: "Mukimo", primary: "#36782d", accent: "#e8f232", surface: "#fcfbe9" }
+  { id: "leo", name: "Growth", primary: "#174b36", accent: "#b6e35c", surface: "#f8fbf5" },
+  { id: "pwani", name: "Trust", primary: "#285c8a", accent: "#54d5d0", surface: "#f4fbfc" },
+  { id: "kitenge", name: "Momentum", primary: "#873e78", accent: "#ff927f", surface: "#fff6f5" },
+  { id: "mukimo", name: "Harvest", primary: "#466b30", accent: "#e9b84e", surface: "#fcf9ef" }
 ];
 const LEGACY_ACCENT_MAP = { emerald: "leo", amber: "kitenge", matrix: "mukimo", blue: "pwani", violet: "pwani", coral: "kitenge", aqua: "mukimo" };
 function normalizeAccent(accent) {
