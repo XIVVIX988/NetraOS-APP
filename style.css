@@ -18,7 +18,7 @@
   --mono: 'DM Mono',monospace;
 }
 
-.settings-title-mobile, .settings-mobile-menu, .settings-mobile-subnav, .settings-profile-mobile-details, .settings-edit-profile, .settings-theme-choice { display: none; }
+.settings-title-mobile, .settings-mobile-tabs, .settings-profile-mobile-details, .settings-edit-profile, .settings-theme-choice { display: none; }
 
 @media (max-width: 600px) {
   .app-shell .inventory-heading .welcome-sub {
@@ -28,8 +28,116 @@
     font-size: 10.5px;
     line-height: 1.35;
   }
+  .app-shell .settings-page { gap: 12px; }
+  .app-shell .settings-page > .inventory-heading {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+  }
+  .app-shell .settings-page > .inventory-heading > div { min-width: 0; }
+  .app-shell .settings-page > .inventory-heading .eyebrow,
+  .app-shell .settings-page > .inventory-heading .welcome-sub { display: none; }
+  .app-shell .settings-page > .inventory-heading h1 { margin: 0; font-size: 23px; }
+  .app-shell .settings-title-desktop { display: none; }
+  .app-shell .settings-title-mobile { display: inline; }
+  .app-shell .settings-page > .settings-tabs { display: none; }
+  .app-shell .settings-page > .settings-mobile-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    margin: 0;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--panel-2);
+    margin-bottom: 8px;
+  }
+  .app-shell .settings-mobile-tab {
+    min-width: 0;
+    min-height: 38px;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font: 600 10px var(--sans);
+    cursor: pointer;
+  }
+  .app-shell .settings-mobile-tab.is-active { background: var(--green); color: #fff; }
+  .app-shell .settings-profile-panel { padding: 14px; }
+  .app-shell .settings-profile-panel > .panel-heading { margin-bottom: 10px; }
+  .app-shell .settings-profile-panel > .panel-heading h2 { font-size: 15px; }
+  .app-shell .settings-profile-panel .profile-summary {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    align-items: center;
+    gap: 5px 11px;
+    margin: 0 0 8px;
+    padding: 11px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--panel-2);
+  }
+  .app-shell .settings-profile-panel .profile-initials { grid-column: 1; grid-row: 1 / span 2; width: 52px; height: 52px; min-width: 52px; font-size: 15px; }
+  .app-shell .settings-profile-panel .profile-summary > div { grid-column: 2; grid-row: 1; min-width: 0; }
+  .app-shell .settings-profile-panel .profile-summary strong { font-size: 13px; overflow-wrap: anywhere; }
+  .app-shell .settings-profile-panel .profile-summary small { font-size: 9px; line-height: 1.35; overflow-wrap: anywhere; }
+  .app-shell .settings-edit-profile {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    flex: none;
+    padding: 0 10px;
+    border: 1px solid color-mix(in srgb, var(--green) 28%, var(--line));
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--green) 9%, var(--panel));
+    color: var(--green);
+    font: 600 10px var(--sans);
+    cursor: pointer;
+  }
+  .app-shell .settings-profile-mobile-details { display: grid; padding: 0 5px; }
+  .app-shell .settings-profile-mobile-details > div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; padding: 11px 3px; border-bottom: 1px solid var(--line); }
+  .app-shell .settings-profile-mobile-details > div:last-child { border-bottom: 0; }
+  .app-shell .settings-profile-mobile-details span { color: var(--muted); font-size: 10px; }
+  .app-shell .settings-profile-mobile-details strong { min-width: 0; color: var(--text); font: 500 11px var(--sans); overflow-wrap: anywhere; }
+  .app-shell .settings-profile-tab:not(.is-editing) .settings-profile-form { display: none !important; }
+  .app-shell .settings-profile-tab.is-editing .settings-profile-mobile-details { display: none; }
+  .app-shell .settings-profile-tab.is-editing .settings-profile-form { display: grid; }
+  .app-shell .settings-profile-form { gap: 13px; }
+  .app-shell .settings-profile-form .account-form-actions { position: static; display: flex; flex-direction: column; align-items: stretch; gap: 9px; padding: 12px 0 0; border: 0; }
+  .app-shell .settings-profile-form .account-form-actions .inventory-submit { width: 100%; }
+  .app-shell .settings-profile-tab .account-notice { gap: 8px; margin-top: 10px; padding: 10px; }
+  .app-shell .settings-profile-tab .account-notice p { font-size: 9px; }
+  .app-shell .settings-form { gap: 10px; }
+  .app-shell .settings-form > .settings-tab-panel { gap: 10px; }
+  .app-shell .settings-form .settings-panel { padding: 14px; border-radius: 13px; box-shadow: none; }
+  .app-shell .settings-form .settings-panel .panel-heading h2 { font-size: 14px; }
+  .app-shell .settings-form .settings-field { min-height: 56px; gap: 8px; }
+  .app-shell .settings-form .settings-field > span strong { font-size: 11px; }
+  .app-shell .settings-form .settings-field > span small { font-size: 9px; line-height: 1.35; }
+  .app-shell .settings-form .settings-field > select,
+  .app-shell .settings-form .settings-field > .payday-input { max-width: 145px; }
+  .app-shell .settings-form .settings-theme-field { display: grid; align-items: start; gap: 9px; padding: 12px 0; }
+  .app-shell .settings-form .settings-theme-field > select { display: none; }
+  .app-shell .settings-theme-choice { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .app-shell .settings-theme-choice button { min-height: 36px; padding: 0 5px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); color: var(--muted); font: 600 10px var(--sans); cursor: pointer; }
+  .app-shell .settings-theme-choice button.is-selected { border-color: var(--green); background: var(--green); color: #fff; }
+  .app-shell .settings-form .settings-actions { position: static; display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 0 0; border: 0; background: transparent; backdrop-filter: none; }
+  .app-shell .settings-form .settings-actions .inventory-submit { width: 100%; }
+  .app-shell .settings-downloads { gap: 12px; margin-top: 12px; padding: 13px; }
+  .app-shell .settings-download-group .settings-inline-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; }
+  .app-shell .settings-download-group .settings-inline-actions button,
+  .app-shell .settings-cookie-actions button { width: 100%; min-height: 42px; text-align: left; }
+  .app-shell .settings-danger-zone { border-color: color-mix(in srgb, #c33b37 28%, var(--line)); }
+  .app-shell .settings-danger-zone .settings-inline-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .app-shell.theme-dark .settings-edit-profile { border-color: color-mix(in srgb, var(--green) 42%, var(--line)); background: color-mix(in srgb, var(--green) 18%, var(--panel)); }
 }
-
 * {
   box-sizing: border-box;
 }
@@ -4685,6 +4793,11 @@ body.theme-dark #public-shell .auth-error.success {
     left: 18px;
   }
 
+  .settings-field {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 12px 0;
+  }
 }
 
 /* Shared social footer controls and copyright layout. */
@@ -7984,6 +8097,8 @@ body.theme-dark .security-lock-error { color: #ffb7a7 !important; }
 @media (max-width: 560px) {
   .legal-page { padding-inline: 14px; }
   .legal-card { border-radius: 17px; }
+  .settings-pin-fields { grid-template-columns: 1fr; }
+  .settings-audit li { flex-direction: column; gap: 2px; }
 }
 
 /* Per-user accent palettes and controls added to the expanded Settings view. */
@@ -9195,6 +9310,76 @@ body.theme-dark #public-shell .phone-entry-welcome > .auth-fluid-art { filter: s
 .app-shell.theme-dark .accent-preview { background: color-mix(in srgb, var(--green) 12%, var(--panel)); }
 @media (max-width: 560px) { .accent-preview { align-items: flex-start; flex-wrap: wrap; margin-left: 0; } .accent-preview-sample { margin-left: 29px; } }
 
+/* Keep Settings controls aligned beside their labels on narrow phone screens. */
+@media (max-width: 560px) {
+  .app-shell .settings-panel .settings-field {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 60px;
+    padding: 12px 0;
+  }
+
+  .app-shell .settings-panel .settings-field > span:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .app-shell .settings-panel .settings-field > input[type="checkbox"] {
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    margin: 0 2px 0 0;
+  }
+
+  .app-shell .settings-panel .settings-field > select,
+  .app-shell .settings-panel .settings-field > .payday-input {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 52%;
+    justify-content: flex-end;
+    gap: 5px;
+  }
+
+  .app-shell .settings-panel .settings-field > .payday-input input {
+    width: 54px;
+    min-width: 0;
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .app-shell .settings-panel .settings-field > .payday-input em {
+    font-size: 10px;
+  }
+
+  .app-shell .settings-panel .payday-anchor-field > .payday-input {
+    flex: 0 0 auto;
+    width: max-content;
+    max-width: none;
+    white-space: nowrap;
+  }
+
+  .app-shell .settings-panel .payday-anchor-field > .payday-input input {
+    width: 52px;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-shell .settings-panel .payday-anchor-field > .payday-input {
+    gap: 4px;
+  }
+
+  .app-shell .settings-panel .payday-anchor-field > .payday-input input {
+    width: 46px;
+  }
+
+  .app-shell .settings-panel .payday-anchor-field > .payday-input em {
+    font-size: 9px;
+  }
+}
+
+
 /* ---- Settings custom dropdowns ---- */
 .settings-dropdown { display: inline-flex; min-width: 220px; max-width: 100%; }
 .settings-dropdown-button {
@@ -9206,6 +9391,8 @@ body.theme-dark #public-shell .phone-entry-welcome > .auth-fluid-art { filter: s
 .settings-dropdown-button:focus-visible { outline: 2px solid var(--gold, #13875f); outline-offset: 2px; }
 .settings-dropdown-button .dropdown-chevron { width: 12px; height: 12px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .settings-dropdown-button[aria-expanded="true"] .dropdown-chevron { transform: rotate(180deg); }
+@media (max-width: 880px) { .settings-dropdown { width: 100%; min-width: 0; } }
+
 /* Long dropdowns (month lists) scroll instead of running off screen. */
 .action-popover { max-height: min(70vh, 380px); overflow-y: auto; overscroll-behavior: contain; }
 
@@ -11171,7 +11358,7 @@ body.theme-dark { background: var(--bg); }
     .metric-foot, .metric-caption, .chart-period-label, .chart-legend,
     .cashflow-month-label, .inventory-account-count, .quest-card-amounts,
     .quest-card-detail small, .quest-overview-card .inventory-label,
-    .cx-social-copy span
+    .settings-field small, .cx-social-copy span
   ) { font-size: 12px !important; }
   .app-shell .mobile-tab { font-size: 12px !important; }
   .app-shell .notification-center :is(.notification-center-heading span, .notification-item-copy > span, .notification-item-copy time, .notification-center-empty p) {
@@ -11191,98 +11378,49 @@ body.theme-dark { background: var(--bg); }
   .help-chat-form input { font-size: 16px; }
 }
 
-/* Settings phone layout: one category at a time, with consistent controls and saves. */
+
+/* ---- Phone Settings: grouped menu + one section per screen ---- */
+.settings-menu, .settings-mobile-bar { display: none; }
 @media (max-width: 600px) {
-  .app-shell .settings-page > .inventory-heading { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
-  .app-shell .settings-page > .inventory-heading > div { min-width: 0; }
-  .app-shell .settings-page > .inventory-heading .eyebrow,
-  .app-shell .settings-page > .inventory-heading .welcome-sub { display: none; }
-  .app-shell .settings-page > .inventory-heading h1 { margin: 0; font-size: 23px; }
-  .app-shell .settings-title-desktop { display: none; }
-  .app-shell .settings-title-mobile { display: inline; }
-  .app-shell .settings-page > .settings-tabs { display: none; }
-  .app-shell .settings-mobile-menu { display: grid; gap: 0; margin: 0; padding: 0 14px; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
-  .app-shell .settings-mobile-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 60px; padding: 10px 2px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
-  .app-shell .settings-mobile-row:last-child { border-bottom: 0; }
-  .app-shell .settings-mobile-row > span:first-child { display: grid; gap: 3px; }
-  .app-shell .settings-mobile-row strong { font: 600 14px var(--sans); }
-  .app-shell .settings-mobile-row small { color: var(--muted); font: 400 12px/1.35 var(--sans); }
-  .app-shell .settings-mobile-row > span:last-child { color: var(--muted); font-size: 23px; }
-  .app-shell .settings-mobile-subnav { display: flex; align-items: center; gap: 14px; min-height: 44px; }
-  .app-shell .settings-mobile-subnav > button { display: inline-flex; align-items: center; gap: 4px; padding: 8px 0; border: 0; background: transparent; color: var(--green); font: 600 14px var(--sans); cursor: pointer; }
-  .app-shell .settings-mobile-subnav > strong { color: var(--text); font: 600 16px var(--sans); }
-  .app-shell .settings-page[data-mobile-section="home"] .settings-profile-tab,
-  .app-shell .settings-page[data-mobile-section="home"] .settings-form { display: none !important; }
-  .app-shell .settings-page[data-mobile-section="security"] #settings-panel-privacy [data-settings-mobile-section]:not([data-settings-mobile-section="security"]),
-  .app-shell .settings-page[data-mobile-section="reminders"] #settings-panel-privacy [data-settings-mobile-section]:not([data-settings-mobile-section="reminders"]),
-  .app-shell .settings-page[data-mobile-section="account"] #settings-panel-privacy [data-settings-mobile-section]:not([data-settings-mobile-section="account"]) { display: none !important; }
-  .app-shell .settings-page[data-mobile-section="security"] #settings-panel-privacy,
-  .app-shell .settings-page[data-mobile-section="reminders"] #settings-panel-privacy,
-  .app-shell .settings-page[data-mobile-section="account"] #settings-panel-privacy { display: grid; }
-  .app-shell .settings-page[data-mobile-section="account"] .settings-actions { display: none; }
-  .app-shell .settings-page { gap: 10px; }
-  .app-shell .settings-page > .inventory-heading { margin: 0; }
-  .app-shell .settings-profile-panel,
-  .app-shell .settings-form .settings-panel { padding: 14px; border-radius: 14px; box-shadow: none; }
-  .app-shell .settings-profile-panel > .panel-heading { margin-bottom: 10px; }
-  .app-shell .settings-profile-panel > .panel-heading h2 { font-size: 15px; }
-  .app-shell .settings-profile-panel .profile-summary { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; gap: 5px 11px; margin: 0 0 8px; padding: 11px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel-2); }
-  .app-shell .settings-profile-panel .profile-initials { grid-column: 1; grid-row: 1 / span 2; width: 52px; height: 52px; min-width: 52px; font-size: 15px; }
-  .app-shell .settings-profile-panel .profile-summary > div { grid-column: 2; grid-row: 1; min-width: 0; }
-  .app-shell .settings-profile-panel .profile-summary strong { font-size: 13px; overflow-wrap: anywhere; }
-  .app-shell .settings-profile-panel .profile-summary small { font-size: 12px !important; line-height: 1.35; overflow-wrap: anywhere; }
-  .app-shell .settings-edit-profile { grid-column: 2; grid-row: 2; justify-self: start; display: inline-flex; align-items: center; justify-content: center; min-height: 36px; flex: none; padding: 0 10px; border: 1px solid color-mix(in srgb, var(--green) 28%, var(--line)); border-radius: 9px; background: color-mix(in srgb, var(--green) 9%, var(--panel)); color: var(--green); font: 600 12px var(--sans); cursor: pointer; }
-  .app-shell .settings-profile-mobile-details { display: grid; padding: 0 5px; }
-  .app-shell .settings-profile-mobile-details > div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; padding: 11px 3px; border-bottom: 1px solid var(--line); }
-  .app-shell .settings-profile-mobile-details > div:last-child { border-bottom: 0; }
-  .app-shell .settings-profile-mobile-details span { color: var(--muted); font-size: 12px; }
-  .app-shell .settings-profile-mobile-details strong { min-width: 0; color: var(--text); font: 500 12px var(--sans); overflow-wrap: anywhere; }
-  .app-shell .settings-profile-tab:not(.is-editing) .settings-profile-form { display: none !important; }
-  .app-shell .settings-profile-tab.is-editing .settings-profile-mobile-details { display: none; }
-  .app-shell .settings-profile-tab.is-editing .settings-profile-form { display: grid; }
-  .app-shell .settings-profile-form { gap: 13px; }
-  .app-shell .settings-profile-tab .account-notice { gap: 8px; margin-top: 10px; padding: 10px; }
-  .app-shell .settings-profile-tab .account-notice p { font-size: 12px !important; }
-  .app-shell .settings-form { gap: 10px; padding-bottom: 8px; }
-  .app-shell .settings-form > .settings-tab-panel { gap: 10px; }
-  .app-shell .settings-form .settings-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 60px; padding: 10px 0; }
-  .app-shell .settings-form .settings-field > span:first-child { flex: 1 1 auto; min-width: 0; }
-  .app-shell .settings-form .settings-field > span strong { font-size: 14px; line-height: 1.3; }
-  .app-shell .settings-form .settings-field > span small { display: block; margin-top: 3px; font-size: 12px !important; line-height: 1.35; }
-  .app-shell .settings-form .settings-field > input[type="checkbox"] { flex: 0 0 20px; width: 20px; height: 20px; margin: 0; }
-  .app-shell .settings-form .settings-field > select,
-  .app-shell .settings-form .settings-field > .settings-dropdown { flex: 1 1 100%; width: 100%; min-width: 0; max-width: none; }
-  .app-shell .settings-form .settings-field:has(> select, > .settings-dropdown, > .payday-input) { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 8px; }
-  .app-shell .settings-form .settings-field > select,
-  .app-shell .settings-form .settings-dropdown-button { min-height: 44px; font-size: 16px; }
-  .app-shell .settings-form .settings-field > .payday-input { width: 100%; max-width: none; justify-content: flex-start; }
-  .app-shell .settings-form .settings-field > .payday-input input { width: 72px; }
-  .app-shell .settings-form .settings-theme-field { display: grid; gap: 9px; }
-  .app-shell .settings-form .settings-theme-field > select { display: none; }
-  .app-shell .settings-theme-choice { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-  .app-shell .settings-theme-choice button { min-height: 42px; padding: 0 5px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); color: var(--muted); font: 600 13px var(--sans); cursor: pointer; }
-  .app-shell .settings-theme-choice button.is-selected { border-color: var(--green); background: var(--green); color: #fff; }
-  .app-shell .settings-form .settings-actions,
-  .app-shell .settings-profile-form .account-form-actions { position: sticky; bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 8; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; margin: 0 -4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--panel) 94%, transparent); backdrop-filter: blur(12px); }
-  .app-shell .settings-form .settings-actions > span,
-  .app-shell .settings-profile-form .account-form-actions > span { font-size: 12px; }
+  .app-shell .settings-page > .inventory-heading,
+  .app-shell .settings-page > .settings-mobile-tabs { display: none; }
+  .app-shell .settings-mobile-bar { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; margin: 0 0 4px; }
+  .app-shell .settings-mobile-bar strong { text-align: center; color: var(--text); font: 600 17px var(--sans); }
+  .app-shell .settings-mobile-bar button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--text); box-shadow: 0 2px 10px rgba(20, 30, 25, .07); cursor: pointer; }
+  .app-shell .settings-mobile-bar svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .app-shell .settings-menu { display: grid; gap: 2px; }
+  .app-shell .settings-menu-group h3 { margin: 16px 4px 8px; color: var(--muted); font: 600 14px var(--sans); }
+  .app-shell .settings-menu-group:first-child h3 { margin-top: 8px; }
+  .app-shell .settings-menu-card { display: grid; gap: 2px; padding: 8px; border: 1px solid var(--line); border-radius: 22px; background: var(--panel); }
+  .app-shell .settings-menu-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 54px; padding: 4px 10px 4px 4px; border: 0; border-radius: 14px; background: transparent; color: var(--text); font: 500 15px var(--sans); text-align: left; cursor: pointer; }
+  .app-shell .settings-menu-row:active { background: var(--panel-2); }
+  .app-shell .settings-menu-icon { display: grid; flex: none; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: var(--panel-2); }
+  .app-shell .settings-menu-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .app-shell .settings-menu-label { flex: 1; min-width: 0; }
+  .app-shell .settings-menu-chevron { flex: none; width: 16px; height: 16px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  /* Menu screen shows only the bar + menu; detail screen hides the menu. */
+  .app-shell .settings-page[data-mobile-view="menu"] > :not(.settings-mobile-bar):not(.settings-menu) { display: none !important; }
+  .app-shell .settings-page[data-mobile-view="detail"] > .settings-menu { display: none; }
+  /* Split the Security tab into its three screens. */
+  .app-shell .settings-form[data-mobile-section="security"] #settings-panel-privacy > .settings-panel:not([data-settings-section="security"]),
+  .app-shell .settings-form[data-mobile-section="reminders"] #settings-panel-privacy > .settings-panel:not([data-settings-section="reminders"]),
+  .app-shell .settings-form[data-mobile-section="danger"] #settings-panel-privacy > .settings-panel:not([data-settings-section="danger"]),
+  .app-shell .settings-form[data-mobile-section="danger"] .settings-actions { display: none; }
+  /* Readable rows; dropdowns no longer force a 220px column. */
+  .app-shell .settings-form .settings-field { min-height: 60px; }
+  .app-shell .settings-form .settings-field > span strong { font-size: 14px; }
+  .app-shell .settings-form .settings-field > span small { font-size: 11.5px; line-height: 1.4; }
+  .app-shell .settings-panel .settings-field > .settings-dropdown { flex: 0 1 auto; min-width: 0; max-width: 54%; }
+  .app-shell .settings-panel .settings-dropdown-button { min-height: 40px; padding: 0 10px; font-size: 13px; }
+  .app-shell .settings-form .settings-panel .panel-heading h2,
+  .app-shell .settings-profile-panel > .panel-heading h2 { font-size: 16px; }
+  .app-shell .settings-profile-panel .profile-summary strong { font-size: 15px; }
+  .app-shell .settings-profile-panel .profile-summary small { font-size: 11.5px; }
+  .app-shell .settings-profile-mobile-details span { font-size: 12px; }
+  .app-shell .settings-profile-mobile-details strong { font-size: 14px; }
+  .app-shell .settings-edit-profile { min-height: 38px; font-size: 12px; }
+  .app-shell .settings-download-group h4, .app-shell .settings-passkeys-heading strong { font-size: 13px; }
+  .app-shell .settings-passkeys-heading small, .app-shell .passkey-status { font-size: 12px; }
   .app-shell .settings-form .settings-actions .inventory-submit,
-  .app-shell .settings-profile-form .account-form-actions .inventory-submit { width: auto; min-height: 42px; }
-  .app-shell .settings-passkeys, .app-shell .settings-audit { padding: 12px; }
-  .app-shell .settings-passkeys-heading strong, .app-shell .settings-audit-heading strong { font-size: 14px; }
-  .app-shell .settings-passkeys-heading small, .app-shell .settings-audit li,
-  .app-shell .passkey-list li, .app-shell .passkey-list li small { font-size: 12px !important; line-height: 1.4; }
-  .app-shell .passkey-list li { gap: 8px; padding: 10px 0; }
-  .app-shell .settings-audit-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
-  .app-shell .settings-audit-export { flex-wrap: wrap; }
-  .app-shell .settings-audit li { flex-direction: column; gap: 2px; }
-  .app-shell .settings-pin-fields { grid-template-columns: 1fr; }
-  .app-shell .autolock-options .pin-recovery-button { width: 100%; min-height: 42px; }
-  .app-shell .settings-download-group .settings-inline-actions,
-  .app-shell .settings-danger-zone .settings-inline-actions { display: grid; grid-template-columns: 1fr; }
-  .app-shell .settings-downloads { gap: 12px; margin-top: 12px; padding: 13px; }
-  .app-shell .settings-download-group .settings-inline-actions button,
-  .app-shell .settings-cookie-actions button { width: 100%; min-height: 42px; text-align: left; }
-  .app-shell .settings-danger-zone { border-color: color-mix(in srgb, #c33b37 28%, var(--line)); }
-  .app-shell.theme-dark .settings-edit-profile { border-color: color-mix(in srgb, var(--green) 42%, var(--line)); background: color-mix(in srgb, var(--green) 18%, var(--panel)); }
+  .app-shell .settings-profile-form .account-form-actions .inventory-submit { min-height: 48px; border-radius: 14px; font-size: 14px; }
 }
