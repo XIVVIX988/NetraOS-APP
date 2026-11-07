@@ -1706,7 +1706,7 @@ function showPhoneSplash() {
   document.body.classList.remove("public-view");
   document.body.classList.add("auth-view", "phone-entry-view");
   window.location.hash = "launch";
-  publicShell.innerHTML = '<main class="phone-splash" data-phone-splash aria-label="Loading NetraOS"><div class="phone-splash-brand"><span class="phone-splash-mark">' + renderBrandMark() + '</span><span class="phone-splash-name">NETRA<span>OS</span></span></div></main>';
+  publicShell.innerHTML = '<main class="phone-splash" data-phone-splash aria-label="Loading NetraOS"><div class="phone-splash-glow" aria-hidden="true"></div><div class="phone-splash-brand"><span class="phone-splash-mark">' + renderBrandMark() + '</span><span class="phone-splash-name">NETRA<span>OS</span></span><span class="phone-splash-tag">Your financial operating system</span></div><div class="phone-splash-bar" aria-hidden="true"><i></i></div></main>';
   const splash = publicShell.querySelector("[data-phone-splash]");
   window.setTimeout(() => splash?.classList.add("is-loading"), 3000);
   window.setTimeout(() => {

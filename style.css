@@ -11518,3 +11518,55 @@ body.theme-dark { background: var(--bg); }
   .app-shell .accent-choice-name { padding-right: 26px; font-size: 18px; }
   .app-shell .accent-choice-check { right: 9px; bottom: 9px; width: 22px; height: 22px; }
 }
+
+/* ================= Fintech redesign (Revolut / Stash inspired) ================= */
+.app-shell { --fx-bg: #f3f4f6; --fx-card: #ffffff; --fx-ink: #0e1013; --fx-muted: #6b7280; --fx-line: rgba(15, 23, 42, .07); --fx-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .04); }
+.app-shell.theme-dark, body.theme-dark .app-shell { --fx-bg: #0a0b0d; --fx-card: #15171b; --fx-ink: #f5f6f7; --fx-muted: #9aa1ab; --fx-line: rgba(255, 255, 255, .07); --fx-shadow: none; }
+.app-shell, .app-shell .main-panel { background: var(--fx-bg); }
+/* Chrome: translucent top bar, pill navigation */
+.app-shell .topbar { background: color-mix(in srgb, var(--fx-bg) 84%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(18px); backdrop-filter: saturate(1.4) blur(18px); border-bottom: 1px solid var(--fx-line); box-shadow: none; }
+.app-shell .top-nav-item { border-radius: 999px; border: 0; background: transparent; color: var(--fx-muted); font: 600 14px var(--display); transition: background .15s, color .15s; }
+.app-shell .top-nav-item:hover { background: color-mix(in srgb, var(--fx-ink) 7%, transparent); color: var(--fx-ink); }
+.app-shell .top-nav-item.active { background: var(--fx-ink); color: var(--fx-bg); }
+.app-shell .desktop-sidebar { background: var(--fx-card); border-color: var(--fx-line); }
+.app-shell .desktop-nav-item { border-radius: 14px; }
+.app-shell .desktop-nav-item.active { background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); box-shadow: none; }
+.app-shell .nav-toggle { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--fx-line); background: var(--fx-card); }
+/* Content pages (Settings keeps its own look) */
+.app-shell:not(:has(.settings-page)) {
+  .panel, .metric-card, .dashboard-mockup { border: 1px solid var(--fx-line); border-radius: 24px; background: var(--fx-card); color: var(--fx-ink); box-shadow: var(--fx-shadow); transition: none; }
+  .panel:hover, .metric-card:hover { transform: none; box-shadow: var(--fx-shadow); border-color: var(--fx-line); }
+  .panel { padding: 20px 22px; }
+  .panel h2 { color: var(--fx-ink); font: 700 18px/1.25 var(--display); letter-spacing: -.02em; }
+  .section-kicker, .metric-heading { color: var(--fx-muted); font: 600 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+  .metric-card { height: auto; min-height: 140px; padding: 18px 20px; }
+  .metric-card strong, .metric-card [class*="value"] { color: var(--fx-ink); font: 800 clamp(24px, 2.4vw, 32px)/1.1 var(--display); letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+  .metric-symbol { background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); }
+  .networth-card { min-height: 170px; border: 0; border-radius: 28px; background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--green) 55%, transparent) 0, transparent 55%), linear-gradient(150deg, #0e1013 0%, #0f1f18 100%); color: #fff; box-shadow: 0 18px 40px rgba(14, 16, 19, .22); }
+  .networth-card strong, .networth-card .metric-heading { color: #fff; }
+  .networth-card strong { font-size: clamp(30px, 3.2vw, 44px); }
+  .networth-card .metric-heading { color: rgba(255, 255, 255, .62); }
+  .inventory-submit, .primary-button, .panel button.primary { min-height: 46px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--green); color: #fff; font: 700 14px var(--display); letter-spacing: 0; box-shadow: none; }
+  .inventory-form-field input, .inventory-form-field select, .inventory-form-field textarea { min-height: 48px; border: 1px solid var(--fx-line); border-radius: 14px; background: color-mix(in srgb, var(--fx-ink) 4%, var(--fx-card)); color: var(--fx-ink); }
+  .inventory-form-field input:focus, .inventory-form-field select:focus { border-color: var(--green); box-shadow: 0 0 0 4px color-mix(in srgb, var(--green) 16%, transparent); }
+  .dashboard-grid { gap: 16px; }
+  .inventory-heading h1 { font: 800 clamp(26px, 3vw, 36px)/1.1 var(--display); letter-spacing: -.035em; color: var(--fx-ink); }
+}
+@media (max-width: 600px) {
+  .app-shell:not(:has(.settings-page)) { .panel { padding: 18px; border-radius: 22px; } .metric-card { padding: 16px 18px; } .networth-card { border-radius: 26px; } .inventory-submit, .primary-button { width: 100%; min-height: 50px; } }
+}
+/* ================= Splash screen ================= */
+body .phone-splash { background: radial-gradient(90% 60% at 50% 38%, #0f2a1f 0, #070908 62%, #050606 100%); }
+.phone-splash-glow { position: absolute; left: 50%; top: 40%; width: 360px; height: 360px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(34, 197, 94, .32) 0, transparent 68%); filter: blur(24px); animation: splash-glow 2.4s ease-in-out infinite; pointer-events: none; }
+body .phone-splash .phone-splash-brand { position: relative; gap: 14px; animation: splash-rise .7s cubic-bezier(.2, .75, .25, 1) both; }
+body .phone-splash .phone-splash-mark { width: 96px; height: 96px; border-radius: 30px; background: linear-gradient(160deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .03)); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 20px 50px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .12); }
+body .phone-splash .phone-splash-mark .public-brand-mark { width: 62px; height: 62px; }
+body .phone-splash .phone-splash-name { color: #fff; font: 800 22px var(--display); letter-spacing: .26em; margin-right: -.26em; }
+body .phone-splash .phone-splash-name span { color: #6ee7a8; }
+.phone-splash-tag { color: rgba(255, 255, 255, .55); font: 500 13px var(--sans); letter-spacing: .02em; animation: splash-rise .7s .2s cubic-bezier(.2, .75, .25, 1) both; }
+.phone-splash-bar { position: absolute; left: 50%; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); width: 120px; height: 3px; transform: translateX(-50%); border-radius: 3px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.phone-splash-bar i { display: block; height: 100%; width: 100%; border-radius: inherit; background: linear-gradient(90deg, #22c55e, #6ee7a8); transform: scaleX(0); transform-origin: left; animation: splash-load 3s cubic-bezier(.4, 0, .2, 1) forwards; }
+@keyframes splash-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes splash-load { to { transform: scaleX(1); } }
+@keyframes splash-glow { 0%, 100% { opacity: .7; transform: translate(-50%, -50%) scale(.95); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .phone-splash-glow, .phone-splash-bar i, .phone-splash-tag, body .phone-splash .phone-splash-brand { animation-duration: .01ms; } }
