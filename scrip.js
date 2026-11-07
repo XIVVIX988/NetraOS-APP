@@ -48,6 +48,7 @@ let activeQuestFilter = "active";
 let spendingListExpanded = false;
 let activeAchievementFilter = "earned";
 let activeSettingsTab = "profile";
+let activeMobileSettingsSection = "home";
 let settingsTabsMediaQuery = null;
 let settingsTabsMediaHandler = null;
 
@@ -2168,17 +2169,18 @@ function renderSettingsPage() {
   const settingsTabs = [
     ["profile", "Profile"], ["privacy", "Privacy"], ["appearance", "Appearance"], ["currency", "Currency"], ["backups", "Backups"]
   ];
-  const activeMobileSettingsTab = activeSettingsTab === "profile" ? "profile" : activeSettingsTab === "privacy" ? "security" : "preferences";
-  const mobileSettingsTabs = [["profile", "Profile"], ["preferences", "Preferences"], ["security", "Security"]];
+  const mobileSections = [["profile", "Profile", "Your personal details"], ["security", "Security", "PIN, passkeys and privacy"], ["reminders", "Reminders", "Choose what to keep an eye on"], ["appearance", "Appearance", "Theme, accent and display"], ["currency", "Currency & tax", "Regional and tax preferences"], ["backups", "Backups", "Download or restore your data"], ["account", "Account", "Reset or delete account data"]];
+  const mobileActive = mobileSections.some(([id]) => id === activeMobileSettingsSection) ? activeMobileSettingsSection : "home";
+  const mobileSettingsTitle = mobileSections.find(([id]) => id === mobileActive)?.[1] || "Settings";
+  if (mobileActive !== "home") activeSettingsTab = mobileActive === "profile" ? "profile" : ["security", "reminders", "account"].includes(mobileActive) ? "privacy" : mobileActive;
   return `
-    <section class="account-page settings-page">
+    <section class="account-page settings-page" data-mobile-section="${mobileActive}">
       <header class="inventory-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> APP PREFERENCES</div><h1><span class="settings-title-desktop">Make it yours.</span><span class="settings-title-mobile">Settings</span></h1><p class="welcome-sub">Make your account and app work your way.</p></div></header>
       <div class="settings-tabs" role="tablist" aria-label="Settings categories">
         ${settingsTabs.map(([id, label]) => `<button class="settings-tab${activeSettingsTab === id ? " is-active" : ""}" id="settings-tab-${id}" type="button" role="tab" aria-selected="${activeSettingsTab === id}" aria-controls="settings-panel-${id}" data-settings-tab="${id}">${label}</button>`).join("")}
       </div>
-      <div class="settings-mobile-tabs" role="tablist" aria-label="Settings categories">
-        ${mobileSettingsTabs.map(([id, label]) => `<button class="settings-mobile-tab${activeMobileSettingsTab === id ? " is-active" : ""}" type="button" role="tab" data-settings-mobile-tab="${id}" aria-selected="${activeMobileSettingsTab === id}" aria-controls="settings-panel-${id === "preferences" ? "appearance" : id === "security" ? "privacy" : "profile"}">${label}</button>`).join("")}
-      </div>
+      <nav class="settings-mobile-menu" aria-label="Settings" ${mobileActive === "home" ? "" : "hidden"}>${mobileSections.map(([id, label, help]) => `<button type="button" class="settings-mobile-row" data-settings-mobile-open="${id}"><span><strong>${label}</strong><small>${help}</small></span><span aria-hidden="true">›</span></button>`).join("")}</nav>
+      <div class="settings-mobile-subnav" ${mobileActive === "home" ? "hidden" : ""}><button type="button" data-settings-mobile-back aria-label="Back to settings">‹ <span>Settings</span></button><strong>${mobileSettingsTitle}</strong></div>
       <section class="settings-tab-panel settings-profile-tab" id="settings-panel-profile" role="tabpanel" aria-labelledby="settings-tab-profile" data-settings-panel="profile" tabindex="0" ${activeSettingsTab === "profile" ? "" : "hidden"}>
         <section class="panel settings-panel settings-profile-panel">
           <div class="panel-heading"><div><div class="section-kicker">YOUR ACCOUNT</div><h2>Profile information</h2></div></div>
@@ -2204,7 +2206,7 @@ function renderSettingsPage() {
       </section>
       <form class="settings-form" data-account-form="settings" ${activeSettingsTab === "profile" ? "hidden" : ""}>
         <section class="settings-tab-panel" id="settings-panel-privacy" role="tabpanel" aria-labelledby="settings-tab-privacy" data-settings-panel="privacy" tabindex="0" ${activeSettingsTab === "privacy" ? "" : "hidden"}>
-        <section class="panel settings-panel" id="autolock-settings" tabindex="-1"><div class="panel-heading"><div><div class="section-kicker">PRIVACY &amp; SECURITY</div><h2>Session protection</h2></div></div>
+        <section class="panel settings-panel" id="autolock-settings" data-settings-mobile-section="security" tabindex="-1"><div class="panel-heading"><div><div class="section-kicker">PRIVACY &amp; SECURITY</div><h2>Session protection</h2></div></div>
           <p class="settings-disclosure">The inactivity PIN is a device-side convenience and does not encrypt stored data.</p>
           <label class="settings-field"><span><strong>Privacy Shield</strong><small>Mask currency amounts in the app header or with the shortcut.</small></span><input name="privacyShield" type="checkbox" ${privacyEnabled ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Privacy Shield shortcut</strong><small>Keyboard shortcut to toggle amount masking.</small></span><select name="privacyShortcut"><option value="Shift+S" ${settings.privacyShortcut === "Shift+S" ? "selected" : ""}>Shift + S</option><option value="Alt+Shift+S" ${settings.privacyShortcut === "Alt+Shift+S" ? "selected" : ""}>Alt + Shift + S</option><option value="Off" ${settings.privacyShortcut === "Off" ? "selected" : ""}>Off</option></select></label>
@@ -2224,13 +2226,13 @@ function renderSettingsPage() {
           </div>
           <div class="settings-audit"><div class="settings-audit-heading"><strong>Recent local security activity</strong><div class="settings-audit-export"><label for="security-audit-period">Download range</label><select id="security-audit-period" data-security-audit-period><option value="24h">Last 24 hours</option><option value="7d">Last 7 days</option><option value="1m">Last 1 month</option><option value="6m">Last 6 months</option><option value="12m">Last 12 months</option></select><button type="button" class="secondary-button" data-security-audit-download>Download list</button></div></div>${recentAudit.length ? `<ul>${recentAudit.map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.timestamp).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>No activity recorded yet.</p>`}</div>
         </section>
-        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">REMINDERS</div><h2>What to keep an eye on</h2></div></div>
+        <section class="panel settings-panel" data-settings-mobile-section="reminders"><div class="panel-heading"><div><div class="section-kicker">REMINDERS</div><h2>What to keep an eye on</h2></div></div>
           <label class="settings-field"><span><strong>Quest milestones</strong><small>In-app notices for quest progress milestones and completions.</small></span><input name="goalNotifications" type="checkbox" ${settings.goalNotifications ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Income plan updates</strong><small>In-app 55/10/15/15/5 budget suggestions after monthly income changes.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Debt payoff</strong><small>In-app notices when a liability is marked as paid off.</small></span><input name="debtNotifications" type="checkbox" ${settings.debtNotifications ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Spending shortfall</strong><small>In-app notices if recorded spending moves above planned income.</small></span><input name="budgetNotifications" type="checkbox" ${settings.budgetNotifications ? "checked" : ""}></label>
         </section>
-        <section class="panel settings-panel settings-danger-zone"><div class="panel-heading"><div><div class="section-kicker">ACCOUNT CONTROL</div><h2>Reset or delete account data</h2></div></div>
+        <section class="panel settings-panel settings-danger-zone" data-settings-mobile-section="account"><div class="panel-heading"><div><div class="section-kicker">ACCOUNT CONTROL</div><h2>Reset or delete account data</h2></div></div>
           <p class="settings-disclosure">These actions can permanently remove your local or synced data. Review the confirmation details before continuing.</p>
           <div class="settings-inline-actions"><button class="danger-button" type="button" data-settings-action="clear-data">Factory reset · Clear all NetraOS data</button><button class="danger-button" type="button" data-settings-action="delete-account">Delete account permanently</button></div>
         </section>
@@ -2336,7 +2338,7 @@ async function handlePasskeySettingsAction(action, button) {
 function setupSettingsTabs(root = content) {
   const tabs = [...root.querySelectorAll("[data-settings-tab]")];
   if (!tabs.length) return;
-  const mobileTabs = [...root.querySelectorAll("[data-settings-mobile-tab]")];
+  const mobileMenu = root.querySelector(".settings-mobile-menu");
   const panels = [...root.querySelectorAll("[data-settings-panel]")];
   const settingsForm = root.querySelector("[data-account-form='settings']");
   const themeSelect = root.querySelector('select[name="themeMode"]');
@@ -2344,11 +2346,9 @@ function setupSettingsTabs(root = content) {
   const profileTab = root.querySelector(".settings-profile-tab");
   refreshPasskeyList(root.querySelector("[data-passkey-settings]"));
   const editProfileButton = root.querySelector("[data-settings-edit-profile]");
-  const mobileGroupForId = id => id === "profile" ? "profile" : id === "privacy" ? "security" : "preferences";
   const activate = (id, focusTab = false) => {
     if (!tabs.some(tab => tab.dataset.settingsTab === id)) id = "profile";
     activeSettingsTab = id;
-    const mobileGroup = mobileGroupForId(id);
     tabs.forEach(tab => {
       const selected = tab.dataset.settingsTab === id;
       tab.classList.toggle("is-active", selected);
@@ -2356,20 +2356,11 @@ function setupSettingsTabs(root = content) {
       tab.tabIndex = selected ? 0 : -1;
       if (selected && focusTab) tab.focus();
     });
-    const showAllPreferences = window.matchMedia("(max-width: 600px)").matches && mobileGroup === "preferences";
     panels.forEach(panel => {
-      const groupedPreferencePanel = showAllPreferences && ["appearance", "currency", "backups"].includes(panel.dataset.settingsPanel);
-      panel.hidden = panel.dataset.settingsPanel !== id && !groupedPreferencePanel;
+      panel.hidden = panel.dataset.settingsPanel !== id;
     });
     if (settingsForm) settingsForm.hidden = id === "profile";
-    if (settingsForm) settingsForm.dataset.mobileSettingsGroup = mobileGroup;
-    mobileTabs.forEach(tab => {
-      const selected = tab.dataset.settingsMobileTab === mobileGroup;
-      tab.classList.toggle("is-active", selected);
-      tab.setAttribute("aria-selected", String(selected));
-      tab.tabIndex = selected ? 0 : -1;
-      if (selected && focusTab) tab.focus();
-    });
+    if (settingsForm) settingsForm.dataset.mobileSection = activeMobileSettingsSection;
   };
   tabs.forEach((tab, index) => {
     tab.addEventListener("click", () => activate(tab.dataset.settingsTab));
@@ -2385,30 +2376,15 @@ function setupSettingsTabs(root = content) {
       }
     });
   });
-  mobileTabs.forEach((tab, index) => {
-    tab.addEventListener("click", () => {
-      const id = tab.dataset.settingsMobileTab === "preferences" ? "appearance" : tab.dataset.settingsMobileTab === "security" ? "privacy" : "profile";
-      if (id !== "profile" && profileTab?.classList.contains("is-editing")) {
-        if (profilePreviewUrl) URL.revokeObjectURL(profilePreviewUrl);
-        profilePreviewUrl = "";
-        activeSettingsTab = id;
-        showPage("Settings");
-        return;
-      }
-      activate(id);
-    });
-    tab.addEventListener("keydown", event => {
-      let next = null;
-      if (event.key === "ArrowRight") next = (index + 1) % mobileTabs.length;
-      if (event.key === "ArrowLeft") next = (index - 1 + mobileTabs.length) % mobileTabs.length;
-      if (event.key === "Home") next = 0;
-      if (event.key === "End") next = mobileTabs.length - 1;
-      if (next !== null) {
-        event.preventDefault();
-        mobileTabs[next].click();
-        mobileTabs[next].focus();
-      }
-    });
+  mobileMenu?.querySelectorAll("[data-settings-mobile-open]").forEach(button => button.addEventListener("click", () => {
+    activeMobileSettingsSection = button.dataset.settingsMobileOpen;
+    activeSettingsTab = activeMobileSettingsSection === "profile" ? "profile" : ["security", "reminders", "account"].includes(activeMobileSettingsSection) ? "privacy" : activeMobileSettingsSection;
+    showPage("Settings");
+  }));
+  root.querySelector("[data-settings-mobile-back]")?.addEventListener("click", () => {
+    activeMobileSettingsSection = "home";
+    activeSettingsTab = "profile";
+    showPage("Settings");
   });
   editProfileButton?.addEventListener("click", () => {
     if (!profileTab) return;
