@@ -308,7 +308,7 @@ const faqCategories = [
     { q: "What is NetraOS, and how can it help me?", a: "NetraOS is a personal finance workspace for bringing your assets, debts, income, spending, budgets, and savings goals together. It helps you see your net worth and cash flow, plan what to do with your money, and estimate Kenya take-home pay—all in one place. You enter and manage your figures yourself; NetraOS organizes them so you can make more informed decisions." }
   ]},
   { id: "security", label: "System & Security", items: [
-    { q: "Where is my financial data stored? Is NetraOS safe?", a: "NetraOS keeps a working copy in this browser and syncs your account data to Supabase when you are signed in and online. Database row-level security restricts account records to their owner. Keep a separate backup and protect access to your email and device.", action: { label: "Open Settings", target: "Settings" } },
+    { q: "How can I keep my account safe?", a: "Use a strong password, keep your device secure, and download a backup from Settings from time to time.", action: { label: "Open Settings", target: "Settings" } },
     { q: "Does NetraOS link directly to my bank account or M-Pesa?", a: "No. You enter or update balances and income yourself. NetraOS never asks for online-banking passwords, API keys or M-Pesa credentials, so your real accounts stay isolated from it." },
     { q: "What is the Privacy Shield, and how do I use it?", a: "The Privacy Shield is a toggle for viewing your numbers in public. Click the eye icon in the top bar, or press <kbd>Shift</kbd> + <kbd>S</kbd>, and every currency figure is masked until you switch it off again. You can change the shortcut to <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>, or turn it off, in Settings.", action: { label: "Open Settings", target: "Settings" } }
   ]},
@@ -327,8 +327,8 @@ const faqCategories = [
   ]},
   { id: "data", label: "Backup & Maintenance", items: [
     { q: "How do I transfer my NetraOS data to a new laptop or phone?", a: "Open Settings and choose <b>Download all data (JSON)</b> and save the file. On the new device open NetraOS, go to Settings and use <b>Restore a JSON backup</b> to bring everything back. A CSV export is available too, and a monthly backup reminder can be switched on.", action: { label: "Open Settings", target: "Settings" } },
-    { q: "How do I completely wipe my data from the app?", a: "In Settings use <b>Factory reset · Clear all NetraOS data</b>. Confirm your account password and the deletion prompt. This removes synced NetraOS records and the local device copy, but leaves your Supabase sign-in identity. Download a backup first; deletion cannot be undone.", action: { label: "Open Settings", target: "Settings" } },
-    { q: "How do I permanently delete my account?", a: "In Settings choose <b>Delete account permanently</b>, re-enter your account password, and type <b>DELETE</b> to confirm. After NetraOS confirms completion, your Supabase sign-in identity and linked synced financial records are permanently deleted. Download a backup first; exported files and browser copies on other devices are not removed automatically.", action: { label: "Open Settings", target: "Settings" } }
+    { q: "How do I clear my NetraOS data?", a: "In Settings choose <b>Factory reset · Clear all NetraOS data</b>, confirm your password, and follow the prompts. This cannot be undone, so download a backup first.", action: { label: "Open Settings", target: "Settings" } },
+    { q: "How do I permanently delete my account?", a: "In Settings choose <b>Delete account permanently</b>, re-enter your password, and type <b>DELETE</b> to confirm. This cannot be undone, so download a backup first.", action: { label: "Open Settings", target: "Settings" } }
   ]}
 ];
 
@@ -959,9 +959,19 @@ function getPowerUpReportTotals() {
 }
 
 // Read and save the browser-local profile and preference settings.
-const ACCENT_IDS = ["emerald", "amber", "matrix", "blue", "violet", "coral", "aqua"];
+const ACCENT_IDS = ["leo", "pwani", "kitenge", "mukimo"];
+const ACCENT_PRESETS = [
+  { id: "leo", name: "Leo", primary: "#16471c", accent: "#c9f05b", surface: "#fffafa" },
+  { id: "pwani", name: "Pwani", primary: "#286780", accent: "#f4bf4d", surface: "#fffafa" },
+  { id: "kitenge", name: "Kitenge", primary: "#b83720", accent: "#f2b632", surface: "#fff8ee" },
+  { id: "mukimo", name: "Mukimo", primary: "#36782d", accent: "#e8f232", surface: "#fcfbe9" }
+];
+const LEGACY_ACCENT_MAP = { emerald: "leo", amber: "kitenge", matrix: "mukimo", blue: "pwani", violet: "pwani", coral: "kitenge", aqua: "mukimo" };
+function normalizeAccent(accent) {
+  return ACCENT_IDS.includes(accent) ? accent : LEGACY_ACCENT_MAP[accent] || "leo";
+}
 function setAccent(accent) {
-  const value = ACCENT_IDS.includes(accent) ? accent : "emerald";
+  const value = normalizeAccent(accent);
   appShell.dataset.accent = value;
   document.documentElement.dataset.accent = value;
   const styles = getComputedStyle(appShell);
@@ -1030,13 +1040,13 @@ function getStoredSettings() {
       customRelief: Number.isFinite(Number(saved.customRelief)) ? Math.max(0, Number(saved.customRelief)) : 0,
       monthlyBackupPrompt: Boolean(saved.monthlyBackupPrompt),
       lastBackupPromptAt: typeof saved.lastBackupPromptAt === "string" ? saved.lastBackupPromptAt : "",
-      accentProfile: ACCENT_IDS.includes(saved.accentProfile) ? saved.accentProfile : "emerald",
+      accentProfile: normalizeAccent(saved.accentProfile),
       showXpPoints: saved.showXpPoints !== false,
       questSounds: Boolean(saved.questSounds),
       questAnimations: saved.questAnimations !== false
     };
   } catch {
-    return { alwaysShowCents: false, reduceMotion: false, themeMode: "light", darkMode: false, goalNotifications: true, monthlyReminders: true, debtNotifications: true, budgetNotifications: true, performanceTelemetryConsent: false, cookieConsentVersion: 0, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 6, accountPinEnabled: false, financialYearStartMonth: 1, paydayAnchorDay: 1, autoLockPromptDismissed: false, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "emerald", showXpPoints: true, questSounds: false, questAnimations: true };
+    return { alwaysShowCents: false, reduceMotion: false, themeMode: "light", darkMode: false, goalNotifications: true, monthlyReminders: true, debtNotifications: true, budgetNotifications: true, performanceTelemetryConsent: false, cookieConsentVersion: 0, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 6, accountPinEnabled: false, financialYearStartMonth: 1, paydayAnchorDay: 1, autoLockPromptDismissed: false, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "leo", showXpPoints: true, questSounds: false, questAnimations: true };
   }
 }
 
@@ -1321,7 +1331,7 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
   const lockScreen = document.createElement("main");
   lockScreen.id = "security-lock-screen";
   lockScreen.className = "security-lock-screen";
-  lockScreen.dataset.accent = appShell.dataset.accent || "emerald";
+  lockScreen.dataset.accent = appShell.dataset.accent || "leo";
   lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">WELCOME BACK</span><h1 id="security-lock-title">Please unlock your workspace.</h1><p>Enter your ${settings.localPinLength}-digit PIN to return to your workspace.</p><form><label for="security-unlock-pin">Your PIN</label><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${settings.localPinLength}}" maxlength="${settings.localPinLength}" required><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Continue</button></form></section>`;
   document.body.append(lockScreen);
   recordSecurityAudit(onLaunch ? "Workspace locked on launch" : onBackground ? "Workspace locked when app was backgrounded" : "Workspace locked after inactivity");
@@ -1545,12 +1555,12 @@ function getLegalDocument(page) {
     <h2>Agreement</h2><p>When you create an account, you must accept these Terms to use NetraOS. If you do not agree, do not create or use an account. The Privacy Policy and Cookie Policy explain how personal information and browser storage are handled.</p>
     <h2>Using NetraOS</h2><p>NetraOS is a personal finance organization tool for recording and reviewing your finances, plans, quests, and progress. It is not a bank, lender, tax agent, investment adviser, or provider of financial, legal, or tax advice. You are responsible for the information you enter and decisions you make using the app.</p>
     <h2>Estimates and financial information</h2><p>Calculators, tax estimates, charts, suggestions, and projections are general planning tools and may be incomplete or inaccurate for your circumstances. Tax, PAYE, NSSF, SHIF, housing levy, and other statutory rules can change. Check current requirements with the relevant authority or a qualified professional before acting.</p>
-    <h2>Accounts, records, and deletion</h2><p>You retain your rights to information you enter. NetraOS stores a working copy in this browser and synchronizes account records with the connected Supabase service when you are signed in and online. In Settings, choose <strong>Delete account permanently</strong>, verify your password, and confirm. The account and linked synced records are deleted only after NetraOS confirms the operation succeeded. Deletion cannot be undone. Browser copies on other devices and exported files are not removed automatically. Keep your sign-in details private, protect devices with local copies, and download backups when needed.</p>
+    <h2>Accounts, records, and deletion</h2><p>You retain your rights to information you enter. In Settings, choose <strong>Delete account permanently</strong>, verify your password, and confirm. Your account and its information are deleted after NetraOS confirms the request succeeded. Deletion cannot be undone. Download a backup first and keep your sign-in details private.</p>
     <h2>Acceptable use</h2><p>You must not use NetraOS for unlawful activity, access another person's records without permission, interfere with or compromise the service, probe or bypass its security, scrape or harvest data without permission, reverse engineer or copy the service except where the law permits, or upload malicious code or content.</p>
     <h2>Ownership and intellectual property</h2><p>NetraOS and its operator or licensors retain rights in the NetraOS name and brand, logos, interface, design assets, software, and original content. These Terms grant you a limited, personal, revocable right to use the service. You may not copy, redistribute, sell, or reuse protected materials without prior permission, except where applicable law permits.</p>
     <h2>Suspension and termination</h2><p>NetraOS may restrict, suspend, or terminate access if it reasonably believes you have materially breached these Terms, created a security risk, or used the service unlawfully. Where practical, we will notify you and provide a way to address the issue. You may stop using the service at any time and may request account deletion through Settings.</p>
-    <h2>Availability and limits</h2><p>The service is provided on an "as is" and "as available" basis. Features may change, and sign-in or synchronization may be interrupted by maintenance, network conditions, or third-party service outages. To the maximum extent permitted by law, NetraOS and its operator are not liable for indirect, incidental, special, consequential, or punitive loss, including lost profits, data, or access, arising from use or inability to use the service. Nothing in these Terms excludes liability or rights that applicable law does not allow to be excluded or limited. Keep independent backups of important information.</p>
-    <h2>Third-party services and sharing</h2><p>Sign-in and cloud synchronization depend on Supabase and an internet connection. If you choose Google sign-in, Google also processes the authentication request under its terms and privacy practices. Links to email, telephone, WhatsApp, social networks, and device sharing tools open services outside NetraOS. Their terms and privacy practices apply when you choose to use them.</p>
+    <h2>Availability and limits</h2><p>The service is provided on an "as is" and "as available" basis. Features may change, and sign-in or access may be interrupted by maintenance, network conditions, or service outages. To the maximum extent permitted by law, NetraOS and its operator are not liable for indirect, incidental, special, consequential, or punitive loss, including lost profits, data, or access, arising from use or inability to use the service. Nothing in these Terms excludes liability or rights that applicable law does not allow to be excluded or limited. Keep independent backups of important information.</p>
+    <h2>Third-party services and sharing</h2><p>Sign-in uses an internet connection and trusted service providers. If you choose Google sign-in, Google processes the authentication request under its terms and privacy practices. Links to email, telephone, WhatsApp, social networks, and device sharing tools open services outside NetraOS. Their terms and privacy practices apply when you choose to use them.</p>
     <h2>Governing law</h2><p>These Terms are governed by the laws of Kenya. Courts in Kenya will have jurisdiction over disputes, subject to any mandatory consumer protections or dispute rights that apply to you under other laws.</p>
     <h2>Contact</h2><p>For general support, email <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a>. For security or privacy concerns, email <a href="mailto:security@netraos.io">security@netraos.io</a>.</p>` : isPrivacy ? `
     <h2>Who operates NetraOS</h2><p>NetraOS is operated from Nairobi, Kenya, using the name NetraOS Technologies Lab in its public contact details at The Mirage Towers, 8th Floor, Tower 2, Chiromo Road, Westlands, Nairobi, Kenya. For privacy requests, contact <a href="mailto:hello@netraos.co.ke">hello@netraos.co.ke</a>. For security concerns, contact <a href="mailto:security@netraos.io">security@netraos.io</a>.</p>
@@ -1718,7 +1728,7 @@ function showPhoneWelcome() {
   document.body.classList.remove("public-view");
   document.body.classList.add("auth-view", "phone-entry-view");
   window.location.hash = "welcome";
-  publicShell.innerHTML = '<main class="phone-entry phone-entry-welcome">' + renderFluidArt() + '<section class="phone-welcome-copy"><span class="phone-entry-kicker">YOUR FINANCIAL OPERATING SYSTEM</span><h1>See your money<br><em>with more clarity.</em></h1><p>Bring your balances, monthly plan, and goals together in one private workspace.</p></section><div class="phone-entry-actions"><button class="public-primary" type="button" data-public-action="signup">Create an account</button><button class="phone-entry-secondary" type="button" data-public-action="login">Sign in</button><button class="phone-entry-tour" type="button" data-phone-replay-intro>Take a quick tour</button></div><p class="phone-entry-note">Your account syncs when you’re online. Download a backup any time.</p></main>';
+  publicShell.innerHTML = '<main class="phone-entry phone-entry-welcome">' + renderFluidArt() + '<section class="phone-welcome-copy"><span class="phone-entry-kicker">YOUR FINANCIAL OPERATING SYSTEM</span><h1>See your money<br><em>with more clarity.</em></h1><p>Bring your balances, monthly plan, and goals together in one private workspace.</p></section><div class="phone-entry-actions"><button class="public-primary" type="button" data-public-action="signup">Create an account</button><button class="phone-entry-secondary" type="button" data-public-action="login">Sign in</button><button class="phone-entry-tour" type="button" data-phone-replay-intro>Take a quick tour</button></div></main>';
   publicShell.querySelector("[data-phone-replay-intro]")?.addEventListener("click", showPhoneIntro);
 }
 
@@ -1917,7 +1927,7 @@ function showPublicPage(page = "landing") {
             </div>
           </section>
           <section class="landing-feature-strip" id="features" aria-label="NetraOS features"><article><span>◉</span><div><strong>See your full picture</strong><small>Assets, debts, cash flow, and net worth</small></div></article><article><span>↗</span><div><strong>Make informed decisions</strong><small>Income, spending, savings, and trends</small></div></article><article><span>◎</span><div><strong>Build lasting goals</strong><small>Quest progress, priorities, and achievements</small></div></article><article><span>％</span><div><strong>Plan with confidence</strong><small>Kenya take-home estimates and data controls</small></div></article></section>
-          <section class="landing-deep-dive" id="about"><div class="landing-deep-copy"><div class="landing-eyebrow"><i></i> A BETTER VIEW, STEP BY STEP</div><h2>From the big picture<br>to your next move.</h2><p>Bring your financial basics together, then build from there. NetraOS helps you understand your money, stay focused on long-term goals, and keep control of your account.</p><ul><li><i>✓</i> Track bank, cash, and M-Pesa balances alongside debts, income, budgets, and spending</li><li><i>✓</i> Compare cash flow, savings, and net worth over time</li><li><i>✓</i> Turn financial goals into prioritized quests, progress, and achievements</li><li><i>✓</i> Project savings, estimate Kenya take-home pay, and manage display currency</li><li><i>✓</i> Sync account data when signed in; protect your privacy and export backups or reports</li></ul><button class="public-primary" type="button" data-public-action="signup">Build your financial picture <span>↗</span></button></div><div class="insight-collage"><article class="insight-card insight-progress"><div class="insight-card-head"><span><small>QUEST PROGRESS</small><strong>Emergency fund</strong></span><i>◈</i></div><div class="insight-progress-line"><span></span></div><div class="insight-card-foot"><small>One goal at a time</small><strong>0%</strong></div></article><article class="insight-card insight-rate"><small>SAVINGS RATE</small><strong>0<span>%</span></strong><div class="insight-sparkline"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>Calculated from your monthly plan</small></article><article class="insight-card insight-budget"><i>▤</i><small>MONTHLY BUDGET</small><strong>KSh 0</strong><span>Set your first budget line</span></article><article class="insight-card insight-note"><span>✳</span><p>Your plan should work for your life—not the other way around.</p></article></div></section>
+          <section class="landing-deep-dive" id="about"><div class="landing-deep-copy"><div class="landing-eyebrow"><i></i> A BETTER VIEW, STEP BY STEP</div><h2>From the big picture<br>to your next move.</h2><p>Bring your financial basics together, then build from there. NetraOS helps you understand your money, stay focused on long-term goals, and keep control of your account.</p><ul><li><i>✓</i> Track bank, cash, and M-Pesa balances alongside debts, income, budgets, and spending</li><li><i>✓</i> Compare cash flow, savings, and net worth over time</li><li><i>✓</i> Turn financial goals into prioritized quests, progress, and achievements</li><li><i>✓</i> Project savings, estimate Kenya take-home pay, and manage display currency</li><li><i>✓</i> Protect your privacy and export backups or reports</li></ul><button class="public-primary" type="button" data-public-action="signup">Build your financial picture <span>↗</span></button></div><div class="insight-collage"><article class="insight-card insight-progress"><div class="insight-card-head"><span><small>QUEST PROGRESS</small><strong>Emergency fund</strong></span><i>◈</i></div><div class="insight-progress-line"><span></span></div><div class="insight-card-foot"><small>One goal at a time</small><strong>0%</strong></div></article><article class="insight-card insight-rate"><small>SAVINGS RATE</small><strong>0<span>%</span></strong><div class="insight-sparkline"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>Calculated from your monthly plan</small></article><article class="insight-card insight-budget"><i>▤</i><small>MONTHLY BUDGET</small><strong>KSh 0</strong><span>Set your first budget line</span></article><article class="insight-card insight-note"><span>✳</span><p>Your plan should work for your life—not the other way around.</p></article></div></section>
           ${renderLandingFaq()}
           <section class="landing-contact" id="contact" aria-labelledby="landing-contact-title">
             <div class="landing-contact-intro">
@@ -1970,7 +1980,7 @@ function showPublicPage(page = "landing") {
             <div class="auth-social-links" aria-label="Other sign-in options"><a class="auth-social-link" href="#facebook-signin" data-oauth-signin="facebook">Facebook</a><span aria-hidden="true">·</span><a class="auth-social-link" href="#apple-signin" data-oauth-signin="apple">Apple</a></div>
           </form>
           <p class="auth-switch">${isSignup ? "Already have an account?" : "New to NetraOS?"} <button type="button" data-public-action="${isSignup ? "login" : "signup"}">${isSignup ? "Log in" : "Create an account"}</button></p>
-          <p class="auth-preview-note">${isSignup ? "Your account is protected by your password. Confirmation links arrive by email, and records sync when you’re online." : "Sign in with your password or a passkey. Passkeys can use Windows Hello or your device’s fingerprint reader."}</p>
+          <p class="auth-preview-note">${isSignup ? "Your account is protected by your password. Confirmation links arrive by email." : "Sign in with your password or a passkey. Passkeys can use Windows Hello or your device’s fingerprint reader."}</p>
           </div>
         </section>
       </div>`;
@@ -2143,10 +2153,9 @@ function renderProfilePage() {
           <label class="inventory-form-field"><span>Phone number <small>Optional</small></span><input name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="e.g. +254 712 345 678" value="${escapeHTML(profile.phone || "")}"></label>
           <label class="inventory-form-field"><span>Sex <small>Optional</small></span><select name="sex"><option value="">Prefer not to say</option><option value="female" ${profile.sex === "female" ? "selected" : ""}>Female</option><option value="male" ${profile.sex === "male" ? "selected" : ""}>Male</option><option value="intersex" ${profile.sex === "intersex" ? "selected" : ""}>Intersex</option><option value="other" ${profile.sex === "other" ? "selected" : ""}>Other</option></select></label>
           <label class="inventory-form-field profile-dob-field"><span>Date of birth <small>Optional</small></span><span class="profile-date-control"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><input name="dateOfBirth" type="date" max="${maxDate}" value="${escapeHTML(profile.dateOfBirth || "")}" aria-describedby="profile-dob-help"></span><small id="profile-dob-help" class="profile-dob-help">Choose a date from the calendar. Future dates aren’t allowed.</small></label>
-          <div class="account-form-actions settings-actions"><span>Saved on this device; syncs when online</span><button class="inventory-submit" type="submit">Save changes</button></div>
+          <div class="account-form-actions settings-actions"><button class="inventory-submit" type="submit">Save changes</button></div>
         </form>
       </section>
-      <section class="account-notice"><span>i</span><p>Your profile is synced to your Supabase account when you’re online. The app also keeps a working copy in this browser.</p></section>
     </section>
     ${renderAppFooter()}`;
 }
@@ -2202,10 +2211,9 @@ function renderSettingsPage() {
             <label class="inventory-form-field"><span>Phone number <small>Optional</small></span><input name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="e.g. +254 712 345 678" value="${escapeHTML(profile.phone || "")}"></label>
             <label class="inventory-form-field"><span>Sex <small>Optional</small></span><select name="sex"><option value="">Prefer not to say</option><option value="female" ${profile.sex === "female" ? "selected" : ""}>Female</option><option value="male" ${profile.sex === "male" ? "selected" : ""}>Male</option><option value="intersex" ${profile.sex === "intersex" ? "selected" : ""}>Intersex</option><option value="other" ${profile.sex === "other" ? "selected" : ""}>Other</option></select></label>
             <label class="inventory-form-field profile-dob-field"><span>Date of birth <small>Optional</small></span><span class="profile-date-control"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><input name="dateOfBirth" type="date" max="${maxDate}" value="${escapeHTML(profile.dateOfBirth || "")}" aria-describedby="profile-dob-help"></span><small id="profile-dob-help" class="profile-dob-help">Choose a date from the calendar. Future dates aren’t allowed.</small></label>
-            <div class="account-form-actions settings-actions"><span>Saved on this device; syncs when online.</span><button class="inventory-submit" type="submit">Save profile</button></div>
+            <div class="account-form-actions settings-actions"><button class="inventory-submit" type="submit">Save profile</button></div>
           </form>
         </section>
-        <section class="account-notice"><span>i</span><p>Your profile is synced to your Supabase account when you’re online. The app also keeps a working copy in this browser.</p></section>
       </section>
       <form class="settings-form" data-account-form="settings" data-mobile-section="${settingsMobileSection}" ${activeSettingsTab === "profile" ? "hidden" : ""}>
         <section class="settings-tab-panel" id="settings-panel-privacy" role="tabpanel" aria-labelledby="settings-tab-privacy" data-settings-panel="privacy" tabindex="0" ${activeSettingsTab === "privacy" ? "" : "hidden"}>
@@ -2236,14 +2244,14 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Spending shortfall</strong><small>In-app notices if recorded spending moves above planned income.</small></span><input name="budgetNotifications" type="checkbox" ${settings.budgetNotifications ? "checked" : ""}></label>
         </section>
         <section class="panel settings-panel settings-danger-zone" data-settings-section="danger"><div class="panel-heading"><div><div class="section-kicker">ACCOUNT CONTROL</div><h2>Reset or delete account data</h2></div></div>
-          <p class="settings-disclosure">These actions can permanently remove your local or synced data. Review the confirmation details before continuing.</p>
+          <p class="settings-disclosure">These actions can permanently remove information from your NetraOS account. Review the confirmation before continuing.</p>
           <div class="settings-inline-actions"><button class="danger-button" type="button" data-settings-action="clear-data">Factory reset · Clear all NetraOS data</button><button class="danger-button" type="button" data-settings-action="delete-account">Delete account permanently</button></div>
         </section>
         </section>
         <section class="settings-tab-panel" id="settings-panel-appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" data-settings-panel="appearance" tabindex="0" ${activeSettingsTab === "appearance" ? "" : "hidden"}>
         <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">LOOK &amp; FEEL</div><h2>Appearance</h2></div></div>
           <div class="settings-field settings-theme-field"><span><strong>Theme</strong><small>Choose light, dark, or follow your device setting.</small></span><select name="themeMode" aria-label="Theme"><option value="light" ${settings.themeMode === "light" ? "selected" : ""}>Light</option><option value="dark" ${settings.themeMode === "dark" ? "selected" : ""}>Dark</option><option value="system" ${settings.themeMode === "system" ? "selected" : ""}>System</option></select><div class="settings-theme-choice" role="group" aria-label="Choose theme">${[["light", "Light"], ["dark", "Dark"], ["system", "System"]].map(([value, label]) => `<button type="button" data-theme-mode="${value}" class="${settings.themeMode === value ? "is-selected" : ""}" aria-pressed="${settings.themeMode === value}">${label}</button>`).join("")}</div></div>
-          <label class="settings-field"><span><strong>Theme accent</strong><small>Applied across the app when you save changes.</small></span><select name="accentProfile"><option value="emerald" ${settings.accentProfile === "emerald" ? "selected" : ""}>Emerald Terminal</option><option value="amber" ${settings.accentProfile === "amber" ? "selected" : ""}>Cyber Amber</option><option value="matrix" ${settings.accentProfile === "matrix" ? "selected" : ""}>Matrix Green</option><option value="blue" ${settings.accentProfile === "blue" ? "selected" : ""}>Classic Blue</option><option value="violet" ${settings.accentProfile === "violet" ? "selected" : ""}>Electric Violet</option><option value="coral" ${settings.accentProfile === "coral" ? "selected" : ""}>Sunset Coral</option><option value="aqua" ${settings.accentProfile === "aqua" ? "selected" : ""}>Aqua Teal</option></select></label>
+          <div class="settings-field settings-accent-field"><span class="settings-accent-heading"><strong>Theme accent</strong><small>Choose the colors used across the app.</small></span><div class="accent-picker" role="radiogroup" aria-label="Theme accent">${ACCENT_PRESETS.map(preset => `<button type="button" class="accent-choice${settings.accentProfile === preset.id ? " is-selected" : ""}" role="radio" aria-checked="${settings.accentProfile === preset.id}" tabindex="${settings.accentProfile === preset.id ? "0" : "-1"}" data-accent-choice="${preset.id}" style="--accent-swatch-primary:${preset.primary};--accent-swatch-color:${preset.accent};--accent-swatch-surface:${preset.surface}"><span class="accent-choice-swatch" aria-hidden="true"><i></i><i></i><i></i></span><span class="accent-choice-name">${preset.name}</span><svg class="accent-choice-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7 12 3.2 3.2L17.5 8"/></svg></button>`).join("")}</div><input type="hidden" name="accentProfile" value="${settings.accentProfile}"></div>
           <label class="settings-field"><span><strong>Always show cents</strong><small>Show two decimal places in money amounts.</small></span><input name="alwaysShowCents" type="checkbox" ${settings.alwaysShowCents ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Reduce motion</strong><small>Use fewer animations and hover effects.</small></span><input name="reduceMotion" type="checkbox" ${settings.reduceMotion ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Show XP points</strong><small>Show quest status badges and XP-style progress labels.</small></span><input name="showXpPoints" type="checkbox" ${settings.showXpPoints ? "checked" : ""}></label>
@@ -2268,9 +2276,9 @@ function renderSettingsPage() {
         </section>
         </section>
         <section class="settings-tab-panel" id="settings-panel-backups" role="tabpanel" aria-labelledby="settings-tab-backups" data-settings-panel="backups" tabindex="0" ${activeSettingsTab === "backups" ? "" : "hidden"}>
-        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">BACKUP &amp; DATA</div><h2>Your browser data</h2></div></div>
-          <p class="settings-disclosure">Browser storage keeps a working copy and Supabase Auth keeps your sign-in session. Account data syncs to the connected Supabase project when online. NetraOS currently uses no analytics or marketing tracking.</p>
-          <label class="settings-field"><span><strong>Monthly backup reminder</strong><small>Remind you in this browser to download a local backup.</small></span><input name="monthlyBackupPrompt" type="checkbox" ${settings.monthlyBackupPrompt ? "checked" : ""}></label>
+          <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">BACKUP &amp; DATA</div><h2>Backups and your data</h2></div></div>
+          <p class="settings-disclosure">Download a copy of your information to keep, or restore it from a backup file.</p>
+          <label class="settings-field"><span><strong>Monthly backup reminder</strong><small>Remind you to download a backup each month.</small></span><input name="monthlyBackupPrompt" type="checkbox" ${settings.monthlyBackupPrompt ? "checked" : ""}></label>
           <section class="settings-downloads" aria-labelledby="settings-downloads-heading">
             <div class="settings-downloads-heading"><h3 id="settings-downloads-heading">Downloads</h3><p>Choose a summary, data backup, or policy to save.</p></div>
             <div class="settings-download-group"><h4>Financial summary</h4><div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="download-summary-csv">Summary (CSV)</button><button class="secondary-button" type="button" data-settings-action="download-summary-excel">Summary (Excel)</button><button class="secondary-button" type="button" data-settings-action="download-summary-pdf">Financial report (PDF)</button></div></div>
@@ -2282,7 +2290,7 @@ function renderSettingsPage() {
           <p class="legal-links"><a href="#terms" data-public-action="terms">Terms of Service</a><a href="#privacy" data-public-action="privacy">Privacy Policy</a><a href="#cookies" data-public-action="cookies">Cookie Policy</a></p>
         </section>
         </section>
-        <div class="settings-actions"><span>Saved on this device; syncs when online.</span><button class="inventory-submit" type="submit">Save changes</button></div>
+        <div class="settings-actions"><button class="inventory-submit" type="submit">Save changes</button></div>
       </form>
     </section>
     ${renderAppFooter()}`;
@@ -2293,7 +2301,7 @@ async function refreshPasskeyList(section) {
   const status = section.querySelector("[data-passkey-status]");
   const list = section.querySelector("[data-passkey-list]");
   if (!window.NetraSupabase?.enabled || !window.NetraSupabase.passkeySupported) {
-    status.textContent = "Passkeys are unavailable until they are enabled for this Supabase project and supported by this browser.";
+    status.textContent = "Passkeys aren’t available here yet. You can still sign in with your email and password.";
     return;
   }
   status.textContent = "Loading passkeys…";
@@ -2304,7 +2312,7 @@ async function refreshPasskeyList(section) {
     status.textContent = passkeys.length ? `${passkeys.length} passkey${passkeys.length === 1 ? "" : "s"} registered to this account.` : "No passkeys registered yet.";
     list.innerHTML = passkeys.map(passkey => `<li><span><strong>${escapeHTML(passkey.friendly_name || "Passkey")}</strong><small>${escapeHTML(passkey.last_used_at ? `Last used ${new Date(passkey.last_used_at).toLocaleDateString()}` : `Added ${new Date(passkey.created_at).toLocaleDateString()}`)}</small></span><button type="button" class="secondary-button" data-delete-passkey="${escapeHTML(passkey.id)}">Remove</button></li>`).join("");
   } catch (error) {
-    status.textContent = friendlyAuthMessage(error, "Couldn’t load passkeys. Check that passkeys are enabled in Supabase Auth settings.");
+    status.textContent = friendlyAuthMessage(error, "Couldn’t load your passkeys. Please try again later.");
     list.replaceChildren();
   }
 }
@@ -2314,7 +2322,7 @@ async function handlePasskeySettingsAction(action, button) {
   const status = section?.querySelector("[data-passkey-status]");
   if (!section || !status) return;
   if (!window.NetraSupabase?.enabled || !window.NetraSupabase.passkeySupported) {
-    status.textContent = "Passkeys are unavailable until they are enabled for this Supabase project and supported by this browser.";
+    status.textContent = "Passkeys aren’t available here yet. You can still sign in with your email and password.";
     return;
   }
   button.disabled = true;
@@ -2346,6 +2354,8 @@ function setupSettingsTabs(root = content) {
   const settingsForm = root.querySelector("[data-account-form='settings']");
   const themeSelect = root.querySelector('select[name="themeMode"]');
   const themeButtons = [...root.querySelectorAll("[data-theme-mode]")];
+  const accentInput = root.querySelector('input[name="accentProfile"]');
+  const accentButtons = [...root.querySelectorAll("[data-accent-choice]")];
   const profileTab = root.querySelector(".settings-profile-tab");
   refreshPasskeyList(root.querySelector("[data-passkey-settings]"));
   const editProfileButton = root.querySelector("[data-settings-edit-profile]");
@@ -2475,6 +2485,28 @@ function setupSettingsTabs(root = content) {
     syncThemeButtons(themeSelect.value);
     applyStoredSettings(themeSelect.value);
   });
+  const syncAccentButtons = value => accentButtons.forEach(button => {
+    const selected = button.dataset.accentChoice === value;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-checked", String(selected));
+    button.tabIndex = selected ? 0 : -1;
+  });
+  accentButtons.forEach((button, index) => {
+    button.addEventListener("click", () => {
+      if (!accentInput || !ACCENT_IDS.includes(button.dataset.accentChoice)) return;
+      accentInput.value = button.dataset.accentChoice;
+      syncAccentButtons(accentInput.value);
+    });
+    button.addEventListener("keydown", event => {
+      const nextIndex = event.key === "ArrowRight" || event.key === "ArrowDown" ? (index + 1) % accentButtons.length
+        : event.key === "ArrowLeft" || event.key === "ArrowUp" ? (index - 1 + accentButtons.length) % accentButtons.length
+          : null;
+      if (nextIndex === null) return;
+      event.preventDefault();
+      accentButtons[nextIndex].click();
+      accentButtons[nextIndex].focus();
+    });
+  });
   if (settingsTabsMediaQuery && settingsTabsMediaHandler) settingsTabsMediaQuery.removeEventListener("change", settingsTabsMediaHandler);
   settingsTabsMediaQuery = window.matchMedia("(max-width: 600px)");
   settingsTabsMediaHandler = () => activate(activeSettingsTab);
@@ -2539,10 +2571,10 @@ function showShortcutPrompt() {
         <button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button>
       </header>
       <p class="shortcut-install-copy">${canInstall
-        ? "Install NetraOS for quick access from your home screen or apps list. Your browser keeps a working copy and syncs account data when online."
+        ? "Install NetraOS for quick access from your home screen or apps list."
         : isPhone
-          ? "For quicker access, open your browser menu and choose “Add to Home Screen” or “Install app”. Your browser keeps a working copy and syncs account data when online."
-          : "For quicker access, open your browser menu and choose “Install NetraOS” or “Create shortcut”. Your browser keeps a working copy and syncs account data when online."}</p>
+          ? "For quicker access, open your browser menu and choose “Add to Home Screen” or “Install app”."
+          : "For quicker access, open your browser menu and choose “Install NetraOS” or “Create shortcut”."}</p>
       <footer class="inventory-dialog-actions">
         <button class="inventory-cancel" type="button">Maybe later</button>
         ${canInstall ? '<button class="inventory-submit" type="button" data-shortcut-install>Install app</button>' : ""}
@@ -3295,7 +3327,7 @@ function openCurrencyRatesDialog(requestedCurrency = "") {
         <div><span class="section-kicker">LOCAL DISPLAY SETTINGS</span><h2>Exchange rates</h2></div>
         <button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button>
       </header>
-      <p class="currency-rate-note">Enter how many Kenyan shillings equal one unit of each currency. The app syncs these display-only rates to your account when online.</p>
+      <p class="currency-rate-note">Enter how many Kenyan shillings equal one unit of each currency.</p>
       <div class="inventory-form-fields">
         ${Object.entries(displayCurrencies).filter(([code]) => code !== "KES").map(([code, currency]) => `
           <label class="inventory-form-field"><span>${currency.name} (${code})</span><input name="rate-${code}" type="number" min="0.000001" step="any" inputmode="decimal" placeholder="KSh per 1 ${code}" value="${state.rates[code] || ""}" ${requestedCurrency === code ? "required" : ""}></label>
@@ -3325,7 +3357,7 @@ function openCurrencyRatesDialog(requestedCurrency = "") {
     try {
       saveCurrencyState({ active, rates });
     } catch {
-      showToast("Unable to save exchange rates in browser storage.");
+      showToast("Couldn’t save the exchange rates. Please try again.");
       return;
     }
     dialog.close();
@@ -4125,7 +4157,7 @@ function openInventoryDialog(action, editId = null) {
       saveInventoryEntries(entries);
       if (updatedEntry.questId || editing?.questId) syncLinkedInventoryQuests(entries);
     } catch {
-      showToast("Unable to save this item in browser storage.");
+      showToast("Couldn’t save this item. Please try again.");
       return;
     }
 
@@ -4311,7 +4343,7 @@ function openPowerUpDialog(kind, editId = null) {
     try {
       savePowerUpData(data);
     } catch {
-      showToast("Unable to save this plan in browser storage.");
+      showToast("Couldn’t save this plan. Please try again.");
       return;
     }
 
@@ -4545,7 +4577,7 @@ function openQuestDialog(questId = "") {
       unlockedAchievements = saveQuests(updatedQuests) || [];
       syncLinkedInventoryQuests();
     } catch {
-      showToast("Unable to save this quest in browser storage.");
+      showToast("Couldn’t save this quest. Please try again.");
       return;
     }
     notifyBudgetRuleSuggestion();
@@ -4637,7 +4669,7 @@ function deleteQuest(button) {
     refreshFinancialPage();
     showToast("Quest removed.");
   } catch {
-    showToast("Unable to update browser storage.");
+    showToast("Couldn’t save your changes. Please try again.");
   }
 }
 
@@ -5720,7 +5752,7 @@ function renderContactPage() {
               <article class="faq-item" data-contact-faq-item><button class="faq-q" type="button" aria-expanded="false" aria-controls="contact-faq-asset"><span class="faq-q-text">How do I add an asset?</span><span class="faq-q-icon" aria-hidden="true">+</span></button><div class="faq-a" id="contact-faq-asset" role="region"><div class="faq-a-inner"><p>Open Inventory, choose Add Item, select Asset, then enter its name, value and account or source.</p></div></div></article>
               <article class="faq-item" data-contact-faq-item><button class="faq-q" type="button" aria-expanded="false" aria-controls="contact-faq-tax"><span class="faq-q-text">How is take-home pay calculated?</span><span class="faq-q-icon" aria-hidden="true">+</span></button><div class="faq-a" id="contact-faq-tax" role="region"><div class="faq-a-inner"><p>The Power-Up calculator estimates PAYE, NSSF, SHIF and the Affordable Housing Levy from your gross pay.</p></div></div></article>
               <article class="faq-item" data-contact-faq-item><button class="faq-q" type="button" aria-expanded="false" aria-controls="contact-faq-access"><span class="faq-q-text">Can NetraOS access my bank or M-Pesa?</span><span class="faq-q-icon" aria-hidden="true">+</span></button><div class="faq-a" id="contact-faq-access" role="region"><div class="faq-a-inner"><p>No. You enter balances yourself; NetraOS does not connect to your bank or M-Pesa account.</p></div></div></article>
-              <article class="faq-item" data-contact-faq-item><button class="faq-q" type="button" aria-expanded="false" aria-controls="contact-faq-delete-account"><span class="faq-q-text">How do I permanently delete my account?</span><span class="faq-q-icon" aria-hidden="true">+</span></button><div class="faq-a" id="contact-faq-delete-account" role="region"><div class="faq-a-inner"><p>In Settings, choose <b>Delete account permanently</b>, re-enter your account password, and type <b>DELETE</b> to confirm. Once NetraOS confirms completion, your sign-in identity and synced financial records are deleted. Download a backup first; exported files and browser copies on other devices are not removed automatically.</p></div></div></article>
+              <article class="faq-item" data-contact-faq-item><button class="faq-q" type="button" aria-expanded="false" aria-controls="contact-faq-delete-account"><span class="faq-q-text">How do I permanently delete my account?</span><span class="faq-q-icon" aria-hidden="true">+</span></button><div class="faq-a" id="contact-faq-delete-account" role="region"><div class="faq-a-inner"><p>In Settings, choose <b>Delete account permanently</b>, re-enter your password, and type <b>DELETE</b> to confirm. Download a backup first; this can’t be undone.</p></div></div></article>
             </div>
           </section>
         </aside>
@@ -6221,7 +6253,7 @@ function showAutoLockNudge() {
         </div>
         <button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button>
       </header>
-      <p class="autolock-copy">Auto-lock hides your finances after a period of inactivity. Choose a four-digit PIN and how long to wait in Settings. This is a screen lock for this device and does not encrypt browser storage.</p>
+      <p class="autolock-copy">Auto-lock hides your finances after a period of inactivity. Choose a four-digit PIN and how long to wait in Settings.</p>
       <label class="autolock-optout">
         <input type="checkbox" name="dismissForever">
         <span>Do not show this again</span>
@@ -6249,7 +6281,7 @@ function showAutoLockNudge() {
     if (optOut.checked) {
       const current = getStoredSettings();
       current.autoLockPromptDismissed = true;
-      try { localStorage.setItem(settingsStorageKey, JSON.stringify(current)); } catch { showToast("Unable to save that preference in browser storage."); }
+      try { localStorage.setItem(settingsStorageKey, JSON.stringify(current)); } catch { showToast("Couldn’t save that preference. Please try again."); }
     }
     dialog.remove();
     if (goToSettings) {
@@ -6559,7 +6591,7 @@ function showPreferredNamePrompt(profile) {
       const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       fields.innerHTML = `
         <label class="inventory-form-field"><span>Preferred theme</span><select name="themeMode"><option value="light" ${state.themeMode === "light" ? "selected" : ""}>Light</option><option value="dark" ${state.themeMode === "dark" ? "selected" : ""}>Dark</option><option value="system" ${state.themeMode === "system" ? "selected" : ""}>Use device setting</option></select></label>
-        <label class="inventory-form-field"><span>Accent color</span><select name="accentProfile">${[["emerald", "Emerald Terminal"], ["amber", "Cyber Amber"], ["matrix", "Matrix Green"], ["blue", "Classic Blue"], ["violet", "Electric Violet"], ["coral", "Sunset Coral"], ["aqua", "Aqua Teal"]].map(([value, label]) => `<option value="${value}" ${state.accentProfile === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
+        <label class="inventory-form-field"><span>Accent color</span><select name="accentProfile">${ACCENT_PRESETS.map(({ id, name }) => `<option value="${id}" ${state.accentProfile === id ? "selected" : ""}>${name}</option>`).join("")}</select></label>
         <label class="inventory-form-field"><span>Financial year starts</span><select name="financialYearStartMonth">${months.map((month, index) => `<option value="${index + 1}" ${state.financialYearStartMonth === index + 1 ? "selected" : ""}>${month}</option>`).join("")}</select></label>
         <label class="inventory-form-field"><span>Payday / cycle start day</span><input name="paydayAnchorDay" type="number" min="1" max="31" step="1" inputmode="numeric" value="${state.paydayAnchorDay}"><small>Your monthly cycle starts on this day; shorter months use their last day.</small></label>`;
     } else if (kind === "goal") {
@@ -6623,7 +6655,7 @@ function showPreferredNamePrompt(profile) {
       dialog.close();
       showToast(hasGoal ? "Your setup is complete and your first quest is ready." : "Your setup is complete. You can create a quest whenever you’re ready.");
     } catch {
-      error.textContent = "Unable to save your setup. Check browser storage and try again.";
+      error.textContent = "We couldn’t save your setup. Please try again.";
     }
   };
 
@@ -6937,7 +6969,7 @@ function clearAllLocalData() {
 function showCloudFactoryReset() {
   const dialog = document.createElement("dialog");
   dialog.className = "inventory-dialog";
-  dialog.innerHTML = `<form class="inventory-form" novalidate><header class="inventory-dialog-heading"><div><span class="section-kicker">ACCOUNT SECURITY</span><h2>Clear NetraOS account data</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header><div class="inventory-form-fields"><p class="reset-copy">This permanently deletes synced profiles, records, plans, goals, settings, and activity for this account, and clears this device. Your Supabase Auth sign-in account will remain; this action does not delete that identity. Download a backup first.</p><label class="inventory-form-field"><span>Confirm your account password</span><input name="password" type="password" autocomplete="current-password" required></label><p class="reset-status" role="alert" aria-live="polite"></p></div><footer class="inventory-dialog-actions"><button class="inventory-cancel" type="button">Cancel</button><button class="inventory-submit danger" type="submit">Delete synced data</button></footer></form>`;
+  dialog.innerHTML = `<form class="inventory-form" novalidate><header class="inventory-dialog-heading"><div><span class="section-kicker">ACCOUNT SECURITY</span><h2>Clear NetraOS account data</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header><div class="inventory-form-fields"><p class="reset-copy">This clears your NetraOS information from this account and this device. Your sign-in account will remain active. Download a backup first; this cannot be undone.</p><label class="inventory-form-field"><span>Confirm your account password</span><input name="password" type="password" autocomplete="current-password" required></label><p class="reset-status" role="alert" aria-live="polite"></p></div><footer class="inventory-dialog-actions"><button class="inventory-cancel" type="button">Cancel</button><button class="inventory-submit danger" type="submit">Clear my information</button></footer></form>`;
   document.body.append(dialog);
   const form = dialog.querySelector("form");
   const status = dialog.querySelector(".reset-status");
@@ -6950,7 +6982,7 @@ function showCloudFactoryReset() {
     const password = String(form.elements.password.value || "");
     const user = await window.NetraSupabase.getUser();
     if (!user?.email || !password) { status.textContent = "Enter your password to continue."; return; }
-    if (!window.confirm("Delete all synced NetraOS data for this account and clear this device? This cannot be undone.")) return;
+    if (!window.confirm("Delete your NetraOS information? This cannot be undone.")) return;
     form.querySelector('[type="submit"]').disabled = true;
     status.textContent = "Verifying and deleting account data…";
     const verified = await window.NetraSupabase.signIn(user.email, password);
@@ -6975,7 +7007,7 @@ function showPermanentAccountDeletion() {
   }
   const dialog = document.createElement("dialog");
   dialog.className = "inventory-dialog";
-  dialog.innerHTML = `<form class="inventory-form" novalidate><header class="inventory-dialog-heading"><div><span class="section-kicker">PERMANENT ACCOUNT DELETION</span><h2>Delete your account</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header><div class="inventory-form-fields"><p class="reset-copy">This permanently deletes your NetraOS account, profile, and all synced financial records. Your Supabase sign-in identity will also be deleted. This cannot be undone. Download a backup first if you need one.</p><label class="inventory-form-field"><span>Confirm your account password</span><input name="password" type="password" autocomplete="current-password" required></label><label class="inventory-form-field"><span>Type DELETE to confirm</span><input name="confirmation" type="text" autocomplete="off" required></label><p class="reset-status" role="alert" aria-live="polite"></p></div><footer class="inventory-dialog-actions"><button class="inventory-cancel" type="button">Cancel</button><button class="inventory-submit danger" type="submit">Delete account permanently</button></footer></form>`;
+  dialog.innerHTML = `<form class="inventory-form" novalidate><header class="inventory-dialog-heading"><div><span class="section-kicker">PERMANENT ACCOUNT DELETION</span><h2>Delete your account</h2></div><button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button></header><div class="inventory-form-fields"><p class="reset-copy">This permanently deletes your NetraOS account and information. This cannot be undone. Download a backup first if you need one.</p><label class="inventory-form-field"><span>Confirm your account password</span><input name="password" type="password" autocomplete="current-password" required></label><label class="inventory-form-field"><span>Type DELETE to confirm</span><input name="confirmation" type="text" autocomplete="off" required></label><p class="reset-status" role="alert" aria-live="polite"></p></div><footer class="inventory-dialog-actions"><button class="inventory-cancel" type="button">Cancel</button><button class="inventory-submit danger" type="submit">Delete account permanently</button></footer></form>`;
   document.body.append(dialog);
   const form = dialog.querySelector("form");
   const status = dialog.querySelector(".reset-status");
@@ -7000,10 +7032,10 @@ function showPermanentAccountDeletion() {
       if (verified.error) throw new Error("The password could not be verified.");
       const accessToken = verified.data?.session?.access_token;
       if (!accessToken) throw new Error("Your sign-in could not be refreshed. Please try again.");
-      status.textContent = "Permanently deleting your account and synced data…";
+      status.textContent = "Permanently deleting your account and information…";
       await window.NetraSupabase.deleteAccount(accessToken);
       dialog.close();
-      performFactoryReset("Your NetraOS account and synced data were permanently deleted.");
+      performFactoryReset("Your NetraOS account and information were permanently deleted.");
     } catch (error) {
       submit.disabled = false;
       status.textContent = error.message || "Unable to delete your account. Try again later.";
@@ -8016,13 +8048,13 @@ function friendlyAuthMessage(error, fallback = "We couldn’t complete that just
     return "This email still needs confirmation. The link may be in your inbox or spam folder. An expired link can be requested again after the email limit resets.";
   }
   if (/pgrst204|could not find the .* column .* in the schema cache/.test(message)) {
-    return "Your sign-in succeeded, but the database is missing a column required by NetraOS. Run supabase/migrations/20261017_add_power_up_sync_columns.sql in your Supabase project’s SQL Editor, then try again.";
+    return "You’re signed in, but some account information isn’t available right now. Please try again later or contact support.";
   }
   if (/pgrst205|42p01|could not find the table|relation .* does not exist|schema cache/.test(message)) {
-    return "Your sign-in was accepted, but the NetraOS database tables aren’t available yet. Run supabase/schema.sql in your Supabase project’s SQL Editor, then try again.";
+    return "You’re signed in, but some account information isn’t available right now. Please try again later or contact support.";
   }
   if (/row.level security|permission denied|insufficient privilege|not authorized|42501/.test(message)) {
-    return "Your sign-in was accepted, but a Supabase access policy is blocking account data. If you enabled the old authenticator policy, run supabase/migrations/20261015_remove_totp_aal2.sql in SQL Editor, then try again.";
+    return "You’re signed in, but we can’t open your account information right now. Please try again later or contact support.";
   }
   if (/user already registered|already.*registered|already.*exists/.test(message)) {
     return "There’s already an account with this email. Signing in or using “Forgot your password?” should get you back in.";
@@ -8031,7 +8063,7 @@ function friendlyAuthMessage(error, fallback = "We couldn’t complete that just
     return "A password with at least 8 characters is needed.";
   }
   if (/passkey_disabled/.test(message)) {
-    return "Passkeys aren’t enabled for this Supabase project yet. Enable Authentication → Passkeys in the Supabase Dashboard, then try again.";
+    return "Passkeys aren’t available here yet. You can still sign in with your email and password.";
   }
   if (/failed to fetch|network|load failed|fetch error/.test(message)) {
     return "We couldn’t reach the sign-in service just now. A connection check and another try may help.";
@@ -8224,7 +8256,7 @@ document.addEventListener("submit", async event => {
     if (window.NetraSupabase?.enabled) {
       const authUser = await window.NetraSupabase.getUser();
       if (authUser?.email?.toLowerCase() !== profile.email.toLowerCase()) {
-        showToast("Change the account email through Supabase Auth email verification before saving it here.");
+        showToast("To change your email, follow the confirmation link sent to your current address.");
         return;
       }
     }
@@ -8244,7 +8276,7 @@ document.addEventListener("submit", async event => {
         activeSettingsTab = "profile";
         showPage("Settings");
       } else showPage("Profile");
-      showToast(window.NetraSupabase?.enabled ? "Profile saved; cloud sync queued." : "Profile saved in this browser.");
+      showToast("Profile saved.");
     } catch {
       showToast("Unable to save the profile.");
     }
@@ -8285,7 +8317,7 @@ document.addEventListener("submit", async event => {
       customRelief: Math.max(0, Number(formData.get("customRelief") || 0)),
       monthlyBackupPrompt: formData.has("monthlyBackupPrompt"),
       lastBackupPromptAt: previousSettings.lastBackupPromptAt,
-      accentProfile: String(formData.get("accentProfile") || "emerald"),
+      accentProfile: normalizeAccent(String(formData.get("accentProfile") || "leo")),
       showXpPoints: formData.has("showXpPoints"),
       questSounds: formData.has("questSounds"),
       questAnimations: formData.has("questAnimations"),
@@ -8387,7 +8419,7 @@ document.addEventListener("submit", async event => {
       maybePromptForBackup();
       showToast("Settings saved.");
     } catch {
-      showToast("Unable to save settings in browser storage.");
+      showToast("Couldn’t save your settings. Please try again.");
     }
   }
 });
@@ -8438,7 +8470,7 @@ document.addEventListener("click", event => {
       showToast(settings.darkMode ? "Dark mode enabled." : "Light mode enabled.");
     } catch {
       applyStoredSettings();
-      showToast("Theme changed for this session; browser storage is unavailable.");
+      showToast("Your theme changed for now, but couldn’t be saved. Please try again.");
     }
     return;
   }
@@ -8749,7 +8781,7 @@ document.addEventListener("click", event => {
       refreshFinancialPage();
       showToast("Monthly plan item removed.");
     } catch {
-      showToast("Unable to update browser storage.");
+      showToast("Couldn’t save your changes. Please try again.");
     }
     return;
   }
@@ -8762,7 +8794,7 @@ document.addEventListener("click", event => {
       content.innerHTML = renderInventoryPage();
       showToast("Inventory item removed.");
     } catch {
-      showToast("Unable to update browser storage.");
+      showToast("Couldn’t save your changes. Please try again.");
     }
     return;
   }
@@ -8943,9 +8975,7 @@ window.addEventListener("netraos-cloud-refresh", () => {
   showPage(crumb.textContent);
 });
 window.addEventListener("netraos-sync-error", () => {
-  if (!appShell.hidden) showToast(navigator.onLine
-    ? "Saved on this device; cloud sync will retry. Check the Supabase setup if this continues."
-    : "Saved on this device; cloud sync will resume when you’re online.");
+  if (!appShell.hidden) showToast("Some changes couldn’t be updated. Please check your connection and try again.");
 });
 
 // Supabase Auth, not the old browser-only flag, authorizes a cloud account.
@@ -9077,7 +9107,7 @@ function openCookiePreferences() {
       dialog.close();
       showToast("Your choice has been saved.");
     } catch {
-      showToast("Unable to save your choice in browser storage.");
+      showToast("Couldn’t save your choice. Please try again.");
     }
   });
   dialog.addEventListener("submit", event => {
@@ -9087,7 +9117,7 @@ function openCookiePreferences() {
       dialog.close();
       showToast("Your choice has been saved.");
     } catch {
-      showToast("Unable to save preferences in browser storage.");
+      showToast("Couldn’t save your preferences. Please try again.");
     }
   });
   dialog.showModal();
@@ -9101,7 +9131,7 @@ function showCookieBanner() {
   const banner = document.createElement("aside");
   banner.className = "cookie-banner";
   banner.dataset.cookieBanner = "";
-  banner.setAttribute("aria-label", "Cookie and browser storage notice");
+  banner.setAttribute("aria-label", "Cookie preferences notice");
   banner.innerHTML = `<div class="cookie-banner-copy"><strong>A quick note about cookies</strong><p>We remember your settings and keep you signed in on this device. We don’t use advertising cookies or collect information about how you use the app. You can choose whether we may do that if this changes later.</p><a href="#cookies" data-public-action="cookies">Learn more</a></div><div class="cookie-actions"><button type="button" class="cookie-button secondary" data-cookie-manage>Choose settings</button><button type="button" class="cookie-button secondary" data-cookie-reject>No thanks</button><button type="button" class="cookie-button" data-cookie-accept>That’s okay</button></div>`;
   document.body.append(banner);
   banner.querySelector("[data-cookie-accept]").addEventListener("click", () => {
@@ -9110,7 +9140,7 @@ function showCookieBanner() {
       banner.remove();
       showToast("Your choice has been saved.");
     } catch {
-      showToast("Unable to save your choice in browser storage.");
+      showToast("Couldn’t save your choice. Please try again.");
     }
   });
   banner.querySelector("[data-cookie-reject]").addEventListener("click", () => {
@@ -9119,7 +9149,7 @@ function showCookieBanner() {
       banner.remove();
       showToast("Your choice has been saved.");
     } catch {
-      showToast("Unable to save your choice in browser storage.");
+      showToast("Couldn’t save your choice. Please try again.");
     }
   });
 }

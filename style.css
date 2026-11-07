@@ -138,6 +138,16 @@
   .app-shell .settings-danger-zone .settings-inline-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
   .app-shell.theme-dark .settings-edit-profile { border-color: color-mix(in srgb, var(--green) 42%, var(--line)); background: color-mix(in srgb, var(--green) 18%, var(--panel)); }
 }
+
+/* Accent colors shown by the Settings palette cards. */
+.app-shell[data-accent="leo"] { --gold: #16471c; --gold-bright: #c9f05b; --green: #16471c; --coral: #36782d; }
+.app-shell[data-accent="pwani"] { --gold: #286780; --gold-bright: #f4bf4d; --green: #286780; --coral: #3d86a2; }
+.app-shell[data-accent="kitenge"] { --gold: #b83720; --gold-bright: #f2b632; --green: #b83720; --coral: #d75737; }
+.app-shell[data-accent="mukimo"] { --gold: #36782d; --gold-bright: #e8f232; --green: #36782d; --coral: #59923e; }
+.app-shell.theme-dark[data-accent="leo"] { --gold: #c9f05b; --gold-bright: #dbff82; --green: #94c97e; --coral: #c9f05b; }
+.app-shell.theme-dark[data-accent="pwani"] { --gold: #f4bf4d; --gold-bright: #ffd77a; --green: #78b9d0; --coral: #9acfe0; }
+.app-shell.theme-dark[data-accent="kitenge"] { --gold: #f2b632; --gold-bright: #ffd26a; --green: #f0785d; --coral: #ff9a76; }
+.app-shell.theme-dark[data-accent="mukimo"] { --gold: #e8f232; --gold-bright: #f4fa70; --green: #8fca78; --coral: #c6d65c; }
 * {
   box-sizing: border-box;
 }
@@ -9308,6 +9318,25 @@ body.theme-dark #public-shell .phone-entry-welcome > .auth-fluid-art { filter: s
 .accent-preview-copy small { color: var(--muted); font-size: 10px; }
 .accent-preview-sample { margin-left: auto; padding: 7px 10px; border-radius: 8px; background: var(--green); color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .app-shell.theme-dark .accent-preview { background: color-mix(in srgb, var(--green) 12%, var(--panel)); }
+.settings-accent-field { display: grid !important; grid-template-columns: minmax(0, 1fr) !important; align-items: stretch !important; gap: 14px !important; }
+.settings-accent-heading { display: grid; gap: 4px; }
+.settings-accent-heading strong { color: var(--text); font: 600 15px var(--sans); }
+.settings-accent-heading small { color: var(--muted); font-size: 12px; }
+.accent-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.accent-choice { position: relative; display: grid; grid-template-rows: 1fr auto; gap: 14px; min-width: 0; min-height: 184px; padding: 14px; border: 2px solid #e8ebe8; border-radius: 28px; background: var(--panel); color: var(--text); text-align: left; cursor: pointer; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+.accent-choice:hover { border-color: color-mix(in srgb, var(--accent-swatch-primary) 36%, #e8ebe8); transform: translateY(-1px); }
+.accent-choice:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent-swatch-primary) 30%, transparent); outline-offset: 2px; }
+.accent-choice.is-selected { border-color: var(--accent-swatch-primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-swatch-primary) 16%, transparent); }
+.accent-choice-swatch { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; min-height: 106px; overflow: hidden; border-radius: 24px; box-shadow: 0 1px 4px #00000012; }
+.accent-choice-swatch i:first-child { grid-column: 1; grid-row: 1 / span 2; background: var(--accent-swatch-primary); }
+.accent-choice-swatch i:nth-child(2) { grid-column: 2; grid-row: 1; background: var(--accent-swatch-color); }
+.accent-choice-swatch i:nth-child(3) { grid-column: 2; grid-row: 2; background: var(--accent-swatch-surface); }
+.accent-choice-name { padding: 0 34px 0 2px; font: 700 24px/1.05 var(--display); letter-spacing: -.03em; }
+.accent-choice-check { position: absolute; right: 15px; bottom: 14px; width: 28px; height: 28px; fill: none; stroke: var(--accent-swatch-primary); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.accent-choice.is-selected .accent-choice-check { opacity: 1; }
+.app-shell.theme-dark .accent-choice { border-color: #354139; }
+.app-shell.theme-dark .accent-choice.is-selected { border-color: var(--accent-swatch-primary); }
+.app-shell.theme-dark .accent-choice-name { color: var(--text); }
 @media (max-width: 560px) { .accent-preview { align-items: flex-start; flex-wrap: wrap; margin-left: 0; } .accent-preview-sample { margin-left: 29px; } }
 
 /* Keep Settings controls aligned beside their labels on narrow phone screens. */
@@ -11477,4 +11506,15 @@ body.theme-dark { background: var(--bg); }
   .app-shell .settings-page .settings-profile-form .account-form-actions .inventory-submit { font-size: 16px; font-weight: 600; min-height: 50px; }
   .app-shell .settings-page .settings-actions > span,
   .app-shell .settings-page .account-form-actions > span { font-size: 12.5px; }
+}
+
+@media (max-width: 600px) {
+  .app-shell .settings-accent-field { gap: 12px !important; }
+  .app-shell .settings-accent-heading strong { font-size: 15px; }
+  .app-shell .settings-accent-heading small { font-size: 13px; }
+  .app-shell .accent-picker { gap: 9px; }
+  .app-shell .accent-choice { gap: 10px; min-height: 132px; padding: 9px; border-width: 1.5px; border-radius: 20px; }
+  .app-shell .accent-choice-swatch { min-height: 67px; border-radius: 17px; }
+  .app-shell .accent-choice-name { padding-right: 26px; font-size: 18px; }
+  .app-shell .accent-choice-check { right: 9px; bottom: 9px; width: 22px; height: 22px; }
 }
