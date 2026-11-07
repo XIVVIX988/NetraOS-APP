@@ -1989,6 +1989,13 @@ function showPublicPage(page = "landing") {
     confirmInput?.addEventListener("input", updatePasswordFeedback);
     updateSignupPasswordChips(signupPasswordForm);
   }
+  if (page === "login") {
+    const loginError = publicShell.querySelector('[data-auth-form="login"] .auth-error');
+    if (loginError) {
+      loginError.textContent = "";
+      loginError.hidden = true;
+    }
+  }
   publicShell.querySelectorAll("[data-oauth-signin]").forEach(oauthButton => oauthButton.addEventListener("click", async event => {
     event.preventDefault();
     if (oauthButton.getAttribute("aria-disabled") === "true") return;
