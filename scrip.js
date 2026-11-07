@@ -1332,23 +1332,6 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
   let attempts = getPinFailureCount();
   let lockoutStarted = false;
   let checkingPin = false;
-  const redirectToLoginAfterPinFailure = () => {
-    recordSecurityAudit("Signed out after an incorrect workspace PIN");
-    localAppSessionActive = false;
-    clearSessionInactivityTracking();
-    window.clearTimeout(autoLockTimer);
-    window.clearTimeout(autoLockNudgeTimer);
-    window.clearInterval(assetGrowthTimer);
-    assetGrowthTimer = 0;
-    try { localStorage.removeItem(sessionStorageKey); } catch { /* Legacy marker only. */ }
-    if (window.NetraSupabase?.enabled) {
-      window.NetraSupabase.signOut({ scope: "local" }).catch(signOutError => {
-        console.warn("Unable to clear the local Supabase session after an incorrect PIN:", signOutError.message);
-      });
-    }
-    lockScreen.remove();
-    showPublicPage("login");
-  };
   const lockOutAndSignOut = () => {
     if (lockoutStarted) return;
     lockoutStarted = true;
@@ -1426,7 +1409,6 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
         lockOutAndSignOut();
       } else {
         pinInput.focus();
-        window.setTimeout(redirectToLoginAfterPinFailure, 450);
       }
     } finally {
       checkingPin = false;
