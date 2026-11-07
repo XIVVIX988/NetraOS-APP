@@ -1301,7 +1301,7 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
   lockScreen.id = "security-lock-screen";
   lockScreen.className = "security-lock-screen";
   lockScreen.dataset.accent = appShell.dataset.accent || "emerald";
-  lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">NETRAOS · SESSION LOCK</span><h1 id="security-lock-title">Your workspace is locked.</h1><p>Enter your ${settings.localPinLength}-digit PIN to continue. This screen lock does not encrypt browser storage.</p><form><label for="security-unlock-pin">${settings.localPinLength}-digit PIN</label><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${settings.localPinLength}}" maxlength="${settings.localPinLength}" required><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Unlock workspace</button></form></section>`;
+  lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">WELCOME BACK</span><h1 id="security-lock-title">Please unlock your workspace.</h1><p>Enter your ${settings.localPinLength}-digit PIN to return to your workspace.</p><form><label for="security-unlock-pin">Your PIN</label><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${settings.localPinLength}}" maxlength="${settings.localPinLength}" required><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Continue</button></form></section>`;
   document.body.append(lockScreen);
   recordSecurityAudit(onLaunch ? "Workspace locked on launch" : onBackground ? "Workspace locked when app was backgrounded" : "Workspace locked after inactivity");
   const form = lockScreen.querySelector("form");
@@ -1334,7 +1334,7 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
     setPinFailureCount(3);
     pinInput.disabled = true;
     submitButton.disabled = true;
-    error.textContent = "Too many incorrect PIN attempts. You’re signed out; sign in again in one minute.";
+    error.textContent = "For your security, we’ve signed you out for one minute. Please sign in again in a minute.";
     error.hidden = false;
     const lockedUntil = Date.now() + 60 * 1000;
     try { localStorage.setItem(pinLockoutStorageKey, String(lockedUntil)); } catch { /* Keep the current-screen lockout even without writable storage. */ }
@@ -1352,19 +1352,19 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
       clearPinFailureCount();
       lockScreen.remove();
       showPublicPage("login");
-      showToast("You were signed out after three incorrect PIN attempts.");
+      showToast("You can try signing in again now.");
     }, 60 * 1000);
   };
   form.addEventListener("submit", async event => {
     event.preventDefault();
     if (checkingPin || lockoutStarted) return;
     if (settings.accountPinEnabled && !settings.localPinHash && !navigator.onLine) {
-      error.textContent = "Connect to the internet to verify this account PIN.";
+      error.textContent = "Please connect to the internet so we can check your PIN, then try again.";
       error.hidden = false;
       return;
     }
     if (!new RegExp(`^[0-9]{${settings.localPinLength}}$`).test(pinInput.value)) {
-      error.textContent = `Enter the ${settings.localPinLength}-digit PIN.`;
+      error.textContent = `Please enter your ${settings.localPinLength}-digit PIN.`;
       error.hidden = false;
       pinInput.focus();
       return;
@@ -1384,7 +1384,7 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
         return;
       }
       if (pinError.message !== "PIN did not match.") {
-        error.textContent = "Unable to verify the account PIN right now. Check your connection and try again.";
+        error.textContent = "We couldn’t check your PIN just now. Please check your connection and try again.";
         error.hidden = false;
         pinInput.value = "";
         pinInput.focus();
@@ -1397,7 +1397,9 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
       card.classList.remove("is-shaking");
       void card.offsetWidth;
       card.classList.add("is-shaking");
-      error.textContent = attempts >= 3 ? "Too many incorrect attempts. You’re signed out; sign in again in one minute." : `That PIN did not match. ${3 - attempts} attempt${3 - attempts === 1 ? "" : "s"} remaining.`;
+      error.textContent = attempts >= 3
+        ? "For your security, we’ve signed you out for one minute. Please sign in again in a minute."
+        : `That PIN doesn’t match. You have ${3 - attempts} ${3 - attempts === 1 ? "try" : "tries"} left.`;
       error.hidden = false;
       if (attempts >= 3) {
         lockOutAndSignOut();
@@ -1419,13 +1421,13 @@ function showPinLockoutScreen(until) {
   const lockScreen = document.createElement("main");
   lockScreen.id = "security-lock-screen";
   lockScreen.className = "security-lock-screen";
-  lockScreen.innerHTML = '<section class="security-lock-card" role="status" aria-live="polite"><span class="section-kicker">NETRAOS · TEMPORARY LOCKOUT</span><h1>Sign-in is temporarily locked.</h1><p data-pin-lockout-countdown></p></section>';
+  lockScreen.innerHTML = '<section class="security-lock-card" role="status" aria-live="polite"><span class="section-kicker">A QUICK SECURITY PAUSE</span><h1>Please wait a moment.</h1><p data-pin-lockout-countdown></p></section>';
   document.body.append(lockScreen);
   const countdown = lockScreen.querySelector("[data-pin-lockout-countdown]");
   const updateCountdown = () => {
     const seconds = Math.max(0, Math.ceil((until - Date.now()) / 1000));
     if (seconds > 0) {
-      countdown.textContent = `Try signing in again in ${seconds} second${seconds === 1 ? "" : "s"}.`;
+      countdown.textContent = `For your security, sign-in is paused. Please try again in ${seconds} second${seconds === 1 ? "" : "s"}.`;
       return;
     }
     window.clearInterval(timer);
@@ -1986,15 +1988,6 @@ function showPublicPage(page = "landing") {
     passwordInput?.addEventListener("input", updatePasswordFeedback);
     confirmInput?.addEventListener("input", updatePasswordFeedback);
     updateSignupPasswordChips(signupPasswordForm);
-  }
-  if (page === "login" && getPinFailureCount() > 0) {
-    const remaining = Math.max(0, 3 - getPinFailureCount());
-    const authError = publicShell.querySelector('[data-auth-form="login"] .auth-error');
-    if (authError) {
-      authError.textContent = `The workspace PIN was incorrect. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining before a one-minute lockout. Sign in to try again.`;
-      authError.classList.remove("success");
-      authError.hidden = false;
-    }
   }
   publicShell.querySelectorAll("[data-oauth-signin]").forEach(oauthButton => oauthButton.addEventListener("click", async event => {
     event.preventDefault();
