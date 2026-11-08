@@ -4049,7 +4049,16 @@ function openInventoryDialog(action, editId = null) {
     const withdrawalRaw = String(formData.get("withdrawalAmount") || "").trim();
     const withdrawalAmount = withdrawalRaw === "" ? 0 : Number(withdrawalRaw);
 
-    if (!name || !Number.isFinite(amount) || amount < 0) return;
+    if (!name) {
+      showToast("Enter a name for this item.");
+      form.elements.name.focus();
+      return;
+    }
+    if (!Number.isFinite(amount) || amount < 0) {
+      showToast("Enter a valid amount of zero or more.");
+      form.elements.amount.focus();
+      return;
+    }
     if (withdrawalRaw !== "" && (!Number.isFinite(withdrawalAmount) || withdrawalAmount <= 0 || withdrawalAmount > Number(editing?.amount || 0))) {
       showToast("Enter a withdrawal between zero and the current asset balance.");
       return;
@@ -4315,7 +4324,16 @@ function openPowerUpDialog(kind, editId = null) {
     const formData = new FormData(form);
     const name = String(formData.get("name") || "").trim();
     const amount = Number(formData.get("amount"));
-    if (!name || !Number.isFinite(amount) || amount < 0) return;
+    if (!name) {
+      showToast("Enter a name for this item.");
+      form.elements.name.focus();
+      return;
+    }
+    if (!Number.isFinite(amount) || amount < 0) {
+      showToast("Enter a valid amount of zero or more.");
+      form.elements.amount.focus();
+      return;
+    }
     const expenseDate = String(formData.get("date") || "");
     if (isSpending && !/^\d{4}-\d{2}-\d{2}$/.test(expenseDate)) {
       showToast("Choose a valid date for this expense.");
