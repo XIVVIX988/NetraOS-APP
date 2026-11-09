@@ -9276,8 +9276,8 @@ renderHelpChat();
 // ---------------------------------------------------------------------------
 // Guided app tour: a light spotlight over the live app (replaces the old blocking cards).
 // ---------------------------------------------------------------------------
-const appTourStorageKey = "netraos-app-tour-seen-v1";
-const appTourSteps = [
+var appTourStorageKey = "netraos-app-tour-seen-v1";
+var appTourSteps = [
   { page: "Dashboard", targets: [".networth-card"], title: "Your net worth", text: "Everything you own minus everything you owe. It updates as you add accounts and debts." },
   { page: "Inventory", targets: [".desktop-sidebar-nav [data-page='Inventory']", ".mobile-tab[data-page='Inventory']"], title: "Accounts and debts", text: "Add your bank, M-Pesa and cash balances here, along with any loans you owe." },
   { page: "Power-Up", targets: [".desktop-sidebar-nav [data-page='Power-Up']", ".mobile-tab[data-page='Power-Up']"], title: "Your monthly plan", text: "Enter your income and budget lines to see how much you can save each month." },
@@ -9285,16 +9285,18 @@ const appTourSteps = [
   { page: "Dashboard", targets: ["[data-privacy-toggle]"], title: "Hide your amounts", text: "Tap this to mask every amount when someone else can see your screen." },
   { page: "Dashboard", targets: ["[data-onboarding]:not([hidden])", "[data-dashboard-next-action]"], title: "Start here", text: "These steps set up your dashboard, and each button opens the right form. You can replay this tour any time from Settings." }
 ];
-let appTourState = null;
-let appTourAccountId = "local";
+var appTourState = null;
+var appTourAccountId = "local";
 
 function appTourSeen() {
   try { return localStorage.getItem(appTourStorageKey + ":" + appTourAccountId) === "true"; } catch { return false; }
 }
 
+// enterApp() can run for a restored session before this block is reached at the bottom of the
+// script, so these declarations use var (hoisted) and nothing here reads them until the timer fires.
 function maybeStartAppTour(profile, restoredSession) {
+  if (restoredSession) return;
   appTourAccountId = String(profile?.email || profile?.username || profile?.name || "local").toLowerCase();
-  if (restoredSession || appTourSeen()) return;
   window.setTimeout(() => startAppTour(), 1200);
 }
 
