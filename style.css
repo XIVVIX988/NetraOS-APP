@@ -11598,3 +11598,18 @@ body .phone-splash .phone-splash-name span { color: #6ee7a8; }
 @keyframes splash-load { to { transform: scaleX(1); } }
 @keyframes splash-glow { 0%, 100% { opacity: .7; transform: translate(-50%, -50%) scale(.95); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } }
 @media (prefers-reduced-motion: reduce) { .phone-splash-glow, .phone-splash-bar i, .phone-splash-tag, body .phone-splash .phone-splash-brand { animation-duration: .01ms; } }
+
+/* Guided app tour: light spotlight so the live app stays visible. */
+.tour-shield { position: fixed; inset: 0; z-index: 99980; background: transparent; }
+.tour-spot { position: fixed; z-index: 99981; border-radius: 14px; pointer-events: none; box-shadow: 0 0 0 100vmax rgba(8, 16, 12, .36), 0 0 0 2px var(--gold); transition: left .25s ease, top .25s ease, width .25s ease, height .25s ease; }
+.tour-spot.is-empty { border-radius: 0; box-shadow: 0 0 0 100vmax rgba(8, 16, 12, .36); }
+.tour-tip { position: fixed; z-index: 99982; box-sizing: border-box; width: min(340px, calc(100vw - 16px)); padding: 16px 16px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--text); box-shadow: 0 18px 50px rgba(0, 0, 0, .28); font-family: var(--sans); }
+.tour-tip h2 { margin: 0 0 4px; font: 700 16px/1.25 var(--display); }
+.tour-tip p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--soft); }
+.tour-foot { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.tour-count { margin-right: auto; font-size: 12px; color: var(--muted); }
+.tour-btn { min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--text); font: 600 13px var(--sans); cursor: pointer; }
+.tour-btn:disabled { opacity: .4; cursor: default; }
+.tour-btn-primary { border-color: transparent; background: var(--gold); color: #fff; }
+.tour-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } }

@@ -2283,7 +2283,7 @@ function renderSettingsPage() {
             <div class="settings-downloads-heading"><h3 id="settings-downloads-heading">Downloads</h3><p>Choose a summary, data backup, or policy to save.</p></div>
             <div class="settings-download-group"><h4>Financial summary</h4><div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="download-summary-csv">Summary (CSV)</button><button class="secondary-button" type="button" data-settings-action="download-summary-excel">Summary (Excel)</button><button class="secondary-button" type="button" data-settings-action="download-summary-pdf">Financial report (PDF)</button></div></div>
             <div class="settings-download-group"><h4>Data backup</h4><div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="export-json">All data (JSON)</button><button class="secondary-button" type="button" data-settings-action="export-csv">All data (CSV)</button></div></div>
-            <div class="settings-download-group"><h4>Policies</h4><div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="download-terms">Terms of Service (PDF)</button><button class="secondary-button" type="button" data-settings-action="download-privacy">Privacy Policy (PDF)</button><button class="secondary-button" type="button" data-settings-action="download-cookies">Cookie Policy (PDF)</button></div></div>
+            <div class="settings-download-group"><h4>Policies</h4><div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="download-terms">Terms of Service (PDF)</button><button class="secondary-button" type="button" data-settings-action="download-privacy">Privacy Policy (PDF)</button><button class="secondary-button" type="button" data-settings-action="download-cookies">Cookie Policy (PDF)</button></div></div><div class="settings-download-group"><h4>Help</h4><div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="replay-tour">Replay app tour</button></div></div>
           </section>
           <div class="settings-inline-actions settings-cookie-actions"><button class="secondary-button" type="button" data-cookie-manage>Manage cookie preferences</button></div>
           <label class="settings-import-drop" data-settings-drop><strong>Restore a JSON backup</strong><span>Choose a file or drop it here. Existing matching NetraOS records will be replaced.</span><input name="backupFile" type="file" accept="application/json,.json" data-settings-import></label>
@@ -2538,6 +2538,7 @@ function enterApp(profile, { restoredSession = false, page = "Dashboard" } = {})
   scheduleAutoLockNudge({ force: true });
   scheduleShortcutPrompt();
   showCookieBanner();
+  maybeStartAppTour(profile, restoredSession);
   if (restoredSession || getPinFailureCount() > 0) lockWorkspace({ onLaunch: true });
 }
 
@@ -8633,6 +8634,7 @@ document.addEventListener("click", event => {
     return;
   }
   if (button.matches("[data-settings-action]")) {
+    if (button.dataset.settingsAction === "replay-tour") { showPage("Dashboard"); startAppTour({ force: true }); }
     if (button.dataset.settingsAction === "export-json") downloadAllLocalData("json");
     else if (button.dataset.settingsAction === "export-csv") downloadAllLocalData("csv");
     else if (button.dataset.settingsAction === "download-summary-csv") downloadSummary();
@@ -9270,3 +9272,143 @@ document.addEventListener("submit", event => {
   input.focus();
 });
 renderHelpChat();
+
+// ---------------------------------------------------------------------------
+// Guided app tour: a light spotlight over the live app (replaces the old blocking cards).
+// ---------------------------------------------------------------------------
+const appTourStorageKey = "netraos-app-tour-seen-v1";
+const appTourSteps = [
+  { page: "Dashboard", targets: [".networth-card"], title: "Your net worth", text: "Everything you own minus everything you owe. It updates as you add accounts and debts." },
+  { page: "Inventory", targets: [".desktop-sidebar-nav [data-page='Inventory']", ".mobile-tab[data-page='Inventory']"], title: "Accounts and debts", text: "Add your bank, M-Pesa and cash balances here, along with any loans you owe." },
+  { page: "Power-Up", targets: [".desktop-sidebar-nav [data-page='Power-Up']", ".mobile-tab[data-page='Power-Up']"], title: "Your monthly plan", text: "Enter your income and budget lines to see how much you can save each month." },
+  { page: "Quests", targets: [".desktop-sidebar-nav [data-page='Quests']", ".mobile-tab[data-page='Quests']"], title: "Savings goals", text: "Set a target, such as an emergency fund, and follow your progress toward it." },
+  { page: "Dashboard", targets: ["[data-privacy-toggle]"], title: "Hide your amounts", text: "Tap this to mask every amount when someone else can see your screen." },
+  { page: "Dashboard", targets: ["[data-onboarding]:not([hidden])", "[data-dashboard-next-action]"], title: "Start here", text: "These steps set up your dashboard, and each button opens the right form. You can replay this tour any time from Settings." }
+];
+let appTourState = null;
+let appTourAccountId = "local";
+
+function appTourSeen() {
+  try { return localStorage.getItem(appTourStorageKey + ":" + appTourAccountId) === "true"; } catch { return false; }
+}
+
+function maybeStartAppTour(profile, restoredSession) {
+  appTourAccountId = String(profile?.email || profile?.username || profile?.name || "local").toLowerCase();
+  if (restoredSession || appTourSeen()) return;
+  window.setTimeout(() => startAppTour(), 1200);
+}
+
+function appTourTarget(step) {
+  for (const selector of step.targets) {
+    for (const element of document.querySelectorAll(selector)) {
+      const rect = element.getBoundingClientRect();
+      if (rect.width > 4 && rect.height > 4 && !element.closest("[inert], [hidden]")) return element;
+    }
+  }
+  return null;
+}
+
+function startAppTour({ force = false } = {}) {
+  if (appTourState || appShell.hidden) return;
+  if (!force && (appTourSeen() || document.querySelector("dialog[open]"))) return;
+  const shield = document.createElement("div");
+  shield.className = "tour-shield";
+  const spot = document.createElement("div");
+  spot.className = "tour-spot";
+  spot.setAttribute("aria-hidden", "true");
+  const tip = document.createElement("div");
+  tip.className = "tour-tip";
+  tip.setAttribute("role", "dialog");
+  tip.setAttribute("aria-labelledby", "tour-title");
+  tip.innerHTML = '<h2 id="tour-title"></h2><p data-tour-text aria-live="polite"></p><div class="tour-foot"><span class="tour-count" data-tour-count></span><button class="tour-btn" type="button" data-tour-skip>Skip</button><button class="tour-btn" type="button" data-tour-back>Back</button><button class="tour-btn tour-btn-primary" type="button" data-tour-next>Next</button></div>';
+  document.body.append(shield, spot, tip);
+  appTourState = { index: 0, shield, spot, tip, opener: document.activeElement };
+  const go = delta => {
+    const next = appTourState.index + delta;
+    if (next >= appTourSteps.length) endAppTour(true);
+    else if (next >= 0) showAppTourStep(next);
+  };
+  tip.querySelector("[data-tour-next]").addEventListener("click", () => go(1));
+  tip.querySelector("[data-tour-back]").addEventListener("click", () => go(-1));
+  tip.querySelector("[data-tour-skip]").addEventListener("click", () => endAppTour(true));
+  appTourState.onKey = event => {
+    if (event.key === "Escape") { event.preventDefault(); endAppTour(true); }
+    else if (event.key === "ArrowRight") { event.preventDefault(); go(1); }
+    else if (event.key === "ArrowLeft") { event.preventDefault(); go(-1); }
+    else if (event.key === "Tab") {
+      const buttons = [...tip.querySelectorAll("button:not([disabled])")];
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      else if (!tip.contains(document.activeElement)) { event.preventDefault(); first.focus(); }
+    }
+  };
+  appTourState.onMove = () => positionAppTour();
+  document.addEventListener("keydown", appTourState.onKey, true);
+  window.addEventListener("resize", appTourState.onMove);
+  window.addEventListener("scroll", appTourState.onMove, true);
+  showAppTourStep(0);
+}
+
+function showAppTourStep(index) {
+  const state = appTourState;
+  if (!state) return;
+  state.index = index;
+  const step = appTourSteps[index];
+  if (crumb.textContent !== step.page) showPage(step.page);
+  state.tip.querySelector("#tour-title").textContent = step.title;
+  state.tip.querySelector("[data-tour-text]").textContent = step.text;
+  state.tip.querySelector("[data-tour-count]").textContent = (index + 1) + " of " + appTourSteps.length;
+  state.tip.querySelector("[data-tour-back]").disabled = index === 0;
+  state.tip.querySelector("[data-tour-next]").textContent = index === appTourSteps.length - 1 ? "Done" : "Next";
+  window.setTimeout(() => {
+    if (appTourState !== state) return;
+    const target = appTourTarget(step);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    target?.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+    positionAppTour();
+    window.setTimeout(positionAppTour, 350);
+    state.tip.querySelector("[data-tour-next]").focus({ preventScroll: true });
+  }, 140);
+}
+
+function positionAppTour() {
+  const state = appTourState;
+  if (!state) return;
+  const { spot, tip } = state;
+  const target = appTourTarget(appTourSteps[state.index]);
+  const vw = window.innerWidth, vh = window.innerHeight, pad = 8, gap = 14;
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  spot.classList.toggle("is-empty", !target);
+  if (!target) {
+    Object.assign(spot.style, { left: vw / 2 + "px", top: vh / 2 + "px", width: "0px", height: "0px" });
+    tip.style.left = clamp((vw - tw) / 2, 8, vw) + "px";
+    tip.style.top = clamp((vh - th) / 2, 8, vh) + "px";
+    return;
+  }
+  const rect = target.getBoundingClientRect();
+  Object.assign(spot.style, { left: rect.left - pad + "px", top: rect.top - pad + "px", width: rect.width + pad * 2 + "px", height: rect.height + pad * 2 + "px" });
+  const phone = window.matchMedia("(max-width: 880px)").matches;
+  const options = phone
+    ? [[(vw - tw) / 2, vh - th - 88], [(vw - tw) / 2, 12]]
+    : [[rect.left, rect.bottom + gap + pad], [rect.left, rect.top - th - gap - pad], [rect.right + gap + pad, rect.top], [rect.left - tw - gap - pad, rect.top]];
+  const clear = ([x, y]) => x >= 8 && y >= 8 && x + tw <= vw - 8 && y + th <= vh - 8
+    && (x + tw < rect.left - pad || x > rect.right + pad || y + th < rect.top - pad || y > rect.bottom + pad);
+  const pick = options.find(clear) || options[0];
+  tip.style.left = clamp(pick[0], 8, vw - tw - 8) + "px";
+  tip.style.top = clamp(pick[1], 8, vh - th - 8) + "px";
+}
+
+function endAppTour(markSeen) {
+  const state = appTourState;
+  if (!state) return;
+  appTourState = null;
+  document.removeEventListener("keydown", state.onKey, true);
+  window.removeEventListener("resize", state.onMove);
+  window.removeEventListener("scroll", state.onMove, true);
+  state.shield.remove(); state.spot.remove(); state.tip.remove();
+  if (markSeen) { try { localStorage.setItem(appTourStorageKey + ":" + appTourAccountId, "true"); } catch { /* Tour may repeat if storage is unavailable. */ } }
+  if (crumb.textContent !== "Dashboard") showPage("Dashboard");
+  state.opener?.focus?.({ preventScroll: true });
+}
