@@ -3584,7 +3584,9 @@ function updateDashboardInventorySummary() {
   const netWorthSnapshots = !appShell.hidden && crumb.textContent === "Dashboard"
     ? getStatsNetWorthSnapshots(totals.netWorth).slice(-6)
     : [];
-  setMetricTrend(document.querySelector(".networth-card"), totals.netWorth, netWorthSnapshots.at(-2)?.value);
+  const netWorthCard = document.querySelector(".networth-card");
+  setMetricTrend(netWorthCard, totals.netWorth, netWorthSnapshots.at(-2)?.value);
+  if (netWorthCard) netWorthCard.dataset.netWorthState = totals.netWorth < 0 ? "negative" : totals.netWorth > 0 ? "positive" : "zero";
   const netWorthSparkline = document.querySelector("[data-networth-sparkline]");
   if (netWorthSparkline) {
     if (netWorthSnapshots.length > 1) {

@@ -9457,8 +9457,36 @@ body.theme-dark, html.theme-dark { background: #000; }
 /* Phone dashboard and persistent bottom navigation. */
 .mobile-tab-bar { display: none; }
 .app-shell .networth-caption { display: none; }
-.app-shell .dashboard-networth-sparkline { display: none; }
 .app-shell .savings-card .positive-pill:empty { display: none; }
+.app-shell .dashboard-networth-sparkline.is-visible {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  display: block;
+  width: 38%;
+  height: 36px;
+  overflow: visible;
+}
+.app-shell .dashboard-networth-sparkline path {
+  fill: none;
+  stroke: var(--green, #16875f);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.app-shell .networth-card[data-net-worth-state="negative"] {
+  border-color: #d5524b !important;
+  background: linear-gradient(135deg, color-mix(in srgb, #d5524b 15%, var(--panel)), var(--panel)) !important;
+}
+.app-shell .networth-card[data-net-worth-state="negative"] .metric-heading,
+.app-shell .networth-card[data-net-worth-state="negative"] .metric-value { color: #b83232 !important; }
+.app-shell .networth-card[data-net-worth-state="negative"] .dashboard-networth-sparkline path { stroke: #d5524b; }
+.app-shell.theme-dark .networth-card[data-net-worth-state="negative"] {
+  border-color: #ef7770 !important;
+  background: linear-gradient(135deg, color-mix(in srgb, #ef7770 20%, var(--panel)), var(--panel)) !important;
+}
+.app-shell.theme-dark .networth-card[data-net-worth-state="negative"] .metric-heading,
+.app-shell.theme-dark .networth-card[data-net-worth-state="negative"] .metric-value { color: #ffaaa5 !important; }
 @media (max-width: 600px) {
   .app-shell .topbar {
     min-height: 58px;
