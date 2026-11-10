@@ -9460,17 +9460,19 @@ body.theme-dark, html.theme-dark { background: #000; }
 .app-shell .savings-card .positive-pill:empty { display: none; }
 .app-shell .dashboard-networth-sparkline.is-visible {
   position: absolute;
+  z-index: 1;
   right: 14px;
   bottom: 10px;
   display: block;
   width: 38%;
-  height: 36px;
+  height: 42px;
   overflow: visible;
+  opacity: 1;
 }
 .app-shell .dashboard-networth-sparkline path {
   fill: none;
-  stroke: var(--green, #16875f);
-  stroke-width: 2.5;
+  stroke: var(--lime, #c8ff3d);
+  stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -9531,8 +9533,8 @@ body.theme-dark, html.theme-dark { background: #000; }
   #page-content:has(> .welcome-row) > .metrics-grid .networth-card .metric-value { font-size: 27px; }
   #page-content:has(> .welcome-row) > .metrics-grid .networth-caption { margin-top: 1px; font-size: 10px; }
   #page-content:has(> .welcome-row) > .metrics-grid .networth-caption { display: block; }
-  #page-content:has(> .welcome-row) > .metrics-grid .dashboard-networth-sparkline.is-visible { position: absolute; right: 12px; bottom: 11px; display: block; width: 40%; height: 34px; overflow: visible; }
-  .dashboard-networth-sparkline path { fill: none; stroke: var(--green); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  #page-content:has(> .welcome-row) > .metrics-grid .dashboard-networth-sparkline.is-visible { position: absolute; z-index: 1; right: 12px; bottom: 11px; display: block; width: 40%; height: 38px; overflow: visible; opacity: 1; }
+  .dashboard-networth-sparkline path { fill: none; stroke: var(--lime, #c8ff3d); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
   #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-foot,
   #page-content:has(> .welcome-row) > .metrics-grid .spending-card .thin-progress,
   #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-inline-action { display: none; }
