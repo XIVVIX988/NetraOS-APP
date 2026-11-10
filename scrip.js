@@ -46,6 +46,7 @@ const appShell = document.querySelector(".app-shell");
 let activePowerTab = "income";
 let activeQuestFilter = "active";
 let spendingListExpanded = false;
+let budgetListExpanded = false;
 let activeAchievementFilter = "earned";
 let activeSettingsTab = "profile";
 let settingsMobileView = "menu", settingsMobileTitle = "Settings", settingsMobileSection = "";
@@ -5217,8 +5218,9 @@ function renderPowerUpPage() {
         </div>`;
     }).join("")
     : `<div class="power-empty">No income sources yet. Add your monthly income to get started.</div>`;
+  const visibleBudgets = budgetListExpanded ? data.budgets : data.budgets.slice(0, 5);
   const budgetRows = data.budgets.length
-    ? data.budgets.map(item => `
+    ? visibleBudgets.map(item => `
         <div class="power-row">
           <span class="power-row-icon budget-icon" aria-hidden="true">${budgetCategoryIcons[item.category] || budgetCategoryIcons.Other}</span>
           <span class="power-row-name">
@@ -5230,6 +5232,9 @@ function renderPowerUpPage() {
           <button class="inventory-delete" type="button" data-delete-power-item="budget" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete budget line">×</button>
         </div>`).join("")
     : `<div class="power-empty">No budget lines yet. Add a monthly plan for your spending.</div>`;
+  const budgetListControl = data.budgets.length > 5
+    ? `<div class="power-list-expand"><button type="button" data-budget-list-toggle aria-expanded="${budgetListExpanded}">${budgetListExpanded ? "Show first 5" : `Show all ${data.budgets.length} budget lines`}</button></div>`
+    : "";
   const recentSpending = reportSpending.slice().sort((a, b) => String(b.date || b.month || "").localeCompare(String(a.date || a.month || "")));
   const visibleSpending = spendingListExpanded ? recentSpending : recentSpending.slice(0, 5);
   const spendingRows = reportSpending.length
@@ -5301,7 +5306,7 @@ function renderPowerUpPage() {
         </section>
         <section class="power-tab-panel" id="power-panel-budget" role="tabpanel" aria-labelledby="power-tab-budget" data-power-panel="budget" ${activePowerTab !== "budget" ? "hidden" : ""}>
           <div class="power-desktop-budget-layout">
-            ${renderPowerListPanel("budget", "Monthly budget", "MONEY WITH A JOB", budgetRows, "Total planned budget", totals.budget)}
+            ${renderPowerListPanel("budget", "Monthly budget", "MONEY WITH A JOB", budgetRows, "Total planned budget", totals.budget, false, budgetListControl)}
             ${renderPowerListPanel("spending", "Monthly spending", "MONEY SPENT", spendingRows, "Total monthly spending", totals.spending, false, spendingListControl)}
           </div>
         </section>
@@ -5311,7 +5316,7 @@ function renderPowerUpPage() {
         ${renderTaxWidget()}
         <section class="inventory-columns power-columns" aria-label="Income and monthly budget">
           ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Total monthly income", totals.income, true)}
-          ${renderPowerListPanel("budget", "Monthly budget", "MONEY WITH A JOB", budgetRows, "Total planned budget", totals.budget, true)}
+          ${renderPowerListPanel("budget", "Monthly budget", "MONEY WITH A JOB", budgetRows, "Total planned budget", totals.budget, true, budgetListControl)}
           ${renderPowerListPanel("spending", "Monthly spending", "MONEY SPENT", spendingRows, "Total monthly spending", totals.spending, true, spendingListControl)}
         </section>
       </section>
@@ -5554,6 +5559,11 @@ function syncAllTaxPanels(state, sourcePanel = null, sourceElement = null) {
 }
 
 document.addEventListener("click", event => {
+  if (event.target.closest("[data-budget-list-toggle]")) {
+    budgetListExpanded = !budgetListExpanded;
+    refreshFinancialPage();
+    return;
+  }
   if (event.target.closest("[data-spending-list-toggle]")) {
     spendingListExpanded = !spendingListExpanded;
     refreshFinancialPage();
