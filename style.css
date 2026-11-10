@@ -11550,7 +11550,7 @@ body.theme-dark { background: var(--bg); }
 }
 
 /* ================= High contrast, deep surfaces, and neon lime accents ================= */
-.app-shell { --lime: #c8ff3d; --muted-grey: #858c91; --green: #a9df27; --gold: #a9df27; --gold-bright: #c8ff3d; --fx-bg: #111512; --fx-card: #1b211d; --fx-ink: #f7faf4; --fx-muted: #a1aaa3; --fx-line: rgba(216, 232, 218, .12); --fx-shadow: 0 8px 26px rgba(0, 0, 0, .18); }
+.app-shell { --lime: #c8ff3d; --muted-grey: #858c91; --green: #a9df27; --gold: #a9df27; --gold-bright: #c8ff3d; --fx-bg: #F2F0E9; --fx-card: #1b211d; --fx-ink: #f7faf4; --fx-muted: #a1aaa3; --fx-line: rgba(24, 34, 27, .14); --fx-shadow: 0 8px 26px rgba(0, 0, 0, .10); }
 .app-shell.theme-dark, body.theme-dark .app-shell { --fx-bg: #0b0e0c; --fx-card: #171c19; --fx-ink: #f7faf4; --fx-muted: #a1aaa3; --fx-line: rgba(216, 232, 218, .12); --fx-shadow: 0 8px 26px rgba(0, 0, 0, .2); }
 .app-shell, .app-shell .main-panel { background: var(--fx-bg); }
 /* Chrome: translucent top bar, pill navigation */
