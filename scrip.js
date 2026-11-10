@@ -3590,14 +3590,20 @@ function updateDashboardInventorySummary() {
   if (netWorthCard) netWorthCard.dataset.netWorthState = totals.netWorth < 0 ? "negative" : totals.netWorth > 0 ? "positive" : "zero";
   const netWorthSparkline = document.querySelector("[data-networth-sparkline]");
   if (netWorthSparkline) {
-    if (netWorthSnapshots.length > 1) {
-      const values = netWorthSnapshots.map(snapshot => Number(snapshot.value));
-      const min = Math.min(...values);
-      const range = Math.max(...values) - min || 1;
-      const points = values.map((value, index) => `${values.length === 1 ? 90 : 3 + index * 174 / (values.length - 1)},${32 - (value - min) / range * 27}`);
-      const path = points.map((point, index) => `${index ? "L" : "M"}${point}`).join(" ");
-      netWorthSparkline.innerHTML = `<path d="${path}"/>`;
-      netWorthSparkline.classList.add("is-visible");
+    if (netWorthSnapshots.length > 0) {
+      if (netWorthSnapshots.length === 1) {
+        // Show a neutral baseline until another monthly snapshot exists for a real trend.
+        netWorthSparkline.innerHTML = "<path d=\"M3,18 L177,18\"/>";
+        netWorthSparkline.classList.add("is-visible");
+      } else {
+        const values = netWorthSnapshots.map(snapshot => Number(snapshot.value));
+        const min = Math.min(...values);
+        const range = Math.max(...values) - min || 1;
+        const points = values.map((value, index) => `${3 + index * 174 / (values.length - 1)},${32 - (value - min) / range * 27}`);
+        const path = points.map((point, index) => `${index ? "L" : "M"}${point}`).join(" ");
+        netWorthSparkline.innerHTML = `<path d="${path}"/>`;
+        netWorthSparkline.classList.add("is-visible");
+      }
     } else {
       netWorthSparkline.replaceChildren();
       netWorthSparkline.classList.remove("is-visible");
