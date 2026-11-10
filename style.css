@@ -11547,9 +11547,9 @@ body.theme-dark { background: var(--bg); }
   .app-shell .accent-choice-check { right: 9px; bottom: 9px; width: 22px; height: 22px; }
 }
 
-/* ================= Fintech redesign (Revolut / Stash inspired) ================= */
-.app-shell { --fx-bg: #f3f4f6; --fx-card: #ffffff; --fx-ink: #0e1013; --fx-muted: #6b7280; --fx-line: rgba(15, 23, 42, .07); --fx-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .04); }
-.app-shell.theme-dark, body.theme-dark .app-shell { --fx-bg: #0a0b0d; --fx-card: #15171b; --fx-ink: #f5f6f7; --fx-muted: #9aa1ab; --fx-line: rgba(255, 255, 255, .07); --fx-shadow: none; }
+/* ================= High contrast, deep surfaces, and neon lime accents ================= */
+.app-shell { --lime: #c8ff3d; --muted-grey: #858c91; --green: #a9df27; --gold: #a9df27; --gold-bright: #c8ff3d; --fx-bg: #111512; --fx-card: #1b211d; --fx-ink: #f7faf4; --fx-muted: #a1aaa3; --fx-line: rgba(216, 232, 218, .12); --fx-shadow: 0 8px 26px rgba(0, 0, 0, .18); }
+.app-shell.theme-dark, body.theme-dark .app-shell { --fx-bg: #0b0e0c; --fx-card: #171c19; --fx-ink: #f7faf4; --fx-muted: #a1aaa3; --fx-line: rgba(216, 232, 218, .12); --fx-shadow: 0 8px 26px rgba(0, 0, 0, .2); }
 .app-shell, .app-shell .main-panel { background: var(--fx-bg); }
 /* Chrome: translucent top bar, pill navigation */
 .app-shell .topbar { background: color-mix(in srgb, var(--fx-bg) 84%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(18px); backdrop-filter: saturate(1.4) blur(18px); border-bottom: 1px solid var(--fx-line); box-shadow: none; }
@@ -11566,19 +11566,19 @@ body.theme-dark { background: var(--bg); }
   .panel:hover, .metric-card:hover { transform: none; box-shadow: var(--fx-shadow); border-color: var(--fx-line); }
   .panel { padding: 20px 22px; }
   .panel h2 { color: var(--fx-ink); font: 700 18px/1.25 var(--display); letter-spacing: -.02em; }
-  .section-kicker, .metric-heading { color: var(--fx-muted); font: 600 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+  .section-kicker, .metric-heading { color: var(--muted-grey); font: 700 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; }
   .metric-card { height: auto; min-height: 140px; padding: 18px 20px; }
   .metric-card strong, .metric-card [class*="value"] { color: var(--fx-ink); font: 800 clamp(24px, 2.4vw, 32px)/1.1 var(--display); letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
-  .metric-symbol { background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); }
+  .metric-symbol { background: color-mix(in srgb, var(--lime) 16%, transparent); color: var(--lime); }
   .networth-card { min-height: 170px; border: 0; border-radius: 28px; background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--green) 55%, transparent) 0, transparent 55%), linear-gradient(150deg, #0e1013 0%, #0f1f18 100%); color: #fff; box-shadow: 0 18px 40px rgba(14, 16, 19, .22); }
   .networth-card strong, .networth-card .metric-heading { color: #fff; }
   .networth-card strong { font-size: clamp(30px, 3.2vw, 44px); }
   .networth-card .metric-heading { color: rgba(255, 255, 255, .62); }
-  .inventory-submit, .primary-button, .panel button.primary { min-height: 46px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--green); color: #fff; font: 700 14px var(--display); letter-spacing: 0; box-shadow: none; }
+  .inventory-submit, .primary-button, .panel button.primary { min-height: 46px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--lime); color: #11150d; font: 800 14px var(--display); letter-spacing: 0; box-shadow: none; }
   .inventory-form-field input, .inventory-form-field select, .inventory-form-field textarea { min-height: 48px; border: 1px solid var(--fx-line); border-radius: 14px; background: color-mix(in srgb, var(--fx-ink) 4%, var(--fx-card)); color: var(--fx-ink); }
   .inventory-form-field input:focus, .inventory-form-field select:focus { border-color: var(--green); box-shadow: 0 0 0 4px color-mix(in srgb, var(--green) 16%, transparent); }
   .dashboard-grid { gap: 16px; }
-  .inventory-heading h1 { font: 800 clamp(26px, 3vw, 36px)/1.1 var(--display); letter-spacing: -.035em; color: var(--fx-ink); }
+  .inventory-heading h1 { font: 800 clamp(28px, 3vw, 38px)/1.08 var(--display); letter-spacing: -.04em; color: var(--fx-ink); }
 }
 @media (max-width: 600px) {
   .app-shell:not(:has(.settings-page)) { .panel { padding: 18px; border-radius: 22px; } .metric-card { padding: 16px 18px; } .networth-card { border-radius: 26px; } .inventory-submit, .primary-button { width: 100%; min-height: 50px; } }
