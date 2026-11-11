@@ -802,6 +802,7 @@ const questStorageKey = "netraos-quests-v1";
 const achievementStorageKey = "netraos-achievements-v1";
 const reportPeriodStorageKey = "netraos-report-period-v1";
 const statsSnapshotStorageKey = "netraos-stats-networth-snapshots-v1";
+const dashboardNetWorthHistoryStorageKey = "netraos-dashboard-networth-history-v1";
 let statsRangeMonths = 6;
 let statsMobileView = "cash-flow";
 let statsMoreInsightsOpen = false;
@@ -962,12 +963,14 @@ function getPowerUpReportTotals() {
 }
 
 // Read and save the browser-local profile and preference settings.
-const ACCENT_IDS = ["leo", "pwani", "kitenge", "mukimo"];
+const ACCENT_IDS = ["leo", "pwani", "kitenge", "mukimo", "neon-lime", "muted-grey"];
 const ACCENT_PRESETS = [
   { id: "leo", name: "Growth", primary: "#174b36", accent: "#b6e35c", surface: "#f8fbf5" },
   { id: "pwani", name: "Trust", primary: "#285c8a", accent: "#54d5d0", surface: "#f4fbfc" },
   { id: "kitenge", name: "Momentum", primary: "#873e78", accent: "#ff927f", surface: "#fff6f5" },
-  { id: "mukimo", name: "Harvest", primary: "#466b30", accent: "#e9b84e", surface: "#fcf9ef" }
+  { id: "mukimo", name: "Harvest", primary: "#466b30", accent: "#e9b84e", surface: "#fcf9ef" },
+  { id: "neon-lime", name: "Progress", primary: "#4d6500", accent: "#c8ff3d", surface: "#f8fbef" },
+  { id: "muted-grey", name: "Clarity", primary: "#626b67", accent: "#aeb8b2", surface: "#f6f7f6" }
 ];
 const LEGACY_ACCENT_MAP = { emerald: "leo", amber: "kitenge", matrix: "mukimo", blue: "pwani", violet: "pwani", coral: "kitenge", aqua: "mukimo" };
 function normalizeAccent(accent) {
@@ -2626,6 +2629,31 @@ function getInventoryEntries() {
 
 function saveInventoryEntries(entries) {
   localStorage.setItem(inventoryStorageKey, JSON.stringify(entries));
+  recordDashboardNetWorth(getInventoryTotals().netWorth);
+}
+
+function recordDashboardNetWorth(value) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(dashboardNetWorthHistoryStorageKey) || "[]");
+    const history = Array.isArray(stored) ? stored.filter(item => Number.isFinite(Number(item.value))) : [];
+    history.push({ at: Date.now(), value: Number(value) || 0 });
+    localStorage.setItem(dashboardNetWorthHistoryStorageKey, JSON.stringify(history.slice(-36)));
+  } catch { /* Keep balance updates usable when browser storage is unavailable. */ }
+}
+
+function getDashboardNetWorthHistory(currentNetWorth) {
+  let history = [];
+  try {
+    const stored = JSON.parse(localStorage.getItem(dashboardNetWorthHistoryStorageKey) || "[]");
+    if (Array.isArray(stored)) history = stored.filter(item => Number.isFinite(Number(item.value))).slice(-36);
+  } catch { /* Fall back to the current balance below. */ }
+  if (!history.length) {
+    history = [{ at: Date.now(), value: Number(currentNetWorth) || 0 }];
+    try { localStorage.setItem(dashboardNetWorthHistoryStorageKey, JSON.stringify(history)); } catch { /* Optional chart history. */ }
+  } else {
+    history[history.length - 1] = { ...history.at(-1), value: Number(currentNetWorth) || 0 };
+  }
+  return history;
 }
 
 function getPowerUpData() {
@@ -3588,18 +3616,21 @@ function updateDashboardInventorySummary() {
   const netWorthSnapshots = !appShell.hidden && crumb.textContent === "Dashboard"
     ? getStatsNetWorthSnapshots(totals.netWorth).slice(-6)
     : [];
+  const netWorthHistory = !appShell.hidden && crumb.textContent === "Dashboard"
+    ? getDashboardNetWorthHistory(totals.netWorth)
+    : [];
   const netWorthCard = document.querySelector(".networth-card");
   setMetricTrend(netWorthCard, totals.netWorth, netWorthSnapshots.at(-2)?.value);
   if (netWorthCard) netWorthCard.dataset.netWorthState = totals.netWorth < 0 ? "negative" : totals.netWorth > 0 ? "positive" : "zero";
   const netWorthSparkline = document.querySelector("[data-networth-sparkline]");
   if (netWorthSparkline) {
-    if (netWorthSnapshots.length > 0) {
-      if (netWorthSnapshots.length === 1) {
-        // Show a neutral baseline until another monthly snapshot exists for a real trend.
+    if (netWorthHistory.length > 0) {
+      if (netWorthHistory.length === 1) {
+        // Show a neutral baseline until another saved balance creates a real trend.
         netWorthSparkline.innerHTML = "<path d=\"M3,18 L177,18\"/>";
         netWorthSparkline.classList.add("is-visible");
       } else {
-        const values = netWorthSnapshots.map(snapshot => Number(snapshot.value));
+        const values = netWorthHistory.map(snapshot => Number(snapshot.value));
         const min = Math.min(...values);
         const range = Math.max(...values) - min || 1;
         const points = values.map((value, index) => `${3 + index * 174 / (values.length - 1)},${32 - (value - min) / range * 27}`);
