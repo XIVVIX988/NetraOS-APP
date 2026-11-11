@@ -11694,29 +11694,8 @@ body .phone-splash .phone-splash-name span { color: #6ee7a8; }
 }
 .app-shell.theme-dark[data-accent] .quests-page .quest-filter.active span { background: transparent; color: var(--green); }
 
-/* ===== Net worth cards: green (#09DE49) when positive, red (#DE0D09) when negative ===== */
+/* Keep net worth cards on the same neutral surface as the original card design. */
 .app-shell .networth-card { --nw-ink: var(--green, #16875f); }
-.app-shell .networth-card[data-net-worth-state="positive"],
-.app-shell .net-worth-summary[data-net-worth-state="positive"] {
-  --nw-a: #09DE49; --nw-b: #07b73b; --nw-ink: #04210e;
-}
-.app-shell .networth-card[data-net-worth-state="negative"],
-.app-shell .net-worth-summary[data-net-worth-state="negative"] {
-  --nw-a: #DE0D09; --nw-b: #b00a07; --nw-ink: #ffffff;
-}
-.app-shell #page-content .metrics-grid .networth-card.networth-card:is([data-net-worth-state="positive"], [data-net-worth-state="negative"])[data-net-worth-state],
-.app-shell .inventory-page .inventory-summary-card.net-worth-summary:is([data-net-worth-state="positive"], [data-net-worth-state="negative"])[data-net-worth-state] {
-  border: 1px solid var(--nw-a) !important;
-  border-left-width: 1px !important;
-  background: linear-gradient(145deg, var(--nw-a), var(--nw-b)) !important;
-  color: var(--nw-ink) !important;
-  box-shadow: 0 12px 30px color-mix(in srgb, var(--nw-a) 32%, transparent) !important;
-}
-.app-shell #page-content .metrics-grid .networth-card.networth-card:is([data-net-worth-state="positive"], [data-net-worth-state="negative"])[data-net-worth-state] :is(.metric-heading, .metric-heading span, .metric-value, .networth-caption),
-.app-shell .inventory-page .inventory-summary-card.net-worth-summary:is([data-net-worth-state="positive"], [data-net-worth-state="negative"])[data-net-worth-state] :is(strong, .inventory-label, .inventory-note) {
-  color: var(--nw-ink) !important;
-}
-.app-shell #page-content .metrics-grid .networth-card.networth-card[data-net-worth-state] :is(.metric-heading, .networth-caption) { opacity: .78; }
 
 /* Trend line chart inside the dashboard net worth card */
 .app-shell .networth-chart { margin-top: 12px; }
@@ -11804,18 +11783,8 @@ html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.m
 /* Net worth and income keep a coloured figure, like before */
 html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card:is(.networth-card, .income-card) .metric-value { color: var(--dc-ink); }
 
-/* Net worth: solid green / red state (#09DE49 / #DE0D09) in both themes */
-html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card.networth-card:is([data-net-worth-state="positive"], [data-net-worth-state="negative"]) {
-  border: 1px solid var(--nw-a) !important;
-  background: linear-gradient(145deg, var(--nw-a), var(--nw-b)) !important;
-  box-shadow: 0 12px 30px color-mix(in srgb, var(--nw-a) 32%, transparent) !important;
-  color: var(--nw-ink);
-}
-html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card.networth-card:is([data-net-worth-state="positive"], [data-net-worth-state="negative"]) :is(.metric-heading, .metric-heading span, .metric-value, .networth-caption) {
-  color: var(--nw-ink) !important;
-}
-/* Neutral (zero) net worth: chart follows the card accent */
-.app-shell .networth-card:not([data-net-worth-state="positive"]):not([data-net-worth-state="negative"]) { --nw-ink: var(--dc-ink); }
+/* Keep the sparkline green while the card surface stays neutral. */
+.app-shell .networth-card { --nw-ink: var(--dc-ink, var(--green, #16875f)); }
 
 /* Phone: same card, same grid, keep net worth full width */
 @media (max-width: 600px) {
