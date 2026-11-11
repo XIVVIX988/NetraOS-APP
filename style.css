@@ -11752,3 +11752,114 @@ body .phone-splash .phone-splash-name span { color: #6ee7a8; }
   letter-spacing: .04em;
   opacity: .72;
 }
+
+/* ===== Dashboard cards styled like the Inventory summary cards (colours kept, light + dark aware) ===== */
+/* Accent per card: green = up, red = down, amber = unchanged (same semantics as before). */
+.app-shell .metrics-grid .metric-card { --dc: #16875f; --dc-ink: #12664b; --dc-bg: 9%; --dc-bd: 30%; }
+.app-shell .metrics-grid .metric-card[data-trend="decrease"] { --dc: #d5524b; --dc-ink: #b83232; }
+.app-shell .metrics-grid .metric-card[data-trend="unchanged"] { --dc: #c28a24; --dc-ink: #8a5f0f; }
+.app-shell.theme-dark .metrics-grid .metric-card { --dc: #51c28f; --dc-ink: #9ce6c5; --dc-bg: 13%; --dc-bd: 36%; }
+.app-shell.theme-dark .metrics-grid .metric-card[data-trend="decrease"] { --dc: #ef7770; --dc-ink: #ffaaa5; }
+.app-shell.theme-dark .metrics-grid .metric-card[data-trend="unchanged"] { --dc: #e5b44e; --dc-ink: #f1cf82; }
+
+/* Shared Inventory-card geometry */
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 140px;
+  height: auto;
+  padding: 18px 20px;
+  border: 1px solid color-mix(in srgb, var(--dc) var(--dc-bd), var(--fx-line)) !important;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--dc) var(--dc-bg), var(--fx-card)) !important;
+  box-shadow: var(--fx-shadow) !important;
+  color: var(--fx-ink);
+  transform: none;
+}
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card:hover { transform: none; }
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card .metric-heading {
+  margin: 0;
+  color: var(--fx-muted);
+  font: 700 11px var(--sans);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card .metric-value {
+  margin: 0;
+  color: var(--fx-ink);
+  font: 800 clamp(24px, 2.4vw, 32px)/1.1 var(--display);
+  letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card .metric-value .unit { font-size: .6em; letter-spacing: 0; }
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card :is(.metric-caption, .metric-foot, .metric-trailing) {
+  margin: 0;
+  color: var(--fx-muted);
+  font-size: 10px;
+}
+/* Net worth and income keep a coloured figure, like before */
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card:is(.networth-card, .income-card) .metric-value { color: var(--dc-ink); }
+
+/* Net worth: solid green / red state (#09DE49 / #DE0D09) in both themes */
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card.networth-card:is([data-net-worth-state="positive"], [data-net-worth-state="negative"]) {
+  border: 1px solid var(--nw-a) !important;
+  background: linear-gradient(145deg, var(--nw-a), var(--nw-b)) !important;
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--nw-a) 32%, transparent) !important;
+  color: var(--nw-ink);
+}
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card.networth-card:is([data-net-worth-state="positive"], [data-net-worth-state="negative"]) :is(.metric-heading, .metric-heading span, .metric-value, .networth-caption) {
+  color: var(--nw-ink) !important;
+}
+/* Neutral (zero) net worth: chart follows the card accent */
+.app-shell .networth-card:not([data-net-worth-state="positive"]):not([data-net-worth-state="negative"]) { --nw-ink: var(--dc-ink); }
+
+/* Phone: same card, same grid, keep net worth full width */
+@media (max-width: 600px) {
+  html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card { min-height: 120px; padding: 16px 18px; }
+  html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card.networth-card { min-height: 0; }
+}
+
+/* ===== Net worth card: value on the left, thin trend line on the right (like the Stress Score card) ===== */
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card.networth-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 42%);
+  grid-template-areas: "heading chart" "value chart" "caption chart";
+  grid-template-rows: auto auto auto;
+  align-content: center;
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 7px;
+}
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card.networth-card .metric-heading { grid-area: heading; align-self: end; }
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card.networth-card .metric-value { grid-area: value; }
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card.networth-card .networth-caption { grid-area: caption; align-self: start; }
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card.networth-card .networth-chart { grid-area: chart; align-self: center; margin: 0; }
+.app-shell .networth-chart-plot { height: 64px; }
+.app-shell .networth-trend-line { stroke-width: 1.75; stroke-linejoin: round; stroke-linecap: round; }
+.app-shell .networth-trend-area,
+.app-shell .networth-trend-dot,
+.app-shell .networth-chart-axis { display: none; }
+
+/* ===== Net worth card: figures on the left, thin trend line on the right (like the Stress Score card) ===== */
+html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.metric-card.networth-card {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(80px, 1fr);
+  grid-template-rows: auto auto auto;
+  align-content: center;
+  align-items: center;
+  column-gap: 18px;
+  row-gap: 7px;
+}
+html .app-shell.app-shell #page-content .metrics-grid .networth-card.metric-card.metric-card.metric-card > .metric-heading { grid-column: 1; grid-row: 1; }
+html .app-shell.app-shell #page-content .metrics-grid .networth-card.metric-card.metric-card.metric-card > .metric-value { grid-column: 1; grid-row: 2; }
+html .app-shell.app-shell #page-content .metrics-grid .networth-card.metric-card.metric-card.metric-card > .networth-caption { display: block; grid-column: 1; grid-row: 3; }
+.app-shell .networth-card > .networth-chart { grid-column: 2; grid-row: 1 / span 3; align-self: center; margin: 0; min-width: 0; }
+.app-shell .networth-card .networth-chart-plot { height: 68px; }
+.app-shell .networth-card .networth-trend-line { stroke-width: 2; }
+.app-shell .networth-card .networth-trend-area,
+.app-shell .networth-card .networth-trend-dot,
+.app-shell .networth-card .networth-chart-axis { display: none; }
