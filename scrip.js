@@ -791,8 +791,10 @@ const incomeCategories = [
   { label: "Digital content", icon: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg>' },
   { label: "Business", icon: '<svg viewBox="0 0 24 24"><path d="M3 10h18l-2-6H5zM5 10v10h14V10M9 20v-6h6v6M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></svg>' },
   { label: "Investments", icon: '<svg viewBox="0 0 24 24"><path d="M3 18 9 12l4 3 8-9M15 6h6v6"/></svg>' },
+  { label: "Dividends", icon: '<svg viewBox="0 0 24 24"><path d="M12 21v-8M12 13C5 13 4 8 4 4c4 0 9 1 9 8M12 16c0-5 3-8 8-8 0 4-1 8-8 8"/></svg>' },
   { label: "Sacco returns", icon: '<svg viewBox="0 0 24 24"><path d="M3 18 9 12l4 3 8-9M15 6h6v6"/></svg>' },
   { label: "Interest", icon: '<svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/><path d="m5 19 14-14"/></svg>' },
+  { label: "Other income", icon: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>' },
   { label: "Digital products", icon: '<svg viewBox="0 0 24 24"><path d="M5 3h14v18H5zM9 12l3 3 3-3M12 8v7"/></svg>' }
 ];
 const incomeCategoryByLabel = Object.fromEntries(incomeCategories.map(category => [category.label, category]));
@@ -806,6 +808,7 @@ const dashboardNetWorthHistoryStorageKey = "netraos-dashboard-networth-history-v
 let statsRangeMonths = 6;
 let statsMobileView = "cash-flow";
 let statsMoreInsightsOpen = false;
+let dashboardCashflowRange = 6;
 const currencyStorageKey = "netraos-currency-v1";
 const privacyModeStorageKey = "netraos-privacy-mode-v1";
 const currencyAmountPattern = /(?:KSh|USh|TSh|KES|USD|EUR|GBP|UGX|TZS|[$€£])\s*[+-]?\s*\d[\d,]*(?:\.\d+)?/i;
@@ -953,11 +956,14 @@ function budgetTotalForReport(entries, category = null) {
 
 function getPowerUpReportTotals() {
   const data = getPowerUpData();
-  const income = budgetTotalForMonth(data.incomes);
+  const income = incomeOutlookForMonth(data.incomes, getReportMonth());
   const budget = budgetTotalForMonth(data.budgets);
   const spending = spendingForReport(data.spending).reduce((total, item) => total + Number(item.amount || 0), 0);
   const reportMonths = reportMonthCount();
-  const reportIncome = budgetTotalForReport(data.incomes);
+  const reportIncome = Array.from({ length: reportMonths }, (_, offset) => {
+    const [year, month] = getReportMonth().split("-").map(Number);
+    return monthKey(new Date(year, month - 1 - offset, 1, 12));
+  }).reduce((total, month) => total + incomeOutlookForMonth(data.incomes, month), 0);
   const reportBudget = budgetTotalForReport(data.budgets);
   return { income, budget, spending, surplus: income - budget, reportMonths, reportIncome, reportBudget, cashAfterSpending: reportIncome - spending, budgetRemaining: reportBudget - spending };
 }
@@ -2669,6 +2675,81 @@ function getPowerUpData() {
   }
 }
 
+function incomeFrequency(item) {
+  if (item.recurring === false) return "once";
+  return ["monthly", "quarterly", "yearly"].includes(item.frequency) ? item.frequency : "monthly";
+}
+
+function incomeAnchorDate(item) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(item.expectedDate || "")) return item.expectedDate;
+  if (/^\d{4}-\d{2}$/.test(item.startMonth || item.month || "")) return `${item.startMonth || item.month}-01`;
+  return `${getReportMonth()}-01`;
+}
+
+function incomeExpectedInMonth(item, month) {
+  if (item.status === "received") return false;
+  const frequency = incomeFrequency(item);
+  const anchor = incomeAnchorDate(item);
+  if (frequency === "once") return anchor.slice(0, 7) === month && !(Array.isArray(item.receivedMonths) && item.receivedMonths.includes(month));
+  const anchorDate = new Date(`${anchor}T12:00:00`);
+  const [year, monthNumber] = month.split("-").map(Number);
+  const target = new Date(year, monthNumber - 1, 1, 12);
+  const monthDelta = (target.getFullYear() - anchorDate.getFullYear()) * 12 + target.getMonth() - anchorDate.getMonth();
+  if (monthDelta < 0) return false;
+  const cadence = frequency === "quarterly" ? 3 : frequency === "yearly" ? 12 : 1;
+  return monthDelta % cadence === 0 && !(Array.isArray(item.receivedMonths) && item.receivedMonths.includes(month));
+}
+
+function incomeForecastForMonth(entries, month) {
+  return entries.filter(item => incomeExpectedInMonth(item, month))
+    .reduce((total, item) => total + Number(item.amount || 0), 0);
+}
+
+function actualIncomeForMonth(entries, month) {
+  return entries.filter(item => item.status === "received" && (item.date || item.expectedDate || "").slice(0, 7) === month)
+    .reduce((total, item) => total + Number(item.amount || 0), 0);
+}
+
+function incomeOutlookForMonth(entries, month) {
+  return actualIncomeForMonth(entries, month) + incomeForecastForMonth(entries, month);
+}
+
+function actualSpendingForMonth(entries, month) {
+  return entries.filter(item => {
+    const monthValue = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date.slice(0, 7)
+      : /^\d{4}-\d{2}$/.test(item.month || "") ? item.month : "";
+    return monthValue === month;
+  }).reduce((total, item) => total + Number(item.amount || 0), 0);
+}
+
+function forecastPaymentDate(item, month) {
+  const anchor = incomeAnchorDate(item);
+  const anchorDay = Number(anchor.slice(8, 10)) || 1;
+  const [year, monthNumber] = month.split("-").map(Number);
+  const day = Math.min(anchorDay, new Date(year, monthNumber, 0).getDate());
+  return `${month}-${String(day).padStart(2, "0")}`;
+}
+
+function renderIncomeForecast(incomes) {
+  const [year, month] = monthKey().split("-").map(Number);
+  const months = Array.from({ length: 6 }, (_, index) => monthKey(new Date(year, month - 1 + index, 1, 12)));
+  const cards = months.map(key => {
+    const payments = incomes.filter(item => incomeExpectedInMonth(item, key)).map(item => ({ ...item, paymentDate: forecastPaymentDate(item, key) }))
+      .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
+    const total = payments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const title = new Date(`${key}-01T12:00:00`).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    const rows = payments.length ? payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")} · ${new Date(`${item.paymentDate}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("") : `<li class="forecast-month-empty">No expected payments</li>`;
+    return `<article class="forecast-month-card"><div class="forecast-month-heading"><h3>${escapeHTML(title)}</h3><strong>${formatKsh(total)}</strong></div><ul>${rows}</ul></article>`;
+  }).join("");
+  const expected = incomes.filter(item => item.status !== "received");
+  const received = incomes.filter(item => item.status === "received");
+  return `<section class="cashflow-forecast" aria-labelledby="cashflow-forecast-title">
+    <header class="cashflow-forecast-heading"><div><span class="section-kicker">EXPECTED PAYMENTS · NEXT 6 MONTHS</span><h2 id="cashflow-forecast-title">Income forecast</h2><p>Plan dividends, interest, salary, and other income by the date you expect the cash to arrive.</p></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button><button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div></header>
+    ${expected.length ? `<div class="forecast-month-grid">${cards}</div>` : `<div class="forecast-empty"><strong>Your forecast starts with an expected payment.</strong><span>Add a source and its expected date to see which months have income coming in.</span><button type="button" data-power-action="income">Add expected income</button></div>`}
+    ${received.length ? `<p class="forecast-footnote">Received income is kept in actual cash-flow history and is excluded from expected totals.</p>` : `<p class="forecast-footnote">Expected amounts are estimates until you record them as received. Older monthly income sources default to a monthly forecast.</p>`}
+  </section>`;
+}
+
 function savePowerUpData(data) {
   localStorage.setItem(powerUpStorageKey, JSON.stringify(data));
 }
@@ -2682,7 +2763,7 @@ function getLoggedGrossIncome() {
     ...item,
     amount: Number(item.grossAmount ?? item.amount ?? 0)
   }));
-  return budgetTotalForMonth(grossIncomeEntries);
+  return incomeForecastForMonth(grossIncomeEntries, getReportMonth());
 }
 
 // Quest helpers load goals, calculate completion, and keep dashboard progress current.
@@ -3155,6 +3236,12 @@ function updateDashboardOnboarding() {
     };
 
     nextAction.hidden = false;
+    const financialPosition = getPowerUpReportTotals();
+    if (financialPosition.reportIncome > 0 && financialPosition.cashAfterSpending < 0) {
+      const deficit = Math.abs(financialPosition.cashAfterSpending);
+      setAction("Power-Up", "Review expenses", "You’re spending more than you earn", `Expenses exceed income by ${formatKsh(deficit)}. Review your spending categories and look for a cost you can reduce before the next cycle.`);
+      return;
+    }
     if (!stepState.account) {
       setAction("Inventory", "Add an account", "Add your first account", "Start with a bank, M-Pesa, or cash balance to see your net worth.");
     } else if (!stepState.goal) {
@@ -3680,6 +3767,7 @@ function updateDashboardPowerUpSummary() {
   const incomeCard = metricCards[1];
   const savingsCard = metricCards[2];
   const spendingCard = metricCards[3];
+  const deficitCard = document.querySelector(".deficit-card");
   const monthlyComparison = dashboardCashflowSeries();
   const currentMonth = monthlyComparison.at(-1);
   const previousMonth = monthlyComparison.at(-2);
@@ -3691,8 +3779,15 @@ function updateDashboardPowerUpSummary() {
   setMetricTrend(savingsCard, currentSavingsRate, previousSavingsRate);
 
   if (incomeCard) {
-    incomeCard.querySelector(".metric-heading span").textContent = "INCOME";
+    incomeCard.querySelector(".metric-heading span").textContent = "INCOME OUTLOOK";
     incomeCard.querySelector(".metric-value").textContent = formatKsh(totals.reportIncome);
+    let caption = incomeCard.querySelector(".metric-caption");
+    if (!caption) {
+      caption = document.createElement("div");
+      caption.className = "metric-caption";
+      incomeCard.append(caption);
+    }
+    caption.textContent = totals.reportIncome > 0 ? "Received + expected this period" : "Plan an expected payment";
   }
 
   const savingsRate = totals.reportIncome > 0
@@ -3702,6 +3797,11 @@ function updateDashboardPowerUpSummary() {
     savingsCard.querySelector(".metric-value").textContent = savingsRate + "%";
     savingsCard.querySelector(".positive-pill").textContent = totals.cashAfterSpending < 0 ? "DEFICIT" : "";
     savingsCard.querySelector(".positive-pill").classList.toggle("is-deficit", totals.cashAfterSpending < 0);
+    savingsCard.dataset.cashflow = totals.cashAfterSpending < 0 ? "deficit" : "within-income";
+    const savingsCaption = savingsCard.querySelector(".savings-caption");
+    if (savingsCaption) savingsCaption.textContent = totals.cashAfterSpending < 0
+      ? `${formatKsh(Math.abs(totals.cashAfterSpending))} shortfall after spending`
+      : totals.reportIncome > 0 ? "Of income left after spending" : "Add income and expenses to calculate";
   }
 
   if (spendingCard) {
@@ -3719,23 +3819,28 @@ function updateDashboardPowerUpSummary() {
     if (progress) progress.style.width = `${totals.reportBudget > 0 ? Math.min(100, (totals.spending / totals.reportBudget) * 100) : 0}%`;
   }
 
+  if (deficitCard) {
+    const deficit = Math.max(0, -totals.cashAfterSpending);
+    deficitCard.dataset.cashflow = deficit > 0 ? "deficit" : "within-income";
+    deficitCard.querySelector(".metric-value").textContent = formatKsh(deficit);
+    deficitCard.querySelector(".metric-caption").textContent = deficit > 0
+      ? "Over expected income this period"
+      : totals.reportIncome > 0 ? `${formatKsh(totals.cashAfterSpending)} left after spending` : "Add income and expenses to calculate";
+    deficitCard.setAttribute("aria-label", deficit > 0 ? `Monthly deficit ${formatKsh(deficit)}` : "No monthly deficit");
+  }
+
   updateDashboardCashflowChart();
 }
 
 function dashboardCashflowSeries() {
   const data = getPowerUpData();
   const [year, month] = getReportMonth().split("-").map(Number);
-  return Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(year, month - 1 - (5 - index), 1, 12);
+  const count = dashboardCashflowRange;
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(year, month - 1 - (count - index - 1), 1, 12);
     const key = monthKey(date);
-    const monthlyIncome = budgetTotalForMonth(data.incomes, key);
-    const expenses = data.spending
-      .filter(item => {
-        const itemDate = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : "";
-        const itemMonth = itemDate ? itemDate.slice(0, 7) : /^\d{4}-\d{2}$/.test(item.month || "") ? item.month : getReportMonth();
-        return itemMonth === key;
-      })
-      .reduce((total, item) => total + Number(item.amount || 0), 0);
+    const monthlyIncome = actualIncomeForMonth(data.incomes, key);
+    const expenses = actualSpendingForMonth(data.spending, key);
     return {
       date,
       month: date.toLocaleDateString(undefined, { month: "short" }),
@@ -3757,6 +3862,8 @@ function formatCompactKsh(amount) {
 function updateDashboardCashflowChart() {
   const chart = document.querySelector(".cashflow-chart");
   if (!chart) return;
+  const rangeSelect = document.querySelector("select[data-dashboard-range]");
+  if (rangeSelect) rangeSelect.value = String(dashboardCashflowRange);
   const phoneLayout = window.matchMedia("(max-width: 600px)").matches;
   chart.setAttribute("viewBox", phoneLayout ? "0 0 380 260" : "0 0 760 260");
   const grid = chart.querySelector("[data-chart-grid]");
@@ -3767,11 +3874,20 @@ function updateDashboardCashflowChart() {
 
   const months = dashboardCashflowSeries();
   const series = [
-    { key: "income", label: "Income", color: "#16a579" },
-    { key: "expenses", label: "Expenses", color: "#f0a744" },
-    { key: "savings", label: "Savings", color: "#4d9ab8" }
+    { key: "income", label: "Income received", color: "#16a579" },
+    { key: "expenses", label: "Expenses recorded", color: "#bd6561" },
+    { key: "savings", label: "Net cash flow", color: "#c5a65c" }
   ];
   const values = months.flatMap(month => series.map(item => month[item.key]));
+  const hasTransactions = months.some(month => month.income !== 0 || month.expenses !== 0);
+  if (!hasTransactions) {
+    grid.replaceChildren();
+    seriesLayer.innerHTML = '<text class="cashflow-empty-label" x="50%" y="48%" text-anchor="middle">Record received income and expenses to see actual cash flow.</text>';
+    barsLayer.replaceChildren();
+    labels.replaceChildren();
+    chart.setAttribute("aria-label", "No received income or expense transactions recorded in this period. Record transactions to see actual cash flow.");
+    return;
+  }
   const minimum = Math.min(0, ...values);
   const rawMaximum = Math.max(0, ...values);
   const maximum = rawMaximum === minimum ? minimum + 1 : rawMaximum;
@@ -3806,7 +3922,45 @@ function updateDashboardCashflowChart() {
     const barX = x(monthIndex) + (seriesIndex - 1) * (phoneLayout ? 7 : 14) - barWidth / 2;
     return `<rect class="cashflow-bar ${item.key}" x="${barX}" y="${barY}" width="${barWidth}" height="${height}" rx="2"><title>${month.month}: ${item.label} ${formatKsh(month[item.key])}</title></rect>`;
   }).join("")).join("");
-  chart.setAttribute("aria-label", `Last six months. Current recurring monthly income is ${formatKsh(months[months.length - 1].income)}. Recorded spending and remaining income are shown for each month.`);
+  chart.setAttribute("aria-label", `Last ${months.length} months of actual cash flow. Received income and non-recurring expenses are grouped by transaction month; net cash flow is income minus expenses.`);
+}
+
+function openTransferDialog() {
+  const accounts = getInventoryEntries().filter(item => item.type === "asset");
+  if (accounts.length < 2) {
+    showToast("Add at least two asset accounts in Inventory to record a transfer.");
+    showPage("Inventory");
+    return;
+  }
+  const dialog = document.createElement("dialog");
+  dialog.className = "inventory-dialog";
+  const options = accounts.map(item => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name)} · ${formatKsh(item.amount)}</option>`).join("");
+  dialog.innerHTML = `<form method="dialog" class="inventory-form" data-transfer-form><div class="inventory-dialog-heading"><div><span class="section-kicker">MOVE BETWEEN ACCOUNTS</span><h2>Record a transfer</h2><p>This changes account balances without counting as income or spending.</p></div><button type="button" class="inventory-dialog-close" aria-label="Close">×</button></div><div class="inventory-form-fields"><label class="inventory-form-field"><span>From account</span><select name="from" required>${options}</select></label><label class="inventory-form-field"><span>To account</span><select name="to" required>${options}</select></label><label class="inventory-form-field"><span>Amount (KSh)</span><input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required></label></div><div class="inventory-dialog-actions"><button type="button" class="inventory-cancel" data-transfer-cancel>Cancel</button><button type="submit" class="inventory-submit">Save transfer</button></div></form>`;
+  document.body.append(dialog);
+  const form = dialog.querySelector("[data-transfer-form]");
+  form.elements.to.selectedIndex = Math.min(1, accounts.length - 1);
+  dialog.querySelector(".inventory-dialog-close").addEventListener("click", () => dialog.close());
+  dialog.querySelector("[data-transfer-cancel]").addEventListener("click", () => dialog.close());
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const from = accounts.find(item => item.id === form.elements.from.value);
+    const to = accounts.find(item => item.id === form.elements.to.value);
+    const amount = Number(form.elements.amount.value);
+    if (!from || !to || from.id === to.id) { showToast("Choose two different accounts."); return; }
+    if (!Number.isFinite(amount) || amount <= 0 || amount > Number(from.amount)) { showToast("Enter an amount up to the available balance."); return; }
+    const entries = getInventoryEntries().map(item => item.id === from.id
+      ? { ...item, amount: Number(item.amount) - amount }
+      : item.id === to.id ? { ...item, amount: Number(item.amount) + amount } : item);
+    try {
+      saveInventoryEntries(entries);
+      recordSecurityAudit("Recorded an asset transfer");
+      dialog.close();
+      refreshFinancialPage();
+      showToast("Transfer recorded. Your total net worth is unchanged.");
+    } catch { showToast("Couldn’t save the transfer. Please try again."); }
+  });
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.showModal();
 }
 
 window.matchMedia("(max-width: 600px)").addEventListener?.("change", updateDashboardCashflowChart);
@@ -4252,25 +4406,28 @@ function openInventoryDialog(action, editId = null) {
 
 function openPowerUpDialog(kind, editId = null) {
   const dataAtOpen = getPowerUpData();
-  const targetList = kind === "income" ? "incomes" : kind === "spending" ? "spending" : "budgets";
+  const targetList = ["income", "received-income"].includes(kind) ? "incomes" : kind === "spending" ? "spending" : "budgets";
   const editing = editId ? dataAtOpen[targetList].find(item => item.id === editId) : null;
-  const isIncome = kind === "income";
+  const isReceivedIncome = kind === "received-income";
+  const isIncome = kind === "income" || isReceivedIncome;
   const isSpending = kind === "spending";
+  const incomeDate = editing?.date || editing?.expectedDate || `${getReportMonth()}-${String(new Date().getDate()).padStart(2, "0")}`;
+  const expectedSources = dataAtOpen.incomes.filter(item => item.status !== "received");
   const dialog = document.createElement("dialog");
   dialog.className = "inventory-dialog";
   dialog.innerHTML = `
     <form class="inventory-form">
       <header class="inventory-dialog-heading">
         <div>
-          <span class="section-kicker">${isIncome ? "MONEY COMING IN" : isSpending ? "MONEY SPENT" : "MONTHLY PLAN"}</span>
-          <h2>${editing ? "Edit " + (isIncome ? "income source" : isSpending ? "expense" : "budget line") : isIncome ? "Add an income source" : isSpending ? "Record an expense" : "Add a budget line"}</h2>
+          <span class="section-kicker">${isIncome ? (isReceivedIncome ? "INCOME RECEIVED" : "EXPECTED INCOME") : isSpending ? "MONEY SPENT" : "MONTHLY PLAN"}</span>
+          <h2>${editing ? "Edit " + (isIncome ? "income" : isSpending ? "expense" : "budget line") : isReceivedIncome ? "Record income received" : isIncome ? "Plan an income payment" : isSpending ? "Record an expense" : "Add a budget line"}</h2>
         </div>
         <button class="inventory-dialog-close" type="button" aria-label="Close dialog">×</button>
       </header>
       <div class="inventory-form-fields">
         <label class="inventory-form-field">
           <span>${isIncome ? "Source name" : isSpending ? "Expense name" : "Budget name"}</span>
-          <input name="name" type="text" maxlength="60" placeholder="${isIncome ? "e.g. Salary" : isSpending ? "e.g. Groceries" : "e.g. Rent"}" required>
+          <input name="name" type="text" maxlength="60" placeholder="${isIncome ? "e.g. Salary, dividend, or interest" : isSpending ? "e.g. Groceries" : "e.g. Rent"}" required>
         </label>
         ${isIncome ? `<label class="inventory-form-field">
           <span>Income category</span>
@@ -4290,15 +4447,24 @@ function openPowerUpDialog(kind, editId = null) {
           <span>Repeat this expense</span>
           <span class="budget-repeat-control"><input name="recurring" type="checkbox"><span><strong>Repeat monthly</strong><small>Include this expense in each following month.</small></span></span>
         </label>` : ""}
+        ${isReceivedIncome ? `<label class="inventory-form-field"><span>Match an expected source <small>Optional</small></span><select name="sourceId"><option value="">Unplanned income</option>${expectedSources.map(item => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name)} · ${formatKsh(item.amount)}</option>`).join("")}</select><small>Matching a forecast marks this month’s expected payment as received.</small></label>` : ""}
+        ${isIncome ? `<label class="inventory-form-field">
+          <span>${isReceivedIncome ? "Date received" : "Expected payment date"}</span>
+          <input name="incomeDate" type="date" value="${escapeHTML(incomeDate)}" required>
+          <small>${isReceivedIncome ? "This will be counted as actual income in cash-flow history." : "Used to place this payment in the monthly forecast."}</small>
+        </label>` : ""}
         <label class="inventory-form-field">
           <span data-income-amount-label>${isIncome ? "Amount per month (KSh)" : "Amount (KSh)"}</span>
           <input name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" required>
           ${isIncome ? `<small data-salary-net-preview hidden></small>` : ""}
         </label>
-        ${!isSpending ? `<label class="inventory-form-field budget-repeat-field">
+        ${!isSpending && !isReceivedIncome ? `<label class="inventory-form-field budget-repeat-field">
           <span>Repeat this ${isIncome ? "income" : "budget"}</span>
-          <span class="budget-repeat-control"><input name="recurring" type="checkbox" checked><span><strong>Repeat monthly</strong><small>${isIncome ? "Include this income in future months automatically." : "Keep this budget in future months automatically."}</small></span></span>
-        </label>` : ""}
+          <span class="budget-repeat-control"><input name="recurring" type="checkbox" checked><span><strong>${isIncome ? "Repeat this income" : "Repeat monthly"}</strong><small>${isIncome ? "Choose a monthly, quarterly, or yearly cadence below." : "Keep this budget in future months automatically."}</small></span></span>
+        </label>${isIncome ? `<label class="inventory-form-field" data-income-frequency-field>
+          <span>Payment cadence</span>
+          <select name="frequency"><option value="monthly">Every month</option><option value="quarterly">Every 3 months</option><option value="yearly">Every year</option></select>
+        </label>` : ""}` : ""}
         <label class="inventory-form-field">
           <span>Notes <small>Optional</small></span>
           <textarea name="notes" rows="3" maxlength="500" placeholder="Add a note"></textarea>
@@ -4314,7 +4480,7 @@ function openPowerUpDialog(kind, editId = null) {
   const form = dialog.querySelector(".inventory-form");
   const incomeCategorySelect = isIncome ? form.querySelector('select[name="category"]') : null;
   const budgetCategorySelect = !isIncome ? form.querySelector('select[name="category"]') : null;
-  const incomeRecurrenceToggle = isIncome ? form.querySelector('input[name="recurring"]') : null;
+  const incomeRecurrenceToggle = isIncome && !isReceivedIncome ? form.querySelector('input[name="recurring"]') : null;
   const syncIncomeCategoryIcon = () => {
     const icon = incomeCategoryByLabel[incomeCategorySelect?.value] || incomeCategories[0];
     const preview = form.querySelector(".income-category-select-icon");
@@ -4324,15 +4490,18 @@ function openPowerUpDialog(kind, editId = null) {
     form.elements.name.value = editing.name || "";
     if (form.elements.category) form.elements.category.value = editing.category || (isIncome ? incomeCategories[0].label : budgetCategories[0]);
     if (form.elements.date) form.elements.date.value = editing.date || (editing.month ? `${editing.month}-01` : getDefaultSpendingDate());
+    if (form.elements.incomeDate) form.elements.incomeDate.value = editing.date || editing.expectedDate || `${editing.startMonth || editing.month || getReportMonth()}-01`;
+    if (form.elements.sourceId) form.elements.sourceId.value = editing.sourceId || "";
     form.elements.amount.value = isIncome && ["Salary", "Sacco returns"].includes(editing.category) ? (editing.grossAmount ?? editing.amount ?? "") : (editing.amount ?? "");
     form.elements.notes.value = editing.notes || "";
     if (form.elements.recurring) form.elements.recurring.checked = isSpending ? editing.recurring === true : editing.recurring !== false;
+    if (form.elements.frequency) form.elements.frequency.value = incomeFrequency(editing);
   }
   const syncIncomeAmountLabel = () => {
     const label = form.querySelector("[data-income-amount-label]");
     if (label && isIncome) {
       const grossBased = ["Salary", "Sacco returns"].includes(incomeCategorySelect.value);
-      const base = incomeRecurrenceToggle.checked ? "Amount per month" : "One-time amount";
+      const base = incomeRecurrenceToggle.checked ? "Amount per payment" : "One-time amount";
       label.textContent = `${base} (KSh)${grossBased ? " (gross)" : ""}`;
     }
   };
@@ -4353,7 +4522,12 @@ function openPowerUpDialog(kind, editId = null) {
   };
   if (incomeRecurrenceToggle) {
     syncIncomeAmountLabel();
-    incomeRecurrenceToggle.addEventListener("change", syncIncomeAmountLabel);
+    incomeRecurrenceToggle.addEventListener("change", () => {
+      syncIncomeAmountLabel();
+      const cadence = form.querySelector("[data-income-frequency-field]");
+      if (cadence) cadence.hidden = !incomeRecurrenceToggle.checked;
+    });
+    if (!incomeRecurrenceToggle.checked) form.querySelector("[data-income-frequency-field]").hidden = true;
   }
   if (incomeCategorySelect) {
     syncIncomeCategoryIcon();
@@ -4365,6 +4539,17 @@ function openPowerUpDialog(kind, editId = null) {
       syncSalaryNetPreview();
     });
     form.elements.amount.addEventListener("input", syncSalaryNetPreview);
+  }
+  if (isReceivedIncome && form.elements.sourceId) {
+    form.elements.sourceId.addEventListener("change", () => {
+      const source = expectedSources.find(item => item.id === form.elements.sourceId.value);
+      if (!source) return;
+      form.elements.name.value = source.name || "";
+      if (form.elements.category) form.elements.category.value = source.category || incomeCategories[0].label;
+      form.elements.amount.value = source.amount ?? "";
+      syncIncomeCategoryIcon();
+      syncSalaryNetPreview();
+    });
   }
   if (budgetCategorySelect) {
     const syncBudgetCategoryIcon = () => {
@@ -4399,6 +4584,11 @@ function openPowerUpDialog(kind, editId = null) {
       showToast("Choose a valid date for this expense.");
       return;
     }
+    const paymentDate = String(formData.get("incomeDate") || "");
+    if (isIncome && !/^\d{4}-\d{2}-\d{2}$/.test(paymentDate)) {
+      showToast("Choose a valid income payment date.");
+      return;
+    }
 
     const data = getPowerUpData();
     const totalsBeforeUpdate = getPowerUpTotals();
@@ -4413,8 +4603,25 @@ function openPowerUpDialog(kind, editId = null) {
     const isSaccoReturn = isIncome && category === "Sacco returns";
     const payroll = isSalary ? computeKenyaPayroll(amount) : null;
     const netAmount = payroll ? payroll.net : isSaccoReturn ? Math.round(amount * 0.9) : amount;
-    const savedEntry = isIncome ? { ...entry, amount: netAmount, ...((isSalary || isSaccoReturn) ? { grossAmount: amount } : {}), category, recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() } : isSpending ? { ...entry, date: expenseDate, month: expenseDate.slice(0, 7), category, recurring: formData.has("recurring") } : { ...entry, category, recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() };
+    const savedEntry = isIncome ? isReceivedIncome
+      ? { ...entry, amount, category, status: "received", date: paymentDate, sourceId: String(formData.get("sourceId") || ""), recurring: false }
+      : { ...entry, amount: netAmount, ...((isSalary || isSaccoReturn) ? { grossAmount: amount } : {}), category, status: "expected", expectedDate: paymentDate, frequency: formData.has("recurring") ? String(formData.get("frequency") || "monthly") : "once", recurring: formData.has("recurring"), startMonth: paymentDate.slice(0, 7) }
+      : isSpending ? { ...entry, date: expenseDate, month: expenseDate.slice(0, 7), category, recurring: formData.has("recurring") } : { ...entry, category, recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() };
+    if (isReceivedIncome && editing?.sourceId && (editing.sourceId !== savedEntry.sourceId || editing.date?.slice(0, 7) !== paymentDate.slice(0, 7))) {
+      const oldSourceIndex = data.incomes.findIndex(item => item.id === editing.sourceId);
+      if (oldSourceIndex >= 0) {
+        const oldMonth = editing.date?.slice(0, 7);
+        data.incomes[oldSourceIndex] = { ...data.incomes[oldSourceIndex], receivedMonths: (data.incomes[oldSourceIndex].receivedMonths || []).filter(month => month !== oldMonth) };
+      }
+    }
     const entryIndex = data[targetList].findIndex(item => item.id === savedEntry.id);
+    if (isReceivedIncome && savedEntry.sourceId) {
+      const sourceIndex = data.incomes.findIndex(item => item.id === savedEntry.sourceId);
+      if (sourceIndex >= 0) {
+        const source = data.incomes[sourceIndex];
+        data.incomes[sourceIndex] = { ...source, receivedMonths: [...new Set([...(source.receivedMonths || []), paymentDate.slice(0, 7)])] };
+      }
+    }
     if (entryIndex >= 0) data[targetList][entryIndex] = savedEntry;
     else data[targetList].push(savedEntry);
 
@@ -4426,7 +4633,7 @@ function openPowerUpDialog(kind, editId = null) {
     }
 
     const totalsAfterUpdate = getPowerUpTotals();
-    const salaryAdded = isIncome && savedEntry.category === "Salary" && Number(amount) > 0 && !editing;
+    const salaryAdded = isIncome && !isReceivedIncome && savedEntry.category === "Salary" && Number(amount) > 0 && !editing;
     if (salaryAdded) {
       const payday = Number(getStoredSettings().paydayAnchorDay) || 1;
       const paydayLabel = ordinalDay(payday);
@@ -4439,8 +4646,8 @@ function openPowerUpDialog(kind, editId = null) {
         dedupeKey: `salary-payday:${savedEntry.id}`
       });
     }
-    if (isIncome && getStoredSettings().monthlyReminders) {
-      const recurringNetIncome = budgetTotalForMonth(data.incomes.filter(item => item.recurring !== false), monthKey());
+    if (isIncome && !isReceivedIncome && getStoredSettings().monthlyReminders) {
+      const recurringNetIncome = incomeForecastForMonth(data.incomes, monthKey());
       if (recurringNetIncome > 0) notifyBudgetRuleSuggestion();
       else createInAppNotification({ title: "Income plan updated", body: `${name} is in your income plan. Add a recurring monthly income source to get a personalized budget split.`, page: "Power-Up", actionLabel: "Review income", actionTarget: "Power-Up", dedupeKey: `income-plan:${savedEntry.id}:${monthKey()}`, preference: "monthlyReminders" });
     } else if (!isIncome && !isSpending) {
@@ -4453,7 +4660,7 @@ function openPowerUpDialog(kind, editId = null) {
 
     dialog.close();
     refreshFinancialPage();
-    showToast(spendingShortfall ? "Recorded spending is above planned income. See Notifications for details." : editing ? `${name} updated.` : isSpending ? `${name} expense recorded.` : `${name} added to your monthly plan.`);
+    showToast(spendingShortfall ? "Recorded spending is above planned income. See Notifications for details." : editing ? `${name} updated.` : isReceivedIncome ? `${name} recorded as received income.` : isSpending ? `${name} expense recorded.` : `${name} added to your income forecast.`);
   });
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   dialog.showModal();
@@ -4757,12 +4964,8 @@ function getStatsMonthlySeries(monthCount = 6) {
   return Array.from({ length: monthCount }, (_, index) => {
     const date = new Date(now.getFullYear(), now.getMonth() - (monthCount - index - 1), 1, 12);
     const key = monthKey(date);
-    const income = budgetTotalForMonth(data.incomes, key);
-    const spending = data.spending.filter(item => {
-      const datedMonth = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date.slice(0, 7) : /^\d{4}-\d{2}$/.test(item.month || "") ? item.month : "";
-      const startMonth = datedMonth || getReportMonth();
-      return item.recurring === true ? key >= startMonth : key === startMonth;
-    }).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const income = actualIncomeForMonth(data.incomes, key);
+    const spending = actualSpendingForMonth(data.spending, key);
     return { key, label: date.toLocaleDateString(undefined, { month: "short" }), income, spending, saved: income - spending };
   });
 }
@@ -4803,10 +5006,13 @@ function renderStatsTrend(view, months, currentNetWorth) {
     return `<div class="stats-savings-view"><div class="stats-savings-gauge" style="--savings-progress:${gaugeValue}%" role="img" aria-label="Savings rate ${rate}%"><div><strong>${rate}%</strong><span>SAVINGS RATE</span></div></div><div class="stats-savings-copy"><strong>${escapeHTML(savedLabel)}</strong><span class="stats-savings-comparison ${comparisonClass}">${escapeHTML(comparison)}</span></div></div>`;
   }
   if (view === "cash-flow") {
+    if (!months.some(item => item.income > 0 || item.spending > 0)) {
+      return `<div class="stats-empty">No actual income or expense transactions yet. Record income received and expenses in Power-Up to build your cash-flow history.</div>`;
+    }
     const max = Math.max(1, ...months.flatMap(item => [item.income, item.spending]));
     const ticks = [0, 1, 2, 3].map(index => Math.round(max * (1 - index / 3)));
     const monthEvery = months.length >= 24 ? 2 : 1;
-    return `<div class="stats-cashflow-chart" role="img" aria-label="Monthly income and spending comparison">
+    return `<div class="stats-cashflow-chart" role="img" aria-label="Actual monthly income received and expenses recorded">
       <div class="stats-cf-y-axis">${ticks.map(value => `<span>${escapeHTML(formatCompactKsh(value))}</span>`).join("")}</div>
       <div class="stats-cf-plot">
         <div class="stats-cf-gridlines" aria-hidden="true">${ticks.map(() => "<span></span>").join("")}</div>
@@ -4918,7 +5124,7 @@ function renderStatsPage() {
         <strong>${formatKsh(item.value)}</strong>
       </div>`).join("")
     : `<div class="stats-empty">Add assets in Inventory to see how they are distributed.</div>`;
-  const cashFlowLegend = `<div class="stats-main-legend"><span><i class="income"></i>Income</span><span><i class="spending"></i>Expenses</span></div>`;
+  const cashFlowLegend = `<div class="stats-main-legend"><span><i class="income"></i>Income received</span><span><i class="spending"></i>Expenses recorded</span></div>`;
   const statsViews = [
     { id: "cash-flow", label: "Cash Flow", title: "Monthly Cash Flow" },
     { id: "savings", label: "Savings", title: "Savings Rate" },
@@ -4995,6 +5201,14 @@ document.addEventListener("click", event => {
 });
 
 document.addEventListener("change", event => {
+  const dashboardRange = event.target.closest("select[data-dashboard-range]");
+  if (dashboardRange) {
+    const months = Number(dashboardRange.value);
+    if (![3, 6, 12].includes(months) || months === dashboardCashflowRange) return;
+    dashboardCashflowRange = months;
+    updateDashboardCashflowChart();
+    return;
+  }
   const range = event.target.closest("select[data-stats-range]");
   if (!range) return;
   const months = Number(range.value);
@@ -5261,19 +5475,22 @@ function renderPowerUpPage() {
   const incomeRows = data.incomes.length
     ? data.incomes.map(item => {
       const category = incomeCategoryByLabel[item.category];
+      const received = item.status === "received";
+      const frequency = incomeFrequency(item);
+      const cadenceLabel = received ? `Received ${item.date || ""}` : frequency === "once" ? `Expected ${item.expectedDate || item.startMonth || ""}` : `${frequency[0].toUpperCase()}${frequency.slice(1)} · next ${item.expectedDate || "date to set"}`;
       return `
         <div class="power-row">
           <span class="power-row-icon income-icon" aria-hidden="true">${category?.icon || '<svg viewBox="0 0 24 24"><path d="M4 18h16M6 15l4-4 3 3 5-6M15 8h3v3"/></svg>'}</span>
           <span class="power-row-name">
             <strong>${escapeHTML(item.name)}</strong>
-            <small>${escapeHTML(category?.label || "Income")}${item.notes ? ` · ${escapeHTML(item.notes)}` : ""}</small>
+            <small>${received ? "Received" : "Expected"} · ${escapeHTML(category?.label || "Income")} · ${escapeHTML(cadenceLabel)}${item.notes ? ` · ${escapeHTML(item.notes)}` : ""}</small>
           </span>
-          <strong class="power-row-amount">${formatKsh(item.amount)}<small>${item.recurring === false ? "one-time" : "/ month"}</small></strong>
-          <button class="inventory-row-edit" type="button" data-edit-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit income">Edit</button>
+          <strong class="power-row-amount">${formatKsh(item.amount)}<small>${received ? "received" : frequency === "once" ? "one-time" : `/${frequency}`}</small></strong>
+          <button class="inventory-row-edit" type="button" data-edit-power-item="${received ? "received-income" : "income"}" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit income">Edit</button>
           <button class="inventory-delete" type="button" data-delete-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete income">×</button>
         </div>`;
     }).join("")
-    : `<div class="power-empty">No income sources yet. Add your monthly income to get started.</div>`;
+    : `<div class="power-empty">No income records yet. Plan expected payments or record income when it arrives.</div>`;
   const visibleBudgets = budgetListExpanded ? data.budgets : data.budgets.slice(0, 5);
   const budgetRows = data.budgets.length
     ? visibleBudgets.map(item => `
@@ -5328,9 +5545,9 @@ function renderPowerUpPage() {
 
       <section class="inventory-summary power-summary" aria-label="Monthly plan summary">
         <article class="inventory-summary-card">
-          <span class="inventory-label">PERIOD INCOME</span>
+          <span class="inventory-label">INCOME OUTLOOK</span>
           <strong>${formatKsh(totals.reportIncome)}</strong>
-          <span class="inventory-note">${data.incomes.length} income ${data.incomes.length === 1 ? "source" : "sources"}</span>
+          <span class="inventory-note">Received plus expected for this period</span>
         </article>
         <article class="inventory-summary-card">
           <span class="inventory-label">PERIOD BUDGET</span>
@@ -5349,6 +5566,8 @@ function renderPowerUpPage() {
         </article>
       </section>
 
+      ${renderIncomeForecast(data.incomes)}
+
       <section class="power-desktop-workspace" aria-label="Power-Up sections">
         <div class="power-tabs" role="tablist" aria-label="Power-Up sections" data-power-tablist>
           <button id="power-tab-income" type="button" role="tab" aria-selected="${activePowerTab === "income"}" aria-controls="power-panel-income" tabindex="${activePowerTab === "income" ? 0 : -1}" data-power-tab="income">Income Streams</button>
@@ -5356,7 +5575,7 @@ function renderPowerUpPage() {
         </div>
         <section class="power-tab-panel" id="power-panel-income" role="tabpanel" aria-labelledby="power-tab-income" data-power-panel="income" ${activePowerTab !== "income" ? "hidden" : ""}>
           <div class="power-desktop-income-layout">
-            ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Total monthly income", totals.income)}
+            ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Income outlook this month", totals.income)}
             ${renderTaxWidget(true, "-desktop-income", true)}
           </div>
         </section>
@@ -5371,7 +5590,7 @@ function renderPowerUpPage() {
       <section class="power-mobile-workspace" aria-label="Income and monthly budget">
         ${renderTaxWidget()}
         <section class="inventory-columns power-columns" aria-label="Income and monthly budget">
-          ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Total monthly income", totals.income, true)}
+          ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Income outlook this month", totals.income, true)}
           ${renderPowerListPanel("budget", "Monthly budget", "MONEY WITH A JOB", budgetRows, "Total planned budget", totals.budget, true, budgetListControl)}
           ${renderPowerListPanel("spending", "Monthly spending", "MONEY SPENT", spendingRows, "Total monthly spending", totals.spending, true, spendingListControl)}
         </section>
@@ -6085,7 +6304,7 @@ function notifyBudgetRuleSuggestion() {
   if (getStoredSettings().monthlyReminders === false) return;
   const power = getPowerUpData();
   const month = monthKey();
-  const netIncome = budgetTotalForMonth(power.incomes.filter(item => item.recurring !== false), month);
+  const netIncome = incomeForecastForMonth(power.incomes, month);
   if (netIncome <= 0) return;
   const recurringExpenses = budgetTotalForMonth(power.budgets.filter(item => item.recurring !== false && !["Savings", "Investments"].includes(item.category)), month);
   const essentialBudgets = ["Housing", "Food & groceries", "Insurance"].map(category => budgetTotalForMonth(power.budgets.filter(item => item.recurring !== false), month, category));
@@ -7236,7 +7455,7 @@ function downloadPDF() {
   const power = getPowerUpData();
   const reportSpending = spendingForReport(power.spending);
   const sum = list => list.reduce((total, item) => total + Number(item.amount || 0), 0);
-  const plan = { income: budgetTotalForMonth(power.incomes), budget: budgetTotalForMonth(power.budgets), spending: sum(reportSpending) };
+  const plan = { income: incomeForecastForMonth(power.incomes, getReportMonth()), budget: budgetTotalForMonth(power.budgets), spending: sum(reportSpending) };
   const quests = getQuests();
   const assets = entries.filter(item => item.type === "asset");
   const liabilities = entries.filter(item => item.type === "liability");
@@ -7691,7 +7910,7 @@ function downloadPDF() {
 
   const tips = [];
   const currentMonthKey = monthKey();
-  const recurringNetIncome = budgetTotalForMonth(power.incomes.filter(item => item.recurring !== false), currentMonthKey);
+  const recurringNetIncome = incomeForecastForMonth(power.incomes, currentMonthKey);
   if (recurringNetIncome > 0) {
     const essentialLines = ["Housing", "Food & groceries", "Insurance"].map(category => ({
       category,
@@ -8599,6 +8818,14 @@ document.addEventListener("click", event => {
     handleMenuChoice(menuItem.dataset.menuChoice);
     return;
   }
+  const dashboardAction = target.closest("[data-dashboard-action]");
+  if (dashboardAction) {
+    const action = dashboardAction.dataset.dashboardAction;
+    if (action === "income") openPowerUpDialog("received-income");
+    else if (action === "spending") openPowerUpDialog(action);
+    else if (action === "transfer") openTransferDialog();
+    return;
+  }
   const pageLink = target.closest("[data-jump]");
   if (pageLink) {
     event.preventDefault();
@@ -8867,6 +9094,11 @@ document.addEventListener("click", event => {
     const list = button.dataset.deletePowerItem === "income"
       ? "incomes"
       : button.dataset.deletePowerItem === "spending" ? "spending" : "budgets";
+    const deleting = data[list].find(item => item.id === button.dataset.itemId);
+    if (list === "incomes" && deleting?.status === "received" && deleting.sourceId) {
+      const sourceIndex = data.incomes.findIndex(item => item.id === deleting.sourceId);
+      if (sourceIndex >= 0) data.incomes[sourceIndex] = { ...data.incomes[sourceIndex], receivedMonths: (data.incomes[sourceIndex].receivedMonths || []).filter(month => month !== (deleting.date || "").slice(0, 7)) };
+    }
     const updated = data[list].filter(item => item.id !== button.dataset.itemId);
     data[list] = updated;
     try {

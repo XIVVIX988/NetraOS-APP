@@ -15,7 +15,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css?v=tour-20261108-fintech-ui-20261107-1" />
   </head>
   <body data-user-name="Jordan Davis">
@@ -207,6 +207,11 @@
               </p>
             </div>
           </section>
+          <section class="dashboard-quick-actions" aria-label="Quick actions">
+            <button type="button" data-dashboard-action="income"><span aria-hidden="true">＋</span> Record income</button>
+            <button type="button" data-dashboard-action="spending"><span aria-hidden="true">−</span> Record expense</button>
+            <button type="button" data-dashboard-action="transfer"><span aria-hidden="true">⇄</span> Transfer</button>
+          </section>
           <!-- First-use checklist; JavaScript reveals it and updates each step's progress. -->
           <aside class="onboarding-card" data-onboarding hidden aria-labelledby="onboarding-title">
             <div class="onboarding-heading">
@@ -222,7 +227,7 @@
           </aside>
           <!-- At-a-glance financial metrics populated from the user's saved records. -->
           <section class="metrics-grid" aria-label="Financial overview">
-            <!-- Net worth, monthly income, savings rate, and monthly spending cards. -->
+            <!-- Net worth, income, spending, savings rate, and monthly deficit. -->
             <article class="metric-card networth-card">
               <div class="metric-heading">
                 <span>NET WORTH</span>
@@ -241,7 +246,7 @@
             </article>
             <article class="metric-card income-card">
               <div class="metric-heading">
-                <span>INCOME</span>
+                <span>INCOME OUTLOOK</span>
               </div>
               <div class="metric-value">
                 KSh 0
@@ -258,6 +263,7 @@
               <div class="metric-foot">
                 <span class="positive-pill"></span>
               </div>
+              <div class="metric-caption savings-caption">After spending</div>
             </article>
             <article class="metric-card spending-card">
               <div class="metric-heading">
@@ -280,22 +286,29 @@
                 ＋ Add spending
               </button>
             </article>
+            <article class="metric-card deficit-card" data-cashflow="within-income" aria-label="Monthly deficit">
+              <div class="metric-heading"><span>MONTHLY DEFICIT</span></div>
+              <div class="metric-value">KSh 0</div>
+              <div class="metric-caption">Income less spending</div>
+            </article>
           </section>
           <!-- Dashboard cash flow chart. -->
           <section class="dashboard-grid">
             <article class="panel cashflow-panel">
               <div class="panel-heading">
                 <div>
-                  <div class="section-kicker">LAST 6 MONTHS</div>
+                  <div class="section-kicker">ACTUAL MONTHLY TRANSACTIONS</div>
                   <h2>Cash flow</h2>
                 </div>
+                <label class="dashboard-period"><span class="sr-only">Cash flow period</span><select data-dashboard-range aria-label="Cash flow period"><option value="6" selected>Last 6 months</option><option value="3">Last 3 months</option><option value="12">Last 12 months</option></select></label>
               </div>
               <div class="chart-legend">
-                <span><i class="legend-income"></i>Income</span>
-                <span><i class="legend-expense"></i>Expenses</span>
-                <span><i class="legend-savings"></i>Savings</span>
+                <span><i class="legend-income"></i>Income received</span>
+                <span><i class="legend-expense"></i>Expenses recorded</span>
+                <span><i class="legend-savings"></i>Net cash flow</span>
               </div>
               <div class="cashflow-chart-wrap"><svg class="cashflow-chart" viewBox="0 0 760 260" role="img" aria-label="Six-month cash flow chart"><g data-chart-grid></g><g data-chart-series></g><g data-chart-bars></g><g data-chart-labels></g></svg></div>
+              <div class="cashflow-panel-footer"><span>Looking ahead?</span><button type="button" data-jump="Power-Up">View your 6-month income forecast <span aria-hidden="true">↗</span></button></div>
             </article>
             <article class="panel allocation-panel">
               <div class="panel-heading">

@@ -162,7 +162,7 @@
       await upsertRows("entries", entryRows, user.id, entryRows.map(row => row.id));
 
       const plan = local(keys.power) || { incomes: [], budgets: [], spending: [] };
-      const toRows = (items = []) => (Array.isArray(items) ? items : []).map(item => ({ id: String(item.id), name: item.name || "", amount: Number(item.amount || 0), notes: item.notes || "", category: item.category || "", month: item.month || "", details: item, created_at: item.createdAt || now() }));
+      const toRows = (items = []) => (Array.isArray(items) ? items : []).map(item => ({ id: String(item.id), name: item.name || "", amount: Number(item.amount || 0), notes: item.notes || "", category: item.category || "", month: item.month || item.date?.slice(0, 7) || item.expectedDate?.slice(0, 7) || "", details: item, created_at: item.createdAt || now() }));
       const incomeRows = toRows(plan.incomes), budgetRows = toRows(plan.budgets), spendingRows = toRows(plan.spending);
       await upsertRows("incomes", incomeRows, user.id, incomeRows.map(row => row.id));
       await upsertRows("budget_lines", budgetRows, user.id, budgetRows.map(row => row.id));
