@@ -3763,10 +3763,9 @@ function setMetricTrend(card, currentValue, previousValue) {
 function updateDashboardPowerUpSummary() {
   const totals = getPowerUpReportTotals();
   const period = getReportPeriod();
-  const metricCards = document.querySelectorAll(".metric-card");
-  const incomeCard = metricCards[1];
-  const savingsCard = metricCards[2];
-  const spendingCard = metricCards[3];
+  const incomeCard = document.querySelector(".income-card");
+  const savingsCard = document.querySelector(".savings-card");
+  const spendingCard = document.querySelector(".spending-card");
   const deficitCard = document.querySelector(".deficit-card");
   const monthlyComparison = dashboardCashflowSeries();
   const currentMonth = monthlyComparison.at(-1);
@@ -3779,7 +3778,7 @@ function updateDashboardPowerUpSummary() {
   setMetricTrend(savingsCard, currentSavingsRate, previousSavingsRate);
 
   if (incomeCard) {
-    incomeCard.querySelector(".metric-heading span").textContent = "INCOME OUTLOOK";
+    incomeCard.querySelector("[data-metric-label]").textContent = "INCOME";
     incomeCard.querySelector(".metric-value").textContent = formatKsh(totals.reportIncome);
     let caption = incomeCard.querySelector(".metric-caption");
     if (!caption) {
@@ -3795,25 +3794,29 @@ function updateDashboardPowerUpSummary() {
     : 0;
   if (savingsCard) {
     savingsCard.querySelector(".metric-value").textContent = savingsRate + "%";
-    savingsCard.querySelector(".positive-pill").textContent = totals.cashAfterSpending < 0 ? "DEFICIT" : "";
+    savingsCard.querySelector(".positive-pill").textContent = totals.cashAfterSpending < 0 ? "Needs improvement" : totals.reportIncome > 0 ? "Looking good" : "Add income";
     savingsCard.querySelector(".positive-pill").classList.toggle("is-deficit", totals.cashAfterSpending < 0);
     savingsCard.dataset.cashflow = totals.cashAfterSpending < 0 ? "deficit" : "within-income";
     const savingsCaption = savingsCard.querySelector(".savings-caption");
     if (savingsCaption) savingsCaption.textContent = totals.cashAfterSpending < 0
-      ? `${formatKsh(Math.abs(totals.cashAfterSpending))} shortfall after spending`
+      ? `${formatKsh(Math.abs(totals.cashAfterSpending))} more spent than expected income`
       : totals.reportIncome > 0 ? "Of income left after spending" : "Add income and expenses to calculate";
   }
 
   if (spendingCard) {
     spendingCard.dataset.cashflow = totals.cashAfterSpending < 0 ? "deficit" : "within-income";
-    spendingCard.querySelector(".metric-heading span").textContent = "SPENDING";
+    spendingCard.querySelector("[data-metric-label]").textContent = "SPENDING";
     spendingCard.querySelector(".metric-value").textContent = formatKsh(totals.spending);
-    spendingCard.querySelector(".metric-trailing").textContent =
-      `${totals.reportBudget > 0 ? Math.round((totals.spending / totals.reportBudget) * 100) : 0}%`;
+    const change = currentMonth?.expenses > 0 && previousMonth?.expenses > 0
+      ? (currentMonth.expenses - previousMonth.expenses) / previousMonth.expenses * 100
+      : null;
+    const trendLabel = spendingCard.querySelector(".metric-trailing");
+    trendLabel.textContent = change === null ? "No last-month comparison" : `${change > 0 ? "↑" : change < 0 ? "↓" : "→"} ${Math.abs(change).toFixed(1)}% vs last month`;
+    trendLabel.dataset.direction = change === null || change === 0 ? "neutral" : change > 0 ? "up" : "down";
     spendingCard.querySelector(".metric-caption .under-budget").textContent =
       formatKsh(Math.abs(totals.cashAfterSpending));
     const caption = spendingCard.querySelector(".metric-caption");
-    if (caption) caption.lastChild.textContent = totals.cashAfterSpending < 0 ? " over income" : " remaining";
+    if (caption) caption.querySelector(".spending-caption-copy").textContent = totals.cashAfterSpending < 0 ? " over expected income" : " left after spending";
     spendingCard.querySelector(".metric-caption .under-budget").classList.toggle("is-deficit", totals.cashAfterSpending < 0);
     const progress = spendingCard.querySelector(".spend-progress");
     if (progress) progress.style.width = `${totals.reportBudget > 0 ? Math.min(100, (totals.spending / totals.reportBudget) * 100) : 0}%`;
@@ -5538,8 +5541,8 @@ function renderPowerUpPage() {
           <h1><span class="power-title-desktop">Give every shilling<br><em>a direction.</em></span><span class="power-title-mobile">Power-Up &amp; Tax</span></h1>
           <p class="welcome-sub">Plan your income, budget, and take-home pay.</p>
         </div>
-        <button class="inventory-action power-heading-add" type="button" data-power-action="income" aria-label="Add income, budget, or spending" title="Add to Power-Up">
-          <span class="inventory-add-plus power-heading-add-plus" aria-hidden="true">+</span><span class="power-heading-add-label">Add income</span>
+        <button class="inventory-action power-heading-add" type="button" data-power-add-menu aria-haspopup="menu" aria-expanded="false" aria-label="Add income, budget, spending, or transfer" title="Add to Power-Up">
+          <span class="inventory-add-plus power-heading-add-plus" aria-hidden="true">+</span><span class="power-heading-add-label">Add</span>
         </button>
       </header>
 
@@ -8060,6 +8063,7 @@ function handleMenuChoice(action) {
   if (action.startsWith("power-add:")) {
     const kind = action.slice("power-add:".length);
     if (["income", "budget", "spending"].includes(kind)) openPowerUpDialog(kind);
+    else if (kind === "transfer") openTransferDialog();
     return;
   }
   if (action.startsWith("delete-quest:")) {
@@ -8818,14 +8822,6 @@ document.addEventListener("click", event => {
     handleMenuChoice(menuItem.dataset.menuChoice);
     return;
   }
-  const dashboardAction = target.closest("[data-dashboard-action]");
-  if (dashboardAction) {
-    const action = dashboardAction.dataset.dashboardAction;
-    if (action === "income") openPowerUpDialog("received-income");
-    else if (action === "spending") openPowerUpDialog(action);
-    else if (action === "transfer") openTransferDialog();
-    return;
-  }
   const pageLink = target.closest("[data-jump]");
   if (pageLink) {
     event.preventDefault();
@@ -9064,15 +9060,16 @@ document.addEventListener("click", event => {
     return;
   }
   if (button.matches("[data-power-action]")) {
-    if (button.matches(".power-heading-add") && window.matchMedia("(max-width: 600px)").matches) {
-      openMenu(button, [
-        { label: "Add income", action: "power-add:income" },
-        { label: "Add budget", action: "power-add:budget" },
-        { label: "Record spending", action: "power-add:spending" }
-      ]);
-      return;
-    }
     openPowerUpDialog(button.dataset.powerAction);
+    return;
+  }
+  if (button.matches("[data-power-add-menu]")) {
+    openMenu(button, [
+      { label: "Add income", action: "power-add:income" },
+      { label: "Add budget", action: "power-add:budget" },
+      { label: "Record spending", action: "power-add:spending" },
+      { label: "Transfer between accounts", action: "power-add:transfer" }
+    ]);
     return;
   }
   if (button.matches("[data-edit-power-item]")) {

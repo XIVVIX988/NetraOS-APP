@@ -12075,3 +12075,197 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
   html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .savings-card[data-cashflow="deficit"] :is(.metric-heading, .metric-value, .metric-caption) { color: #f0a3a1 !important; }
   html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .savings-card[data-cashflow="within-income"] .metric-value { color: #82d5a6 !important; }
 }
+
+/* Dashboard metric cards follow the compact, icon-led NetraOS mockup. */
+.app-shell #page-content:has(> .welcome-row) > .metrics-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card {
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0;
+  min-width: 0;
+  min-height: 154px;
+  padding: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(25, 45, 35, .1) !important;
+  border-left: 1px solid rgba(25, 45, 35, .1) !important;
+  border-radius: 22px !important;
+  background: #fffefa !important;
+  color: #19241f;
+  box-shadow: 0 4px 14px rgba(29, 49, 38, .06) !important;
+  transform: none !important;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card:hover {
+  box-shadow: 0 7px 18px rgba(29, 49, 38, .09) !important;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card .metric-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0 0 13px;
+  color: #59665f !important;
+  font: 650 12px/1.25 var(--sans);
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-heading [data-metric-label] { min-width: 0; }
+.app-shell .metrics-grid .metric-icon {
+  display: inline-grid;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8f4ec;
+  color: #0b7652;
+}
+.app-shell .metrics-grid .metric-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card .metric-value {
+  max-width: 100%;
+  margin: 0 0 5px;
+  color: #19241f !important;
+  font: 750 clamp(19px, 2.1vw, 27px)/1.12 var(--sans);
+  letter-spacing: -.045em;
+  overflow-wrap: anywhere;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card .metric-caption,
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card .metric-foot {
+  margin: 4px 0 0;
+  color: #69756e !important;
+  font: 500 12px/1.4 var(--sans);
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card[data-trend] {
+  border-color: rgba(25, 45, 35, .1) !important;
+  border-left: 1px solid rgba(25, 45, 35, .1) !important;
+  background: #fffefa !important;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .income-card { background: #f0f8f1 !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .income-card .metric-icon { background: #12a66d; color: #fff; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .income-card .metric-value { color: #126c4d !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card { background: #fff2f0 !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-icon { background: #d85258; color: #fff; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-value { color: #9f3436 !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .savings-card { background: #fbf5e8 !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .savings-card .metric-icon { background: #d3a232; color: #fff; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .savings-card[data-cashflow="deficit"] .metric-value { color: #a33b3e !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .savings-card[data-cashflow="within-income"] .metric-value { color: #126c4d !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card[data-cashflow="deficit"] { background: #fff0ef !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card[data-cashflow="deficit"] .metric-icon { background: #d85258; color: #fff; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card[data-cashflow="deficit"] .metric-value { color: #9f3436 !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card[data-cashflow="within-income"] { background: #f0f8f1 !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card[data-cashflow="within-income"] .metric-icon { background: #12a66d; color: #fff; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card[data-cashflow="within-income"] .metric-value { color: #126c4d !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-trailing {
+  display: inline-block;
+  color: #69756e;
+  font: 600 11px/1.35 var(--sans);
+}
+.app-shell .metric-trailing[data-direction="up"] { color: #a33b3e !important; }
+.app-shell .metric-trailing[data-direction="down"] { color: #147650 !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .positive-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(207, 162, 50, .15);
+  color: #846116;
+  font: 650 10px/1.2 var(--sans);
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .positive-pill.is-deficit { background: rgba(185, 69, 68, .12); color: #9f3436; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.2fr) minmax(160px, .8fr) !important;
+  grid-template-rows: auto auto auto auto !important;
+  grid-template-areas: "heading chart" "value chart" "caption chart" "breakdown chart" !important;
+  align-content: center;
+  align-items: center;
+  column-gap: 24px;
+  row-gap: 8px;
+  grid-column: 1 / -1;
+  min-height: 190px;
+  padding: 24px 28px;
+  border: 1px solid rgba(221, 194, 124, .68) !important;
+  border-radius: 24px !important;
+  background: radial-gradient(110% 135% at 93% 2%, rgba(20, 139, 95, .5), transparent 58%), linear-gradient(135deg, #064b38, #063b2f 62%, #032c24) !important;
+  box-shadow: 0 8px 20px rgba(4, 68, 48, .14) !important;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card > .metric-heading { grid-area: heading !important; grid-column: auto !important; grid-row: auto !important; margin: 0; color: rgba(255, 255, 255, .88) !important; font-size: 13px; letter-spacing: 0; }
+.app-shell .networth-card .metric-icon { background: rgba(218, 184, 94, .19); color: #e4c56f; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card > .metric-value { grid-area: value !important; grid-column: auto !important; grid-row: auto !important; margin: 0; color: #fff !important; font: 800 clamp(30px, 4.2vw, 48px)/1.05 var(--sans); letter-spacing: -.05em; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card > .networth-caption { grid-area: caption !important; grid-column: auto !important; grid-row: auto !important; display: block; margin: 0; color: rgba(255, 255, 255, .78) !important; font: 500 13px/1.35 var(--sans); }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card > .networth-chart { grid-area: chart !important; grid-column: auto !important; grid-row: auto !important; width: 100%; margin: 0; }
+.app-shell .networth-card .networth-chart-plot { height: 92px; }
+.app-shell .networth-card .networth-trend-line { stroke: #53dba1; stroke-width: 2.5; }
+.app-shell .networth-card .networth-trend-area { display: block; fill: rgba(65, 213, 149, .12); }
+.app-shell .networth-card .networth-trend-dot { display: block; background: #e8ca71; box-shadow: 0 0 0 4px rgba(232, 202, 113, .16); }
+.app-shell .networth-card .networth-chart-axis { display: flex; color: rgba(255, 255, 255, .62); }
+.app-shell .networth-breakdown-button {
+  grid-area: breakdown;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  min-height: 42px;
+  margin-top: 3px;
+  padding: 0 15px;
+  border: 1px solid rgba(225, 193, 103, .82);
+  border-radius: 999px;
+  background: transparent;
+  color: #f0d279;
+  font: 650 12px var(--sans);
+  cursor: pointer;
+}
+.app-shell .networth-breakdown-button:hover { background: rgba(225, 193, 103, .13); }
+.app-shell.theme-dark .metric-card:not(.networth-card) { color: #f4f7f2; }
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card:not(.networth-card) { border-color: rgba(220, 235, 224, .13) !important; background: #17241e !important; color: #f4f7f2; box-shadow: 0 4px 14px rgba(0, 0, 0, .17) !important; }
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card .metric-heading { color: #c0cbc4 !important; }
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card .metric-value { color: #f4f7f2 !important; }
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card .metric-caption,
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card .metric-foot { color: #a6b2aa !important; }
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .income-card { background: #172c22 !important; }
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .income-card .metric-value,
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .deficit-card[data-cashflow="within-income"] .metric-value { color: #82d5a6 !important; }
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card,
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .deficit-card[data-cashflow="deficit"] { background: #332122 !important; }
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card .metric-value,
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .deficit-card[data-cashflow="deficit"] .metric-value,
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .savings-card[data-cashflow="deficit"] .metric-value { color: #f0a3a1 !important; }
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .savings-card { background: #30291a !important; }
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .savings-card[data-cashflow="within-income"] .metric-value { color: #82d5a6 !important; }
+@media (min-width: 600px) and (max-width: 899px) {
+  .app-shell #page-content:has(> .welcome-row) > .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 599px) {
+  .app-shell #page-content:has(> .welcome-row) > .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card { min-height: 146px; padding: 16px; border-radius: 22px !important; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-heading { gap: 8px; margin-bottom: 13px; font-size: 10px; letter-spacing: 0; }
+  .app-shell .metrics-grid .metric-icon { flex-basis: 34px; width: 34px; height: 34px; }
+  .app-shell .metrics-grid .metric-icon svg { width: 19px; height: 19px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card .metric-value { font-size: clamp(17px, 4.7vw, 23px); }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card { grid-column: 1 / -1; min-height: 184px; padding: 20px; grid-template-columns: minmax(0, 1.2fr) minmax(72px, .8fr) !important; column-gap: 8px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card > .metric-value { font-size: clamp(27px, 7.2vw, 36px); overflow-wrap: anywhere; }
+  .app-shell .networth-card .networth-chart-plot { height: 68px; }
+  .app-shell .networth-breakdown-button { min-height: 40px; padding: 0 13px; font-size: 11px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .income-card { order: 1; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .spending-card { order: 2; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .savings-card { order: 3; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card { order: 4; }
+  html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .metric-card:not(.networth-card) { background: #17241e !important; }
+  html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .income-card,
+  html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .deficit-card[data-cashflow="within-income"] { background: #172c22 !important; }
+  html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card,
+  html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .deficit-card[data-cashflow="deficit"] { background: #332122 !important; }
+  html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .savings-card { background: #30291a !important; }
+}
+@media (max-width: 359px) {
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card:not(.networth-card) { min-height: 136px; padding: 13px 11px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card:not(.networth-card) .metric-value { font-size: 16px; }
+}

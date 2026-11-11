@@ -207,11 +207,6 @@
               </p>
             </div>
           </section>
-          <section class="dashboard-quick-actions" aria-label="Quick actions">
-            <button type="button" data-dashboard-action="income"><span aria-hidden="true">＋</span> Record income</button>
-            <button type="button" data-dashboard-action="spending"><span aria-hidden="true">−</span> Record expense</button>
-            <button type="button" data-dashboard-action="transfer"><span aria-hidden="true">⇄</span> Transfer</button>
-          </section>
           <!-- First-use checklist; JavaScript reveals it and updates each step's progress. -->
           <aside class="onboarding-card" data-onboarding hidden aria-labelledby="onboarding-title">
             <div class="onboarding-heading">
@@ -229,13 +224,14 @@
           <section class="metrics-grid" aria-label="Financial overview">
             <!-- Net worth, income, spending, savings rate, and monthly deficit. -->
             <article class="metric-card networth-card">
-              <div class="metric-heading">
-                <span>NET WORTH</span>
+              <div class="metric-heading"><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17 9 12l3 3 8-9M15 6h5v5"/></svg></span>
+                <span data-metric-label>TOTAL NET WORTH</span>
               </div>
               <div class="metric-value">
                 KSh 0
               </div>
               <div class="metric-caption networth-caption">Assets less liabilities</div>
+              <button class="networth-breakdown-button" type="button" data-jump="Inventory">View breakdown <span aria-hidden="true">↗</span></button>
               <div class="networth-chart" data-networth-chart hidden>
                 <div class="networth-chart-plot">
                   <svg class="networth-trend-svg" data-networth-sparkline viewBox="0 0 240 64" preserveAspectRatio="none" role="img" aria-label="Net worth trend over time"></svg>
@@ -245,16 +241,17 @@
               </div>
             </article>
             <article class="metric-card income-card">
-              <div class="metric-heading">
-                <span>INCOME OUTLOOK</span>
+              <div class="metric-heading"><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></span>
+                <span data-metric-label>INCOME</span>
               </div>
               <div class="metric-value">
                 KSh 0
               </div>
+              <div class="metric-caption">Received + expected this period</div>
             </article>
             <article class="metric-card savings-card">
-              <div class="metric-heading">
-                <span>SAVINGS RATE</span>
+              <div class="metric-heading"><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16.5 8.5c-.7-.9-1.8-1.4-3.1-1.4-1.7 0-2.9.9-2.9 2.2 0 3.5 6.8 1.5 6.8 5.1 0 1.5-1.4 2.6-3.5 2.6-1.5 0-2.8-.6-3.6-1.7M13.5 5v14"/></svg></span>
+                <span data-metric-label>SAVINGS RATE</span>
               </div>
               <div class="metric-value">
                 0
@@ -266,8 +263,8 @@
               <div class="metric-caption savings-caption">After spending</div>
             </article>
             <article class="metric-card spending-card">
-              <div class="metric-heading">
-                <span>SPENDING</span>
+              <div class="metric-heading"><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14m-6-6 6 6 6-6"/></svg></span>
+                <span data-metric-label>SPENDING</span>
               </div>
               <div class="metric-value">
                 KSh 0
@@ -278,16 +275,10 @@
               <div class="thin-progress">
                 <span class="spend-progress"></span>
               </div>
-              <div class="metric-caption">
-                <span class="under-budget">KSh 0</span>
-                left to spend
-              </div>
-              <button class="metric-inline-action" type="button" data-power-action="spending">
-                ＋ Add spending
-              </button>
+              <div class="metric-caption"><span class="under-budget">KSh 0</span><span class="spending-caption-copy"> left this period</span></div>
             </article>
             <article class="metric-card deficit-card" data-cashflow="within-income" aria-label="Monthly deficit">
-              <div class="metric-heading"><span>MONTHLY DEFICIT</span></div>
+              <div class="metric-heading"><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18m-8 4h4"/><path d="M7 6V4h10v2"/></svg></span><span data-metric-label>MONTHLY DEFICIT</span></div>
               <div class="metric-value">KSh 0</div>
               <div class="metric-caption">Income less spending</div>
             </article>
