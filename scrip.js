@@ -3584,7 +3584,7 @@ function renderInventoryPage() {
           <span class="inventory-label">TOTAL LIABILITIES</span>
           <strong>${formatKsh(totals.liabilities)}</strong>
         </article>
-        <article class="inventory-summary-card net-worth-summary">
+        <article class="inventory-summary-card net-worth-summary" data-net-worth-state="${totals.netWorth < 0 ? "negative" : totals.netWorth > 0 ? "positive" : "zero"}">
           <span class="inventory-label">NET WORTH</span>
           <strong>${formatKsh(totals.netWorth)}</strong>
         </article>
@@ -3622,28 +3622,45 @@ function updateDashboardInventorySummary() {
   const netWorthCard = document.querySelector(".networth-card");
   setMetricTrend(netWorthCard, totals.netWorth, netWorthSnapshots.at(-2)?.value);
   if (netWorthCard) netWorthCard.dataset.netWorthState = totals.netWorth < 0 ? "negative" : totals.netWorth > 0 ? "positive" : "zero";
-  const netWorthSparkline = document.querySelector("[data-networth-sparkline]");
-  if (netWorthSparkline) {
-    if (netWorthHistory.length > 0) {
-      if (netWorthHistory.length === 1) {
-        // Show a neutral baseline until another saved balance creates a real trend.
-        netWorthSparkline.innerHTML = "<path d=\"M3,18 L177,18\"/>";
-        netWorthSparkline.classList.add("is-visible");
-      } else {
-        const values = netWorthHistory.map(snapshot => Number(snapshot.value));
-        const min = Math.min(...values);
-        const range = Math.max(...values) - min || 1;
-        const points = values.map((value, index) => `${3 + index * 174 / (values.length - 1)},${32 - (value - min) / range * 27}`);
-        const path = points.map((point, index) => `${index ? "L" : "M"}${point}`).join(" ");
-        netWorthSparkline.innerHTML = `<path d="${path}"/>`;
-        netWorthSparkline.classList.add("is-visible");
-      }
-    } else {
-      netWorthSparkline.replaceChildren();
-      netWorthSparkline.classList.remove("is-visible");
-    }
-  }
+  const netWorthChart = document.querySelector("[data-networth-chart]");
+  if (netWorthChart) renderNetWorthTrendChart(netWorthChart, netWorthHistory);
+}
 
+function renderNetWorthTrendChart(chart, history) {
+  const svg = chart.querySelector("[data-networth-sparkline]");
+  const dot = chart.querySelector("[data-networth-dot]");
+  const startLabel = chart.querySelector("[data-networth-start]");
+  if (!svg) return;
+  if (!history.length) {
+    svg.replaceChildren();
+    chart.hidden = true;
+    return;
+  }
+  const values = history.map(item => Number(item.value));
+  const width = 240;
+  const height = 64;
+  const padY = 8;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min;
+  const yAt = value => range === 0 ? height / 2 : padY + (1 - (value - min) / range) * (height - padY * 2);
+  // One saved balance has no trend yet, so draw a flat baseline until a second point exists.
+  const coords = values.length === 1
+    ? [[0, yAt(values[0])], [width, yAt(values[0])]]
+    : values.map((value, index) => [index * width / (values.length - 1), yAt(value)]);
+  const line = coords.map(([x, y], index) => `${index ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  svg.innerHTML = `<path class="networth-trend-area" d="${line} L${width},${height} L0,${height} Z"/><path class="networth-trend-line" d="${line}"/>`;
+  if (dot) dot.style.top = `${(coords.at(-1)[1] / height) * 100}%`;
+  const first = new Date(history[0].at);
+  if (startLabel) {
+    startLabel.textContent = Number.isNaN(first.getTime()) ? "" : first.toDateString() === new Date().toDateString()
+      ? "Today"
+      : first.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  }
+  chart.setAttribute("aria-label", values.length > 1
+    ? `Net worth trend from ${formatKsh(values[0])} to ${formatKsh(values.at(-1))}`
+    : `Net worth is ${formatKsh(values[0])}. A trend appears once it changes.`);
+  chart.hidden = false;
 }
 
 function setMetricTrend(card, currentValue, previousValue) {

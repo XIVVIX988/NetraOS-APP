@@ -11648,3 +11648,107 @@ body .phone-splash .phone-splash-name span { color: #6ee7a8; }
 .tour-btn-primary { border-color: transparent; background: var(--gold); color: #fff; }
 .tour-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } }
+
+/* Quests filter buttons: match the Inventory "Your financial items" filters */
+.app-shell .quests-page .quest-filters { gap: 7px; }
+.app-shell .quests-page .quest-filter {
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #617168;
+  font: 600 11px var(--sans);
+  white-space: nowrap;
+}
+.app-shell .quests-page .quest-filter::after { content: none; }
+.app-shell .quests-page .quest-filter span {
+  min-width: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #7b8981;
+  font: 10px var(--mono);
+}
+.app-shell .quests-page .quest-filter:hover { background: #f0f6f2; color: #176b50; }
+.app-shell .quests-page .quest-filter.active { border-color: #b9dfcc; background: #e8f5ed; color: #116b50; }
+.app-shell .quests-page .quest-filter.active span { background: transparent; color: #116b50; }
+.app-shell.theme-dark .quests-page .quest-filter { color: #c4cec7; }
+.app-shell.theme-dark .quests-page .quest-filter span { color: #d0d8d2; }
+.app-shell.theme-dark .quests-page .quest-filter:hover { background: #2a3830; color: #b5f0ce; }
+.app-shell.theme-dark .quests-page .quest-filter.active { border-color: #4e8067; background: #284636; color: #b5f0ce; }
+.app-shell.theme-dark .quests-page .quest-filter.active span { background: transparent; color: #b5f0ce; }
+.app-shell[data-accent] .quests-page .quest-filter.active {
+  border-color: color-mix(in srgb, var(--green) 40%, var(--line));
+  background: color-mix(in srgb, var(--green) 12%, var(--panel));
+  color: var(--green);
+}
+.app-shell[data-accent] .quests-page .quest-filter.active span { background: transparent; color: var(--green); }
+.app-shell.theme-dark[data-accent] .quests-page .quest-filter.active {
+  border-color: color-mix(in srgb, var(--green) 48%, var(--line));
+  background: color-mix(in srgb, var(--green) 15%, var(--panel));
+  color: var(--green);
+}
+.app-shell.theme-dark[data-accent] .quests-page .quest-filter.active span { background: transparent; color: var(--green); }
+
+/* ===== Net worth cards: green (#09DE49) when positive, red (#DE0D09) when negative ===== */
+.app-shell .networth-card { --nw-ink: var(--green, #16875f); }
+.app-shell .networth-card[data-net-worth-state="positive"],
+.app-shell .net-worth-summary[data-net-worth-state="positive"] {
+  --nw-a: #09DE49; --nw-b: #07b73b; --nw-ink: #04210e;
+}
+.app-shell .networth-card[data-net-worth-state="negative"],
+.app-shell .net-worth-summary[data-net-worth-state="negative"] {
+  --nw-a: #DE0D09; --nw-b: #b00a07; --nw-ink: #ffffff;
+}
+.app-shell #page-content .metrics-grid .networth-card.networth-card:is([data-net-worth-state="positive"], [data-net-worth-state="negative"])[data-net-worth-state],
+.app-shell .inventory-page .inventory-summary-card.net-worth-summary:is([data-net-worth-state="positive"], [data-net-worth-state="negative"])[data-net-worth-state] {
+  border: 1px solid var(--nw-a) !important;
+  border-left-width: 1px !important;
+  background: linear-gradient(145deg, var(--nw-a), var(--nw-b)) !important;
+  color: var(--nw-ink) !important;
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--nw-a) 32%, transparent) !important;
+}
+.app-shell #page-content .metrics-grid .networth-card.networth-card:is([data-net-worth-state="positive"], [data-net-worth-state="negative"])[data-net-worth-state] :is(.metric-heading, .metric-heading span, .metric-value, .networth-caption),
+.app-shell .inventory-page .inventory-summary-card.net-worth-summary:is([data-net-worth-state="positive"], [data-net-worth-state="negative"])[data-net-worth-state] :is(strong, .inventory-label, .inventory-note) {
+  color: var(--nw-ink) !important;
+}
+.app-shell #page-content .metrics-grid .networth-card.networth-card[data-net-worth-state] :is(.metric-heading, .networth-caption) { opacity: .78; }
+
+/* Trend line chart inside the dashboard net worth card */
+.app-shell .networth-chart { margin-top: 12px; }
+.app-shell .networth-chart[hidden] { display: none; }
+.app-shell .networth-chart-plot { position: relative; height: 56px; }
+.app-shell .networth-trend-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.app-shell .networth-trend-line {
+  fill: none;
+  stroke: var(--nw-ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.app-shell .networth-trend-area { fill: var(--nw-ink); fill-opacity: .14; stroke: none; }
+.app-shell .networth-trend-dot {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--nw-ink);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--nw-ink) 28%, transparent);
+  transform: translate(50%, -50%);
+}
+.app-shell .networth-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  color: var(--nw-ink);
+  font: 10px var(--mono);
+  letter-spacing: .04em;
+  opacity: .72;
+}

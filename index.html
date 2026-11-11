@@ -231,7 +231,13 @@
                 KSh 0
               </div>
               <div class="metric-caption networth-caption">Assets less liabilities</div>
-              <svg class="dashboard-networth-sparkline" data-networth-sparkline viewBox="0 0 180 36" aria-hidden="true"></svg>
+              <div class="networth-chart" data-networth-chart hidden>
+                <div class="networth-chart-plot">
+                  <svg class="networth-trend-svg" data-networth-sparkline viewBox="0 0 240 64" preserveAspectRatio="none" role="img" aria-label="Net worth trend over time"></svg>
+                  <span class="networth-trend-dot" data-networth-dot aria-hidden="true"></span>
+                </div>
+                <div class="networth-chart-axis" aria-hidden="true"><span data-networth-start></span><span>Now</span></div>
+              </div>
             </article>
             <article class="metric-card income-card">
               <div class="metric-heading">
