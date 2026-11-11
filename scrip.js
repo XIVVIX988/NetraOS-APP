@@ -760,6 +760,7 @@ const budgetCategories = [
   "School fees",
   "Food & groceries",
   "Transport",
+  "Subscriptions",
   "Airtime & bundles",
   "Mobile money fees",
   "Utilities",
@@ -774,6 +775,7 @@ const budgetCategoryIcons = {
   "School fees": '<svg viewBox="0 0 24 24"><path d="m2 9 10-5 10 5-10 5L2 9Z"/><path d="M6 11v5c3.5 2.7 8.5 2.7 12 0v-5M22 9v6"/></svg>',
   "Food & groceries": '<svg viewBox="0 0 24 24"><path d="M4 10h16l-1 10H5L4 10ZM3 10l2-6h14l2 6M9 4v6m6-6v6M9 14v3m6-3v3"/></svg>',
   "Transport": '<svg viewBox="0 0 24 24"><path d="M5 16 4 9l2-4h12l2 4-1 7M5 16h14M7 16v3m10-3v3M4 9h16M7 13h.01M17 13h.01"/></svg>',
+  "Subscriptions": '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg>',
   "Airtime & bundles": '<svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M10 5h4m-3 13h2"/></svg>',
   "Mobile money fees": '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 8.5c-.7-.6-1.6-.9-2.7-.9-1.4 0-2.4.7-2.4 1.8 0 2.8 5.2 1 5.2 4 0 1.2-1.1 2-2.7 2-1.1 0-2.2-.4-3-1.1M12 6v12"/></svg>',
   "Utilities": '<svg viewBox="0 0 24 24"><path d="M13 2 5 13h6l-1 9 9-12h-6z"/></svg>',
@@ -4777,8 +4779,14 @@ function renderStatsTrend(view, months, currentNetWorth) {
     : months;
   const keyIndex = new Map(months.map((item, index) => [item.key, index]));
   const values = selected.map(item => item.value);
-  const min = 0;
-  const max = Math.max(1, ...values);
+  // Start the net worth axis near the recorded values so ordinary month-to-month
+  // changes remain visible even when the account total is large.
+  const dataMin = values.length ? Math.min(...values) : 0;
+  const dataMax = values.length ? Math.max(...values) : 1;
+  const dataRange = dataMax - dataMin;
+  const padding = dataRange > 0 ? dataRange * 0.12 : Math.max(Math.abs(dataMax) * 0.02, 1);
+  const min = dataMin - padding;
+  const max = dataMax + padding;
   const range = Math.max(1, max - min);
   const slotWidth = (right - left) / Math.max(months.length, 1);
   const x = index => left + slotWidth * (index + 0.5);
