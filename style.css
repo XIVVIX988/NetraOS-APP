@@ -12269,3 +12269,142 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card:not(.networth-card) { min-height: 136px; padding: 13px 11px; }
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card:not(.networth-card) .metric-value { font-size: 16px; }
 }
+
+/* Compact dashboard metrics: label and value only, with values contained at every width. */
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 112px;
+  height: auto;
+  padding: 18px;
+  overflow: hidden;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  gap: 12px;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card > .metric-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  margin: 0;
+  font-size: clamp(9px, 1vw, 12px);
+  line-height: 1.2;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card > .metric-heading > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card .metric-icon {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card > .metric-value {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  font-size: clamp(14px, 1.75vw, 23px) !important;
+  line-height: 1.12;
+  letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card > :is(.metric-caption, .metric-foot, .thin-progress, .networth-breakdown-button) { display: none !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, .75fr) !important;
+  grid-template-rows: auto auto !important;
+  grid-template-areas: "heading chart" "value chart" !important;
+  min-height: 162px;
+  padding: 22px 26px;
+  gap: 10px 20px;
+  align-content: center;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card > .metric-heading { grid-area: heading !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card > .metric-value {
+  grid-area: value !important;
+  font-size: clamp(23px, 3.5vw, 42px) !important;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card > .networth-chart { grid-area: chart !important; min-width: 0; }
+@media (min-width: 600px) and (max-width: 899px) {
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card:not(.networth-card) { min-height: 118px; }
+}
+@media (max-width: 599px) {
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid { gap: 12px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card:not(.networth-card) { min-height: 104px; padding: 12px; gap: 10px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card .metric-icon { flex-basis: 30px; width: 30px; height: 30px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card > .metric-value { font-size: clamp(12px, 4vw, 18px) !important; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card { min-height: 132px; padding: 16px; grid-template-columns: minmax(0, 1fr) minmax(65px, .65fr) !important; gap: 8px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card > .metric-value { font-size: clamp(20px, 6.2vw, 30px) !important; }
+}
+@media (max-width: 359px) {
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card:not(.networth-card) { min-height: 96px; padding: 10px; gap: 8px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card .metric-icon { flex-basis: 26px; width: 26px; height: 26px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .metric-card > .metric-value { font-size: 12px !important; }
+}
+
+/* Cash-flow chart labels and series colors match the original three-line mockup. */
+.app-shell .cashflow-subtitle { margin: 3px 0 0; color: var(--muted); font: 400 13px/1.35 var(--sans); }
+.app-shell .chart-legend .legend-income { background: #16a579; }
+.app-shell .chart-legend .legend-expense { background: #efa82e; }
+.app-shell .chart-legend .legend-savings { background: #064b38; }
+.app-shell .cashflow-point.income { stroke: #16a579; }
+.app-shell .cashflow-point.expenses { stroke: #efa82e; }
+.app-shell .cashflow-point.savings { stroke: #064b38; }
+.app-shell .cashflow-bar.income { fill: #16a579; }
+.app-shell .cashflow-bar.expenses { fill: #efa82e; }
+.app-shell .cashflow-bar.savings { fill: #064b38; }
+.app-shell.theme-dark .cashflow-subtitle { color: #aab6ad; }
+
+/* Restore the original inset pill navigation shown in the supplied design. */
+@media (max-width: 600px) {
+  .app-shell .content { padding-right: 12px; padding-left: 12px; }
+  .app-shell .mobile-tab-bar {
+    right: 14px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2px;
+    min-height: 76px;
+    padding: 7px;
+    border: 1px solid rgba(30, 49, 39, .08);
+    border-radius: 999px;
+    background: #fffefa;
+    box-shadow: 0 7px 24px rgba(21, 45, 32, .13);
+  }
+  .app-shell .mobile-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 60px;
+    gap: 4px;
+    padding: 6px 2px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #373d39;
+    font-size: clamp(8px, 2.7vw, 12px);
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .app-shell .mobile-tab svg { flex: 0 0 22px; width: 22px; height: 22px; }
+  .app-shell .mobile-tab.is-active {
+    background: #07583f;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(7, 88, 63, .2);
+  }
+  .app-shell .mobile-tab.is-active svg { color: #fff; }
+  .app-shell.theme-dark .mobile-tab-bar {
+    border-color: rgba(220, 235, 224, .12);
+    background: #17241e;
+  }
+  .app-shell.theme-dark .mobile-tab { color: #d4ddd7; }
+  .app-shell.theme-dark .mobile-tab.is-active { background: #07583f; color: #fff; }
+}

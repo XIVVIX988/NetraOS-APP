@@ -3762,31 +3762,14 @@ function setMetricTrend(card, currentValue, previousValue) {
 
 function updateDashboardPowerUpSummary() {
   const totals = getPowerUpReportTotals();
-  const period = getReportPeriod();
   const incomeCard = document.querySelector(".income-card");
   const savingsCard = document.querySelector(".savings-card");
   const spendingCard = document.querySelector(".spending-card");
   const deficitCard = document.querySelector(".deficit-card");
-  const monthlyComparison = dashboardCashflowSeries();
-  const currentMonth = monthlyComparison.at(-1);
-  const previousMonth = monthlyComparison.at(-2);
-
-  setMetricTrend(incomeCard, currentMonth?.income, previousMonth?.income);
-  setMetricTrend(spendingCard, currentMonth?.expenses, previousMonth?.expenses);
-  const currentSavingsRate = currentMonth?.income > 0 ? currentMonth.savings / currentMonth.income : 0;
-  const previousSavingsRate = previousMonth?.income > 0 ? previousMonth.savings / previousMonth.income : 0;
-  setMetricTrend(savingsCard, currentSavingsRate, previousSavingsRate);
 
   if (incomeCard) {
     incomeCard.querySelector("[data-metric-label]").textContent = "INCOME";
     incomeCard.querySelector(".metric-value").textContent = formatKsh(totals.reportIncome);
-    let caption = incomeCard.querySelector(".metric-caption");
-    if (!caption) {
-      caption = document.createElement("div");
-      caption.className = "metric-caption";
-      incomeCard.append(caption);
-    }
-    caption.textContent = totals.reportIncome > 0 ? "Received + expected this period" : "Plan an expected payment";
   }
 
   const savingsRate = totals.reportIncome > 0
@@ -3794,41 +3777,19 @@ function updateDashboardPowerUpSummary() {
     : 0;
   if (savingsCard) {
     savingsCard.querySelector(".metric-value").textContent = savingsRate + "%";
-    savingsCard.querySelector(".positive-pill").textContent = totals.cashAfterSpending < 0 ? "Needs improvement" : totals.reportIncome > 0 ? "Looking good" : "Add income";
-    savingsCard.querySelector(".positive-pill").classList.toggle("is-deficit", totals.cashAfterSpending < 0);
     savingsCard.dataset.cashflow = totals.cashAfterSpending < 0 ? "deficit" : "within-income";
-    const savingsCaption = savingsCard.querySelector(".savings-caption");
-    if (savingsCaption) savingsCaption.textContent = totals.cashAfterSpending < 0
-      ? `${formatKsh(Math.abs(totals.cashAfterSpending))} more spent than expected income`
-      : totals.reportIncome > 0 ? "Of income left after spending" : "Add income and expenses to calculate";
   }
 
   if (spendingCard) {
     spendingCard.dataset.cashflow = totals.cashAfterSpending < 0 ? "deficit" : "within-income";
     spendingCard.querySelector("[data-metric-label]").textContent = "SPENDING";
     spendingCard.querySelector(".metric-value").textContent = formatKsh(totals.spending);
-    const change = currentMonth?.expenses > 0 && previousMonth?.expenses > 0
-      ? (currentMonth.expenses - previousMonth.expenses) / previousMonth.expenses * 100
-      : null;
-    const trendLabel = spendingCard.querySelector(".metric-trailing");
-    trendLabel.textContent = change === null ? "No last-month comparison" : `${change > 0 ? "↑" : change < 0 ? "↓" : "→"} ${Math.abs(change).toFixed(1)}% vs last month`;
-    trendLabel.dataset.direction = change === null || change === 0 ? "neutral" : change > 0 ? "up" : "down";
-    spendingCard.querySelector(".metric-caption .under-budget").textContent =
-      formatKsh(Math.abs(totals.cashAfterSpending));
-    const caption = spendingCard.querySelector(".metric-caption");
-    if (caption) caption.querySelector(".spending-caption-copy").textContent = totals.cashAfterSpending < 0 ? " over expected income" : " left after spending";
-    spendingCard.querySelector(".metric-caption .under-budget").classList.toggle("is-deficit", totals.cashAfterSpending < 0);
-    const progress = spendingCard.querySelector(".spend-progress");
-    if (progress) progress.style.width = `${totals.reportBudget > 0 ? Math.min(100, (totals.spending / totals.reportBudget) * 100) : 0}%`;
   }
 
   if (deficitCard) {
     const deficit = Math.max(0, -totals.cashAfterSpending);
     deficitCard.dataset.cashflow = deficit > 0 ? "deficit" : "within-income";
     deficitCard.querySelector(".metric-value").textContent = formatKsh(deficit);
-    deficitCard.querySelector(".metric-caption").textContent = deficit > 0
-      ? "Over expected income this period"
-      : totals.reportIncome > 0 ? `${formatKsh(totals.cashAfterSpending)} left after spending` : "Add income and expenses to calculate";
     deficitCard.setAttribute("aria-label", deficit > 0 ? `Monthly deficit ${formatKsh(deficit)}` : "No monthly deficit");
   }
 
@@ -3877,15 +3838,15 @@ function updateDashboardCashflowChart() {
 
   const months = dashboardCashflowSeries();
   const series = [
-    { key: "income", label: "Income received", color: "#16a579" },
-    { key: "expenses", label: "Expenses recorded", color: "#bd6561" },
-    { key: "savings", label: "Net cash flow", color: "#c5a65c" }
+    { key: "income", label: "Income", color: "#16a579" },
+    { key: "expenses", label: "Expenses", color: "#efa82e" },
+    { key: "savings", label: "Savings", color: "#064b38" }
   ];
   const values = months.flatMap(month => series.map(item => month[item.key]));
   const hasTransactions = months.some(month => month.income !== 0 || month.expenses !== 0);
   if (!hasTransactions) {
     grid.replaceChildren();
-    seriesLayer.innerHTML = '<text class="cashflow-empty-label" x="50%" y="48%" text-anchor="middle">Record received income and expenses to see actual cash flow.</text>';
+    seriesLayer.innerHTML = '<text class="cashflow-empty-label" x="50%" y="48%" text-anchor="middle">Add income and expenses to see your cash flow.</text>';
     barsLayer.replaceChildren();
     labels.replaceChildren();
     chart.setAttribute("aria-label", "No received income or expense transactions recorded in this period. Record transactions to see actual cash flow.");
@@ -3910,8 +3871,16 @@ function updateDashboardCashflowChart() {
   labels.innerHTML = months.map((month, index) => `<text class="cashflow-month-label" x="${x(index)}" y="${yEnd + 25}" text-anchor="middle">${month.month}</text>`).join("");
 
   seriesLayer.innerHTML = series.map(item => {
-    const points = months.map((month, index) => `${x(index)},${y(month[item.key])}`);
-    const path = points.map((point, index) => `${index ? "L" : "M"}${point}`).join(" ");
+    const points = months.map((month, index) => [x(index), y(month[item.key])]);
+    const path = points.reduce((commands, point, index) => {
+      if (index === 0) return `M${point[0]},${point[1]}`;
+      const previous = points[index - 1];
+      const before = points[Math.max(0, index - 2)];
+      const after = points[Math.min(points.length - 1, index + 1)];
+      const control1 = [previous[0] + (point[0] - before[0]) / 6, previous[1] + (point[1] - before[1]) / 6];
+      const control2 = [point[0] - (after[0] - previous[0]) / 6, point[1] - (after[1] - previous[1]) / 6];
+      return `${commands} C${control1[0]},${control1[1]} ${control2[0]},${control2[1]} ${point[0]},${point[1]}`;
+    }, "");
     const area = `${path} L${x(months.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
     const dots = months.map((month, index) => `<circle class="cashflow-point ${item.key}" cx="${x(index)}" cy="${y(month[item.key])}" r="3.5"><title>${month.month}: ${item.label} ${formatKsh(month[item.key])}</title></circle>`).join("");
     return `<path class="cashflow-area ${item.key}" d="${area}" fill="${item.color}"/><path class="cashflow-line ${item.key}" d="${path}" stroke="${item.color}"/>${dots}`;
@@ -3925,7 +3894,7 @@ function updateDashboardCashflowChart() {
     const barX = x(monthIndex) + (seriesIndex - 1) * (phoneLayout ? 7 : 14) - barWidth / 2;
     return `<rect class="cashflow-bar ${item.key}" x="${barX}" y="${barY}" width="${barWidth}" height="${height}" rx="2"><title>${month.month}: ${item.label} ${formatKsh(month[item.key])}</title></rect>`;
   }).join("")).join("");
-  chart.setAttribute("aria-label", `Last ${months.length} months of actual cash flow. Received income and non-recurring expenses are grouped by transaction month; net cash flow is income minus expenses.`);
+  chart.setAttribute("aria-label", `Income, expenses, and savings over the last ${months.length} months. Savings is income minus expenses, calculated from monthly transaction totals.`);
 }
 
 function openTransferDialog() {
