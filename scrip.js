@@ -2758,10 +2758,15 @@ function renderIncomeForecast(incomes) {
     const date = `${key}-${String(day).padStart(2, "0")}`;
     const dayPayments = payments.filter(item => item.paymentDate === date);
     const names = dayPayments.map(item => `${item.name} ${formatKsh(item.amount)}`).join(", ");
-    return `<span class="forecast-calendar-day${date === localDateValue() ? " is-today" : ""}${dayPayments.length ? " has-income" : ""}"${dayPayments.length ? ` title="${escapeHTML(names)}"` : ""}>${day}${dayPayments.length ? `<i aria-hidden="true"></i>` : ""}</span>`;
+    const dayTotal = dayPayments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const accessibleDate = new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    const accessibleLabel = dayPayments.length
+      ? `${accessibleDate}: ${dayPayments.length} expected payment${dayPayments.length === 1 ? "" : "s"}, ${formatKsh(dayTotal)}`
+      : `${accessibleDate}: no expected income scheduled`;
+    return `<button type="button" class="forecast-calendar-day${date === localDateValue() ? " is-today" : ""}${dayPayments.length ? " has-income" : ""}" data-forecast-date="${date}" aria-pressed="false" aria-label="${escapeHTML(accessibleLabel)}"${dayPayments.length ? ` title="${escapeHTML(names)}"` : ""}>${day}${dayPayments.length ? `<i aria-hidden="true"></i>` : ""}</button>`;
   }).join("")}`;
   const rows = payments.length ? payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")} · ${new Date(`${item.paymentDate}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("") : `<li class="forecast-month-empty">No expected payments</li>`;
-  const calendar = `<article class="forecast-month-card"><div class="forecast-month-heading"><div class="forecast-calendar-nav"><button type="button" data-forecast-month-nav="previous" aria-label="Previous month" ${incomeCalendarOffset === 0 ? "disabled" : ""}>‹</button><h3>${escapeHTML(title)}</h3><button type="button" data-forecast-month-nav="next" aria-label="Next month" ${incomeCalendarOffset === 11 ? "disabled" : ""}>›</button></div><strong>${formatKsh(total)}</strong></div><div class="forecast-calendar" aria-hidden="true"><div class="forecast-calendar-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><ul>${rows}</ul></article>`;
+  const calendar = `<article class="forecast-month-card"><div class="forecast-month-heading"><div class="forecast-calendar-nav"><button type="button" data-forecast-month-nav="previous" aria-label="Previous month" ${incomeCalendarOffset === 0 ? "disabled" : ""}>‹</button><h3>${escapeHTML(title)}</h3><button type="button" data-forecast-month-nav="next" aria-label="Next month" ${incomeCalendarOffset === 11 ? "disabled" : ""}>›</button></div><strong>${formatKsh(total)}</strong></div><div class="forecast-calendar"><div class="forecast-calendar-weekdays" aria-hidden="true"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><section class="forecast-selected-day" data-forecast-selected-day aria-live="polite"><strong>Choose a date</strong><span>Tap a calendar date to see its planned income.</span></section><ul>${rows}</ul></article>`;
   const received = incomes.filter(item => item.status === "received");
   return `<section class="cashflow-forecast" aria-labelledby="cashflow-forecast-title">
     <header class="cashflow-forecast-heading"><div><span class="section-kicker">12-MONTH INCOME CALENDAR</span><h2 id="cashflow-forecast-title">Income forecast</h2><p>Plan dividends, interest, salary, and other income by the date you expect the cash to arrive.</p></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button><button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div></header>
@@ -9062,6 +9067,29 @@ document.addEventListener("click", event => {
       const replacement = document.createElement("div");
       replacement.innerHTML = renderIncomeForecast(getPowerUpData().incomes);
       forecast.replaceWith(replacement.firstElementChild);
+    }
+    return;
+  }
+  if (button.matches("[data-forecast-date]")) {
+    const forecast = button.closest(".cashflow-forecast");
+    const selectedDate = button.dataset.forecastDate;
+    const month = selectedDate.slice(0, 7);
+    const payments = getPowerUpData().incomes
+      .filter(item => incomeExpectedInMonth(item, month) && forecastPaymentDate(item, month) === selectedDate)
+      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+    const details = forecast?.querySelector("[data-forecast-selected-day]");
+    if (details) {
+      const dateLabel = new Date(`${selectedDate}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+      const total = payments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const rows = payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("");
+      details.innerHTML = payments.length
+        ? `<div class="forecast-selected-day-heading"><strong>${escapeHTML(dateLabel)}</strong><b>${formatKsh(total)} expected</b></div><ul>${rows}</ul>`
+        : `<strong>${escapeHTML(dateLabel)}</strong><span>No income is planned for this date.</span>`;
+      forecast.querySelectorAll("[data-forecast-date]").forEach(day => {
+        const selected = day === button;
+        day.classList.toggle("is-selected", selected);
+        day.setAttribute("aria-pressed", String(selected));
+      });
     }
     return;
   }
