@@ -2749,9 +2749,19 @@ function renderIncomeForecast(incomes) {
     const payments = incomes.filter(item => incomeExpectedInMonth(item, key)).map(item => ({ ...item, paymentDate: forecastPaymentDate(item, key) }))
       .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
     const total = payments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const title = new Date(`${key}-01T12:00:00`).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    const monthDate = new Date(`${key}-01T12:00:00`);
+    const title = monthDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    const weekdayOffset = monthDate.getDay();
+    const dayCount = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
+    const calendarDays = `${Array.from({ length: weekdayOffset }, () => `<span class="forecast-calendar-day is-blank"></span>`).join("")}${Array.from({ length: dayCount }, (_, index) => {
+      const day = index + 1;
+      const date = `${key}-${String(day).padStart(2, "0")}`;
+      const dayPayments = payments.filter(item => item.paymentDate === date);
+      const names = dayPayments.map(item => `${item.name} ${formatKsh(item.amount)}`).join(", ");
+      return `<span class="forecast-calendar-day${date === localDateValue() ? " is-today" : ""}${dayPayments.length ? " has-income" : ""}"${dayPayments.length ? ` title="${escapeHTML(names)}"` : ""}>${day}${dayPayments.length ? `<i aria-hidden="true"></i>` : ""}</span>`;
+    }).join("")}`;
     const rows = payments.length ? payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")} · ${new Date(`${item.paymentDate}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("") : `<li class="forecast-month-empty">No expected payments</li>`;
-    return `<article class="forecast-month-card"><div class="forecast-month-heading"><h3>${escapeHTML(title)}</h3><strong>${formatKsh(total)}</strong></div><ul>${rows}</ul></article>`;
+    return `<article class="forecast-month-card"><div class="forecast-month-heading"><h3>${escapeHTML(title)}</h3><strong>${formatKsh(total)}</strong></div><div class="forecast-calendar" aria-hidden="true"><div class="forecast-calendar-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><ul>${rows}</ul></article>`;
   }).join("");
   const received = incomes.filter(item => item.status === "received");
   return `<section class="cashflow-forecast" aria-labelledby="cashflow-forecast-title">
@@ -3809,7 +3819,8 @@ function updateDashboardPowerUpSummary() {
 
 function dashboardCashflowSeries() {
   const data = getPowerUpData();
-  const [year, month] = getReportMonth().split("-").map(Number);
+  // The chart is grouped by calendar month, independent of the user's payday cycle.
+  const [year, month] = monthKey().split("-").map(Number);
   const count = dashboardCashflowRange;
   return Array.from({ length: count }, (_, index) => {
     const date = new Date(year, month - 1 - (count - index - 1), 1, 12);
