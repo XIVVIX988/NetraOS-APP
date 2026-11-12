@@ -809,6 +809,7 @@ let statsRangeMonths = 6;
 let statsMobileView = "cash-flow";
 let statsMoreInsightsOpen = false;
 let dashboardCashflowRange = 6;
+let incomeCalendarOffset = 0;
 const currencyStorageKey = "netraos-currency-v1";
 const privacyModeStorageKey = "netraos-privacy-mode-v1";
 const currencyAmountPattern = /(?:KSh|USh|TSh|KES|USD|EUR|GBP|UGX|TZS|[$€£])\s*[+-]?\s*\d[\d,]*(?:\.\d+)?/i;
@@ -2743,30 +2744,28 @@ function forecastPaymentDate(item, month) {
 }
 
 function renderIncomeForecast(incomes) {
-  const [year, month] = monthKey().split("-").map(Number);
-  const months = Array.from({ length: 12 }, (_, index) => monthKey(new Date(year, month - 1 + index, 1, 12)));
-  const cards = months.map(key => {
-    const payments = incomes.filter(item => incomeExpectedInMonth(item, key)).map(item => ({ ...item, paymentDate: forecastPaymentDate(item, key) }))
-      .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
-    const total = payments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const monthDate = new Date(`${key}-01T12:00:00`);
-    const title = monthDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
-    const weekdayOffset = monthDate.getDay();
-    const dayCount = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
-    const calendarDays = `${Array.from({ length: weekdayOffset }, () => `<span class="forecast-calendar-day is-blank"></span>`).join("")}${Array.from({ length: dayCount }, (_, index) => {
-      const day = index + 1;
-      const date = `${key}-${String(day).padStart(2, "0")}`;
-      const dayPayments = payments.filter(item => item.paymentDate === date);
-      const names = dayPayments.map(item => `${item.name} ${formatKsh(item.amount)}`).join(", ");
-      return `<span class="forecast-calendar-day${date === localDateValue() ? " is-today" : ""}${dayPayments.length ? " has-income" : ""}"${dayPayments.length ? ` title="${escapeHTML(names)}"` : ""}>${day}${dayPayments.length ? `<i aria-hidden="true"></i>` : ""}</span>`;
-    }).join("")}`;
-    const rows = payments.length ? payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")} · ${new Date(`${item.paymentDate}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("") : `<li class="forecast-month-empty">No expected payments</li>`;
-    return `<article class="forecast-month-card"><div class="forecast-month-heading"><h3>${escapeHTML(title)}</h3><strong>${formatKsh(total)}</strong></div><div class="forecast-calendar" aria-hidden="true"><div class="forecast-calendar-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><ul>${rows}</ul></article>`;
-  }).join("");
+  const now = new Date();
+  const monthDate = new Date(now.getFullYear(), now.getMonth() + incomeCalendarOffset, 1, 12);
+  const key = monthKey(monthDate);
+  const payments = incomes.filter(item => incomeExpectedInMonth(item, key)).map(item => ({ ...item, paymentDate: forecastPaymentDate(item, key) }))
+    .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
+  const total = payments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const title = monthDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const weekdayOffset = monthDate.getDay();
+  const dayCount = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
+  const calendarDays = `${Array.from({ length: weekdayOffset }, () => `<span class="forecast-calendar-day is-blank"></span>`).join("")}${Array.from({ length: dayCount }, (_, index) => {
+    const day = index + 1;
+    const date = `${key}-${String(day).padStart(2, "0")}`;
+    const dayPayments = payments.filter(item => item.paymentDate === date);
+    const names = dayPayments.map(item => `${item.name} ${formatKsh(item.amount)}`).join(", ");
+    return `<span class="forecast-calendar-day${date === localDateValue() ? " is-today" : ""}${dayPayments.length ? " has-income" : ""}"${dayPayments.length ? ` title="${escapeHTML(names)}"` : ""}>${day}${dayPayments.length ? `<i aria-hidden="true"></i>` : ""}</span>`;
+  }).join("")}`;
+  const rows = payments.length ? payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")} · ${new Date(`${item.paymentDate}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("") : `<li class="forecast-month-empty">No expected payments</li>`;
+  const calendar = `<article class="forecast-month-card"><div class="forecast-month-heading"><div class="forecast-calendar-nav"><button type="button" data-forecast-month-nav="previous" aria-label="Previous month" ${incomeCalendarOffset === 0 ? "disabled" : ""}>‹</button><h3>${escapeHTML(title)}</h3><button type="button" data-forecast-month-nav="next" aria-label="Next month" ${incomeCalendarOffset === 11 ? "disabled" : ""}>›</button></div><strong>${formatKsh(total)}</strong></div><div class="forecast-calendar" aria-hidden="true"><div class="forecast-calendar-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><ul>${rows}</ul></article>`;
   const received = incomes.filter(item => item.status === "received");
   return `<section class="cashflow-forecast" aria-labelledby="cashflow-forecast-title">
-    <header class="cashflow-forecast-heading"><div><span class="section-kicker">EXPECTED PAYMENTS · NEXT 12 MONTHS</span><h2 id="cashflow-forecast-title">Income forecast</h2><p>Plan dividends, interest, salary, and other income by the date you expect the cash to arrive.</p></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button><button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div></header>
-    <div class="forecast-month-grid">${cards}</div>
+    <header class="cashflow-forecast-heading"><div><span class="section-kicker">12-MONTH INCOME CALENDAR</span><h2 id="cashflow-forecast-title">Income forecast</h2><p>Plan dividends, interest, salary, and other income by the date you expect the cash to arrive.</p></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button><button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div></header>
+    <div class="forecast-month-grid forecast-calendar-view">${calendar}</div>
     ${received.length ? `<p class="forecast-footnote">Received income is kept in actual cash-flow history and is excluded from expected totals.</p>` : `<p class="forecast-footnote">Expected amounts are estimates until you record them as received. Older monthly income sources default to a monthly forecast.</p>`}
   </section>`;
 }
@@ -9052,6 +9051,18 @@ document.addEventListener("click", event => {
   }
   if (button.matches("[data-power-action]")) {
     openPowerUpDialog(button.dataset.powerAction);
+    return;
+  }
+  if (button.matches("[data-forecast-month-nav]")) {
+    const nextOffset = incomeCalendarOffset + (button.dataset.forecastMonthNav === "next" ? 1 : -1);
+    if (nextOffset < 0 || nextOffset > 11) return;
+    const forecast = button.closest(".cashflow-forecast");
+    incomeCalendarOffset = nextOffset;
+    if (forecast) {
+      const replacement = document.createElement("div");
+      replacement.innerHTML = renderIncomeForecast(getPowerUpData().incomes);
+      forecast.replaceWith(replacement.firstElementChild);
+    }
     return;
   }
   if (button.matches("[data-power-add-menu]")) {

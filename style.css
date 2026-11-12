@@ -12037,6 +12037,15 @@ html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.m
 .app-shell .forecast-calendar-day.is-today { outline: 1px solid #08724f; outline-offset: -1px; font-weight: 750; }
 .app-shell .forecast-calendar-day.has-income { background: rgba(8, 114, 79, .12); color: #08724f; font-weight: 750; }
 .app-shell .forecast-calendar-day > i { position: absolute; right: 3px; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: #08724f; }
+.app-shell .forecast-month-grid.forecast-calendar-view { grid-template-columns: minmax(0, 1fr); max-width: 760px; }
+.app-shell .forecast-calendar-view .forecast-month-card { padding: 20px; }
+.app-shell .forecast-calendar-view .forecast-calendar { padding: 14px; }
+.app-shell .forecast-calendar-view .forecast-calendar-day { min-height: 42px; font-size: 12px; }
+.app-shell .forecast-calendar-nav { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.app-shell .forecast-calendar-nav h3 { min-width: 150px; text-align: center; }
+.app-shell .forecast-calendar-nav button { display: grid; flex: 0 0 44px; width: 44px; min-height: 44px; place-items: center; padding: 0; border: 1px solid var(--fx-line); border-radius: 12px; background: var(--fx-card); color: var(--fx-ink); font: 500 25px/1 var(--sans); cursor: pointer; }
+.app-shell .forecast-calendar-nav button:disabled { opacity: .38; cursor: default; }
+.app-shell .forecast-calendar-view .forecast-month-card ul { margin-top: 16px; }
 .app-shell.theme-dark .forecast-calendar { background: #111a15; }
 .app-shell.theme-dark .forecast-calendar-day.has-income { background: rgba(117, 212, 165, .14); color: #75d4a5; }
 .app-shell.theme-dark .forecast-calendar-day.is-today { outline-color: #75d4a5; }
@@ -12082,6 +12091,12 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
   .app-shell .cashflow-panel-footer button { width: 100%; }
   .app-shell .forecast-month-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .app-shell .forecast-month-card { padding: 14px; }
+  .app-shell .forecast-calendar-view .forecast-month-card { padding: 14px; }
+  .app-shell .forecast-calendar-view .forecast-calendar { padding: 9px 6px; }
+  .app-shell .forecast-calendar-view .forecast-calendar-day { min-height: 36px; font-size: 11px; }
+  .app-shell .forecast-calendar-nav { gap: 5px; }
+  .app-shell .forecast-calendar-nav h3 { min-width: 0; }
+  .app-shell .forecast-calendar-nav button { flex-basis: 44px; width: 44px; min-height: 44px; }
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .savings-card[data-cashflow="deficit"] { background: #fbebea !important; border-color: #eed3d1 !important; }
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .savings-card[data-cashflow="deficit"] :is(.metric-heading, .metric-value, .metric-caption) { color: #9f3436 !important; }
   html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .savings-card[data-cashflow="deficit"] { background: #332122 !important; border-color: #553233 !important; }
