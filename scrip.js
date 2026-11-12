@@ -526,11 +526,11 @@ function updateDashboardWelcome(date = new Date()) {
   const nameElement = document.querySelector("#welcome-name");
   const dateElement = document.querySelector("#dashboard-date");
   if (greetingElement) greetingElement.textContent = greeting;
-  if (nameElement) nameElement.textContent = firstName + ".";
+  if (nameElement) nameElement.textContent = firstName;
   if (dateElement) dateElement.textContent = dateLabel;
   dashboardMarkup = dashboardMarkup
     .replace(/(<span id="welcome-greeting">)[\s\S]*?(<\/span>)/, (_, opening, closing) => opening + escapeHTML(greeting) + closing)
-    .replace(/(<em id="welcome-name">)[\s\S]*?(<\/em>)/, (_, opening, closing) => opening + escapeHTML(firstName) + "." + closing)
+    .replace(/(<em id="welcome-name">)[\s\S]*?(<\/em>)/, (_, opening, closing) => opening + escapeHTML(firstName) + closing)
     .replace(/(<span id="dashboard-date">)[\s\S]*?(<\/span>)/, (_, opening, closing) => opening + escapeHTML(dateLabel) + closing);
 }
 
@@ -2715,11 +2715,23 @@ function incomeOutlookForMonth(entries, month) {
 }
 
 function actualSpendingForMonth(entries, month) {
-  return entries.filter(item => {
-    const monthValue = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date.slice(0, 7)
-      : /^\d{4}-\d{2}$/.test(item.month || "") ? item.month : "";
-    return monthValue === month;
-  }).reduce((total, item) => total + Number(item.amount || 0), 0);
+  return entries.reduce((total, item) => {
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date
+      : /^\d{4}-\d{2}$/.test(item.month || "") ? `${item.month}-01` : "";
+    if (!date) return total;
+    const startMonth = date.slice(0, 7);
+    const recurring = item.recurring === true;
+    if (recurring ? month < startMonth : month !== startMonth) return total;
+
+    // Recurring spending is carried into each later month, matching the monthly
+    // occurrences used by the Power-Up reporting totals.
+    if (recurring) {
+      const [year, monthNumber] = month.split("-").map(Number);
+      const day = Math.min(Number(date.slice(8, 10)) || 1, new Date(year, monthNumber, 0).getDate());
+      if (month === startMonth && `${month}-${String(day).padStart(2, "0")}` < date) return total;
+    }
+    return total + Number(item.amount || 0);
+  }, 0);
 }
 
 function forecastPaymentDate(item, month) {
@@ -2732,7 +2744,7 @@ function forecastPaymentDate(item, month) {
 
 function renderIncomeForecast(incomes) {
   const [year, month] = monthKey().split("-").map(Number);
-  const months = Array.from({ length: 6 }, (_, index) => monthKey(new Date(year, month - 1 + index, 1, 12)));
+  const months = Array.from({ length: 12 }, (_, index) => monthKey(new Date(year, month - 1 + index, 1, 12)));
   const cards = months.map(key => {
     const payments = incomes.filter(item => incomeExpectedInMonth(item, key)).map(item => ({ ...item, paymentDate: forecastPaymentDate(item, key) }))
       .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
@@ -2741,11 +2753,10 @@ function renderIncomeForecast(incomes) {
     const rows = payments.length ? payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")} · ${new Date(`${item.paymentDate}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("") : `<li class="forecast-month-empty">No expected payments</li>`;
     return `<article class="forecast-month-card"><div class="forecast-month-heading"><h3>${escapeHTML(title)}</h3><strong>${formatKsh(total)}</strong></div><ul>${rows}</ul></article>`;
   }).join("");
-  const expected = incomes.filter(item => item.status !== "received");
   const received = incomes.filter(item => item.status === "received");
   return `<section class="cashflow-forecast" aria-labelledby="cashflow-forecast-title">
-    <header class="cashflow-forecast-heading"><div><span class="section-kicker">EXPECTED PAYMENTS · NEXT 6 MONTHS</span><h2 id="cashflow-forecast-title">Income forecast</h2><p>Plan dividends, interest, salary, and other income by the date you expect the cash to arrive.</p></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button><button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div></header>
-    ${expected.length ? `<div class="forecast-month-grid">${cards}</div>` : `<div class="forecast-empty"><strong>Your forecast starts with an expected payment.</strong><span>Add a source and its expected date to see which months have income coming in.</span><button type="button" data-power-action="income">Add expected income</button></div>`}
+    <header class="cashflow-forecast-heading"><div><span class="section-kicker">EXPECTED PAYMENTS · NEXT 12 MONTHS</span><h2 id="cashflow-forecast-title">Income forecast</h2><p>Plan dividends, interest, salary, and other income by the date you expect the cash to arrive.</p></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button><button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div></header>
+    <div class="forecast-month-grid">${cards}</div>
     ${received.length ? `<p class="forecast-footnote">Received income is kept in actual cash-flow history and is excluded from expected totals.</p>` : `<p class="forecast-footnote">Expected amounts are estimates until you record them as received. Older monthly income sources default to a monthly forecast.</p>`}
   </section>`;
 }
