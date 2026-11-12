@@ -12379,6 +12379,7 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
   background: #172c22 !important;
 }
 html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .spending-card[data-cashflow="within-income"] :is(.metric-heading, .metric-value) { color: #82d5a6 !important; }
+.app-shell { font-size: 13px; }
 @media (max-width: 600px) {
   .app-shell #page-content:has(> .welcome-row) > .dashboard-next-action {
     grid-template-columns: 32px minmax(0, 1fr);
