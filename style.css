@@ -12049,11 +12049,15 @@ html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.m
 .app-shell .forecast-selected-day-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; color: var(--fx-ink); }
 .app-shell .forecast-selected-day-heading > b { color: #08724f; font-weight: 700; }
 .app-shell .forecast-selected-day ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.app-shell .forecast-selected-day li { display: flex; justify-content: space-between; gap: 10px; min-width: 0; padding-top: 8px; border-top: 1px solid var(--fx-line); }
+.app-shell .forecast-selected-day li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; min-width: 0; padding-top: 8px; border-top: 1px solid var(--fx-line); }
 .app-shell .forecast-selected-day li > span { display: grid; min-width: 0; gap: 2px; }
 .app-shell .forecast-selected-day li strong { overflow: hidden; color: var(--fx-ink); font: 600 12px/1.3 var(--sans); text-overflow: ellipsis; white-space: nowrap; }
 .app-shell .forecast-selected-day li small { color: var(--fx-muted); font: 400 11px/1.3 var(--sans); }
-.app-shell .forecast-selected-day li > b { color: var(--fx-ink); font: 650 12px/1.3 var(--sans); white-space: nowrap; }
+.app-shell .forecast-selected-day li > span > b { color: var(--fx-ink); font: 650 12px/1.3 var(--sans); white-space: nowrap; }
+.app-shell .forecast-income-actions { display: flex; align-items: center; gap: 4px; }
+.app-shell .forecast-income-actions button { min-width: 44px; min-height: 44px; padding: 0 8px; border: 1px solid var(--fx-line); border-radius: 11px; background: var(--fx-card); color: var(--fx-ink); font: 600 11px var(--sans); cursor: pointer; }
+.app-shell .forecast-income-actions button:last-child { width: 44px; padding: 0; color: #a33b3e; font-size: 19px; }
+.app-shell.theme-dark .forecast-income-actions button:last-child { color: #ffaaa5; }
 .app-shell.theme-dark .forecast-calendar-view .forecast-calendar-day.has-income { background: rgba(117, 212, 165, .14); }
 .app-shell.theme-dark .forecast-calendar-view .forecast-calendar-day.is-selected,
 .app-shell.theme-dark .forecast-calendar-view .forecast-calendar-day:focus-visible { outline-color: #75d4a5; }

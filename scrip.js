@@ -9081,7 +9081,7 @@ document.addEventListener("click", event => {
     if (details) {
       const dateLabel = new Date(`${selectedDate}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
       const total = payments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-      const rows = payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("");
+      const rows = payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")}</small><b>${formatKsh(item.amount)}</b></span><div class="forecast-income-actions"><button type="button" data-edit-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit planned income">Edit</button><button type="button" data-delete-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete planned income">×</button></div></li>`).join("");
       details.innerHTML = payments.length
         ? `<div class="forecast-selected-day-heading"><strong>${escapeHTML(dateLabel)}</strong><b>${formatKsh(total)} expected</b></div><ul>${rows}</ul>`
         : `<strong>${escapeHTML(dateLabel)}</strong><span>No income is planned for this date.</span>`;
