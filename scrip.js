@@ -3888,7 +3888,7 @@ function updateDashboardCashflowChart() {
   const yEnd = 211;
   const x = index => xStart + (xEnd - xStart) * index / (months.length - 1);
   const y = value => yEnd - ((value - minimum) / range) * (yEnd - yStart);
-  const tickValues = Array.from({ length: 5 }, (_, index) => maximum - range * index / 4);
+  const tickValues = Array.from({ length: 3 }, (_, index) => maximum - range * index / 2);
 
   grid.innerHTML = tickValues.map(value => {
     const position = y(value);
@@ -3908,7 +3908,7 @@ function updateDashboardCashflowChart() {
       return `${commands} C${control1[0]},${control1[1]} ${control2[0]},${control2[1]} ${point[0]},${point[1]}`;
     }, "");
     const area = `${path} L${x(months.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
-    const dots = months.map((month, index) => `<circle class="cashflow-point ${item.key}" cx="${x(index)}" cy="${y(month[item.key])}" r="3.5"><title>${month.month}: ${item.label} ${formatKsh(month[item.key])}</title></circle>`).join("");
+    const dots = months.map((month, index) => `<circle class="cashflow-point ${item.key}" cx="${x(index)}" cy="${y(month[item.key])}" r="4"><title>${month.month}: ${item.label} ${formatKsh(month[item.key])}</title></circle>`).join("");
     return `<path class="cashflow-area ${item.key}" d="${area}" fill="${item.color}"/><path class="cashflow-line ${item.key}" d="${path}" stroke="${item.color}"/>${dots}`;
   }).join("");
   const zeroY = y(0);

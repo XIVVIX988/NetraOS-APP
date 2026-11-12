@@ -12527,6 +12527,11 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
 }
 html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid > .networth-card[data-net-worth-state="negative"] :is(.metric-heading, .metric-value) { color: #ffaaa5 !important; }
 html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid > .networth-card[data-net-worth-state="negative"] .metric-icon { background: rgba(239, 119, 112, .2) !important; color: #ffaaa5 !important; }
+.app-shell .cashflow-point { stroke-width: 1.5; }
+.app-shell .cashflow-point.income { fill: #16a579; stroke: #16a579; }
+.app-shell .cashflow-point.expenses { fill: #efa82e; stroke: #efa82e; }
+.app-shell .cashflow-point.savings { fill: #064b38; stroke: #064b38; }
+.app-shell.theme-dark .cashflow-point.savings { fill: #36a67d; stroke: #36a67d; }
 
 /* Restore the original inset pill navigation shown in the supplied design. */
 @media (max-width: 600px) {
