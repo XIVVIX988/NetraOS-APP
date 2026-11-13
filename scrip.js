@@ -1069,6 +1069,9 @@ function applyStoredSettings(themeModeOverride = "") {
   const settings = getStoredSettings();
   const themeMode = ["light", "dark", "system"].includes(themeModeOverride) ? themeModeOverride : settings.themeMode;
   const darkMode = themeMode === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : themeMode === "dark";
+  document.documentElement.dataset.themeStart = darkMode ? "dark" : "light";
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.setAttribute("content", darkMode ? "#101a14" : "#13875f");
   document.body.classList.toggle("reduce-motion", settings.reduceMotion);
   document.body.classList.toggle("theme-dark", darkMode);
   appShell.classList.toggle("theme-dark", darkMode);
@@ -2540,6 +2543,7 @@ function enterApp(profile, { restoredSession = false, page = "Dashboard", skipTo
   setProfileName(profile.username || profile.name);
   applyProfileAvatar();
   applyStoredSettings();
+  document.body.classList.remove("auth-view", "public-view", "phone-entry-view");
   publicShell.hidden = true;
   appShell.hidden = false;
   showPage(page);
@@ -2751,7 +2755,6 @@ function renderIncomeForecast(incomes) {
   const key = monthKey(monthDate);
   const payments = incomes.filter(item => incomeExpectedInMonth(item, key)).map(item => ({ ...item, paymentDate: forecastPaymentDate(item, key) }))
     .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
-  const total = payments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const title = monthDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
   const weekdayOffset = monthDate.getDay();
   const dayCount = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
@@ -2768,12 +2771,12 @@ function renderIncomeForecast(incomes) {
     return `<button type="button" class="forecast-calendar-day${date === localDateValue() ? " is-today" : ""}${dayPayments.length ? " has-income" : ""}" data-forecast-date="${date}" aria-pressed="false" aria-label="${escapeHTML(accessibleLabel)}"${dayPayments.length ? ` title="${escapeHTML(names)}"` : ""}>${day}${dayPayments.length ? `<i aria-hidden="true"></i>` : ""}</button>`;
   }).join("")}`;
   const rows = payments.length ? payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")} · ${new Date(`${item.paymentDate}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("") : `<li class="forecast-month-empty">No expected payments</li>`;
-  const calendar = `<article class="forecast-month-card"><div class="forecast-month-heading"><div class="forecast-calendar-nav"><button type="button" data-forecast-month-nav="previous" aria-label="Previous month" ${incomeCalendarOffset === 0 ? "disabled" : ""}>‹</button><h3>${escapeHTML(title)}</h3><button type="button" data-forecast-month-nav="next" aria-label="Next month" ${incomeCalendarOffset === 11 ? "disabled" : ""}>›</button></div><strong>${formatKsh(total)}</strong></div><div class="forecast-calendar"><div class="forecast-calendar-weekdays" aria-hidden="true"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><section class="forecast-selected-day" data-forecast-selected-day aria-live="polite"><strong>Choose a date</strong><span>Tap a calendar date to see its planned income.</span></section><ul>${rows}</ul></article>`;
+  const calendar = `<article class="forecast-month-card"><div class="forecast-month-heading"><div class="forecast-calendar-nav"><button type="button" data-forecast-month-nav="previous" aria-label="Previous month" ${incomeCalendarOffset === 0 ? "disabled" : ""}>‹</button><h3>${escapeHTML(title)}</h3><button type="button" data-forecast-month-nav="next" aria-label="Next month" ${incomeCalendarOffset === 11 ? "disabled" : ""}>›</button></div></div><div class="forecast-calendar"><div class="forecast-calendar-weekdays" aria-hidden="true"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><section class="forecast-selected-day" data-forecast-selected-day aria-live="polite"><strong>Choose a date</strong><span>Tap a calendar date to see its planned income.</span></section><ul>${rows}</ul></article>`;
   const received = incomes.filter(item => item.status === "received");
   return `<section class="cashflow-forecast" aria-labelledby="cashflow-forecast-title">
     <header class="cashflow-forecast-heading"><div><span class="section-kicker">12-MONTH INCOME CALENDAR</span><h2 id="cashflow-forecast-title">Income forecast</h2><p>Plan dividends, interest, salary, and other income by the date you expect the cash to arrive.</p></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button><button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div></header>
     <div class="forecast-month-grid forecast-calendar-view">${calendar}</div>
-    ${received.length ? `<p class="forecast-footnote">Received income is kept in actual cash-flow history and is excluded from expected totals.</p>` : `<p class="forecast-footnote">Expected amounts are estimates until you record them as received. Older monthly income sources default to a monthly forecast.</p>`}
+    ${received.length ? `<p class="forecast-footnote">Planned amounts are estimates. Mark them received when the money arrives.</p>` : `<p class="forecast-footnote">These amounts are estimates. Mark income as received when the money arrives.</p>`}
   </section>`;
 }
 
@@ -3881,7 +3884,7 @@ function updateDashboardCashflowChart() {
   const subtitle = chartPanel?.querySelector(".cashflow-subtitle");
   const viewButtons = chartPanel?.querySelectorAll("[data-dashboard-chart-view]") || [];
   const viewMeta = {
-    cashflow: ["Cash flow", "Income vs Expenses vs Savings"],
+    cashflow: ["Cash flow", "Income received vs expenses recorded vs net cash flow"],
     position: ["Assets, liabilities & net worth", "Current balances from Inventory"],
     quests: ["Quest progress", "Progress toward your active targets"]
   };
@@ -3917,20 +3920,30 @@ function updateDashboardCashflowChart() {
 
   const months = dashboardCashflowSeries();
   const series = [
-    { key: "income", label: "Income", color: "#16a579" },
-    { key: "expenses", label: "Expenses", color: "#efa82e" },
-    { key: "savings", label: "Savings", color: "#064b38" }
+    { key: "income", label: "Income received", color: "#16a579" },
+    { key: "expenses", label: "Expenses recorded", color: "#efa82e" },
+    { key: "savings", label: "Net cash flow", color: "#064b38" }
   ];
+  const updateLegend = month => series.forEach(item => {
+    const itemNode = legend?.querySelector(`[data-cashflow-legend="${item.key}"]`);
+    const label = itemNode?.querySelector("[data-cashflow-legend-label]");
+    if (label) label.textContent = month
+      ? `${month.month} · ${item.label} · ${formatCompactKsh(month[item.key])}`
+      : item.label;
+    if (itemNode) itemNode.title = month ? `${month.month} ${item.label}: ${formatKsh(month[item.key])}` : item.label;
+  });
   const values = months.flatMap(month => series.map(item => month[item.key]));
   const hasTransactions = months.some(month => month.income !== 0 || month.expenses !== 0);
   if (!hasTransactions) {
+    updateLegend(null);
     grid.replaceChildren();
     seriesLayer.innerHTML = '<text class="cashflow-empty-label" x="50%" y="48%" text-anchor="middle">Add income and expenses to see your cash flow.</text>';
     barsLayer.replaceChildren();
     labels.replaceChildren();
-    chart.setAttribute("aria-label", "No received income or expense transactions recorded in this period. Record transactions to see actual cash flow.");
+    chart.setAttribute("aria-label", "No received income or recorded expenses in this period. Record transactions to see actual cash flow.");
     return;
   }
+  updateLegend([...months].reverse().find(month => month.income !== 0 || month.expenses !== 0) || months.at(-1));
   const rawMinimum = Math.min(...values);
   const rawMaximum = Math.max(...values);
   const dataRange = rawMaximum - rawMinimum;
@@ -3971,12 +3984,13 @@ function updateDashboardCashflowChart() {
   barsLayer.innerHTML = months.map((month, monthIndex) => series.map((item, seriesIndex) => {
     const valueY = y(month[item.key]);
     const barY = Math.min(zeroY, valueY);
-    const height = Math.max(1, Math.abs(valueY - zeroY));
+    const rawHeight = Math.abs(valueY - zeroY);
+    const height = month[item.key] === 0 ? 1 : Math.max(3, rawHeight);
     const barWidth = phoneLayout ? 5 : 10;
     const barX = x(monthIndex) + (seriesIndex - 1) * (phoneLayout ? 7 : 14) - barWidth / 2;
     return `<rect class="cashflow-bar ${item.key}" x="${barX}" y="${barY}" width="${barWidth}" height="${height}" rx="2"><title>${month.month}: ${item.label} ${formatKsh(month[item.key])}</title></rect>`;
   }).join("")).join("");
-  chart.setAttribute("aria-label", `Income, expenses, and savings over the last ${months.length} months. Savings is income minus expenses, calculated from monthly transaction totals.`);
+  chart.setAttribute("aria-label", `Income received, expenses recorded, and net cash flow over the last ${months.length} months. Net cash flow is income minus expenses, calculated from monthly transaction totals.`);
 }
 
 function renderDashboardPositionChart() {

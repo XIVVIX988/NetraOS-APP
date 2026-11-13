@@ -3,8 +3,18 @@
   <head>
     <!-- Document metadata, browser theme color, title, brand icon, fonts, and app styles. -->
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#13875f" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (() => {
+        try {
+          const themeSettings = JSON.parse(localStorage.getItem("netraos-settings-v1") || "{}");
+          const dark = themeSettings.themeMode === "dark" || (themeSettings.themeMode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.dataset.themeStart = "dark";
+        } catch {}
+      })();
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NetraOS" />
     <style>[hidden] { display: none !important; }</style>
@@ -15,10 +25,12 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=income-calendar-single-view-20261111-1" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css?v=mobile-accessibility-offline-20261113-1" />
+    <link rel="stylesheet" href="mobile-accessibility.css?v=20261113-1" />
   </head>
   <body data-user-name="Jordan Davis">
+    <a class="skip-to-content" href="#page-content">Skip to main content</a>
     <!-- Public pages are rendered into this mount point by scrip.js when needed. -->
     <div id="public-shell" hidden></div>
     <!-- Main signed-in workspace; scrip.js fills its page-content area with app views. -->
@@ -200,7 +212,7 @@
               <h1>
                 <span id="welcome-greeting">Good morning,</span>
                 <br />
-                <em id="welcome-name">Jordan</em><span class="welcome-name-period" aria-hidden="true">.</span>
+                <span class="welcome-name-line"><em id="welcome-name">Jordan</em><span class="welcome-name-period" aria-hidden="true">.</span></span>
               </h1>
               <p class="welcome-sub">
                 Here's your financial overview.
@@ -274,7 +286,7 @@
               <div class="panel-heading">
                 <div>
                   <h2>Cash flow</h2>
-                  <p class="cashflow-subtitle">Income vs Expenses vs Savings</p>
+                  <p class="cashflow-subtitle">Income received vs expenses recorded vs net cash flow</p>
                 </div>
                 <label class="dashboard-period" data-dashboard-period-control><span class="sr-only">Cash flow period</span><select data-dashboard-range aria-label="Cash flow period"><option value="6" selected>Last 6 months</option><option value="3">Last 3 months</option><option value="12">Last 12 months</option></select></label>
               </div>
@@ -283,12 +295,12 @@
                 <button type="button" data-dashboard-chart-view="position" aria-pressed="false">Assets &amp; liabilities</button>
                 <button type="button" data-dashboard-chart-view="quests" aria-pressed="false">Quests</button>
               </div>
-              <div class="chart-legend" data-dashboard-cashflow-legend>
-                <span><i class="legend-income"></i>Income</span>
-                <span><i class="legend-expense"></i>Expenses</span>
-                <span><i class="legend-savings"></i>Savings</span>
+              <div class="chart-legend" data-dashboard-cashflow-legend aria-live="polite" aria-atomic="true">
+                <span data-cashflow-legend="income"><i class="legend-income"></i><span data-cashflow-legend-label>Income received</span></span>
+                <span data-cashflow-legend="expenses"><i class="legend-expense"></i><span data-cashflow-legend-label>Expenses recorded</span></span>
+                <span data-cashflow-legend="savings"><i class="legend-savings"></i><span data-cashflow-legend-label>Net cash flow</span></span>
               </div>
-              <div class="cashflow-chart-wrap"><svg class="cashflow-chart" viewBox="0 0 760 260" role="img" aria-label="Six-month cash flow chart"><g data-chart-grid></g><g data-chart-series></g><g data-chart-bars></g><g data-chart-labels></g></svg></div>
+              <div class="cashflow-chart-wrap"><svg class="cashflow-chart" viewBox="0 0 760 260" role="img" aria-label="Cash flow chart"><g data-chart-grid></g><g data-chart-series></g><g data-chart-bars></g><g data-chart-labels></g></svg></div>
               <div class="dashboard-chart-alt" data-dashboard-chart-alt hidden></div>
               <div class="cashflow-panel-footer"><span>Looking ahead?</span><button type="button" data-jump="Power-Up">View your 6-month income forecast <span aria-hidden="true">↗</span></button></div>
             </article>
@@ -356,7 +368,12 @@
     <script src="supabase-config.js"></script>
     <script src="supabase-sync.js?v=onboarding-profile-save-20261113-1"></script>
     <!-- Main application logic: navigation, saved data, interactions, and report downloads. -->
-    <script src="scrip.js?v=onboarding-no-loop-20261113-1">
+    <script src="scrip.js?v=cashflow-legend-values-20261113-1">
+    </script>
+    <script>
+      if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname))) {
+        navigator.serviceWorker.register("./service-worker.js").catch(error => console.warn("Offline app shell is unavailable:", error));
+      }
     </script>
   </body>
 </html>

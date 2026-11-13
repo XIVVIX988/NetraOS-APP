@@ -13,8 +13,8 @@
   --gold-bright: #087953;
   --green: #168660;
   --coral: #168660;
-  --sans: 'DM Sans',sans-serif;
-  --display: 'Manrope',sans-serif;
+  --sans: 'Inter',system-ui,sans-serif;
+  --display: 'Inter',system-ui,sans-serif;
   --mono: 'DM Mono',monospace;
 }
 
@@ -11491,7 +11491,6 @@ body.theme-dark { background: var(--bg); }
 /* ---- Phone Settings typography: native system font and app-sized type scale ---- */
 @media (max-width: 600px) {
   .app-shell .settings-page {
-    --sans: system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, "DM Sans", sans-serif;
     font-family: var(--sans);
     -webkit-text-size-adjust: 100%;
     letter-spacing: 0;
@@ -11843,8 +11842,6 @@ html .app-shell.app-shell #page-content .metrics-grid .networth-card.metric-card
   --fx-muted: #69756e;
   --fx-line: rgba(25, 45, 35, .12);
   --fx-shadow: 0 4px 16px rgba(29, 49, 38, .07);
-  --sans: "Inter", "DM Sans", system-ui, sans-serif;
-  --display: "Inter", "DM Sans", system-ui, sans-serif;
 }
 .app-shell.theme-dark,
 body.theme-dark .app-shell {
@@ -12072,10 +12069,9 @@ html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.m
 .app-shell.theme-dark .forecast-calendar-day.has-income { background: rgba(117, 212, 165, .14); color: #75d4a5; }
 .app-shell.theme-dark .forecast-calendar-day.is-today { outline-color: #75d4a5; }
 .app-shell.theme-dark .forecast-calendar-day > i { background: #75d4a5; }
-.app-shell .forecast-month-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding-bottom: 11px; border-bottom: 1px solid var(--fx-line); }
+.app-shell .forecast-month-heading { display: flex; justify-content: flex-start; align-items: baseline; gap: 8px; padding-bottom: 11px; border-bottom: 1px solid var(--fx-line); }
 .app-shell .forecast-month-heading h3 { min-width: 0; margin: 0; color: var(--fx-ink); font: 650 14px/1.3 var(--sans); }
-.app-shell .forecast-month-heading > strong { color: #08724f; font: 750 14px/1.3 var(--sans); white-space: nowrap; }
-.app-shell.theme-dark .forecast-month-heading > strong { color: #75d4a5; }
+.app-shell .welcome-name-line { display: inline-flex; align-items: baseline; white-space: nowrap; }
 .app-shell .forecast-month-card ul { display: grid; gap: 9px; margin: 12px 0 0; padding: 0; list-style: none; }
 .app-shell .forecast-month-card li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
 .app-shell .forecast-month-card li > span { display: grid; min-width: 0; gap: 2px; }
@@ -12626,4 +12622,11 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
   }
   .app-shell.theme-dark .mobile-tab { color: #d4ddd7; }
   .app-shell.theme-dark .mobile-tab.is-active { background: #07583f; color: #fff; }
+  .app-shell[data-accent] .mobile-tab.is-active {
+    border: 1px solid color-mix(in srgb, var(--green) 78%, transparent);
+    background: var(--green);
+    color: var(--app-popup-accent-foreground, #fff);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--green) 24%, transparent);
+  }
+  .app-shell[data-accent] .mobile-tab.is-active svg { color: inherit; }
 }

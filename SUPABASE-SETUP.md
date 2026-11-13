@@ -72,6 +72,8 @@ Use a local web server such as VS Code Live Server at port `5500`; do not open `
 
 The app writes locally first and retries cloud sync after connectivity returns. It pulls remote changes every 30 seconds when there are no pending local edits. Rows created on another device since the last pull are merged; for simultaneous edits to the same row, the last successful save wins. JSON/CSV export stays available. **Factory reset** clears the account’s NetraOS database rows and local app data, but leaves the Supabase Auth identity in place.
 
+The service worker caches the app shell and public render assets after the first successful online load, so the installed site can reopen offline. Existing local records and a PIN configured on that device remain available offline. Supabase sign-in, account recovery, cloud sync, and other server-backed requests still require connectivity; API responses and financial records are not cached by the service worker. Google Fonts and the Supabase client library use their last cached static assets when available, with system-font fallbacks if they are not.
+
 ## Items that still need configuration before production
 
 - Email-based PIN recovery is disabled in connected mode until that server-side challenge function exists. PIN verification uses the account-side lockout when the RPC is installed and the device is online; the local verifier remains available for offline unlocks on devices that have their own PIN.
