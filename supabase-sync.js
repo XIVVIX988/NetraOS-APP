@@ -489,13 +489,17 @@
         }, 30000);
       }
       const activeProfile = snapshot.hasProfile
-        ? { ...(local(keys.profile) || {}), ...snapshot.profile, id: user.id, email: user.email || snapshot.profile.email }
+        ? { ...(local(keys.profile) || {}), ...snapshot.profile, username: snapshot.profile.username || localProfile?.username || "", id: user.id, email: user.email || snapshot.profile.email }
         : { ...snapshot.profile, ...(localProfile || {}), id: user.id, email: user.email || snapshot.profile.email };
       delete activeProfile.passwordHash;
       delete activeProfile.passwordSalt;
       delete activeProfile.passwordIterations;
       write(keys.profile, activeProfile);
       localStorage.setItem(activeAccountStorageKey, String(user.id));
+      if (snapshot.hasProfile && !snapshot.profile.username && localProfile?.username) {
+        try { await pushSnapshot(activeProfile); }
+        catch (error) { reportSyncError(error); }
+      }
       return activeProfile;
     },
     saveProfile: async profile => { write(keys.profile, profile); await pushSnapshot(profile); },

@@ -809,6 +809,7 @@ let statsRangeMonths = 6;
 let statsMobileView = "cash-flow";
 let statsMoreInsightsOpen = false;
 let dashboardCashflowRange = 6;
+let dashboardChartView = "cashflow";
 let incomeCalendarOffset = 0;
 const currencyStorageKey = "netraos-currency-v1";
 const privacyModeStorageKey = "netraos-privacy-mode-v1";
@@ -2528,7 +2529,7 @@ function setupSettingsTabs(root = content) {
 }
 
 // Start the local session, apply the profile and preferences, and open the dashboard.
-function enterApp(profile, { restoredSession = false, page = "Dashboard" } = {}) {
+function enterApp(profile, { restoredSession = false, page = "Dashboard", skipTour = false } = {}) {
   localAppSessionActive = true;
   const lastActivityAt = getSessionLastActivityAt();
   if (restoredSession && lastActivityAt && Date.now() - lastActivityAt >= sessionInactivityLimitMs) {
@@ -2551,7 +2552,8 @@ function enterApp(profile, { restoredSession = false, page = "Dashboard" } = {})
   scheduleAutoLockNudge({ force: true });
   scheduleShortcutPrompt();
   showCookieBanner();
-  maybeStartAppTour(profile, restoredSession);
+  if (skipTour) markAppTourSeen(profile);
+  else maybeStartAppTour(profile, restoredSession);
   if (restoredSession || getPinFailureCount() > 0) lockWorkspace({ onLaunch: true });
 }
 
@@ -3752,16 +3754,27 @@ function renderNetWorthTrendChart(chart, history) {
   const width = 240;
   const height = 64;
   const padY = 8;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min;
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const range = max - min || 1;
   const yAt = value => range === 0 ? height / 2 : padY + (1 - (value - min) / range) * (height - padY * 2);
-  // One saved balance has no trend yet, so draw a flat baseline until a second point exists.
+  // A single saved balance is shown at its position relative to zero, without inventing a trend.
   const coords = values.length === 1
-    ? [[0, yAt(values[0])], [width, yAt(values[0])]]
+    ? [[width, yAt(values[0])]]
     : values.map((value, index) => [index * width / (values.length - 1), yAt(value)]);
   const line = coords.map(([x, y], index) => `${index ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-  svg.innerHTML = `<path class="networth-trend-area" d="${line} L${width},${height} L0,${height} Z"/><path class="networth-trend-line" d="${line}"/>`;
+  const zeroY = yAt(0);
+  const zeroLine = `<line class="networth-zero-line" x1="0" y1="${zeroY.toFixed(1)}" x2="${width}" y2="${zeroY.toFixed(1)}"/>`;
+  // Keep the sparkline visible before a second saved snapshot exists. The short
+  // segment is positioned at the current balance relative to zero, so negative
+  // net worth still reads below the zero reference instead of looking flat.
+  const visibleLine = values.length > 1
+    ? line
+    : `M${(width * .58).toFixed(1)},${coords[0][1].toFixed(1)} L${width},${coords[0][1].toFixed(1)}`;
+  const trend = values.length > 1
+    ? `<path class="networth-trend-area" d="${line} L${width},${zeroY.toFixed(1)} L0,${zeroY.toFixed(1)} Z"/><path class="networth-trend-line" d="${line}"/>`
+    : `<path class="networth-trend-line" d="${visibleLine}"/>`;
+  svg.innerHTML = `${zeroLine}${trend}`;
   if (dot) dot.style.top = `${(coords.at(-1)[1] / height) * 100}%`;
   const first = new Date(history[0].at);
   if (startLabel) {
@@ -3771,7 +3784,7 @@ function renderNetWorthTrendChart(chart, history) {
   }
   chart.setAttribute("aria-label", values.length > 1
     ? `Net worth trend from ${formatKsh(values[0])} to ${formatKsh(values.at(-1))}`
-    : `Net worth is ${formatKsh(values[0])}. A trend appears once it changes.`);
+    : `Net worth is ${formatKsh(values[0])}. The marker shows its position relative to zero; a trend appears after another balance is recorded.`);
   chart.hidden = false;
 }
 
@@ -3786,7 +3799,14 @@ function setMetricTrend(card, currentValue, previousValue) {
 }
 
 function updateDashboardPowerUpSummary() {
-  const totals = getPowerUpReportTotals();
+  const data = getPowerUpData();
+  const currentMonth = monthKey();
+  // Dashboard figures use the same actual calendar-month aggregates as the
+  // latest point in the cash-flow chart. Forecast income and payday-cycle
+  // reporting remain available on the Power-Up page.
+  const actualIncome = actualIncomeForMonth(data.incomes, currentMonth);
+  const actualSpending = actualSpendingForMonth(data.spending, currentMonth);
+  const cashAfterSpending = actualIncome - actualSpending;
   const incomeCard = document.querySelector(".income-card");
   const savingsCard = document.querySelector(".savings-card");
   const spendingCard = document.querySelector(".spending-card");
@@ -3794,25 +3814,25 @@ function updateDashboardPowerUpSummary() {
 
   if (incomeCard) {
     incomeCard.querySelector("[data-metric-label]").textContent = "INCOME";
-    incomeCard.querySelector(".metric-value").textContent = formatKsh(totals.reportIncome);
+    incomeCard.querySelector(".metric-value").textContent = formatKsh(actualIncome);
   }
 
-  const savingsRate = totals.reportIncome > 0
-    ? Math.round((totals.cashAfterSpending / totals.reportIncome) * 1000) / 10
+  const savingsRate = actualIncome > 0
+    ? Math.round((cashAfterSpending / actualIncome) * 1000) / 10
     : 0;
   if (savingsCard) {
     savingsCard.querySelector(".metric-value").textContent = savingsRate + "%";
-    savingsCard.dataset.cashflow = totals.cashAfterSpending < 0 ? "deficit" : "within-income";
+    savingsCard.dataset.cashflow = cashAfterSpending < 0 ? "deficit" : "within-income";
   }
 
   if (spendingCard) {
-    spendingCard.dataset.cashflow = totals.cashAfterSpending < 0 ? "deficit" : "within-income";
+    spendingCard.dataset.cashflow = cashAfterSpending < 0 ? "deficit" : "within-income";
     spendingCard.querySelector("[data-metric-label]").textContent = "SPENDING";
-    spendingCard.querySelector(".metric-value").textContent = formatKsh(totals.spending);
+    spendingCard.querySelector(".metric-value").textContent = formatKsh(actualSpending);
   }
 
   if (deficitCard) {
-    const deficit = Math.max(0, -totals.cashAfterSpending);
+    const deficit = Math.max(0, -cashAfterSpending);
     deficitCard.dataset.cashflow = deficit > 0 ? "deficit" : "within-income";
     deficitCard.querySelector(".metric-value").textContent = formatKsh(deficit);
     deficitCard.setAttribute("aria-label", deficit > 0 ? `Monthly deficit ${formatKsh(deficit)}` : "No monthly deficit");
@@ -3852,6 +3872,39 @@ function formatCompactKsh(amount) {
 function updateDashboardCashflowChart() {
   const chart = document.querySelector(".cashflow-chart");
   if (!chart) return;
+  const chartPanel = chart.closest(".cashflow-panel");
+  const chartWrap = chart.closest(".cashflow-chart-wrap");
+  const alternateChart = chartPanel?.querySelector("[data-dashboard-chart-alt]");
+  const legend = chartPanel?.querySelector("[data-dashboard-cashflow-legend]");
+  const periodControl = chartPanel?.querySelector("[data-dashboard-period-control]");
+  const title = chartPanel?.querySelector(".panel-heading h2");
+  const subtitle = chartPanel?.querySelector(".cashflow-subtitle");
+  const viewButtons = chartPanel?.querySelectorAll("[data-dashboard-chart-view]") || [];
+  const viewMeta = {
+    cashflow: ["Cash flow", "Income vs Expenses vs Savings"],
+    position: ["Assets, liabilities & net worth", "Current balances from Inventory"],
+    quests: ["Quest progress", "Progress toward your active targets"]
+  };
+  const [viewTitle, viewSubtitle] = viewMeta[dashboardChartView] || viewMeta.cashflow;
+  if (title) title.textContent = viewTitle;
+  if (subtitle) subtitle.textContent = viewSubtitle;
+  viewButtons.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.dashboardChartView === dashboardChartView)));
+  if (dashboardChartView !== "cashflow") {
+    if (chartWrap) chartWrap.hidden = true;
+    if (legend) legend.hidden = true;
+    if (periodControl) periodControl.hidden = true;
+    if (alternateChart) {
+      alternateChart.hidden = false;
+      alternateChart.innerHTML = dashboardChartView === "position"
+        ? renderDashboardPositionChart()
+        : renderDashboardQuestChart();
+    }
+    return;
+  }
+  if (chartWrap) chartWrap.hidden = false;
+  if (legend) legend.hidden = false;
+  if (periodControl) periodControl.hidden = false;
+  if (alternateChart) { alternateChart.hidden = true; alternateChart.replaceChildren(); }
   const rangeSelect = document.querySelector("select[data-dashboard-range]");
   if (rangeSelect) rangeSelect.value = String(dashboardCashflowRange);
   const phoneLayout = window.matchMedia("(max-width: 600px)").matches;
@@ -3878,9 +3931,12 @@ function updateDashboardCashflowChart() {
     chart.setAttribute("aria-label", "No received income or expense transactions recorded in this period. Record transactions to see actual cash flow.");
     return;
   }
-  const minimum = Math.min(0, ...values);
-  const rawMaximum = Math.max(0, ...values);
-  const maximum = rawMaximum === minimum ? minimum + 1 : rawMaximum;
+  const rawMinimum = Math.min(...values);
+  const rawMaximum = Math.max(...values);
+  const dataRange = rawMaximum - rawMinimum;
+  const padding = dataRange > 0 ? dataRange * .08 : Math.max(Math.abs(rawMaximum) * .08, 1);
+  const minimum = rawMinimum - padding;
+  const maximum = rawMaximum + padding;
   const range = maximum - minimum;
   const xStart = phoneLayout ? 68 : 76;
   const xEnd = phoneLayout ? 370 : 744;
@@ -3907,7 +3963,7 @@ function updateDashboardCashflowChart() {
       const control2 = [point[0] - (after[0] - previous[0]) / 6, point[1] - (after[1] - previous[1]) / 6];
       return `${commands} C${control1[0]},${control1[1]} ${control2[0]},${control2[1]} ${point[0]},${point[1]}`;
     }, "");
-    const area = `${path} L${x(months.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
+    const area = `${path} L${x(months.length - 1)},${yEnd} L${x(0)},${yEnd} Z`;
     const dots = months.map((month, index) => `<circle class="cashflow-point ${item.key}" cx="${x(index)}" cy="${y(month[item.key])}" r="4"><title>${month.month}: ${item.label} ${formatKsh(month[item.key])}</title></circle>`).join("");
     return `<path class="cashflow-area ${item.key}" d="${area}" fill="${item.color}"/><path class="cashflow-line ${item.key}" d="${path}" stroke="${item.color}"/>${dots}`;
   }).join("");
@@ -3921,6 +3977,30 @@ function updateDashboardCashflowChart() {
     return `<rect class="cashflow-bar ${item.key}" x="${barX}" y="${barY}" width="${barWidth}" height="${height}" rx="2"><title>${month.month}: ${item.label} ${formatKsh(month[item.key])}</title></rect>`;
   }).join("")).join("");
   chart.setAttribute("aria-label", `Income, expenses, and savings over the last ${months.length} months. Savings is income minus expenses, calculated from monthly transaction totals.`);
+}
+
+function renderDashboardPositionChart() {
+  const totals = getInventoryTotals();
+  const maximum = Math.max(totals.assets, totals.liabilities, Math.abs(totals.netWorth), 1);
+  const rows = [
+    { label: "Assets", value: totals.assets, kind: "assets" },
+    { label: "Liabilities", value: totals.liabilities, kind: "liabilities" },
+    { label: "Net worth", value: totals.netWorth, kind: totals.netWorth < 0 ? "negative" : "net-worth" }
+  ];
+  return `<div class="dashboard-balance-chart" role="img" aria-label="Current financial position: assets ${formatKsh(totals.assets)}, liabilities ${formatKsh(totals.liabilities)}, net worth ${formatKsh(totals.netWorth)}">${rows.map(row => {
+    const width = Math.max(0, Math.min(100, Math.abs(row.value) / maximum * 100));
+    return `<div class="dashboard-balance-row"><div><strong>${row.label}</strong><b>${formatKsh(row.value)}</b></div><div class="dashboard-balance-track"><span class="${row.kind}" style="width:${width.toFixed(1)}%"></span></div></div>`;
+  }).join("")}<button type="button" data-jump="Inventory">Review assets and liabilities <span aria-hidden="true">↗</span></button></div>`;
+}
+
+function renderDashboardQuestChart() {
+  const quests = getQuests().filter(quest => Number(quest.target) > 0);
+  if (!quests.length) return `<div class="dashboard-chart-empty"><strong>No quest targets yet</strong><span>Set a target to see your progress here.</span><button type="button" data-jump="Quests">Set a quest <span aria-hidden="true">↗</span></button></div>`;
+  const rows = quests.map(quest => {
+    const progress = questProgress(quest);
+    return `<div class="dashboard-quest-row"><div><strong>${escapeHTML(quest.name || "Savings quest")}</strong><span>${progress}%</span></div><div class="dashboard-quest-track" role="progressbar" aria-label="${escapeHTML(quest.name || "Savings quest")} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><i style="width:${progress}%"></i></div></div>`;
+  }).join("");
+  return `<div class="dashboard-quest-chart">${rows}<button type="button" data-jump="Quests">Manage quests <span aria-hidden="true">↗</span></button></div>`;
 }
 
 function openTransferDialog() {
@@ -6926,7 +7006,7 @@ function showPreferredNamePrompt(profile) {
     }
   };
 
-  const finish = () => {
+  const finish = async () => {
     const preferredName = state.preferredName.trim().replace(/\s+/g, " ");
     if (!preferredName) { step = 0; renderStep(); error.textContent = "Add a preferred name or use the name on your account."; return; }
     const hasGoal = Boolean(state.goalName);
@@ -6942,6 +7022,8 @@ function showPreferredNamePrompt(profile) {
     settings.accentProfile = state.accentProfile;
     settings.financialYearStartMonth = state.financialYearStartMonth;
     settings.paydayAnchorDay = state.paydayAnchorDay;
+    nextButton.disabled = true;
+    skipButton.disabled = true;
     try {
       saveStoredProfile(completedProfile);
       localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
@@ -6961,11 +7043,23 @@ function showPreferredNamePrompt(profile) {
           fundingApproach: state.fundingApproach
         }]);
       }
-      enterApp(completedProfile);
+      let cloudProfileSaved = true;
+      if (window.NetraSupabase?.enabled && typeof window.NetraSupabase.saveProfile === "function") {
+        try { await window.NetraSupabase.saveProfile(completedProfile); }
+        catch (syncError) {
+          cloudProfileSaved = false;
+          console.warn("Onboarding profile saved locally; cloud sync will need another attempt:", syncError?.message || syncError);
+        }
+      }
+      enterApp(completedProfile, { skipTour: true });
       dialog.close();
-      showToast(hasGoal ? "Your setup is complete and your first quest is ready." : "Your setup is complete. You can create a quest whenever you’re ready.");
+      showToast(cloudProfileSaved
+        ? hasGoal ? "Your setup is complete and your first quest is ready." : "Your setup is complete. You can create a quest whenever you’re ready."
+        : "Your setup is saved on this device. Reconnect to sync your profile.");
     } catch {
       error.textContent = "We couldn’t save your setup. Please try again.";
+      nextButton.disabled = false;
+      skipButton.disabled = false;
     }
   };
 
@@ -9093,6 +9187,14 @@ document.addEventListener("click", event => {
     }
     return;
   }
+  if (button.matches("[data-dashboard-chart-view]")) {
+    const requestedView = button.dataset.dashboardChartView;
+    if (["cashflow", "position", "quests"].includes(requestedView)) {
+      dashboardChartView = requestedView;
+      updateDashboardCashflowChart();
+    }
+    return;
+  }
   if (button.matches("[data-power-add-menu]")) {
     openMenu(button, [
       { label: "Add income", action: "power-add:income" },
@@ -9623,10 +9725,15 @@ function appTourSeen() {
   try { return localStorage.getItem(appTourStorageKey + ":" + appTourAccountId) === "true"; } catch { return false; }
 }
 
+function markAppTourSeen(profile) {
+  appTourAccountId = String(profile?.email || profile?.username || profile?.name || "local").toLowerCase();
+  try { localStorage.setItem(appTourStorageKey + ":" + appTourAccountId, "true"); } catch { /* The completed setup still suppresses its duplicate tour for this session. */ }
+}
+
 // enterApp() can run for a restored session before this block is reached at the bottom of the
 // script, so these declarations use var (hoisted) and nothing here reads them until the timer fires.
 function maybeStartAppTour(profile, restoredSession) {
-  if (restoredSession) return;
+  if (restoredSession || !String(profile?.username || "").trim()) return;
   appTourAccountId = String(profile?.email || profile?.username || profile?.name || "local").toLowerCase();
   window.setTimeout(() => startAppTour(), 1200);
 }

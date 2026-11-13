@@ -12254,6 +12254,7 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .net
 html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .networth-card > .networth-chart { grid-area: chart !important; grid-column: auto !important; grid-row: auto !important; width: 100%; margin: 0; }
 .app-shell .networth-card .networth-chart-plot { height: 92px; }
 .app-shell .networth-card .networth-trend-line { stroke: #53dba1; stroke-width: 2.5; }
+.app-shell .networth-card .networth-zero-line { stroke: rgba(255, 255, 255, .38); stroke-width: 1; stroke-dasharray: 3 4; }
 .app-shell .networth-card .networth-trend-area { display: block; fill: rgba(65, 213, 149, .12); }
 .app-shell .networth-card .networth-trend-dot { display: block; background: #e8ca71; box-shadow: 0 0 0 4px rgba(232, 202, 113, .16); }
 .app-shell .networth-card .networth-chart-axis { display: flex; color: rgba(255, 255, 255, .62); }
@@ -12521,12 +12522,58 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
 html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card[data-net-worth-state="negative"] :is(.metric-heading, .metric-value) { color: #9f3436 !important; }
 html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card[data-net-worth-state="negative"] .metric-icon { background: rgba(216, 82, 88, .16) !important; color: #a63539 !important; }
 html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card[data-net-worth-state="negative"] .networth-trend-line { stroke: #d85258 !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card[data-net-worth-state="negative"] .networth-zero-line { stroke: rgba(159, 52, 54, .55) !important; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card[data-net-worth-state="negative"] .networth-trend-dot { background: #d85258 !important; box-shadow: 0 0 0 4px rgba(216, 82, 88, .18) !important; }
 html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid > .networth-card[data-net-worth-state="negative"] {
   border-color: #8e4644 !important;
   background: linear-gradient(135deg, #392323, #2d1d1e) !important;
 }
 html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid > .networth-card[data-net-worth-state="negative"] :is(.metric-heading, .metric-value) { color: #ffaaa5 !important; }
 html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid > .networth-card[data-net-worth-state="negative"] .metric-icon { background: rgba(239, 119, 112, .2) !important; color: #ffaaa5 !important; }
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid > .networth-card[data-net-worth-state="negative"] .networth-zero-line { stroke: rgba(255, 170, 165, .52) !important; }
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid > .networth-card[data-net-worth-state="negative"] .networth-trend-dot { background: #ff8b85 !important; box-shadow: 0 0 0 4px rgba(239, 119, 112, .2) !important; }
+.app-shell .dashboard-chart-views { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0 13px; }
+.app-shell .dashboard-chart-views button { min-height: 44px; padding: 0 14px; border: 1px solid var(--fx-line); border-radius: 999px; background: var(--fx-card); color: var(--fx-muted); font: 600 12px/1.2 var(--sans); cursor: pointer; }
+.app-shell .dashboard-chart-views button[aria-pressed="true"] { border-color: #07583f; background: #07583f; color: #fff; }
+.app-shell.theme-dark .dashboard-chart-views button[aria-pressed="true"] { border-color: #147653; background: #147653; }
+.app-shell .dashboard-chart-alt { min-width: 0; min-height: 240px; padding: 10px 0 4px; }
+.app-shell .dashboard-balance-chart,
+.app-shell .dashboard-quest-chart { display: grid; gap: 19px; width: min(100%, 680px); margin: 0 auto; }
+.app-shell .dashboard-balance-row { display: grid; gap: 7px; }
+.app-shell .dashboard-balance-row > div:first-child,
+.app-shell .dashboard-quest-row > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.app-shell .dashboard-balance-row strong,
+.app-shell .dashboard-quest-row strong { min-width: 0; overflow-wrap: anywhere; color: var(--fx-ink); font: 650 13px/1.3 var(--sans); }
+.app-shell .dashboard-balance-row b,
+.app-shell .dashboard-quest-row > div:first-child > span { color: var(--fx-ink); font: 700 13px/1.3 var(--sans); white-space: nowrap; }
+.app-shell .dashboard-balance-track,
+.app-shell .dashboard-quest-track { position: relative; height: 13px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--fx-muted) 12%, var(--fx-card)); }
+.app-shell .dashboard-balance-track > span,
+.app-shell .dashboard-quest-track > i { display: block; height: 100%; border-radius: inherit; background: #16a579; }
+.app-shell .dashboard-balance-track > .liabilities { background: #efa82e; }
+.app-shell .dashboard-balance-track > .negative { background: #d85258; }
+.app-shell .dashboard-balance-chart > button,
+.app-shell .dashboard-quest-chart > button,
+.app-shell .dashboard-chart-empty > button { justify-self: start; min-height: 44px; padding: 0 14px; border: 1px solid var(--fx-line); border-radius: 14px; background: var(--fx-card); color: #07583f; font: 650 12px var(--sans); cursor: pointer; }
+.app-shell.theme-dark :is(.dashboard-balance-chart, .dashboard-quest-chart, .dashboard-chart-empty) > button { color: #75d4a5; }
+.app-shell .dashboard-quest-chart { gap: 16px; }
+.app-shell .dashboard-quest-track > i { background: #07583f; }
+.app-shell .dashboard-chart-empty { display: grid; justify-items: start; align-content: center; gap: 8px; min-height: 210px; color: var(--fx-muted); }
+.app-shell .dashboard-chart-empty strong { color: var(--fx-ink); font: 700 15px var(--sans); }
+.app-shell .dashboard-chart-empty span { font: 400 13px/1.4 var(--sans); }
+.app-shell .cashflow-panel .dashboard-period[hidden],
+.app-shell .cashflow-panel [data-dashboard-cashflow-legend][hidden],
+.app-shell .cashflow-panel .cashflow-chart-wrap[hidden],
+.app-shell .cashflow-panel .dashboard-chart-alt[hidden] { display: none !important; }
+@media (max-width: 599px) {
+  .app-shell .dashboard-chart-views { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .app-shell .dashboard-chart-views button { padding: 0 6px; font-size: 10px; }
+  .app-shell .dashboard-chart-alt { min-height: 220px; }
+  .app-shell .dashboard-balance-row strong,
+  .app-shell .dashboard-quest-row strong,
+  .app-shell .dashboard-balance-row b,
+  .app-shell .dashboard-quest-row > div:first-child > span { font-size: 12px; }
+}
 .app-shell .cashflow-point { stroke-width: 1.5; }
 .app-shell .cashflow-point.income { fill: #16a579; stroke: #16a579; }
 .app-shell .cashflow-point.expenses { fill: #efa82e; stroke: #efa82e; }

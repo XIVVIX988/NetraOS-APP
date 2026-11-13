@@ -276,14 +276,20 @@
                   <h2>Cash flow</h2>
                   <p class="cashflow-subtitle">Income vs Expenses vs Savings</p>
                 </div>
-                <label class="dashboard-period"><span class="sr-only">Cash flow period</span><select data-dashboard-range aria-label="Cash flow period"><option value="6" selected>Last 6 months</option><option value="3">Last 3 months</option><option value="12">Last 12 months</option></select></label>
+                <label class="dashboard-period" data-dashboard-period-control><span class="sr-only">Cash flow period</span><select data-dashboard-range aria-label="Cash flow period"><option value="6" selected>Last 6 months</option><option value="3">Last 3 months</option><option value="12">Last 12 months</option></select></label>
               </div>
-              <div class="chart-legend">
+              <div class="dashboard-chart-views" role="group" aria-label="Financial chart views">
+                <button type="button" data-dashboard-chart-view="cashflow" aria-pressed="true">Cash flow</button>
+                <button type="button" data-dashboard-chart-view="position" aria-pressed="false">Assets &amp; liabilities</button>
+                <button type="button" data-dashboard-chart-view="quests" aria-pressed="false">Quests</button>
+              </div>
+              <div class="chart-legend" data-dashboard-cashflow-legend>
                 <span><i class="legend-income"></i>Income</span>
                 <span><i class="legend-expense"></i>Expenses</span>
                 <span><i class="legend-savings"></i>Savings</span>
               </div>
               <div class="cashflow-chart-wrap"><svg class="cashflow-chart" viewBox="0 0 760 260" role="img" aria-label="Six-month cash flow chart"><g data-chart-grid></g><g data-chart-series></g><g data-chart-bars></g><g data-chart-labels></g></svg></div>
+              <div class="dashboard-chart-alt" data-dashboard-chart-alt hidden></div>
               <div class="cashflow-panel-footer"><span>Looking ahead?</span><button type="button" data-jump="Power-Up">View your 6-month income forecast <span aria-hidden="true">↗</span></button></div>
             </article>
             <article class="panel allocation-panel">
@@ -348,9 +354,9 @@
     <!-- Supabase public client configuration and local-first account synchronization. -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
     <script src="supabase-config.js"></script>
-    <script src="supabase-sync.js?v=social-login-20261105-2"></script>
+    <script src="supabase-sync.js?v=onboarding-profile-save-20261113-1"></script>
     <!-- Main application logic: navigation, saved data, interactions, and report downloads. -->
-    <script src="scrip.js?v=income-calendar-single-view-20261111-1">
+    <script src="scrip.js?v=onboarding-no-loop-20261113-1">
     </script>
   </body>
 </html>
