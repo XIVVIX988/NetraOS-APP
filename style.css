@@ -12646,8 +12646,9 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
 .security-pin-entry.is-verifying { opacity: .68; pointer-events: none; }
 .security-lock-card form > button[type="submit"] { display: none !important; }
 .security-pin-status:empty { display: none; }
-.security-pin-status:not(:empty) { display: flex; align-items: center; gap: 9px; min-height: 20px; margin: 0; color: var(--app-popup-accent, #168660); font-size: 12px; }
-.security-pin-status:not(:empty)::before { width: 13px; height: 13px; flex: 0 0 13px; border: 2px solid currentColor; border-left-color: transparent; border-radius: 50%; content: ""; animation: button-loading-spin .7s linear infinite; }
+.security-pin-status:not(:empty) { display: flex; align-items: center; justify-content: center; min-height: 28px; margin: 0; color: var(--app-popup-accent, #168660); font-size: 0; text-align: center; }
+.security-pin-spinner { display: block; width: 26px; height: 26px; flex: 0 0 26px; }
+.segmented-spinner-art { display: block; width: 100%; height: 100%; overflow: visible; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; transform-box: view-box; transform-origin: center; animation: button-loading-spin .8s linear infinite; }
 body.theme-dark .security-pin-slot { border-color: #536157; background: #101713; }
 body.theme-dark .security-pin-slot.is-filled::after { background: #e9f0eb; }
 body.theme-dark .security-pin-entry.is-focused .security-pin-slot.is-current { border-color: var(--app-popup-accent, #83bd9b); }
@@ -12727,21 +12728,21 @@ body.theme-dark .onboarding-dialog .onboarding-actions [data-onboarding-back] { 
 
 button.is-loading { cursor: progress; }
 .button-loading-spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  flex: 0 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   margin-inline-start: 8px;
-  border: 2px solid currentColor;
-  border-left-color: transparent;
-  border-radius: 50%;
   vertical-align: middle;
-  animation: button-loading-spin .7s linear infinite;
 }
 @keyframes button-loading-spin { to { transform: rotate(360deg); } }
-.app-shell .cashflow-forecast-actions .forecast-received-action { margin-left: 18px; }
+.app-shell .cashflow-forecast-actions { flex: 1 1 auto; justify-content: flex-end; gap: 32px; }
+.app-shell .cashflow-forecast-actions .forecast-received-action { margin-left: 0; }
 @media (max-width: 600px) {
-  .app-shell .cashflow-forecast-actions .forecast-received-action { justify-self: end; margin-left: 8px; }
+  .app-shell .cashflow-forecast-actions { display: grid; width: 100%; grid-template-columns: auto auto; justify-content: space-between; gap: 8px; }
+  .app-shell .cashflow-forecast-actions .forecast-received-action { justify-self: end; margin-left: 0; }
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card > .metric-heading { gap: 4px; }
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card > .metric-heading > .metric-icon { flex-basis: 22px; width: 22px; height: 22px; }
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card > .metric-heading > [data-metric-label] { flex: 0 1 auto; white-space: nowrap; overflow-wrap: normal; font-size: 8px; letter-spacing: -.035em; }

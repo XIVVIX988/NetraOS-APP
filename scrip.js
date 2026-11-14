@@ -1159,6 +1159,13 @@ function recordSecurityAudit(action) {
 const PASSWORD_REVEAL_MS = 3000;
 const passwordRevealTimers = new WeakMap();
 const buttonLoadingStates = new WeakMap();
+function segmentedSpinnerMarkup() {
+  const spokes = Array.from({ length: 16 }, (_, index) => {
+    const opacity = (.16 + .84 * ((index + 1) / 16)).toFixed(2);
+    return `<line x1="12" y1="2.5" x2="12" y2="6" transform="rotate(${index * 22.5} 12 12)" opacity="${opacity}"/>`;
+  }).join("");
+  return `<svg class="segmented-spinner-art" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${spokes}</svg>`;
+}
 
 function clearButtonLoading(button) {
   const state = buttonLoadingStates.get(button);
@@ -1174,7 +1181,7 @@ function clearButtonLoading(button) {
 document.addEventListener("click", event => {
   if (!(event.target instanceof Element)) return;
   const button = event.target.closest("button");
-  if (!button || button.disabled || button.matches("[data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
+  if (!button || button.disabled || button.matches(".mobile-tab, [data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
   const state = { spinner: null, observer: null, timer: 0, minUntil: performance.now() + 300 };
   buttonLoadingStates.set(button, state);
   button.classList.add("is-loading");
@@ -1197,6 +1204,7 @@ document.addEventListener("click", event => {
       state.spinner = document.createElement("span");
       state.spinner.className = "button-loading-spinner";
       state.spinner.setAttribute("aria-hidden", "true");
+      state.spinner.innerHTML = segmentedSpinnerMarkup();
       button.append(state.spinner);
     }
     if (!button.disabled && button.getAttribute("aria-disabled") !== "true") {
@@ -1466,7 +1474,7 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
     }
     checkingPin = true;
     pinEntry.classList.add("is-verifying");
-    status.textContent = "Checking PIN…";
+    status.innerHTML = `<span class="sr-only">Checking PIN</span><span class="security-pin-spinner" aria-hidden="true">${segmentedSpinnerMarkup()}</span>`;
     try {
       if (!await verifyWorkspacePin(pinInput.value, settings)) throw new Error("PIN did not match.");
       lockScreen.remove();
@@ -1970,7 +1978,7 @@ function updateSignupPasswordChips(form) {
   return rules;
 }
 
-function showPublicPage(page = "landing") {
+function showPublicPage(page = "landing", { preserveAuthCallback = false } = {}) {
   if (page === "landing" && window.matchMedia("(max-width: 880px)").matches) {
     showPhoneWelcome();
     return;
@@ -1982,7 +1990,7 @@ function showPublicPage(page = "landing") {
   document.body.classList.remove("phone-entry-view");
   document.body.classList.toggle("public-view", page === "landing");
   document.body.classList.toggle("auth-view", page !== "landing");
-  window.location.hash = page === "landing" ? "home" : page;
+  if (!preserveAuthCallback) window.location.hash = page === "landing" ? "home" : page;
   if (["terms", "privacy", "cookies"].includes(page)) document.querySelector("[data-cookie-banner]")?.remove();
   if (page === "landing") {
     publicShell.innerHTML = `
@@ -9460,7 +9468,11 @@ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () 
 // Remove the legacy persistent local session marker. The workspace only opens after
 // a successful sign-in in this running app instance.
 try { localStorage.removeItem(sessionStorageKey); } catch {}
-if (activePinLockoutUntil) {
+if (passwordRecoveryReturn) {
+  // Keep Supabase's access token / code in the URL until getSession() completes
+  // its recovery exchange below. showPublicPage normally writes #login here.
+  showPublicPage("login", { preserveAuthCallback: true });
+} else if (activePinLockoutUntil) {
   showPublicPage("login");
   showPinLockoutScreen(activePinLockoutUntil);
 } else if (["login", "signup", "terms", "privacy", "cookies"].includes(initialPage)) {
@@ -9473,11 +9485,17 @@ if (activePinLockoutUntil) {
 
 window.addEventListener("netraos-auth-event", event => {
   if (event.detail?.event === "PASSWORD_RECOVERY" && event.detail?.session) {
+    activePinLockoutUntil = 0;
+    try { localStorage.removeItem(pinLockoutStorageKey); } catch { /* A verified recovery session still works if storage is unavailable. */ }
+    clearPinFailureCount();
     window.history.replaceState(null, "", `${window.location.pathname}#login`);
     showPasswordResetForm();
   }
 });
 if (window.NETRAOS_LAST_AUTH_EVENT === "PASSWORD_RECOVERY") {
+  activePinLockoutUntil = 0;
+  try { localStorage.removeItem(pinLockoutStorageKey); } catch { /* A verified recovery session still works if storage is unavailable. */ }
+  clearPinFailureCount();
   window.history.replaceState(null, "", `${window.location.pathname}#login`);
   showPasswordResetForm();
 }
@@ -9495,11 +9513,14 @@ window.addEventListener("netraos-sync-error", () => {
 });
 
 // Supabase Auth, not the old browser-only flag, authorizes a cloud account.
-if (!activePinLockoutUntil && window.NetraSupabase?.enabled && !["terms", "privacy", "cookies"].includes(initialPage)) {
+if ((!activePinLockoutUntil || passwordRecoveryReturn) && window.NetraSupabase?.enabled && !["terms", "privacy", "cookies"].includes(initialPage)) {
   window.NetraSupabase.getSession().then(async ({ data, error }) => {
     if (error) throw error;
     if (passwordRecoveryReturn) {
       if (data.session) {
+        activePinLockoutUntil = 0;
+        try { localStorage.removeItem(pinLockoutStorageKey); } catch { /* A verified recovery session still works if storage is unavailable. */ }
+        clearPinFailureCount();
         window.history.replaceState(null, "", `${window.location.pathname}#login`);
         showPasswordResetForm();
       }
