@@ -12782,3 +12782,37 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
 @media (max-width: 359px) {
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card > .metric-value { font-size: 27px !important; }
 }
+/* Keep net worth's amount and sparkline in a stable, roomy two-column layout. */
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, .72fr) !important;
+  grid-template-rows: auto auto !important;
+  grid-template-areas: "heading chart" "value chart" !important;
+  min-height: 220px;
+  align-content: center;
+  gap: 8px 18px;
+  padding: 22px 26px !important;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card > .metric-heading { grid-area: heading !important; align-self: end; }
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card > .metric-value {
+  grid-area: value !important;
+  align-self: start;
+  min-width: 0;
+  font-size: clamp(30px, 4.2vw, 48px) !important;
+  line-height: 1.05;
+}
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card > .networth-chart { grid-area: chart !important; align-self: center; min-width: 0; }
+@media (max-width: 600px) {
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card {
+    grid-template-columns: minmax(0, 1.1fr) minmax(72px, .9fr) !important;
+    min-height: 184px;
+    gap: 7px 10px;
+    padding: 18px 20px !important;
+  }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card > .metric-value { font-size: clamp(27px, 7vw, 38px) !important; }
+  .app-shell .networth-card .networth-chart-plot { height: 68px; }
+}
+@media (max-width: 359px) {
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card { grid-template-columns: minmax(0, 1fr) minmax(62px, .7fr) !important; min-height: 168px; padding: 16px !important; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card > .metric-value { font-size: 25px !important; }
+}

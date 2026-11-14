@@ -3885,7 +3885,10 @@ function updateDashboardPowerUpSummary() {
   // Dashboard figures use the same actual calendar-month aggregates as the
   // latest point in the cash-flow chart. Forecast income and payday-cycle
   // reporting remain available on the Power-Up page.
-  const actualIncome = actualIncomeForMonth(data.incomes, currentMonth);
+  // Show the current-month outlook on the dashboard so a newly planned
+  // payment updates the Income card immediately; historical periods remain
+  // based on payments actually marked as received.
+  const actualIncome = incomeOutlookForMonth(data.incomes, currentMonth);
   const actualSpending = actualSpendingForMonth(data.spending, currentMonth);
   const cashAfterSpending = actualIncome - actualSpending;
   const incomeCard = document.querySelector(".income-card");
