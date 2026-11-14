@@ -12060,8 +12060,8 @@ html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.m
 .app-shell.theme-dark .forecast-calendar-view .forecast-calendar-day:focus-visible { outline-color: #75d4a5; }
 .app-shell.theme-dark .forecast-selected-day { background: #111a15; }
 .app-shell.theme-dark .forecast-selected-day-heading > b { color: #75d4a5; }
-.app-shell .forecast-calendar-nav { display: flex; align-items: center; gap: 9px; min-width: 0; }
-.app-shell .forecast-calendar-nav h3 { min-width: 150px; text-align: center; }
+.app-shell .forecast-calendar-nav { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 9px; min-width: 0; }
+.app-shell .forecast-calendar-nav h3 { flex: 1 1 auto; min-width: 0; text-align: center; }
 .app-shell .forecast-calendar-nav button { display: grid; flex: 0 0 44px; width: 44px; min-height: 44px; place-items: center; padding: 0; border: 1px solid var(--fx-line); border-radius: 12px; background: var(--fx-card); color: var(--fx-ink); font: 500 25px/1 var(--sans); cursor: pointer; }
 .app-shell .forecast-calendar-nav button:disabled { opacity: .38; cursor: default; }
 .app-shell .forecast-calendar-view .forecast-month-card ul { margin-top: 16px; }
@@ -12630,3 +12630,107 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
   }
   .app-shell[data-accent] .mobile-tab.is-active svg { color: inherit; }
 }
+.app-shell .metric-icon svg.metric-arrow-up { transform: rotate(0deg); }
+.app-shell .metric-icon svg.metric-arrow-down { transform: rotate(180deg); }
+
+/* Segmented, rounded-square entry for the workspace unlock PIN. */
+.security-lock-card { box-sizing: border-box; width: min(440px, 100%); }
+.security-pin-entry { position: relative; width: min(100%, 360px); margin: 2px auto 4px; }
+.security-pin-slots { display: grid; grid-template-columns: repeat(var(--pin-length), minmax(0, 1fr)); gap: clamp(6px, 2vw, 10px); pointer-events: none; }
+.security-pin-slot { display: grid; min-width: 0; aspect-ratio: 1 / 1; place-items: center; border: 1px solid #d8ded9; border-radius: 12px; background: #fff; transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; }
+.security-pin-slot.is-filled::after { width: 9px; height: 9px; border-radius: 50%; background: #24352a; content: ""; }
+.security-pin-entry.is-focused .security-pin-slot.is-current { border-color: #39443d; box-shadow: 0 0 0 1px #39443d; }
+.security-pin-entry input,
+.security-pin-entry input:focus-visible { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; box-sizing: border-box; padding: 0; border: 0 !important; border-radius: 12px; outline: 0; background: transparent !important; color: transparent !important; font-size: 16px; letter-spacing: 0; caret-color: transparent; opacity: .01; box-shadow: none !important; }
+.security-pin-entry:focus-within .security-pin-slot.is-current { border-color: var(--app-popup-accent, #168660); box-shadow: 0 0 0 1px var(--app-popup-accent, #168660), 0 0 0 4px color-mix(in srgb, var(--app-popup-accent, #168660) 16%, transparent); }
+body.theme-dark .security-pin-slot { border-color: #536157; background: #101713; }
+body.theme-dark .security-pin-slot.is-filled::after { background: #e9f0eb; }
+body.theme-dark .security-pin-entry.is-focused .security-pin-slot.is-current { border-color: var(--app-popup-accent, #83bd9b); }
+@media (max-width: 400px) {
+  .security-lock-screen { padding: 16px; }
+  .security-lock-card { padding: 24px 20px; }
+  .security-pin-slots { gap: 6px; }
+  .security-pin-slot { border-radius: 10px; }
+}
+
+/* Calm, one-question-at-a-time first-run setup. */
+.onboarding-dialog {
+  box-sizing: border-box;
+  width: min(520px, calc(100% - 32px));
+  max-height: min(90dvh, 820px);
+  overflow: auto;
+  border: 1px solid #e5e9e4;
+  border-radius: 24px;
+  background: #fffefa;
+  box-shadow: 0 24px 80px rgba(22, 42, 30, .2);
+}
+.onboarding-dialog .inventory-form {
+  display: flex;
+  min-height: min(640px, 78dvh);
+  flex-direction: column;
+  padding: clamp(24px, 5vw, 36px);
+}
+.onboarding-dialog .inventory-dialog-heading { margin-bottom: 22px; border: 0; }
+.onboarding-dialog .inventory-dialog-heading .section-kicker { color: #68776d; font-size: 10px; }
+.onboarding-dialog .inventory-dialog-heading h2 { max-width: 380px; margin-top: 12px; font-size: clamp(26px, 7vw, 34px); line-height: 1.12; letter-spacing: -.04em; }
+.onboarding-dialog .onboarding-progress-wrap { margin-bottom: 12px; }
+.onboarding-dialog .onboarding-progress-track { height: 4px; background: #e7ebe7; }
+.onboarding-dialog .onboarding-progress-track i { background: var(--app-popup-accent, #174b36); }
+.onboarding-dialog .onboarding-copy { margin-bottom: 22px; font-size: 13px; }
+.onboarding-dialog .onboarding-fields { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.onboarding-dialog .onboarding-fields .inventory-form-field { min-width: 0; padding: 14px; border: 1px solid #e1e6e1; border-radius: 14px; background: #fff; }
+.onboarding-dialog .onboarding-fields .inventory-form-field > span { color: #202923; font-size: 13px; font-weight: 650; }
+.onboarding-dialog .onboarding-fields .inventory-form-field > small { color: #718078; }
+.onboarding-dialog .onboarding-fields :is(input, select) { min-height: 44px; border-radius: 10px; font-size: 16px; }
+.onboarding-dialog .onboarding-error { margin-top: 12px; }
+.onboarding-dialog .onboarding-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: auto; padding-top: 24px; }
+.onboarding-dialog .onboarding-actions [data-onboarding-back] { min-width: 94px; min-height: 50px; border: 1px solid #d8dfd9; border-radius: 14px; background: #fff; color: #34433a; }
+.onboarding-dialog .onboarding-actions [data-onboarding-next] { min-width: 148px; min-height: 50px; border-radius: 14px; background: var(--app-popup-accent, #174b36); color: var(--app-popup-accent-foreground, #fff); font-size: 14px; }
+.onboarding-dialog .onboarding-actions [hidden] { display: none !important; }
+body.theme-dark .onboarding-dialog { border-color: #35463b; background: #19221c; }
+body.theme-dark .onboarding-dialog .onboarding-fields .inventory-form-field { border-color: #35463b; background: #121b15; }
+body.theme-dark .onboarding-dialog .onboarding-fields .inventory-form-field > span { color: #e9f0eb; }
+body.theme-dark .onboarding-dialog .onboarding-actions [data-onboarding-back] { border-color: #46554b; background: #121b15; color: #e9f0eb; }
+@media (max-width: 600px) {
+  .onboarding-dialog {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #f5f4ef;
+  }
+  .onboarding-dialog .inventory-form {
+    box-sizing: border-box;
+    width: min(100%, 520px);
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: max(30px, env(safe-area-inset-top)) 24px max(20px, env(safe-area-inset-bottom));
+    background: #fffefa;
+  }
+  .onboarding-dialog .inventory-dialog-heading { margin: 42px 0 22px; }
+  .onboarding-dialog .inventory-dialog-heading h2 { font-size: clamp(28px, 8vw, 36px); }
+  .onboarding-dialog .onboarding-copy { margin-bottom: 25px; }
+  .onboarding-dialog .onboarding-fields { gap: 10px; }
+  .onboarding-dialog .onboarding-fields .inventory-form-field { padding: 13px; }
+  .onboarding-dialog .onboarding-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding-top: 18px; }
+  .onboarding-dialog .onboarding-actions [data-onboarding-back][hidden] { display: none !important; }
+  .onboarding-dialog .onboarding-actions [data-onboarding-next] { width: 100%; }
+}
+
+button.is-loading { cursor: progress; }
+.button-loading-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  margin-inline-start: 8px;
+  border: 2px solid currentColor;
+  border-left-color: transparent;
+  border-radius: 50%;
+  vertical-align: middle;
+  animation: button-loading-spin .7s linear infinite;
+}
+@keyframes button-loading-spin { to { transform: rotate(360deg); } }

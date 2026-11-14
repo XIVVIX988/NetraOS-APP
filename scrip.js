@@ -1039,7 +1039,7 @@ function getStoredSettings() {
       lockTimeoutMinutes: [0, 1, 5, 15].includes(Number(saved.lockTimeoutMinutes)) ? Number(saved.lockTimeoutMinutes) : 0,
       localPinSalt: typeof saved.localPinSalt === "string" ? saved.localPinSalt : "",
       localPinHash: typeof saved.localPinHash === "string" ? saved.localPinHash : "",
-      localPinLength: (saved.accountPinEnabled || saved.localPinLength === 4) ? 4 : 6,
+      localPinLength: 4,
       accountPinEnabled: Boolean(saved.accountPinEnabled),
       financialYearStartMonth: Math.max(1, Math.min(12, Number(saved.financialYearStartMonth) || 1)),
       paydayAnchorDay: Number.isInteger(Number(saved.paydayAnchorDay)) && Number(saved.paydayAnchorDay) >= 1 && Number(saved.paydayAnchorDay) <= 31 ? Number(saved.paydayAnchorDay) : 1,
@@ -1060,7 +1060,7 @@ function getStoredSettings() {
       questAnimations: saved.questAnimations !== false
     };
   } catch {
-    return { alwaysShowCents: false, reduceMotion: false, themeMode: "light", darkMode: false, goalNotifications: true, monthlyReminders: true, debtNotifications: true, budgetNotifications: true, performanceTelemetryConsent: false, cookieConsentVersion: 0, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 6, accountPinEnabled: false, financialYearStartMonth: 1, paydayAnchorDay: 1, autoLockPromptDismissed: false, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "leo", showXpPoints: true, questSounds: false, questAnimations: true };
+    return { alwaysShowCents: false, reduceMotion: false, themeMode: "light", darkMode: false, goalNotifications: true, monthlyReminders: true, debtNotifications: true, budgetNotifications: true, performanceTelemetryConsent: false, cookieConsentVersion: 0, lockTimeoutMinutes: 0, localPinSalt: "", localPinHash: "", localPinLength: 4, accountPinEnabled: false, financialYearStartMonth: 1, paydayAnchorDay: 1, autoLockPromptDismissed: false, privacyShortcut: "Shift+S", taxPaye: true, taxNssf: true, taxShif: true, taxAhl: true, personalRelief: 2400, insuranceRelief: 0, customRelief: 0, monthlyBackupPrompt: false, lastBackupPromptAt: "", accentProfile: "leo", showXpPoints: true, questSounds: false, questAnimations: true };
   }
 }
 
@@ -1158,6 +1158,52 @@ function recordSecurityAudit(action) {
 // Password fields stay masked while typing; only the explicit eye control reveals them.
 const PASSWORD_REVEAL_MS = 3000;
 const passwordRevealTimers = new WeakMap();
+const buttonLoadingStates = new WeakMap();
+
+function clearButtonLoading(button) {
+  const state = buttonLoadingStates.get(button);
+  if (!state) return;
+  window.clearTimeout(state.timer);
+  state.observer?.disconnect();
+  state.spinner?.remove();
+  button.classList.remove("is-loading");
+  button.removeAttribute("aria-busy");
+  buttonLoadingStates.delete(button);
+}
+
+document.addEventListener("click", event => {
+  if (!(event.target instanceof Element)) return;
+  const button = event.target.closest("button");
+  if (!button || button.disabled || button.matches("[data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
+  const state = { spinner: null, observer: null, timer: 0, minUntil: performance.now() + 300 };
+  buttonLoadingStates.set(button, state);
+  button.classList.add("is-loading");
+  button.setAttribute("aria-busy", "true");
+  const finishWhenReady = () => {
+    if (!button.isConnected) { clearButtonLoading(button); return; }
+    if (button.disabled || button.getAttribute("aria-disabled") === "true") return;
+    if (performance.now() < state.minUntil) {
+      window.setTimeout(finishWhenReady, Math.max(0, state.minUntil - performance.now()));
+      return;
+    }
+    clearButtonLoading(button);
+  };
+  state.observer = new MutationObserver(finishWhenReady);
+  state.observer.observe(button, { attributes: true, attributeFilter: ["disabled", "aria-disabled"] });
+  state.timer = window.setTimeout(() => clearButtonLoading(button), 20000);
+  window.requestAnimationFrame(() => {
+    if (!button.isConnected) { clearButtonLoading(button); return; }
+    if (!state.spinner) {
+      state.spinner = document.createElement("span");
+      state.spinner.className = "button-loading-spinner";
+      state.spinner.setAttribute("aria-hidden", "true");
+      button.append(state.spinner);
+    }
+    if (!button.disabled && button.getAttribute("aria-disabled") !== "true") {
+      state.timer = window.setTimeout(finishWhenReady, 700);
+    }
+  });
+}, true);
 
 function setPasswordVisible(input, visible, pinned) {
   const toggle = input.closest(".password-field")?.querySelector("[data-password-toggle]");
@@ -1349,11 +1395,21 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
   lockScreen.id = "security-lock-screen";
   lockScreen.className = "security-lock-screen";
   lockScreen.dataset.accent = appShell.dataset.accent || "leo";
-  lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">WELCOME BACK</span><h1 id="security-lock-title">Please unlock your workspace.</h1><p>Enter your ${settings.localPinLength}-digit PIN to return to your workspace.</p><form><label for="security-unlock-pin">Your PIN</label><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${settings.localPinLength}}" maxlength="${settings.localPinLength}" required><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Continue</button></form></section>`;
+  lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">WELCOME BACK</span><h1 id="security-lock-title">Please unlock your workspace.</h1><p>Enter your ${settings.localPinLength}-digit PIN to return to your workspace.</p><form><label for="security-unlock-pin">Your PIN</label><div class="security-pin-entry" data-pin-entry style="--pin-length:${settings.localPinLength}"><div class="security-pin-slots" aria-hidden="true">${Array.from({ length: settings.localPinLength }, (_, index) => `<span class="security-pin-slot" data-pin-slot="${index}"></span>`).join("")}</div><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${settings.localPinLength}}" maxlength="${settings.localPinLength}" aria-label="Your ${settings.localPinLength}-digit PIN" required></div><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Continue</button></form></section>`;
   document.body.append(lockScreen);
   recordSecurityAudit(onLaunch ? "Workspace locked on launch" : onBackground ? "Workspace locked when app was backgrounded" : "Workspace locked after inactivity");
   const form = lockScreen.querySelector("form");
   const pinInput = form.elements.pin;
+  const pinEntry = lockScreen.querySelector("[data-pin-entry]");
+  const pinSlots = [...lockScreen.querySelectorAll("[data-pin-slot]")];
+  const renderPinSlots = () => pinSlots.forEach((slot, index) => {
+    slot.classList.toggle("is-filled", index < pinInput.value.length);
+    slot.classList.toggle("is-current", pinInput === document.activeElement && index === Math.min(pinInput.value.length, pinSlots.length - 1));
+  });
+  pinInput.addEventListener("input", renderPinSlots);
+  pinInput.addEventListener("focus", () => { pinEntry?.classList.add("is-focused"); renderPinSlots(); });
+  pinInput.addEventListener("blur", () => { pinEntry?.classList.remove("is-focused"); renderPinSlots(); });
+  renderPinSlots();
   const error = lockScreen.querySelector(".security-lock-error");
   const submitButton = form.querySelector("button[type='submit']");
   let attempts = getPinFailureCount();
@@ -1418,12 +1474,14 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
         error.textContent = "We couldn’t check your PIN just now. Please check your connection and try again.";
         error.hidden = false;
         pinInput.value = "";
+        renderPinSlots();
         pinInput.focus();
         return;
       }
       attempts += 1;
       setPinFailureCount(attempts);
       pinInput.value = "";
+      renderPinSlots();
       const card = lockScreen.querySelector(".security-lock-card");
       card.classList.remove("is-shaking");
       void card.offsetWidth;
@@ -2773,8 +2831,8 @@ function renderIncomeForecast(incomes) {
   const rows = payments.length ? payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")} · ${new Date(`${item.paymentDate}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("") : `<li class="forecast-month-empty">No expected payments</li>`;
   const calendar = `<article class="forecast-month-card"><div class="forecast-month-heading"><div class="forecast-calendar-nav"><button type="button" data-forecast-month-nav="previous" aria-label="Previous month" ${incomeCalendarOffset === 0 ? "disabled" : ""}>‹</button><h3>${escapeHTML(title)}</h3><button type="button" data-forecast-month-nav="next" aria-label="Next month" ${incomeCalendarOffset === 11 ? "disabled" : ""}>›</button></div></div><div class="forecast-calendar"><div class="forecast-calendar-weekdays" aria-hidden="true"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><section class="forecast-selected-day" data-forecast-selected-day aria-live="polite"><strong>Choose a date</strong><span>Tap a calendar date to see its planned income.</span></section><ul>${rows}</ul></article>`;
   const received = incomes.filter(item => item.status === "received");
-  return `<section class="cashflow-forecast" aria-labelledby="cashflow-forecast-title">
-    <header class="cashflow-forecast-heading"><div><span class="section-kicker">12-MONTH INCOME CALENDAR</span><h2 id="cashflow-forecast-title">Income forecast</h2><p>Plan dividends, interest, salary, and other income by the date you expect the cash to arrive.</p></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button><button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div></header>
+  return `<section class="cashflow-forecast" aria-label="12-month income calendar">
+    <header class="cashflow-forecast-heading"><div><span class="section-kicker">12-MONTH INCOME CALENDAR</span></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button><button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div></header>
     <div class="forecast-month-grid forecast-calendar-view">${calendar}</div>
     ${received.length ? `<p class="forecast-footnote">Planned amounts are estimates. Mark them received when the money arrives.</p>` : `<p class="forecast-footnote">These amounts are estimates. Mark income as received when the money arrives.</p>`}
   </section>`;
@@ -5639,12 +5697,10 @@ function renderPowerUpPage() {
         <article class="inventory-summary-card">
           <span class="inventory-label">INCOME OUTLOOK</span>
           <strong>${formatKsh(totals.reportIncome)}</strong>
-          <span class="inventory-note">Received plus expected for this period</span>
         </article>
         <article class="inventory-summary-card">
           <span class="inventory-label">PERIOD BUDGET</span>
           <strong>${formatKsh(totals.reportBudget)}</strong>
-          <span class="inventory-note">Across ${data.budgets.length} budget ${data.budgets.length === 1 ? "line" : "lines"}</span>
         </article>
         <article class="inventory-summary-card">
           <span class="inventory-label">PERIOD SPENDING</span>
@@ -6881,16 +6937,8 @@ function showPreferredNamePrompt(profile) {
     monthlyContribution: "",
     fundingApproach: "monthly"
   };
-  const tour = [
-    { page: "Dashboard", title: "Your dashboard", copy: "Start here for your net worth, income, savings rate, spending, and next steps." },
-    { page: "Inventory", title: "Assets and liabilities", copy: "Record what you own and owe. You can link an asset or liability to a quest so progress follows its balance." },
-    { page: "Power-Up", title: "Income and monthly plan", copy: "Log income, set budget lines, and record spending. The dashboard compares spending with income." },
-    { page: "Quests", title: "Goals with momentum", copy: "Track savings or debt payoff goals, set deadlines, and review the monthly pace needed." },
-    { page: "Stats", title: "Patterns and reports", copy: "Review cash flow, savings, and net worth over time, then download a report when you need one." },
-    { page: "Settings", title: "Make NetraOS yours", copy: "Change your profile, theme, accent, payday cycle, privacy, and security preferences at any time." }
-  ];
   const questionSteps = ["profile", "preferences", "goal", "target", "plan"];
-  const totalSteps = questionSteps.length + tour.length;
+  const totalSteps = questionSteps.length;
   let step = 0;
   const dialog = document.createElement("dialog");
   dialog.className = "inventory-dialog onboarding-dialog";
@@ -6902,7 +6950,7 @@ function showPreferredNamePrompt(profile) {
       <p class="onboarding-copy" data-onboarding-copy></p>
       <div class="inventory-form-fields onboarding-fields" data-onboarding-fields></div>
       <p class="reset-status onboarding-error" role="alert" aria-live="polite" data-onboarding-error></p>
-      <footer class="inventory-dialog-actions onboarding-actions"><button class="inventory-cancel" type="button" data-onboarding-back>Back</button><button class="secondary-button" type="button" data-onboarding-skip>Skip question</button><button class="inventory-submit" type="button" data-onboarding-next>Continue</button></footer>
+      <footer class="inventory-dialog-actions onboarding-actions"><button class="inventory-cancel" type="button" data-onboarding-back>Back</button><button class="secondary-button" type="button" data-onboarding-skip hidden>Skip</button><button class="inventory-submit" type="button" data-onboarding-next>Next</button></footer>
     </form>`;
   document.body.append(dialog);
   const form = dialog.querySelector("form");
@@ -6964,23 +7012,11 @@ function showPreferredNamePrompt(profile) {
 
   const renderStep = () => {
     const kind = questionSteps[step];
-    const tourIndex = step - questionSteps.length;
-    const tourStep = tour[tourIndex];
     stepCount.textContent = `STEP ${step + 1} OF ${totalSteps}`;
     progress.style.width = `${((step + 1) / totalSteps) * 100}%`;
     backButton.hidden = step === 0;
     error.textContent = "";
-    skipButton.textContent = tourStep ? "Skip tour" : "Skip question";
-    nextButton.textContent = step === totalSteps - 1 ? "Finish setup" : tourStep ? "Next stop" : "Continue";
-    if (tourStep) {
-      showPage(tourStep.page);
-      dialog.querySelector("[data-onboarding-kicker]").textContent = `QUICK TOUR · ${tourIndex + 1} OF ${tour.length}`;
-      title.textContent = tourStep.title;
-      copy.textContent = tourStep.copy;
-      fields.innerHTML = `<div class="onboarding-tour-card"><span aria-hidden="true">${["◉", "▤", "↗", "◎", "▥", "⚙"][tourIndex]}</span><p>Look around this section behind the guide. Select <b>Next stop</b> to continue or <b>Skip tour</b> to finish.</p></div>`;
-      skipButton.textContent = "Skip tour";
-      return;
-    }
+    nextButton.textContent = step === totalSteps - 1 ? "Start" : "Next";
     dialog.querySelector("[data-onboarding-kicker]").textContent = "WELCOME TO NETRAOS · SETUP";
     if (kind === "profile") {
       title.textContent = "A little about you";
@@ -7067,6 +7103,7 @@ function showPreferredNamePrompt(profile) {
       }
       enterApp(completedProfile, { skipTour: true });
       dialog.close();
+      window.setTimeout(() => startAppTour({ force: true }), 700);
       showToast(cloudProfileSaved
         ? hasGoal ? "Your setup is complete and your first quest is ready." : "Your setup is complete. You can create a quest whenever you’re ready."
         : "Your setup is saved on this device. Reconnect to sync your profile.");
@@ -7079,9 +7116,9 @@ function showPreferredNamePrompt(profile) {
 
   backButton.addEventListener("click", () => { if (step > 0) { step -= 1; renderStep(); } });
   skipButton.addEventListener("click", () => {
-    if (step >= questionSteps.length) { finish(); return; }
     captureStep({ skip: true });
-    step = Math.min(totalSteps - 1, step + 1);
+    if (step === totalSteps - 1) { finish(); return; }
+    step += 1;
     renderStep();
   });
   nextButton.addEventListener("click", () => {
