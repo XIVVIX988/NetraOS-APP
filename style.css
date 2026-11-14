@@ -12782,37 +12782,76 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
 @media (max-width: 359px) {
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card > .metric-value { font-size: 27px !important; }
 }
-/* Keep net worth's amount and sparkline in a stable, roomy two-column layout. */
-html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(110px, .72fr) !important;
-  grid-template-rows: auto auto !important;
-  grid-template-areas: "heading chart" "value chart" !important;
-  min-height: 220px;
-  align-content: center;
-  gap: 8px 18px;
-  padding: 22px 26px !important;
+
+/* Dashboard rebuild: compact hierarchy based on the supplied reference. */
+.app-shell #page-content:has(> .dashboard-page-heading) { display: grid; gap: 14px; }
+.app-shell #page-content > .dashboard-page-heading { margin: 0; padding: 0 2px; }
+.app-shell #page-content > .dashboard-page-heading h1 { margin: 5px 0 0; color: var(--text, #19241f); font: 750 clamp(24px, 3vw, 32px)/1.12 var(--display, Inter, sans-serif); letter-spacing: -.04em; }
+.app-shell #page-content > .dashboard-page-heading .eyebrow { margin: 0; }
+.app-shell #page-content > .dashboard-balance-grid { display: block; margin: 0; }
+.app-shell #page-content > .dashboard-balance-grid .networth-card { width: 100%; }
+.dashboard-shortcuts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: -12px; }
+.dashboard-shortcuts button { display: grid; justify-items: center; align-content: center; gap: 7px; min-width: 0; min-height: 76px; padding: 8px 5px; border: 1px solid var(--line, #e6ebe7); border-radius: 16px; background: var(--panel, #fffefa); color: var(--text, #19241f); font: 600 11px/1.2 var(--sans, Inter, sans-serif); cursor: pointer; }
+.dashboard-shortcut-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--green, #08764f) 10%, transparent); color: var(--green, #08764f); }
+.dashboard-shortcut-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.app-shell #page-content > .dashboard-section-heading { margin-top: 4px; }
+.dashboard-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.dashboard-section-heading h2 { margin: 0; color: var(--text, #19241f); font: 700 17px/1.2 var(--display, Inter, sans-serif); letter-spacing: -.025em; }
+.dashboard-section-heading > button { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: var(--green, #08764f); font: 650 12px var(--sans, Inter, sans-serif); cursor: pointer; }
+.app-shell #page-content > .dashboard-overview-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.app-shell #page-content > .dashboard-overview-grid .income-card { order: 1; }
+.app-shell #page-content > .dashboard-overview-grid .spending-card { order: 2; }
+.app-shell #page-content > .dashboard-overview-grid .savings-card { order: 3; }
+.app-shell #page-content > .dashboard-overview-grid .deficit-card { order: 4; }
+.app-shell #page-content > .dashboard-overview-grid .metric-card { min-width: 0; min-height: 126px; padding: 16px; border-radius: 18px; }
+.app-shell #page-content > .dashboard-overview-grid .metric-card .metric-heading { gap: 8px; margin-bottom: 14px; font-size: 10px; }
+.app-shell #page-content > .dashboard-overview-grid .metric-card .metric-icon { flex-basis: 32px; width: 32px; height: 32px; }
+.app-shell #page-content > .dashboard-overview-grid .metric-card .metric-icon svg { width: 18px; height: 18px; }
+.app-shell #page-content > .dashboard-overview-grid .metric-card .metric-value { font-size: clamp(16px, 1.8vw, 24px) !important; overflow-wrap: anywhere; }
+.app-shell #page-content > .dashboard-next-action { margin: 0; border-radius: 18px; }
+.app-shell #page-content > .dashboard-recent-panel { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 18px 20px; border: 1px solid var(--line, #e6ebe7); border-radius: 20px; background: var(--panel, #fffefa); box-shadow: var(--shadow, 0 5px 18px rgba(16, 38, 27, .05)); }
+.dashboard-recent-list { display: grid; }
+.dashboard-activity-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 11px; min-height: 65px; border-top: 1px solid var(--line, #e6ebe7); }
+.dashboard-activity-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 50%; background: #e8f4ec; color: #0b7652; }
+.dashboard-activity-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dashboard-activity-row.is-spending .dashboard-activity-icon { background: #fff0ef; color: #b53b3b; }
+.dashboard-activity-name { display: grid; gap: 4px; min-width: 0; }
+.dashboard-activity-name strong { overflow: hidden; color: var(--text, #19241f); font: 650 13px/1.2 var(--sans, Inter, sans-serif); text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-activity-name small { overflow: hidden; color: var(--muted, #6c7870); font: 450 11px/1.2 var(--sans, Inter, sans-serif); text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-activity-amount { color: #126c4d; font: 700 13px/1.2 var(--sans, Inter, sans-serif); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dashboard-activity-row.is-spending .dashboard-activity-amount { color: #9f3436; }
+.dashboard-activity-empty { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 0 2px; border-top: 1px solid var(--line, #e6ebe7); }
+.dashboard-activity-empty > span { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px; background: color-mix(in srgb, var(--green, #08764f) 10%, transparent); color: var(--green, #08764f); font-size: 22px; }
+.dashboard-activity-empty > div { flex: 1 1 180px; min-width: 0; }
+.dashboard-activity-empty strong { color: var(--text, #19241f); font-size: 13px; }
+.dashboard-activity-empty p { margin: 4px 0 0; color: var(--muted, #6c7870); font-size: 11px; line-height: 1.45; }
+.dashboard-activity-empty button { min-height: 40px; padding: 0 12px; border: 1px solid var(--line, #e6ebe7); border-radius: 12px; background: var(--panel, #fffefa); color: var(--green, #08764f); font: 650 11px var(--sans, Inter, sans-serif); cursor: pointer; }
+.app-shell.theme-dark .dashboard-shortcuts button,
+.app-shell.theme-dark .dashboard-recent-panel { border-color: var(--line); background: var(--panel); }
+.app-shell.theme-dark .dashboard-activity-icon { background: #18382b; color: #8ce0b2; }
+.app-shell.theme-dark .dashboard-activity-row.is-spending .dashboard-activity-icon { background: #3a2423; color: #ffaaa5; }
+.app-shell.theme-dark .dashboard-activity-amount { color: #8ce0b2; }
+.app-shell.theme-dark .dashboard-activity-row.is-spending .dashboard-activity-amount { color: #ffaaa5; }
+.app-shell.theme-dark .dashboard-activity-empty button { border-color: var(--line); background: var(--panel); color: var(--green); }
+@media (min-width: 600px) and (max-width: 899px) {
+  .app-shell #page-content > .dashboard-overview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card > .metric-heading { grid-area: heading !important; align-self: end; }
-html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card > .metric-value {
-  grid-area: value !important;
-  align-self: start;
-  min-width: 0;
-  font-size: clamp(30px, 4.2vw, 48px) !important;
-  line-height: 1.05;
-}
-html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card > .networth-chart { grid-area: chart !important; align-self: center; min-width: 0; }
-@media (max-width: 600px) {
-  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card {
-    grid-template-columns: minmax(0, 1.1fr) minmax(72px, .9fr) !important;
-    min-height: 184px;
-    gap: 7px 10px;
-    padding: 18px 20px !important;
-  }
-  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card > .metric-value { font-size: clamp(27px, 7vw, 38px) !important; }
-  .app-shell .networth-card .networth-chart-plot { height: 68px; }
-}
-@media (max-width: 359px) {
-  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card { grid-template-columns: minmax(0, 1fr) minmax(62px, .7fr) !important; min-height: 168px; padding: 16px !important; }
-  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card > .metric-value { font-size: 25px !important; }
+@media (max-width: 599px) {
+  .app-shell #page-content:has(> .dashboard-page-heading) { gap: 18px; }
+  .app-shell #page-content > .dashboard-page-heading h1 { font-size: 22px; }
+  .dashboard-shortcuts { gap: 8px; margin-top: -8px; }
+  .dashboard-shortcuts button { min-height: 70px; border-radius: 15px; font-size: 10px; }
+  .dashboard-shortcut-icon { width: 34px; height: 34px; }
+  .dashboard-section-heading h2 { font-size: 16px; }
+  .app-shell #page-content > .dashboard-overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .app-shell #page-content > .dashboard-overview-grid .metric-card { min-height: 104px; padding: 12px; border-radius: 16px; }
+  .app-shell #page-content > .dashboard-overview-grid .metric-card .metric-heading { gap: 7px; margin-bottom: 10px; font-size: 9px; }
+  .app-shell #page-content > .dashboard-overview-grid .metric-card .metric-icon { flex-basis: 28px; width: 28px; height: 28px; }
+  .app-shell #page-content > .dashboard-overview-grid .metric-card .metric-value { font-size: clamp(15px, 4.6vw, 20px) !important; }
+  .app-shell #page-content > .dashboard-recent-panel { padding: 15px 14px; border-radius: 18px; }
+  .dashboard-activity-row { grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px; min-height: 60px; }
+  .dashboard-activity-icon { width: 32px; height: 32px; }
+  .dashboard-activity-name strong { font-size: 12px; }
+  .dashboard-activity-name small { font-size: 10px; }
+  .dashboard-activity-amount { font-size: 11px; }
 }

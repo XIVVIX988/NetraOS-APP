@@ -3882,12 +3882,8 @@ function setMetricTrend(card, currentValue, previousValue) {
 function updateDashboardPowerUpSummary() {
   const data = getPowerUpData();
   const currentMonth = monthKey();
-  // Dashboard figures use the same actual calendar-month aggregates as the
-  // latest point in the cash-flow chart. Forecast income and payday-cycle
-  // reporting remain available on the Power-Up page.
-  // Show the current-month outlook on the dashboard so a newly planned
-  // payment updates the Income card immediately; historical periods remain
-  // based on payments actually marked as received.
+  // The dashboard shows this month's income outlook so planned payments are
+  // visible immediately; past periods and recent activity use received income.
   const actualIncome = incomeOutlookForMonth(data.incomes, currentMonth);
   const actualSpending = actualSpendingForMonth(data.spending, currentMonth);
   const cashAfterSpending = actualIncome - actualSpending;
@@ -3923,6 +3919,38 @@ function updateDashboardPowerUpSummary() {
   }
 
   updateDashboardCashflowChart();
+  updateDashboardRecentActivity();
+}
+
+function updateDashboardRecentActivity() {
+  const list = document.querySelector("[data-dashboard-recent-activity]");
+  if (!list) return;
+  const data = getPowerUpData();
+  const entries = [
+    ...data.incomes.filter(item => item.status === "received").map(item => ({
+      kind: "income", name: item.name || "Income", category: item.category || "Income",
+      amount: Number(item.amount || 0), date: item.date || item.expectedDate || ""
+    })),
+    ...data.spending.map(item => ({
+      kind: "spending", name: item.name || "Expense", category: item.category || "Spending",
+      amount: Number(item.amount || 0), date: /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : /^\d{4}-\d{2}$/.test(item.month || "") ? `${item.month}-01` : ""
+    }))
+  ].filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && Number.isFinite(item.amount))
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 5);
+  if (!entries.length) {
+    list.innerHTML = `<div class="dashboard-activity-empty"><span aria-hidden="true">⌁</span><div><strong>No activity yet</strong><p>Income you mark as received and expenses you record will show here.</p></div><button type="button" data-jump="Power-Up">Open Power-Up <span aria-hidden="true">↗</span></button></div>`;
+    return;
+  }
+  const today = localDateValue();
+  const yesterdayDate = new Date(`${today}T12:00:00`);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterday = localDateValue(yesterdayDate);
+  list.innerHTML = entries.map(item => {
+    const date = item.date === today ? "Today" : item.date === yesterday ? "Yesterday" : new Date(`${item.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const incoming = item.kind === "income";
+    return `<article class="dashboard-activity-row ${incoming ? "is-income" : "is-spending"}"><span class="dashboard-activity-icon" aria-hidden="true"><svg viewBox="0 0 24 24">${incoming ? '<path d="M12 19V5m-6 6 6-6 6 6"/>' : '<path d="M12 5v14m-6-6 6 6 6-6"/>'}</svg></span><span class="dashboard-activity-name"><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category)} · ${date}</small></span><strong class="dashboard-activity-amount">${incoming ? "+" : "−"}${formatKsh(item.amount)}</strong></article>`;
+  }).join("");
 }
 
 function dashboardCashflowSeries() {
