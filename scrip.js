@@ -4569,17 +4569,21 @@ function openInventoryDialog(action, editId = null) {
 
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   dialog.showModal();
-  dialog.querySelector('input[name="name"]').focus();
+  window.requestAnimationFrame(() => {
+    if (!dialog.open) return;
+    const nameInput = form.elements.name;
+    nameInput?.focus({ preventScroll: true });
+  });
 }
 
-function openPowerUpDialog(kind, editId = null) {
+function openPowerUpDialog(kind, editId = null, preset = {}) {
   const dataAtOpen = getPowerUpData();
   const targetList = ["income", "received-income"].includes(kind) ? "incomes" : kind === "spending" ? "spending" : "budgets";
   const editing = editId ? dataAtOpen[targetList].find(item => item.id === editId) : null;
   const isReceivedIncome = kind === "received-income";
   const isIncome = kind === "income" || isReceivedIncome;
   const isSpending = kind === "spending";
-  const incomeDate = editing?.date || editing?.expectedDate || `${getReportMonth()}-${String(new Date().getDate()).padStart(2, "0")}`;
+  const incomeDate = preset.date || editing?.date || editing?.expectedDate || `${getReportMonth()}-${String(new Date().getDate()).padStart(2, "0")}`;
   const expectedSources = dataAtOpen.incomes.filter(item => item.status !== "received");
   const dialog = document.createElement("dialog");
   dialog.className = "inventory-dialog";
@@ -4718,6 +4722,10 @@ function openPowerUpDialog(kind, editId = null) {
       syncIncomeCategoryIcon();
       syncSalaryNetPreview();
     });
+    if (preset.sourceId && expectedSources.some(item => item.id === preset.sourceId)) {
+      form.elements.sourceId.value = preset.sourceId;
+      form.elements.sourceId.dispatchEvent(new Event("change", { bubbles: true }));
+    }
   }
   if (budgetCategorySelect) {
     const syncBudgetCategoryIcon = () => {
@@ -4832,7 +4840,11 @@ function openPowerUpDialog(kind, editId = null) {
   });
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   dialog.showModal();
-  dialog.querySelector('input[name="name"]').focus();
+  window.requestAnimationFrame(() => {
+    if (!dialog.open) return;
+    const firstField = form.elements.name;
+    firstField?.focus({ preventScroll: true });
+  });
 }
 
 // Quest and achievement pages show goals, completion celebrations, and earned badges.
@@ -9218,7 +9230,19 @@ document.addEventListener("click", event => {
     return;
   }
   if (button.matches("[data-power-action]")) {
-    openPowerUpDialog(button.dataset.powerAction);
+    if (button.dataset.powerAction === "received-income") {
+      const forecast = button.closest(".cashflow-forecast");
+      const selectedDate = forecast?.querySelector("[data-forecast-date].is-selected")?.dataset.forecastDate || localDateValue();
+      const selectedMonth = selectedDate.slice(0, 7);
+      const dueSources = getPowerUpData().incomes.filter(item => incomeExpectedInMonth(item, selectedMonth)
+        && forecastPaymentDate(item, selectedMonth) === selectedDate);
+      openPowerUpDialog("received-income", null, {
+        date: selectedDate,
+        sourceId: dueSources.length === 1 ? dueSources[0].id : ""
+      });
+    } else {
+      openPowerUpDialog(button.dataset.powerAction);
+    }
     return;
   }
   if (button.matches("[data-forecast-month-nav]")) {
