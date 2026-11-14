@@ -12635,14 +12635,19 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
 
 /* Segmented, rounded-square entry for the workspace unlock PIN. */
 .security-lock-card { box-sizing: border-box; width: min(440px, 100%); }
-.security-pin-entry { position: relative; width: min(100%, 360px); margin: 2px auto 4px; }
-.security-pin-slots { display: grid; grid-template-columns: repeat(var(--pin-length), minmax(0, 1fr)); gap: clamp(6px, 2vw, 10px); pointer-events: none; }
+.security-pin-entry { position: relative; width: max-content; max-width: 100%; margin: 2px auto 4px; }
+.security-pin-slots { display: grid; grid-template-columns: repeat(var(--pin-length), minmax(0, 56px)); gap: clamp(6px, 2vw, 10px); pointer-events: none; }
 .security-pin-slot { display: grid; min-width: 0; aspect-ratio: 1 / 1; place-items: center; border: 1px solid #d8ded9; border-radius: 12px; background: #fff; transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; }
 .security-pin-slot.is-filled::after { width: 9px; height: 9px; border-radius: 50%; background: #24352a; content: ""; }
 .security-pin-entry.is-focused .security-pin-slot.is-current { border-color: #39443d; box-shadow: 0 0 0 1px #39443d; }
 .security-pin-entry input,
 .security-pin-entry input:focus-visible { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; box-sizing: border-box; padding: 0; border: 0 !important; border-radius: 12px; outline: 0; background: transparent !important; color: transparent !important; font-size: 16px; letter-spacing: 0; caret-color: transparent; opacity: .01; box-shadow: none !important; }
 .security-pin-entry:focus-within .security-pin-slot.is-current { border-color: var(--app-popup-accent, #168660); box-shadow: 0 0 0 1px var(--app-popup-accent, #168660), 0 0 0 4px color-mix(in srgb, var(--app-popup-accent, #168660) 16%, transparent); }
+.security-pin-entry.is-verifying { opacity: .68; pointer-events: none; }
+.security-lock-card form > button[type="submit"] { display: none !important; }
+.security-pin-status:empty { display: none; }
+.security-pin-status:not(:empty) { display: flex; align-items: center; gap: 9px; min-height: 20px; margin: 0; color: var(--app-popup-accent, #168660); font-size: 12px; }
+.security-pin-status:not(:empty)::before { width: 13px; height: 13px; flex: 0 0 13px; border: 2px solid currentColor; border-left-color: transparent; border-radius: 50%; content: ""; animation: button-loading-spin .7s linear infinite; }
 body.theme-dark .security-pin-slot { border-color: #536157; background: #101713; }
 body.theme-dark .security-pin-slot.is-filled::after { background: #e9f0eb; }
 body.theme-dark .security-pin-entry.is-focused .security-pin-slot.is-current { border-color: var(--app-popup-accent, #83bd9b); }
@@ -12734,3 +12739,10 @@ button.is-loading { cursor: progress; }
   animation: button-loading-spin .7s linear infinite;
 }
 @keyframes button-loading-spin { to { transform: rotate(360deg); } }
+.app-shell .cashflow-forecast-actions .forecast-received-action { margin-left: 18px; }
+@media (max-width: 600px) {
+  .app-shell .cashflow-forecast-actions .forecast-received-action { justify-self: end; margin-left: 8px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card > .metric-heading { gap: 4px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card > .metric-heading > .metric-icon { flex-basis: 22px; width: 22px; height: 22px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .deficit-card > .metric-heading > [data-metric-label] { flex: 0 1 auto; white-space: nowrap; overflow-wrap: normal; font-size: 8px; letter-spacing: -.035em; }
+}

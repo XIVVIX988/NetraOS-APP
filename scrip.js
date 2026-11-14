@@ -1395,23 +1395,31 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
   lockScreen.id = "security-lock-screen";
   lockScreen.className = "security-lock-screen";
   lockScreen.dataset.accent = appShell.dataset.accent || "leo";
-  lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">WELCOME BACK</span><h1 id="security-lock-title">Please unlock your workspace.</h1><p>Enter your ${settings.localPinLength}-digit PIN to return to your workspace.</p><form><label for="security-unlock-pin">Your PIN</label><div class="security-pin-entry" data-pin-entry style="--pin-length:${settings.localPinLength}"><div class="security-pin-slots" aria-hidden="true">${Array.from({ length: settings.localPinLength }, (_, index) => `<span class="security-pin-slot" data-pin-slot="${index}"></span>`).join("")}</div><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${settings.localPinLength}}" maxlength="${settings.localPinLength}" aria-label="Your ${settings.localPinLength}-digit PIN" required></div><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit">Continue</button></form></section>`;
+  lockScreen.innerHTML = `<section class="security-lock-card" role="dialog" aria-modal="true" aria-labelledby="security-lock-title"><span class="section-kicker">WELCOME BACK</span><h1 id="security-lock-title">Please unlock your workspace.</h1><p>Enter your ${settings.localPinLength}-digit PIN. It will check automatically.</p><form><label for="security-unlock-pin">Your PIN</label><div class="security-pin-entry" data-pin-entry style="--pin-length:${settings.localPinLength}"><div class="security-pin-slots" aria-hidden="true">${Array.from({ length: settings.localPinLength }, (_, index) => `<span class="security-pin-slot" data-pin-slot="${index}"></span>`).join("")}</div><input id="security-unlock-pin" name="pin" type="password" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{${settings.localPinLength}}" maxlength="${settings.localPinLength}" aria-label="Your ${settings.localPinLength}-digit PIN" required></div><p class="security-pin-status" role="status" aria-live="polite"></p><p class="security-lock-error" role="alert" hidden></p><button class="public-primary" type="submit" aria-label="Check PIN">Continue</button></form></section>`;
   document.body.append(lockScreen);
   recordSecurityAudit(onLaunch ? "Workspace locked on launch" : onBackground ? "Workspace locked when app was backgrounded" : "Workspace locked after inactivity");
   const form = lockScreen.querySelector("form");
   const pinInput = form.elements.pin;
   const pinEntry = lockScreen.querySelector("[data-pin-entry]");
   const pinSlots = [...lockScreen.querySelectorAll("[data-pin-slot]")];
+  const error = lockScreen.querySelector(".security-lock-error");
+  const status = lockScreen.querySelector(".security-pin-status");
+  const submitButton = form.querySelector("button[type='submit']");
   const renderPinSlots = () => pinSlots.forEach((slot, index) => {
     slot.classList.toggle("is-filled", index < pinInput.value.length);
     slot.classList.toggle("is-current", pinInput === document.activeElement && index === Math.min(pinInput.value.length, pinSlots.length - 1));
   });
-  pinInput.addEventListener("input", renderPinSlots);
+  pinInput.addEventListener("input", () => {
+    renderPinSlots();
+    if (!checkingPin && !lockoutStarted) {
+      error.hidden = true;
+      error.textContent = "";
+      if (pinInput.value.length === settings.localPinLength) form.requestSubmit();
+    }
+  });
   pinInput.addEventListener("focus", () => { pinEntry?.classList.add("is-focused"); renderPinSlots(); });
   pinInput.addEventListener("blur", () => { pinEntry?.classList.remove("is-focused"); renderPinSlots(); });
   renderPinSlots();
-  const error = lockScreen.querySelector(".security-lock-error");
-  const submitButton = form.querySelector("button[type='submit']");
   let attempts = getPinFailureCount();
   let lockoutStarted = false;
   let checkingPin = false;
@@ -1457,6 +1465,8 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
       return;
     }
     checkingPin = true;
+    pinEntry.classList.add("is-verifying");
+    status.textContent = "Checking PIN…";
     try {
       if (!await verifyWorkspacePin(pinInput.value, settings)) throw new Error("PIN did not match.");
       lockScreen.remove();
@@ -1497,6 +1507,8 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
       }
     } finally {
       checkingPin = false;
+      pinEntry.classList.remove("is-verifying");
+      status.textContent = "";
     }
   });
   pinInput.focus();
@@ -2829,7 +2841,7 @@ function renderIncomeForecast(incomes) {
     return `<button type="button" class="forecast-calendar-day${date === localDateValue() ? " is-today" : ""}${dayPayments.length ? " has-income" : ""}" data-forecast-date="${date}" aria-pressed="false" aria-label="${escapeHTML(accessibleLabel)}"${dayPayments.length ? ` title="${escapeHTML(names)}"` : ""}>${day}${dayPayments.length ? `<i aria-hidden="true"></i>` : ""}</button>`;
   }).join("")}`;
   const rows = payments.length ? payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")} · ${new Date(`${item.paymentDate}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("") : `<li class="forecast-month-empty">No expected payments</li>`;
-  const calendar = `<article class="forecast-month-card"><div class="forecast-month-heading"><div class="forecast-calendar-nav"><button type="button" data-forecast-month-nav="previous" aria-label="Previous month" ${incomeCalendarOffset === 0 ? "disabled" : ""}>‹</button><h3>${escapeHTML(title)}</h3><button type="button" data-forecast-month-nav="next" aria-label="Next month" ${incomeCalendarOffset === 11 ? "disabled" : ""}>›</button></div></div><div class="forecast-calendar"><div class="forecast-calendar-weekdays" aria-hidden="true"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><section class="forecast-selected-day" data-forecast-selected-day aria-live="polite"><strong>Choose a date</strong><span>Tap a calendar date to see its planned income.</span></section><ul>${rows}</ul></article>`;
+  const calendar = `<article class="forecast-month-card"><div class="forecast-month-heading"><div class="forecast-calendar-nav"><button type="button" data-forecast-month-nav="previous" aria-label="Previous month" ${incomeCalendarOffset <= -2 ? "disabled" : ""}>‹</button><h3>${escapeHTML(title)}</h3><button type="button" data-forecast-month-nav="next" aria-label="Next month" ${incomeCalendarOffset >= 11 ? "disabled" : ""}>›</button></div></div><div class="forecast-calendar"><div class="forecast-calendar-weekdays" aria-hidden="true"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><section class="forecast-selected-day" data-forecast-selected-day aria-live="polite"><strong>Choose a date</strong><span>Tap a calendar date to see its planned income.</span></section><ul>${rows}</ul></article>`;
   const received = incomes.filter(item => item.status === "received");
   return `<section class="cashflow-forecast" aria-label="12-month income calendar">
     <header class="cashflow-forecast-heading"><div><span class="section-kicker">12-MONTH INCOME CALENDAR</span></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button><button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div></header>
@@ -3939,16 +3951,14 @@ function updateDashboardCashflowChart() {
   const legend = chartPanel?.querySelector("[data-dashboard-cashflow-legend]");
   const periodControl = chartPanel?.querySelector("[data-dashboard-period-control]");
   const title = chartPanel?.querySelector(".panel-heading h2");
-  const subtitle = chartPanel?.querySelector(".cashflow-subtitle");
   const viewButtons = chartPanel?.querySelectorAll("[data-dashboard-chart-view]") || [];
   const viewMeta = {
-    cashflow: ["Cash flow", "Income received vs expenses recorded vs net cash flow"],
-    position: ["Assets, liabilities & net worth", "Current balances from Inventory"],
-    quests: ["Quest progress", "Progress toward your active targets"]
+    cashflow: "Cash flow",
+    position: "Assets, liabilities & net worth",
+    quests: "Quest progress"
   };
-  const [viewTitle, viewSubtitle] = viewMeta[dashboardChartView] || viewMeta.cashflow;
+  const viewTitle = viewMeta[dashboardChartView] || viewMeta.cashflow;
   if (title) title.textContent = viewTitle;
-  if (subtitle) subtitle.textContent = viewSubtitle;
   viewButtons.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.dashboardChartView === dashboardChartView)));
   if (dashboardChartView !== "cashflow") {
     if (chartWrap) chartWrap.hidden = true;
@@ -5695,22 +5705,22 @@ function renderPowerUpPage() {
 
       <section class="inventory-summary power-summary" aria-label="Monthly plan summary">
         <article class="inventory-summary-card">
-          <span class="inventory-label">INCOME OUTLOOK</span>
+          <span class="inventory-label">INCOME</span>
           <strong>${formatKsh(totals.reportIncome)}</strong>
         </article>
         <article class="inventory-summary-card">
-          <span class="inventory-label">PERIOD BUDGET</span>
+          <span class="inventory-label">BUDGET</span>
           <strong>${formatKsh(totals.reportBudget)}</strong>
         </article>
         <article class="inventory-summary-card">
-          <span class="inventory-label">PERIOD SPENDING</span>
+          <span class="inventory-label">SPENDING</span>
           <strong>${formatKsh(totals.spending)}</strong>
           <span class="inventory-note">${reportSpending.length} ${getReportPeriod().toLowerCase()} ${reportSpending.length === 1 ? "record" : "records"}</span>
         </article>
         <article class="inventory-summary-card net-worth-summary">
           <span class="inventory-label">AFTER SPENDING</span>
           <strong>${formatKsh(totals.cashAfterSpending)}</strong>
-          <span class="inventory-note">${savingsRate}% of period income</span>
+          <span class="inventory-note">${savingsRate}% savings rate</span>
         </article>
       </section>
 
@@ -5723,7 +5733,7 @@ function renderPowerUpPage() {
         </div>
         <section class="power-tab-panel" id="power-panel-income" role="tabpanel" aria-labelledby="power-tab-income" data-power-panel="income" ${activePowerTab !== "income" ? "hidden" : ""}>
           <div class="power-desktop-income-layout">
-            ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Income outlook this month", totals.income)}
+            ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Income this month", totals.income)}
             ${renderTaxWidget(true, "-desktop-income", true)}
           </div>
         </section>
@@ -5738,7 +5748,7 @@ function renderPowerUpPage() {
       <section class="power-mobile-workspace" aria-label="Income and monthly budget">
         ${renderTaxWidget()}
         <section class="inventory-columns power-columns" aria-label="Income and monthly budget">
-          ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Income outlook this month", totals.income, true)}
+            ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Income this month", totals.income, true)}
           ${renderPowerListPanel("budget", "Monthly budget", "MONEY WITH A JOB", budgetRows, "Total planned budget", totals.budget, true, budgetListControl)}
           ${renderPowerListPanel("spending", "Monthly spending", "MONEY SPENT", spendingRows, "Total monthly spending", totals.spending, true, spendingListControl)}
         </section>
@@ -9205,7 +9215,7 @@ document.addEventListener("click", event => {
   }
   if (button.matches("[data-forecast-month-nav]")) {
     const nextOffset = incomeCalendarOffset + (button.dataset.forecastMonthNav === "next" ? 1 : -1);
-    if (nextOffset < 0 || nextOffset > 11) return;
+    if (nextOffset < -2 || nextOffset > 11) return;
     const forecast = button.closest(".cashflow-forecast");
     incomeCalendarOffset = nextOffset;
     if (forecast) {
