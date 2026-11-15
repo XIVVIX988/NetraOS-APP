@@ -3536,6 +3536,11 @@ function setPrivacyMode(enabled) {
     toggle.setAttribute("aria-label", enabled ? "Show currency amounts" : "Hide currency amounts");
     toggle.title = enabled ? "Show currency amounts" : "Hide currency amounts";
   }
+  document.querySelectorAll("[data-networth-privacy]").forEach(button => {
+    button.setAttribute("aria-pressed", String(enabled));
+    button.setAttribute("aria-label", enabled ? "Show currency amounts" : "Hide currency amounts");
+    button.title = enabled ? "Show currency amounts" : "Hide currency amounts";
+  });
   const input = document.querySelector('input[name="privacyShield"]');
   if (input) input.checked = enabled;
   try { localStorage.setItem(privacyModeStorageKey, String(enabled)); } catch { /* Keep privacy masking active for this session. */ }
@@ -3578,6 +3583,12 @@ function initializePrivacyMode() {
   });
   observer.observe(document.body, { subtree: true, childList: true, characterData: true });
   toggle.addEventListener("click", () => setPrivacyMode(!appShell.classList.contains("privacy-mode")));
+  // The eye button on the net worth card mirrors the header privacy toggle.
+  document.addEventListener("click", event => {
+    if (event.target instanceof Element && event.target.closest("[data-networth-privacy]")) {
+      setPrivacyMode(!appShell.classList.contains("privacy-mode"));
+    }
+  });
   document.addEventListener("keydown", event => {
     const shortcut = getStoredSettings().privacyShortcut;
     const allowed = (shortcut === "Shift+S" && event.shiftKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "s") ||
@@ -3859,7 +3870,7 @@ function renderInventoryPage() {
 function updateDashboardInventorySummary() {
   const totals = getInventoryTotals();
   updateDashboardAssetAllocation();
-  const netWorthValue = document.querySelector(".networth-card .metric-value");
+  const netWorthValue = document.querySelector(".networth-card [data-networth-value]");
 
   if (netWorthValue) netWorthValue.textContent = formatKsh(totals.netWorth);
   const netWorthSnapshots = !appShell.hidden && crumb.textContent === "Dashboard"
@@ -3870,14 +3881,32 @@ function updateDashboardInventorySummary() {
     : [];
   const netWorthCard = document.querySelector(".networth-card");
   setMetricTrend(netWorthCard, totals.netWorth, netWorthSnapshots.at(-2)?.value);
+  updateNetWorthCardMeta(netWorthCard, totals.netWorth, netWorthSnapshots);
   if (netWorthCard) netWorthCard.dataset.netWorthState = totals.netWorth < 0 ? "negative" : totals.netWorth > 0 ? "positive" : "zero";
   const netWorthChart = document.querySelector("[data-networth-chart]");
   if (netWorthChart) renderNetWorthTrendChart(netWorthChart, netWorthHistory);
 }
 
+// Smooth a list of [x, y] points into a cubic path (Catmull-Rom converted to Bezier).
+function smoothChartPath(points, height) {
+  const fmt = point => `${point[0].toFixed(1)},${point[1].toFixed(1)}`;
+  if (points.length < 3) return points.map((point, index) => `${index ? "L" : "M"}${fmt(point)}`).join(" ");
+  const clampY = value => Math.min(height, Math.max(0, value));
+  let path = `M${fmt(points[0])}`;
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const p0 = points[i - 1] || points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] || p2;
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, clampY(p1[1] + (p2[1] - p0[1]) / 6)];
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, clampY(p2[1] - (p3[1] - p1[1]) / 6)];
+    path += ` C${fmt(c1)} ${fmt(c2)} ${fmt(p2)}`;
+  }
+  return path;
+}
+
 function renderNetWorthTrendChart(chart, history) {
   const svg = chart.querySelector("[data-networth-sparkline]");
-  const dot = chart.querySelector("[data-networth-dot]");
   const startLabel = chart.querySelector("[data-networth-start]");
   if (!svg) return;
   if (!history.length) {
@@ -3888,39 +3917,70 @@ function renderNetWorthTrendChart(chart, history) {
   const values = history.map(item => Number(item.value));
   const width = 240;
   const height = 64;
-  const padY = 8;
-  const min = Math.min(0, ...values);
-  const max = Math.max(0, ...values);
-  const range = max - min || 1;
-  const yAt = value => range === 0 ? height / 2 : padY + (1 - (value - min) / range) * (height - padY * 2);
-  // A single saved balance is shown at its position relative to zero, without inventing a trend.
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min;
+  // Scale to the recorded range so the wave is readable; leave headroom above and below.
+  const topPad = height * .22;
+  const bottomPad = height * .16;
+  // A single value (or an unchanged history) sits as a low, flat line instead of cutting through the text.
+  const yAt = value => range === 0
+    ? height * .8
+    : topPad + (1 - (value - min) / range) * (height - topPad - bottomPad);
   const coords = values.length === 1
-    ? [[width, yAt(values[0])]]
+    ? [[width * .58, yAt(values[0])], [width, yAt(values[0])]]
     : values.map((value, index) => [index * width / (values.length - 1), yAt(value)]);
-  const line = coords.map(([x, y], index) => `${index ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-  const zeroY = yAt(0);
-  const zeroLine = `<line class="networth-zero-line" x1="0" y1="${zeroY.toFixed(1)}" x2="${width}" y2="${zeroY.toFixed(1)}"/>`;
-  // Keep the sparkline visible before a second saved snapshot exists. The short
-  // segment is positioned at the current balance relative to zero, so negative
-  // net worth still reads below the zero reference instead of looking flat.
-  const visibleLine = values.length > 1
-    ? line
-    : `M${(width * .58).toFixed(1)},${coords[0][1].toFixed(1)} L${width},${coords[0][1].toFixed(1)}`;
-  const trend = values.length > 1
-    ? `<path class="networth-trend-area" d="${line} L${width},${zeroY.toFixed(1)} L0,${zeroY.toFixed(1)} Z"/><path class="networth-trend-line" d="${line}"/>`
-    : `<path class="networth-trend-line" d="${visibleLine}"/>`;
-  svg.innerHTML = `${zeroLine}${trend}`;
-  if (dot) dot.style.top = `${(coords.at(-1)[1] / height) * 100}%`;
-  const first = new Date(history[0].at);
+  const line = smoothChartPath(coords, height);
+  // A single saved balance only gets a flat marker: no trend is invented.
+  const area = values.length > 1 ? `<path class="nw-area" d="${line} L${width},${height} L0,${height} Z"/>` : "";
+  svg.innerHTML = `<defs><linearGradient id="nw-area-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".42"/><stop offset="1" stop-color="#fff" stop-opacity=".03"/></linearGradient></defs>${area}<path class="nw-line" d="${line}"/>`;
   if (startLabel) {
+    const first = new Date(history[0].at);
     startLabel.textContent = Number.isNaN(first.getTime()) ? "" : first.toDateString() === new Date().toDateString()
       ? "Today"
       : first.toLocaleDateString(undefined, { day: "numeric", month: "short" });
   }
   chart.setAttribute("aria-label", values.length > 1
     ? `Net worth trend from ${formatKsh(values[0])} to ${formatKsh(values.at(-1))}`
-    : `Net worth is ${formatKsh(values[0])}. The marker shows its position relative to zero; a trend appears after another balance is recorded.`);
+    : `Net worth is ${formatKsh(values[0])}. A trend appears after another balance is recorded.`);
   chart.hidden = false;
+}
+
+// Fills the "Active / Growing" pill and the "x% from last month" line on the net worth card.
+function updateNetWorthCardMeta(card, currentValue, snapshots) {
+  if (!card || !snapshots.length) return;
+  const current = Number(currentValue) || 0;
+  const previous = snapshots.length > 1 ? snapshots.at(-2) : null;
+  const changeNode = card.querySelector("[data-networth-change]");
+  const textNode = card.querySelector("[data-networth-change-text]");
+  const statusNode = card.querySelector("[data-networth-status]");
+  let direction = "none";
+  let text = "No earlier month to compare yet";
+  if (previous && Number.isFinite(Number(previous.value)) && /^\d{4}-\d{2}$/.test(previous.month || "")) {
+    const before = Number(previous.value);
+    const delta = current - before;
+    const [currentYear, currentMonthNumber] = monthKey().split("-").map(Number);
+    const lastMonth = new Date(currentYear, currentMonthNumber - 2, 1);
+    const lastMonthKey = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}`;
+    const [previousYear, previousMonthNumber] = previous.month.split("-").map(Number);
+    const since = previous.month === lastMonthKey
+      ? "from last month"
+      : `since ${new Date(previousYear, previousMonthNumber - 1, 1).toLocaleDateString(undefined, { month: "short", year: "numeric" })}`;
+    if (Math.abs(delta) < .005) {
+      direction = "flat";
+      text = `No change ${since}`;
+    } else {
+      direction = delta > 0 ? "up" : "down";
+      text = before > 0
+        ? `${(Math.abs(delta) / before * 100).toFixed(1)}% ${since}`
+        : `${formatKsh(Math.abs(delta))} ${since}`;
+    }
+  }
+  if (changeNode) changeNode.dataset.direction = direction;
+  if (textNode) textNode.textContent = text;
+  const state = current < 0 ? "negative" : direction === "up" ? "growing" : direction === "down" ? "declining" : "active";
+  card.dataset.nwState = state;
+  if (statusNode) statusNode.textContent = { negative: "Negative", growing: "Growing", declining: "Declining", active: "Active" }[state];
 }
 
 function setMetricTrend(card, currentValue, previousValue) {
@@ -3944,7 +4004,6 @@ function updateDashboardPowerUpSummary() {
   const incomeCard = document.querySelector(".income-card");
   const savingsCard = document.querySelector(".savings-card");
   const spendingCard = document.querySelector(".spending-card");
-  const deficitCard = document.querySelector(".deficit-card");
 
   if (incomeCard) {
     incomeCard.querySelector("[data-metric-label]").textContent = "INCOME";
@@ -3963,13 +4022,6 @@ function updateDashboardPowerUpSummary() {
     spendingCard.dataset.cashflow = cashAfterSpending < 0 ? "deficit" : "within-income";
     spendingCard.querySelector("[data-metric-label]").textContent = "SPENDING";
     spendingCard.querySelector(".metric-value").textContent = formatKsh(actualSpending);
-  }
-
-  if (deficitCard) {
-    const deficit = Math.max(0, -cashAfterSpending);
-    deficitCard.dataset.cashflow = deficit > 0 ? "deficit" : "within-income";
-    deficitCard.querySelector(".metric-value").textContent = formatKsh(deficit);
-    deficitCard.setAttribute("aria-label", deficit > 0 ? `Monthly deficit ${formatKsh(deficit)}` : "No monthly deficit");
   }
 
   updateDashboardCashflowChart();
