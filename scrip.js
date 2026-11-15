@@ -4802,7 +4802,7 @@ function openPowerUpDialog(kind, editId = null, preset = {}) {
         </label>` : ""}
         ${isReceivedIncome || isSpending ? `<label class="inventory-form-field">
           <span>${isReceivedIncome ? "Deposit into account" : "Paid from account"} <small>Optional</small></span>
-          <select name="accountId"><option value="">Don’t change an account balance</option>${transactionAccounts.map(item => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name)} · ${formatKsh(item.amount)}</option>`).join("")}</select>
+          <select name="accountId"><option value="">None</option>${transactionAccounts.map(item => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name)} · ${formatKsh(item.amount)}</option>`).join("")}</select>
           <small>${transactionAccounts.length ? "Choose an account to update its recorded balance when you save this entry." : "Add a bank, mobile money, or cash account in Inventory to connect this entry to a balance."}</small>
         </label>` : ""}
         <label class="inventory-form-field">
