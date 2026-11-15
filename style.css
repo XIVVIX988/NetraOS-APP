@@ -13185,28 +13185,29 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
 .app-shell .top-nav .top-nav-item { flex: 1 1 0; text-align: center; }
 
 @media (min-width: 881px) {
-  .app-shell { position: relative; }
+  .app-shell { --desktop-sidebar-width: 76px; }
+  .app-shell:has(.desktop-sidebar:hover),
+  .app-shell:has(.desktop-sidebar:focus-within) { --desktop-sidebar-width: 230px; }
   .app-shell .topbar {
-    position: absolute !important;
-    top: 0;
-    right: 0;
-    left: 0;
+    position: sticky !important;
+    top: 0 !important;
     z-index: 40;
-    width: 100%;
+    width: calc(100% + var(--desktop-sidebar-width));
     max-width: none;
-    margin: 0;
+    margin: 0 0 0 calc(-1 * var(--desktop-sidebar-width));
   }
   .app-shell .desktop-sidebar {
     top: 66px;
     height: calc(100vh - 66px);
     padding-top: 23px;
   }
-  .app-shell .main-panel { padding-top: 66px; }
 }
 
 @media (max-width: 880px) {
   .app-shell { padding: 0 !important; }
   .app-shell .topbar {
+    position: sticky !important;
+    top: 0 !important;
     width: 100% !important;
     margin-top: 0 !important;
     margin-right: 0 !important;
@@ -13218,3 +13219,9 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
 body dialog input[type="checkbox"] { accent-color: #13875f !important; }
 .app-shell.theme-dark input[type="checkbox"],
 body.theme-dark dialog input[type="checkbox"] { accent-color: #53c294 !important; }
+.app-shell .topbar-actions .notification-toggle {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+.app-shell .topbar-actions .notification-toggle:hover { background: transparent !important; }
