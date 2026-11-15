@@ -4066,11 +4066,11 @@ function updateDashboardRecentActivity() {
   const data = getPowerUpData();
   const entries = [
     ...data.incomes.filter(item => item.status === "received").map(item => ({
-      kind: "income", name: item.name || "Income", category: item.category || "Income",
+      kind: "income", name: item.name || "Income", category: item.category || "Income", recordedAt: item.recordedAt || "",
       amount: Number(item.amount || 0), date: item.date || item.expectedDate || ""
     })),
     ...data.spending.map(item => ({
-      kind: "spending", name: item.name || "Expense", category: item.category || "Spending",
+      kind: "spending", name: item.name || "Expense", category: item.category || "Spending", recordedAt: item.recordedAt || "",
       amount: Number(item.amount || 0), date: /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : /^\d{4}-\d{2}$/.test(item.month || "") ? `${item.month}-01` : ""
     }))
   ].filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && Number.isFinite(item.amount))
@@ -4080,12 +4080,14 @@ function updateDashboardRecentActivity() {
     list.innerHTML = `<div class="dashboard-activity-empty"><span aria-hidden="true">⌁</span><div><strong>No activity yet</strong><p>Income you mark as received and expenses you record will show here.</p></div><button type="button" data-jump="Power-Up">Open Power-Up <span aria-hidden="true">›</span></button></div>`;
     return;
   }
-  const today = localDateValue();
-  const yesterdayDate = new Date(`${today}T12:00:00`);
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterday = localDateValue(yesterdayDate);
+  const now = Date.now();
   list.innerHTML = entries.map(item => {
-    const date = item.date === today ? "Today" : item.date === yesterday ? "Yesterday" : new Date(`${item.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const recordedTime = Date.parse(item.recordedAt);
+    const age = now - recordedTime;
+    const recent = Number.isFinite(recordedTime) && age >= 0 && age <= 48 * 60 * 60 * 1000;
+    const date = recent
+      ? new Date(recordedTime).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+      : new Date(`${item.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
     const incoming = item.kind === "income";
     const incomeCategory = incoming ? incomeCategories.find(category => category.label === item.category) : null;
     const spendingIcon = Object.prototype.hasOwnProperty.call(budgetCategoryIcons, item.category)
