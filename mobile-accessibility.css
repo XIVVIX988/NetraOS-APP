@@ -75,6 +75,12 @@ html[data-theme-start="dark"] #public-shell .auth-page {
 
 /* Keep the signed-in phone header pinned above the scrolling page content. */
 @media (max-width: 880px) {
+  body .app-shell:not(.drawer-open) > .mobile-drawer {
+    display: none !important;
+  }
+  body .app-shell.drawer-open > .mobile-drawer {
+    display: flex !important;
+  }
   body .app-shell .main-panel > .topbar {
     position: fixed !important;
     inset: 0 0 auto !important;
