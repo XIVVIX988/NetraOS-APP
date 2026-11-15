@@ -13145,18 +13145,22 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
 @media (max-width: 599px) {
   html .app-shell.app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card {
-    flex-direction: row;
+    display: grid !important;
+    grid-template-columns: 34px minmax(0, 1fr) !important;
+    grid-template-rows: auto auto;
     align-items: center;
-    gap: 7px;
+    column-gap: 7px;
+    row-gap: 4px;
     min-height: 104px;
     padding: 12px 10px 13px;
     border-radius: 18px;
   }
-  .app-shell .kpi-card .kpi-glyph { width: 34px; height: 34px; border-radius: 11px; }
+  .app-shell .kpi-card .kpi-glyph { grid-column: 1; grid-row: 1; width: 34px; height: 34px; border-radius: 11px; }
   .app-shell .kpi-card .kpi-glyph svg { width: 19px; height: 19px; }
-  .app-shell .kpi-card .kpi-text { flex: 1 1 0; width: auto; gap: 4px; }
+  .app-shell .kpi-card .kpi-text { display: contents; }
   .app-shell .kpi-card .kpi-name { font-size: 10px; line-height: 1.15; white-space: nowrap; }
-  .app-shell .kpi-card .kpi-amount { font-size: 16px; overflow-wrap: normal; white-space: nowrap; }
+  .app-shell .kpi-card .kpi-name { grid-column: 2; grid-row: 1; }
+  .app-shell .kpi-card .kpi-amount { grid-column: 2; grid-row: 2; margin: 0; font-size: 16px; overflow-wrap: normal; white-space: nowrap; }
   .app-shell .kpi-card .kpi-amount[data-size="sm"] { font-size: 16px; }
   .app-shell .kpi-card .kpi-amount[data-size="xs"] { font-size: 13px; }
 }
@@ -13184,4 +13188,31 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
 .app-shell .topbar { width: 100%; }
 .app-shell .top-nav { flex: 1 1 auto; justify-content: space-evenly; }
 .app-shell .top-nav .top-nav-item { flex: 1 1 0; text-align: center; }
-.app-shell:has(.top-nav-item[data-page="Dashboard"].active) .topbar-actions .privacy-toggle { display: none; }
+
+@media (min-width: 881px) {
+  .app-shell { position: relative; }
+  .app-shell .topbar {
+    position: absolute !important;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 40;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+  .app-shell .desktop-sidebar {
+    top: 66px;
+    height: calc(100vh - 66px);
+    padding-top: 23px;
+  }
+  .app-shell .main-panel { padding-top: 66px; }
+}
+
+@media (max-width: 880px) {
+  .app-shell .topbar {
+    width: 100% !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+  }
+}

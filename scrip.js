@@ -3566,7 +3566,8 @@ function markRequiredFields(root = document) {
 
 function initializePrivacyMode() {
   const toggle = document.querySelector("[data-privacy-toggle]");
-  if (!toggle) return;
+  const netWorthToggle = document.querySelector("[data-networth-privacy]");
+  if (!toggle && !netWorthToggle) return;
   let enabled = false;
   try {
     enabled = localStorage.getItem(privacyModeStorageKey) === "true";
@@ -3582,8 +3583,8 @@ function initializePrivacyMode() {
     });
   });
   observer.observe(document.body, { subtree: true, childList: true, characterData: true });
-  toggle.addEventListener("click", () => setPrivacyMode(!appShell.classList.contains("privacy-mode")));
-  // The eye button on the net worth card mirrors the header privacy toggle.
+  toggle?.addEventListener("click", () => setPrivacyMode(!appShell.classList.contains("privacy-mode")));
+  // The net worth card eye is the dashboard's privacy control.
   document.addEventListener("click", event => {
     if (event.target instanceof Element && event.target.closest("[data-networth-privacy]")) {
       setPrivacyMode(!appShell.classList.contains("privacy-mode"));
@@ -5724,6 +5725,7 @@ function showPage(page) {
   if (page === "Dashboard") {
     window.location.hash = "dashboard";
     content.innerHTML = dashboardMarkup;
+    setPrivacyMode(appShell.classList.contains("privacy-mode"));
     updateDashboardWelcome();
     updateDashboardInventorySummary();
     updateDashboardPowerUpSummary();
@@ -10040,7 +10042,7 @@ var appTourSteps = [
   { page: "Inventory", targets: [".desktop-sidebar-nav [data-page='Inventory']", ".mobile-tab[data-page='Inventory']"], title: "Accounts and debts", text: "Add your bank, M-Pesa and cash balances here, along with any loans you owe." },
   { page: "Power-Up", targets: [".desktop-sidebar-nav [data-page='Power-Up']", ".mobile-tab[data-page='Power-Up']"], title: "Your monthly plan", text: "Enter your income and budget lines to see how much you can save each month." },
   { page: "Quests", targets: [".desktop-sidebar-nav [data-page='Quests']", ".mobile-tab[data-page='Quests']"], title: "Savings goals", text: "Set a target, such as an emergency fund, and follow your progress toward it." },
-  { page: "Dashboard", targets: ["[data-privacy-toggle]"], title: "Hide your amounts", text: "Tap this to mask every amount when someone else can see your screen." },
+  { page: "Dashboard", targets: ["[data-networth-privacy]"], title: "Hide your amounts", text: "Tap this to mask every amount when someone else can see your screen." },
   { page: "Dashboard", targets: ["[data-onboarding]:not([hidden])", "[data-dashboard-next-action]"], title: "Start here", text: "These steps set up your dashboard, and each button opens the right form. You can replay this tour any time from Settings." }
 ];
 var appTourState = null;
