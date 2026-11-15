@@ -4062,7 +4062,12 @@ function updateDashboardRecentActivity() {
   list.innerHTML = entries.map(item => {
     const date = item.date === today ? "Today" : item.date === yesterday ? "Yesterday" : new Date(`${item.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
     const incoming = item.kind === "income";
-    return `<article class="dashboard-activity-row ${incoming ? "is-income" : "is-spending"}"><span class="dashboard-activity-icon" aria-hidden="true"><svg viewBox="0 0 24 24">${incoming ? '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v10m3-7.5c-.7-1-1.7-1.5-3-1.5-1.7 0-2.8.8-2.8 2s1.1 1.8 2.8 2 2.8.8 2.8 2-1.1 2-2.8 2c-1.3 0-2.3-.5-3-1.5"/>' : '<path d="M12 5v14m-6-6 6 6 6-6"/>'}</svg></span><span class="dashboard-activity-name"><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category)} · ${date}</small></span><strong class="dashboard-activity-amount">${incoming ? "+" : "−"}${formatKsh(item.amount)}</strong></article>`;
+    const incomeCategory = incoming ? incomeCategories.find(category => category.label === item.category) : null;
+    const spendingIcon = Object.prototype.hasOwnProperty.call(budgetCategoryIcons, item.category)
+      ? budgetCategoryIcons[item.category]
+      : budgetCategoryIcons.Other;
+    const icon = incomeCategory?.icon || (incoming ? incomeCategoryByLabel["Other income"].icon : spendingIcon);
+    return `<article class="dashboard-activity-row ${incoming ? "is-income" : "is-spending"}"><span class="dashboard-activity-icon" aria-hidden="true">${icon}</span><span class="dashboard-activity-name"><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category)} · ${date}</small></span><strong class="dashboard-activity-amount">${incoming ? "+" : "−"}${formatKsh(item.amount)}</strong></article>`;
   }).join("");
 }
 

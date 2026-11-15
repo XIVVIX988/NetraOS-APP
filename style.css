@@ -12718,7 +12718,7 @@ body.theme-dark .onboarding-dialog .onboarding-fields .inventory-form-field > sp
 body.theme-dark .onboarding-dialog .onboarding-actions [data-onboarding-back] { border-color: #46554b; background: #121b15; color: #e9f0eb; }
 @media (max-width: 600px) {
   .onboarding-dialog {
-    width: 100vw;
+    width: auto !important;
     height: 100dvh;
     max-height: 100dvh;
     margin: 0;
@@ -13185,34 +13185,41 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
 .app-shell .top-nav .top-nav-item { flex: 1 1 0; text-align: center; }
 
 @media (min-width: 881px) {
-  .app-shell { --desktop-sidebar-width: 76px; }
-  .app-shell:has(.desktop-sidebar:hover),
-  .app-shell:has(.desktop-sidebar:focus-within) { --desktop-sidebar-width: 230px; }
   .app-shell .topbar {
-    position: sticky !important;
+    position: fixed !important;
     top: 0 !important;
+    left: 0;
+    right: 0;
     z-index: 40;
-    width: calc(100% + var(--desktop-sidebar-width));
+    width: 100vw;
     max-width: none;
-    margin: 0 0 0 calc(-1 * var(--desktop-sidebar-width));
+    margin: 0;
   }
   .app-shell .desktop-sidebar {
     top: 66px;
     height: calc(100vh - 66px);
     padding-top: 23px;
   }
+  .app-shell .main-panel { padding-top: 66px; }
 }
 
 @media (max-width: 880px) {
   .app-shell { padding: 0 !important; }
   .app-shell .topbar {
-    position: sticky !important;
+    position: fixed !important;
     top: 0 !important;
-    width: 100% !important;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    width: auto !important;
     margin-top: 0 !important;
     margin-right: 0 !important;
     margin-left: 0 !important;
   }
+  .app-shell .main-panel { padding-top: 62px; }
+}
+@media (max-width: 600px) {
+  .app-shell .main-panel { padding-top: 58px; }
 }
 
 .app-shell input[type="checkbox"],
@@ -13225,3 +13232,33 @@ body.theme-dark dialog input[type="checkbox"] { accent-color: #53c294 !important
   background: transparent !important;
 }
 .app-shell .topbar-actions .notification-toggle:hover { background: transparent !important; }
+
+html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card,
+html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card[data-net-worth-state="negative"] {
+  border-color: color-mix(in srgb, var(--green) 32%, transparent) !important;
+  background: color-mix(in srgb, var(--green) 12%, var(--fx-card, #fffefa)) !important;
+  color: var(--green) !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--green) 8%, transparent) !important;
+}
+html .app-shell.app-shell.theme-dark[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card,
+html .app-shell.app-shell.theme-dark[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card[data-net-worth-state="negative"] {
+  border-color: color-mix(in srgb, var(--green) 34%, transparent) !important;
+  background: color-mix(in srgb, var(--green) 16%, var(--fx-card, #17241e)) !important;
+  box-shadow: none !important;
+}
+html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card :is(.nw-title, .nw-eye, .nw-amount, .nw-change, .nw-change-arrow, .nw-tag, .nw-chart) {
+  color: var(--green) !important;
+}
+html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card .nw-eye:hover,
+html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card .nw-tag {
+  background: color-mix(in srgb, var(--green) 15%, var(--fx-card, #fffefa)) !important;
+}
+html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card .nw-change[data-direction="down"] .nw-change-arrow {
+  stroke: var(--green) !important;
+}
+.app-shell[data-accent] .kpi-card .kpi-glyph { color: var(--green) !important; }
+.dashboard-activity-icon,
+.dashboard-activity-row.is-spending .dashboard-activity-icon,
+.app-shell.theme-dark .dashboard-activity-icon,
+.app-shell.theme-dark .dashboard-activity-row.is-spending .dashboard-activity-icon { background: transparent !important; }
+.app-shell[data-accent] .dashboard-activity-icon { color: var(--green) !important; }
