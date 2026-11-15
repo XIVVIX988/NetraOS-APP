@@ -12882,6 +12882,10 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
 }
 }
 
+@media (max-width: 899px) {
+  .app-shell #page-content .dashboard-metric-layout .dashboard-overview-grid > .deficit-card { display: none !important; }
+}
+
 /* Keep the existing desktop dashboard and analytics untouched. */
 .dashboard-page-heading,
 .dashboard-shortcuts,
