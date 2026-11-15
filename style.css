@@ -13109,8 +13109,8 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
   width: 46px;
   height: 46px;
   border-radius: 15px;
-  background: rgba(8, 118, 79, .12);
-  color: #0b7a54;
+  background: color-mix(in srgb, var(--green, #13875f) 14%, var(--fx-card, #fffefa));
+  color: var(--green, #13875f);
 }
 .app-shell .kpi-card .kpi-glyph svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .app-shell .kpi-card .kpi-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
@@ -13121,7 +13121,7 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
   text-transform: none;
 }
 .app-shell .kpi-card .kpi-amount {
-  color: #0b5a40;
+  color: var(--green, #13875f);
   font: 700 28px/1.1 var(--display, Inter, sans-serif);
   letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;
@@ -13129,15 +13129,10 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
 }
 .app-shell .kpi-card .kpi-amount[data-size="sm"] { font-size: 25px; }
 .app-shell .kpi-card .kpi-amount[data-size="xs"] { font-size: 22px; }
-/* Over-spending turns the spending and savings cards red. */
-.app-shell .kpi-card[data-cashflow="deficit"] .kpi-glyph { background: rgba(190, 52, 45, .12); color: #b3342c; }
-.app-shell .kpi-card[data-cashflow="deficit"] .kpi-amount { color: #a52f28; }
 /* Dark theme */
-.app-shell.theme-dark .kpi-card .kpi-glyph { background: rgba(88, 214, 160, .14); color: #5ad6a0; }
+.app-shell.theme-dark .kpi-card .kpi-glyph { background: color-mix(in srgb, var(--green, #53c294) 18%, var(--fx-card, #17241e)); color: var(--green, #53c294); }
 .app-shell.theme-dark .kpi-card .kpi-name { color: rgba(232, 240, 235, .68); }
-.app-shell.theme-dark .kpi-card .kpi-amount { color: #e6f6ee; }
-.app-shell.theme-dark .kpi-card[data-cashflow="deficit"] .kpi-glyph { background: rgba(255, 138, 128, .15); color: #ff9d94; }
-.app-shell.theme-dark .kpi-card[data-cashflow="deficit"] .kpi-amount { color: #ff9d94; }
+.app-shell.theme-dark .kpi-card .kpi-amount { color: var(--green, #53c294); }
 @media (min-width: 600px) and (max-width: 899px) {
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card { gap: 10px; min-height: 96px; padding: 14px; }
   .app-shell .kpi-card .kpi-glyph { width: 40px; height: 40px; border-radius: 13px; }
@@ -13169,24 +13164,16 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
   .app-shell .kpi-card .kpi-amount[data-size="sm"] { font-size: 13px; }
   .app-shell .kpi-card .kpi-amount[data-size="xs"] { font-size: 12px; }
 }
-/* Same surface for all three cards; only a negative savings rate gets the red tint. */
+/* The KPI cards use the selected accent for every cash-flow state. */
 html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card {
-  border: 1px solid rgba(8, 118, 79, .26) !important;
-  background: #eaf4ee !important;
-  box-shadow: 0 2px 10px rgba(8, 118, 79, .06) !important;
-}
-html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .savings-card.kpi-card.kpi-card.kpi-card.kpi-card[data-cashflow="deficit"] {
-  border-color: rgba(190, 52, 45, .24) !important;
-  background: #fbeceb !important;
+  border: 1px solid color-mix(in srgb, var(--green, #13875f) 32%, transparent) !important;
+  background: color-mix(in srgb, var(--green, #13875f) 9%, var(--fx-card, #fffefa)) !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--green, #13875f) 8%, transparent) !important;
 }
 html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card {
-  border: 1px solid rgba(220, 235, 224, .14) !important;
-  background: #17241e !important;
+  border: 1px solid color-mix(in srgb, var(--green, #53c294) 30%, transparent) !important;
+  background: color-mix(in srgb, var(--green, #53c294) 14%, var(--fx-card, #17241e)) !important;
   box-shadow: none !important;
-}
-html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid .savings-card.kpi-card.kpi-card.kpi-card.kpi-card[data-cashflow="deficit"] {
-  border-color: rgba(255, 138, 128, .26) !important;
-  background: #2a1b1a !important;
 }
 
 /* Let the primary navigation use the full space between the brand and actions. */
