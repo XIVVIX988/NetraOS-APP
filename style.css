@@ -12805,10 +12805,10 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
   .app-shell #page-content > .dashboard-metric-layout > .networth-card { order: 3; }
   .app-shell #page-content > .dashboard-shortcuts { display: grid; order: 4; }
   .app-shell #page-content > .dashboard-section-heading { display: flex; order: 5; }
-  .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid { display: grid; order: 6; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid { display: grid; order: 6; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .app-shell #page-content > .dashboard-recent-panel { display: grid; order: 7; }
   .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid .deficit-card { display: none !important; }
-  .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid .savings-card { display: grid !important; grid-column: 1 / -1; }
+  .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid .savings-card { display: grid !important; grid-column: auto; }
   .app-shell #page-content > .dashboard-next-action { order: 8; }
   .app-shell #page-content > .page-footer { order: 9; }
   .app-shell #page-content .desktop-next-action-label { display: none; }
@@ -13129,10 +13129,15 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
 }
 .app-shell .kpi-card .kpi-amount[data-size="sm"] { font-size: 25px; }
 .app-shell .kpi-card .kpi-amount[data-size="xs"] { font-size: 22px; }
+.app-shell .kpi-card .kpi-trend { display: inline-flex; align-items: center; gap: 3px; min-height: 15px; color: var(--green, #13875f); font: 600 11px/1.2 var(--sans, Inter, sans-serif); font-variant-numeric: tabular-nums; }
+.app-shell .kpi-card .kpi-trend-arrow { font-size: 13px; line-height: 1; }
+.app-shell .kpi-card .kpi-trend[data-direction="down"] { color: #b53b4b; }
+.app-shell .kpi-card .kpi-trend[data-direction="none"] { color: var(--fx-muted, #77817b); }
 /* Dark theme */
 .app-shell.theme-dark .kpi-card .kpi-glyph { background: color-mix(in srgb, var(--green, #53c294) 18%, var(--fx-card, #17241e)); color: var(--green, #53c294); }
 .app-shell.theme-dark .kpi-card .kpi-name { color: rgba(232, 240, 235, .68); }
 .app-shell.theme-dark .kpi-card .kpi-amount { color: var(--green, #53c294); }
+.app-shell.theme-dark .kpi-card .kpi-trend[data-direction="down"] { color: #ffaaa5; }
 @media (min-width: 600px) and (max-width: 899px) {
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card { gap: 10px; min-height: 96px; padding: 14px; }
   .app-shell .kpi-card .kpi-glyph { width: 40px; height: 40px; border-radius: 13px; }
@@ -13143,26 +13148,26 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
   .app-shell .kpi-card .kpi-amount[data-size="xs"] { font-size: 16px; }
 }
 @media (max-width: 599px) {
-  html .app-shell.app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  html .app-shell.app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card {
     display: grid !important;
-    grid-template-columns: 34px minmax(0, 1fr) !important;
-    grid-template-rows: auto auto;
+    grid-template-columns: 26px minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto;
     align-items: center;
-    column-gap: 7px;
-    row-gap: 4px;
-    min-height: 104px;
-    padding: 12px 10px 13px;
-    border-radius: 18px;
+    column-gap: 6px;
+    row-gap: 7px;
+    min-height: 148px;
+    padding: 12px 9px 13px;
+    border-radius: 16px;
   }
-  .app-shell .kpi-card .kpi-glyph { grid-column: 1; grid-row: 1; width: 34px; height: 34px; border-radius: 11px; }
-  .app-shell .kpi-card .kpi-glyph svg { width: 19px; height: 19px; }
+  .app-shell .kpi-card .kpi-glyph { grid-column: 1; grid-row: 1; width: 26px; height: 26px; border-radius: 50%; }
+  .app-shell .kpi-card .kpi-glyph svg { width: 16px; height: 16px; }
   .app-shell .kpi-card .kpi-text { display: contents; }
-  .app-shell .kpi-card .kpi-name { font-size: 10px; line-height: 1.15; white-space: nowrap; }
-  .app-shell .kpi-card .kpi-name { grid-column: 2; grid-row: 1; }
-  .app-shell .kpi-card .kpi-amount { grid-column: 2; grid-row: 2; justify-self: start; margin: 0; font-size: clamp(11px, 3.5vw, 14px); overflow-wrap: normal; white-space: normal; text-align: left; }
-  .app-shell .kpi-card .kpi-amount[data-size="sm"] { font-size: 13px; }
-  .app-shell .kpi-card .kpi-amount[data-size="xs"] { font-size: 12px; }
+  .app-shell .kpi-card .kpi-name { grid-column: 2; grid-row: 1; min-width: 0; font-size: clamp(8px, 2.6vw, 11px); line-height: 1.15; white-space: normal; overflow-wrap: anywhere; }
+  .app-shell .kpi-card .kpi-amount { grid-column: 1 / -1; grid-row: 2; justify-self: start; min-width: 0; margin: 0; font-size: clamp(10px, 3.4vw, 15px); line-height: 1.1; overflow-wrap: anywhere; white-space: normal; text-align: left; }
+  .app-shell .kpi-card .kpi-amount[data-size="sm"] { font-size: clamp(10px, 3.2vw, 13px); }
+  .app-shell .kpi-card .kpi-amount[data-size="xs"] { font-size: clamp(9px, 2.9vw, 12px); }
+  .app-shell .kpi-card .kpi-trend { grid-column: 1 / -1; grid-row: 3; }
 }
 /* The KPI cards use the selected accent for every cash-flow state. */
 html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card {
@@ -13226,12 +13231,79 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
 body dialog input[type="checkbox"] { accent-color: #13875f !important; }
 .app-shell.theme-dark input[type="checkbox"],
 body.theme-dark dialog input[type="checkbox"] { accent-color: #53c294 !important; }
+/* Force unchecked boxes to remain white even when the browser uses a dark native theme. */
+html body .app-shell input[type="checkbox"],
+html body dialog input[type="checkbox"] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: inline-grid;
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  box-sizing: border-box;
+  place-content: center;
+  margin: 0;
+  border: 1px solid #aeb9b1 !important;
+  border-radius: 4px;
+  background: #fff !important;
+  color-scheme: light;
+  vertical-align: middle;
+  cursor: pointer;
+}
+html body .app-shell input[type="checkbox"]::before,
+html body dialog input[type="checkbox"]::before {
+  width: 8px;
+  height: 5px;
+  border: solid #fff;
+  border-width: 0 0 2px 2px;
+  content: "";
+  transform: rotate(-45deg) scale(0);
+}
+html body .app-shell input[type="checkbox"]:checked,
+html body dialog input[type="checkbox"]:checked {
+  border-color: var(--green, #13875f) !important;
+  background: var(--green, #13875f) !important;
+}
+html body .app-shell.theme-dark input[type="checkbox"]:checked,
+html body.theme-dark dialog input[type="checkbox"]:checked {
+  border-color: var(--green, #53c294) !important;
+  background: var(--green, #53c294) !important;
+}
+html body .app-shell input[type="checkbox"]:checked::before,
+html body dialog input[type="checkbox"]:checked::before { transform: rotate(-45deg) scale(1); }
+html body .app-shell input[type="checkbox"]:focus-visible,
+html body dialog input[type="checkbox"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--green, #13875f) 55%, transparent);
+  outline-offset: 2px;
+}
 .app-shell .topbar-actions .notification-toggle {
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
 }
 .app-shell .topbar-actions .notification-toggle:hover { background: transparent !important; }
+
+/* Icon marks throughout the workspace stay unboxed; keep their color and glyph intact. */
+html body #page-content [class*="icon"],
+html body #page-content [class*="glyph"],
+html body .app-shell .topbar [class*="icon"],
+html body .app-shell .mobile-tab-bar [class*="icon"],
+html body .app-shell .mobile-drawer [class*="icon"],
+html body #public-shell [class*="icon"],
+html body #public-shell [class*="glyph"] {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Keep the off-canvas phone menu from rendering like a second header while closed. */
+@media (max-width: 880px) {
+  .app-shell:not(.drawer-open) > .mobile-drawer {
+    visibility: hidden !important;
+    transform: translateX(-100%) !important;
+    pointer-events: none !important;
+  }
+}
 
 html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card,
 html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card[data-net-worth-state="negative"] {

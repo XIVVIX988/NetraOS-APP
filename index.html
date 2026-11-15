@@ -26,7 +26,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=navbar-width-fix-20261115-1" />
+    <link rel="stylesheet" href="style.css?v=white-checkboxes-20261115-1" />
     <link rel="stylesheet" href="mobile-accessibility.css?v=20261113-1" />
   </head>
   <body data-user-name="Jordan Davis">
@@ -239,26 +239,29 @@
               </div>
             </article>
             <section class="dashboard-overview-grid" aria-labelledby="dashboard-overview-title">
-            <!-- Income, spending, and savings rate. -->
+            <!-- Monthly income, expenses, and savings summary. -->
             <article class="metric-card kpi-card income-card">
-              <span class="kpi-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg></span>
+              <span class="kpi-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></span>
               <div class="kpi-text">
                 <span class="kpi-name" data-metric-label>Income</span>
                 <div class="kpi-amount" data-kpi-value data-size="md">KSh 0</div>
+                <span class="kpi-trend" data-kpi-trend data-direction="none"><span class="kpi-trend-arrow" aria-hidden="true">↗</span><span data-kpi-trend-value>—</span></span>
               </div>
             </article>
             <article class="metric-card kpi-card spending-card">
-              <span class="kpi-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
+              <span class="kpi-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14m-6-6 6 6 6-6"/></svg></span>
               <div class="kpi-text">
-                <span class="kpi-name" data-metric-label>Spending</span>
+                <span class="kpi-name" data-metric-label>Expenses</span>
                 <div class="kpi-amount" data-kpi-value data-size="md">KSh 0</div>
+                <span class="kpi-trend" data-kpi-trend data-direction="none"><span class="kpi-trend-arrow" aria-hidden="true">↗</span><span data-kpi-trend-value>—</span></span>
               </div>
             </article>
             <article class="metric-card kpi-card savings-card">
-              <span class="kpi-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5Z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h.01"/></svg></span>
+              <span class="kpi-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v10m3-7.5c-.7-1-1.7-1.5-3-1.5-1.7 0-2.8.8-2.8 2s1.1 1.8 2.8 2 2.8.8 2.8 2-1.1 1.8-2.8 2c-1.3 0-2.3-.5-3-1.5"/></svg></span>
               <div class="kpi-text">
-                <span class="kpi-name" data-metric-label>Savings rate</span>
-                <div class="kpi-amount" data-kpi-value data-size="md">0%</div>
+                <span class="kpi-name" data-metric-label>Savings</span>
+                <div class="kpi-amount" data-kpi-value data-size="md">KSh 0</div>
+                <span class="kpi-trend" data-kpi-trend data-direction="none"><span class="kpi-trend-arrow" aria-hidden="true">↗</span><span data-kpi-trend-value>—</span></span>
               </div>
             </article>
             </section>
@@ -269,7 +272,7 @@
             <button type="button" data-jump="Power-Up" data-jump-action="add-income"><span class="dashboard-shortcut-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v10m3-7.5c-.7-1-1.7-1.5-3-1.5-1.7 0-2.8.8-2.8 2s1.1 1.8 2.8 2 2.8.8 2.8 2-1.1 2-2.8 2c-1.3 0-2.3-.5-3-1.5"/></svg></span><span>Add income</span></button>
             <button type="button" data-jump="Power-Up" data-jump-action="add-spending"><span class="dashboard-shortcut-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14m-6-6 6 6 6-6"/></svg></span><span>Add expense</span></button>
           </nav>
-          <div class="dashboard-section-heading"><h2 id="dashboard-overview-title">Quick overview</h2></div>
+          <div class="dashboard-section-heading"><h2 id="dashboard-overview-title">Quick Overview</h2><button type="button" data-page="Stats" aria-label="See all financial stats">See All</button></div>
           <section class="dashboard-grid desktop-dashboard-analytics">
             <article class="panel cashflow-panel">
               <div class="panel-heading"><div><h2>Cash flow</h2></div><label class="dashboard-period" data-dashboard-period-control><span class="sr-only">Cash flow period</span><select data-dashboard-range aria-label="Cash flow period"><option value="6" selected>6 months</option><option value="3">3 months</option><option value="12">12 months</option></select></label></div>
@@ -350,7 +353,7 @@
     <script src="supabase-config.js"></script>
     <script src="supabase-sync.js?v=onboarding-profile-save-20261113-1"></script>
     <!-- Main application logic: navigation, saved data, interactions, and report downloads. -->
-    <script src="scrip.js?v=recent-transaction-icons-20261115-1">
+    <script src="scrip.js?v=white-checkboxes-20261115-1">
     </script>
     <script>
       if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname))) {

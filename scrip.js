@@ -4002,6 +4002,26 @@ function setKpiAmount(card, text) {
   node.dataset.size = text.length >= 14 ? "xs" : text.length >= 12 ? "sm" : "md";
 }
 
+function setKpiTrend(card, currentValue, previousValue) {
+  const trend = card?.querySelector("[data-kpi-trend]");
+  const value = trend?.querySelector("[data-kpi-trend-value]");
+  const arrow = trend?.querySelector(".kpi-trend-arrow");
+  if (!trend || !value) return;
+  const current = Number(currentValue);
+  const previous = Number(previousValue);
+  if (!Number.isFinite(current) || !Number.isFinite(previous) || previous === 0) {
+    trend.dataset.direction = "none";
+    value.textContent = current === 0 && previous === 0 ? "0.0%" : "New";
+    if (arrow) arrow.textContent = "";
+    return;
+  }
+  const difference = current - previous;
+  const percent = difference / Math.abs(previous) * 100;
+  trend.dataset.direction = difference > 0 ? "up" : difference < 0 ? "down" : "flat";
+  value.textContent = `${difference > 0 ? "+" : ""}${percent.toFixed(1)}%`;
+  if (arrow) arrow.textContent = difference > 0 ? "↗" : difference < 0 ? "↘" : "→";
+}
+
 function updateDashboardPowerUpSummary() {
   const data = getPowerUpData();
   const currentMonth = monthKey();
@@ -4010,25 +4030,30 @@ function updateDashboardPowerUpSummary() {
   const actualIncome = incomeOutlookForMonth(data.incomes, currentMonth);
   const actualSpending = actualSpendingForMonth(data.spending, currentMonth);
   const cashAfterSpending = actualIncome - actualSpending;
+  const [currentYear, currentMonthNumber] = currentMonth.split("-").map(Number);
+  const previousMonth = monthKey(new Date(currentYear, currentMonthNumber - 2, 1, 12));
+  const previousIncome = incomeOutlookForMonth(data.incomes, previousMonth);
+  const previousSpending = actualSpendingForMonth(data.spending, previousMonth);
+  const previousSavings = previousIncome - previousSpending;
   const incomeCard = document.querySelector(".income-card");
   const savingsCard = document.querySelector(".savings-card");
   const spendingCard = document.querySelector(".spending-card");
 
   if (incomeCard) {
     setKpiAmount(incomeCard, formatKsh(actualIncome));
+    setKpiTrend(incomeCard, actualIncome, previousIncome);
   }
 
-  const savingsRate = actualIncome > 0
-    ? Math.round((cashAfterSpending / actualIncome) * 1000) / 10
-    : 0;
   if (savingsCard) {
-    setKpiAmount(savingsCard, savingsRate + "%");
+    setKpiAmount(savingsCard, `${cashAfterSpending < 0 ? "−" : ""}${formatKsh(Math.abs(cashAfterSpending))}`);
+    setKpiTrend(savingsCard, cashAfterSpending, previousSavings);
     savingsCard.dataset.cashflow = cashAfterSpending < 0 ? "deficit" : "within-income";
   }
 
   if (spendingCard) {
     spendingCard.dataset.cashflow = cashAfterSpending < 0 ? "deficit" : "within-income";
     setKpiAmount(spendingCard, formatKsh(actualSpending));
+    setKpiTrend(spendingCard, actualSpending, previousSpending);
   }
 
   updateDashboardCashflowChart();
