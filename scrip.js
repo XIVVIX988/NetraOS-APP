@@ -4066,11 +4066,11 @@ function updateDashboardRecentActivity() {
   const data = getPowerUpData();
   const entries = [
     ...data.incomes.filter(item => item.status === "received").map(item => ({
-      id: item.id, kind: "income", name: item.name || "Income", category: item.category || "Income", recordedAt: item.recordedAt || "",
+      id: item.id, kind: "income", name: item.name || "Income", category: item.category || "Income", recordedAt: item.recordedAt || item.createdAt || item.timestamp || item.created_at || "",
       amount: Number(item.amount || 0), date: item.date || item.expectedDate || ""
     })),
     ...data.spending.map(item => ({
-      id: item.id, kind: "spending", name: item.name || "Expense", category: item.category || "Spending", recordedAt: item.recordedAt || "",
+      id: item.id, kind: "spending", name: item.name || "Expense", category: item.category || "Spending", recordedAt: item.recordedAt || item.createdAt || item.timestamp || item.created_at || "",
       amount: Number(item.amount || 0), date: /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : /^\d{4}-\d{2}$/.test(item.month || "") ? `${item.month}-01` : ""
     }))
   ].filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && Number.isFinite(item.amount))
@@ -4096,7 +4096,7 @@ function updateDashboardRecentActivity() {
       ? budgetCategoryIcons[item.category]
       : budgetCategoryIcons.Other;
     const icon = incomeCategory?.icon || (incoming ? incomeCategoryByLabel["Other income"].icon : spendingIcon);
-    return `<article class="dashboard-activity-row ${incoming ? "is-income" : "is-spending"}"><span class="dashboard-activity-icon" aria-hidden="true">${icon}</span><span class="dashboard-activity-name"><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category)}</small><time${recent ? ` datetime="${new Date(recordedTime).toISOString()}"` : ""}>${escapeHTML(displayDate)}</time></span><strong class="dashboard-activity-amount">${incoming ? "+" : "−"}${formatKsh(item.amount)}</strong></article>`;
+    return `<article class="dashboard-activity-row ${incoming ? "is-income" : "is-spending"}"><span class="dashboard-activity-name"><strong>${escapeHTML(item.name)}</strong><small class="dashboard-activity-category"><span class="dashboard-activity-icon" aria-hidden="true">${icon}</span>${escapeHTML(item.category)}</small><time${recent ? ` datetime="${new Date(recordedTime).toISOString()}"` : ""}>${escapeHTML(displayDate)}</time></span><strong class="dashboard-activity-amount">${incoming ? "+" : "−"}${formatKsh(item.amount)}</strong></article>`;
   }).join("");
 }
 
