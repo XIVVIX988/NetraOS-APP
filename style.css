@@ -12799,9 +12799,9 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
   .app-shell #page-content > .dashboard-metric-layout { display: contents; }
   .app-shell #page-content > .dashboard-metric-layout > .networth-card { order: 3; }
   .app-shell #page-content > .dashboard-shortcuts { display: grid; order: 4; }
-  .app-shell #page-content > .dashboard-recent-panel { display: grid; order: 5; }
-  .app-shell #page-content > .dashboard-section-heading { display: flex; order: 6; }
-  .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid { display: grid; order: 7; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell #page-content > .dashboard-section-heading { display: flex; order: 5; }
+  .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid { display: grid; order: 6; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell #page-content > .dashboard-recent-panel { display: grid; order: 7; }
   .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid .deficit-card { display: none !important; }
   .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid .savings-card { display: grid !important; grid-column: 1 / -1; }
   .app-shell #page-content > .dashboard-next-action { order: 8; }
