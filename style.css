@@ -12908,8 +12908,9 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
 .app-shell[data-accent] .cashflow-area.income { fill: var(--green) !important; }
 
 /* ==========================================================================
-   Net worth balance card (blue-violet hero with status pill, change line and wave).
-   Scoped to .networth-card; the repeated class raises specificity above the older
+   Net worth card: same mint surface and green text as the Income / Spending /
+   Savings rate cards, with status pill, change line and a wave. Scoped to
+   .networth-card; the repeated class raises specificity above the older
    dashboard layers so those rules do not need to be edited.
    ========================================================================== */
 html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card {
@@ -12926,19 +12927,26 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
   padding: 22px 26px;
   gap: 0;
   overflow: hidden;
-  border: 0 !important;
+  border: 1px solid rgba(8, 118, 79, .26) !important;
   border-radius: 22px !important;
-  color: #fff !important;
-  background:
-    radial-gradient(70% 95% at 88% 105%, rgba(255, 255, 255, .17), transparent 70%),
-    linear-gradient(135deg, #4a63e0 0%, #6a6fe6 52%, #8f7de9 100%) !important;
-  box-shadow: 0 14px 30px rgba(84, 92, 214, .26) !important;
+  color: #0b5a40 !important;
+  background: #eaf4ee !important;
+  box-shadow: 0 2px 10px rgba(8, 118, 79, .06) !important;
 }
 html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card {
-  background:
-    radial-gradient(70% 95% at 88% 105%, rgba(255, 255, 255, .12), transparent 70%),
-    linear-gradient(135deg, #3a4fc4 0%, #5a58c9 52%, #7766d0 100%) !important;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, .38) !important;
+  border: 1px solid rgba(220, 235, 224, .14) !important;
+  color: #e6f6ee !important;
+  background: #17241e !important;
+  box-shadow: none !important;
+}
+/* A negative net worth uses the same red tint as a negative savings rate (no wording). */
+html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card[data-net-worth-state="negative"] {
+  border-color: rgba(190, 52, 45, .24) !important;
+  background: #fbeceb !important;
+}
+html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card[data-net-worth-state="negative"] {
+  border-color: rgba(255, 138, 128, .26) !important;
+  background: #2a1b1a !important;
 }
 .app-shell .networth-card .nw-top {
   position: relative;
@@ -12952,8 +12960,8 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: rgba(255, 255, 255, .94);
-  font: 500 15px/1.2 var(--sans, Inter, sans-serif);
+  color: #5b6b63;
+  font: 600 14px/1.2 var(--sans, Inter, sans-serif);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -12967,12 +12975,12 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: rgba(255, 255, 255, .92);
+  color: #5b6b63;
   cursor: pointer;
 }
 .app-shell .networth-card .nw-eye::before { content: ""; position: absolute; inset: -7px; }
-.app-shell .networth-card .nw-eye:hover { background: rgba(255, 255, 255, .16); }
-.app-shell .networth-card .nw-eye:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.app-shell .networth-card .nw-eye:hover { background: rgba(8, 118, 79, .1); }
+.app-shell .networth-card .nw-eye:focus-visible { outline: 2px solid #0b7a54; outline-offset: 2px; }
 .app-shell .networth-card .nw-eye svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .app-shell .networth-card .nw-eye .nw-eye-slash { display: none; }
 .app-shell .networth-card .nw-eye[aria-pressed="true"] .nw-eye-slash { display: block; }
@@ -12980,18 +12988,17 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
   flex: none;
   padding: 6px 14px;
   border-radius: 999px;
-  background: #c9f2dc;
-  color: #0f6a45;
+  background: rgba(8, 118, 79, .14);
+  color: #0b6b4a;
   font: 600 13px/1.2 var(--sans, Inter, sans-serif);
   white-space: nowrap;
 }
-.app-shell .networth-card[data-nw-state="declining"] .nw-tag { background: #ffdcd8; color: #9b2d2a; }
-.app-shell .networth-card[data-nw-state="negative"] .nw-tag { background: #ffe5bd; color: #7d4d00; }
+.app-shell .networth-card[data-nw-state="declining"] .nw-tag { background: rgba(190, 52, 45, .12); color: #a52f28; }
 .app-shell .networth-card .nw-amount {
   position: relative;
   z-index: 2;
   margin: 16px 0 10px;
-  color: #fff;
+  color: #0b5a40;
   font: 700 clamp(32px, 4.4vw, 48px)/1.05 var(--display, Inter, sans-serif);
   letter-spacing: -.025em;
   font-variant-numeric: tabular-nums;
@@ -13004,14 +13011,13 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
   align-items: center;
   gap: 6px;
   margin: 0;
-  color: rgba(255, 255, 255, .92);
+  color: #5b6b63;
   font: 500 14px/1.3 var(--sans, Inter, sans-serif);
 }
-.app-shell .networth-card .nw-change-arrow { flex: none; width: 17px; height: 17px; fill: none; stroke: #7ff0c2; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.app-shell .networth-card .nw-change[data-direction="down"] .nw-change-arrow { stroke: #ffb4ae; transform: rotate(180deg); }
+.app-shell .networth-card .nw-change-arrow { flex: none; width: 17px; height: 17px; fill: none; stroke: #0b7a54; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.app-shell .networth-card .nw-change[data-direction="down"] .nw-change-arrow { stroke: #b3342c; transform: rotate(180deg); }
 .app-shell .networth-card .nw-change[data-direction="none"] .nw-change-arrow,
 .app-shell .networth-card .nw-change[data-direction="flat"] .nw-change-arrow { display: none; }
-.app-shell .networth-card .nw-change[data-direction="none"] { color: rgba(255, 255, 255, .72); }
 .app-shell .networth-card .nw-chart {
   position: absolute;
   z-index: 1;
@@ -13019,15 +13025,18 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
   bottom: 0;
   width: min(62%, 520px);
   height: 68%;
+  color: #0b7a54;
   pointer-events: none;
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 28%);
   mask-image: linear-gradient(to right, transparent 0, #000 28%);
 }
 .app-shell .networth-card .nw-chart[hidden] { display: none; }
 .app-shell .networth-card .nw-chart-svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.app-shell .networth-card .nw-line { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.app-shell .networth-card .nw-line { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .app-shell .networth-card .nw-area { fill: url(#nw-area-gradient); stroke: none; }
-/* Soft decorative arc, like the reference card. */
+.app-shell .networth-card[data-net-worth-state="negative"] .nw-chart { color: #b3342c; }
+.app-shell .networth-card[data-net-worth-state="negative"] .nw-amount { color: #a52f28; }
+/* Soft decorative arc. */
 .app-shell .networth-card::after {
   content: "";
   position: absolute;
@@ -13037,22 +13046,34 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
   width: 34%;
   max-width: 220px;
   height: 40%;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M0 62C34 6 92 2 132 62' fill='none' stroke='%23fff' stroke-opacity='.22' stroke-width='2'/%3E%3C/svg%3E") left bottom / 100% 100% no-repeat;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M0 62C34 6 92 2 132 62' fill='none' stroke='%230b7a54' stroke-opacity='.2' stroke-width='2'/%3E%3C/svg%3E") left bottom / 100% 100% no-repeat;
   pointer-events: none;
+}
+/* Dark theme */
+.app-shell.theme-dark .networth-card .nw-title,
+.app-shell.theme-dark .networth-card .nw-eye,
+.app-shell.theme-dark .networth-card .nw-change { color: rgba(232, 240, 235, .68); }
+.app-shell.theme-dark .networth-card .nw-eye:hover { background: rgba(88, 214, 160, .14); }
+.app-shell.theme-dark .networth-card .nw-eye:focus-visible { outline-color: #5ad6a0; }
+.app-shell.theme-dark .networth-card .nw-tag { background: rgba(88, 214, 160, .16); color: #5ad6a0; }
+.app-shell.theme-dark .networth-card[data-nw-state="declining"] .nw-tag { background: rgba(255, 138, 128, .16); color: #ff9d94; }
+.app-shell.theme-dark .networth-card .nw-amount { color: #e6f6ee; }
+.app-shell.theme-dark .networth-card .nw-change-arrow { stroke: #5ad6a0; }
+.app-shell.theme-dark .networth-card .nw-change[data-direction="down"] .nw-change-arrow { stroke: #ff9d94; }
+.app-shell.theme-dark .networth-card .nw-chart { color: #5ad6a0; }
+.app-shell.theme-dark .networth-card[data-net-worth-state="negative"] .nw-chart { color: #ff9d94; }
+.app-shell.theme-dark .networth-card[data-net-worth-state="negative"] .nw-amount { color: #ff9d94; }
+.app-shell.theme-dark .networth-card::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M0 62C34 6 92 2 132 62' fill='none' stroke='%235ad6a0' stroke-opacity='.22' stroke-width='2'/%3E%3C/svg%3E");
 }
 @media (min-width: 600px) and (max-width: 899px) {
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card { min-height: 184px; padding: 20px 22px; }
 }
 @media (max-width: 599px) {
-  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card { min-height: 188px; padding: 18px 18px 20px; border-radius: 20px !important; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card { min-height: 200px; padding: 18px 18px 20px; border-radius: 20px !important; }
   .app-shell .networth-card .nw-amount { margin: 14px 0 8px; font-size: clamp(30px, 9.2vw, 40px); }
   .app-shell .networth-card .nw-change { font-size: 13px; }
-  .app-shell .networth-card .nw-chart { width: 66%; height: 56%; }
-}
-
-/* With the Monthly Deficit card removed, income / savings rate / spending fill a three-column row on desktop. */
-@media (min-width: 900px) {
-  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .app-shell .networth-card .nw-chart { width: 54%; height: 42%; -webkit-mask-image: linear-gradient(to right, transparent 0, #000 40%); mask-image: linear-gradient(to right, transparent 0, #000 40%); }
 }
 
 /* ==========================================================================

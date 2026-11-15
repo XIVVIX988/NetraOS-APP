@@ -3933,7 +3933,7 @@ function renderNetWorthTrendChart(chart, history) {
   const line = smoothChartPath(coords, height);
   // A single saved balance only gets a flat marker: no trend is invented.
   const area = values.length > 1 ? `<path class="nw-area" d="${line} L${width},${height} L0,${height} Z"/>` : "";
-  svg.innerHTML = `<defs><linearGradient id="nw-area-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".42"/><stop offset="1" stop-color="#fff" stop-opacity=".03"/></linearGradient></defs>${area}<path class="nw-line" d="${line}"/>`;
+  svg.innerHTML = `<defs><linearGradient id="nw-area-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".28"/><stop offset="1" stop-color="currentColor" stop-opacity=".02"/></linearGradient></defs>${area}<path class="nw-line" d="${line}"/>`;
   if (startLabel) {
     const first = new Date(history[0].at);
     startLabel.textContent = Number.isNaN(first.getTime()) ? "" : first.toDateString() === new Date().toDateString()
@@ -3978,9 +3978,9 @@ function updateNetWorthCardMeta(card, currentValue, snapshots) {
   }
   if (changeNode) changeNode.dataset.direction = direction;
   if (textNode) textNode.textContent = text;
-  const state = current < 0 ? "negative" : direction === "up" ? "growing" : direction === "down" ? "declining" : "active";
+  const state = direction === "up" ? "growing" : direction === "down" ? "declining" : "active";
   card.dataset.nwState = state;
-  if (statusNode) statusNode.textContent = { negative: "Negative", growing: "Growing", declining: "Declining", active: "Active" }[state];
+  if (statusNode) statusNode.textContent = { growing: "Growing", declining: "Declining", active: "Active" }[state];
 }
 
 function setMetricTrend(card, currentValue, previousValue) {
