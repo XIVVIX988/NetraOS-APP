@@ -13224,3 +13224,8 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
     margin-left: 0 !important;
   }
 }
+
+.app-shell input[type="checkbox"],
+body dialog input[type="checkbox"] { accent-color: #13875f !important; }
+.app-shell.theme-dark input[type="checkbox"],
+body.theme-dark dialog input[type="checkbox"] { accent-color: #53c294 !important; }
