@@ -13191,7 +13191,7 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
     left: 0;
     right: 0;
     z-index: 40;
-    width: 100vw;
+    width: auto !important;
     max-width: none;
     margin: 0;
   }
