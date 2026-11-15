@@ -3993,6 +3993,14 @@ function setMetricTrend(card, currentValue, previousValue) {
   card.dataset.trend = trend;
 }
 
+// Writes a dashboard KPI amount and records its length so the CSS can shrink long amounts on narrow cards.
+function setKpiAmount(card, text) {
+  const node = card?.querySelector("[data-kpi-value]");
+  if (!node) return;
+  node.textContent = text;
+  node.dataset.size = text.length >= 14 ? "xs" : text.length >= 12 ? "sm" : "md";
+}
+
 function updateDashboardPowerUpSummary() {
   const data = getPowerUpData();
   const currentMonth = monthKey();
@@ -4006,22 +4014,20 @@ function updateDashboardPowerUpSummary() {
   const spendingCard = document.querySelector(".spending-card");
 
   if (incomeCard) {
-    incomeCard.querySelector("[data-metric-label]").textContent = "INCOME";
-    incomeCard.querySelector(".metric-value").textContent = formatKsh(actualIncome);
+    setKpiAmount(incomeCard, formatKsh(actualIncome));
   }
 
   const savingsRate = actualIncome > 0
     ? Math.round((cashAfterSpending / actualIncome) * 1000) / 10
     : 0;
   if (savingsCard) {
-    savingsCard.querySelector(".metric-value").textContent = savingsRate + "%";
+    setKpiAmount(savingsCard, savingsRate + "%");
     savingsCard.dataset.cashflow = cashAfterSpending < 0 ? "deficit" : "within-income";
   }
 
   if (spendingCard) {
     spendingCard.dataset.cashflow = cashAfterSpending < 0 ? "deficit" : "within-income";
-    spendingCard.querySelector("[data-metric-label]").textContent = "SPENDING";
-    spendingCard.querySelector(".metric-value").textContent = formatKsh(actualSpending);
+    setKpiAmount(spendingCard, formatKsh(actualSpending));
   }
 
   updateDashboardCashflowChart();
