@@ -4953,6 +4953,7 @@ function openPowerUpDialog(kind, editId = null, preset = {}) {
       id: editing?.id || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       name,
       amount,
+      recordedAt: editing?.recordedAt || new Date().toISOString(),
       notes: String(formData.get("notes") || "").trim()
     };
     const category = String(formData.get("category"));

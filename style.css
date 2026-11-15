@@ -13093,9 +13093,9 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi
   grid-column: span 1 !important;
   grid-template-columns: none !important;
   grid-template-areas: none !important;
-  gap: 14px;
-  min-height: 104px;
-  padding: 18px 20px;
+  gap: 12px;
+  min-height: 92px;
+  padding: 12px 16px;
   overflow: hidden;
   text-align: left;
 }
@@ -13139,7 +13139,7 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
 .app-shell.theme-dark .kpi-card .kpi-amount { color: var(--green, #53c294); }
 .app-shell.theme-dark .kpi-card .kpi-trend[data-direction="down"] { color: #ffaaa5; }
 @media (min-width: 600px) and (max-width: 899px) {
-  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card { gap: 10px; min-height: 96px; padding: 14px; }
+  html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card { gap: 9px; min-height: 84px; padding: 10px 12px; }
   .app-shell .kpi-card .kpi-glyph { width: 40px; height: 40px; border-radius: 13px; }
   .app-shell .kpi-card .kpi-glyph svg { width: 21px; height: 21px; }
   .app-shell .kpi-card .kpi-name { font-size: 12.5px; }
@@ -13155,9 +13155,9 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
     grid-template-rows: auto auto auto;
     align-items: center;
     column-gap: 6px;
-    row-gap: 7px;
-    min-height: 148px;
-    padding: 12px 9px 13px;
+    row-gap: 4px;
+    min-height: 112px;
+    padding: 9px 8px 10px;
     border-radius: 16px;
   }
   .app-shell .kpi-card .kpi-glyph { grid-column: 1; grid-row: 1; width: 26px; height: 26px; border-radius: 50%; }

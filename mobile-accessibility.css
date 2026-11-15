@@ -72,3 +72,20 @@ html[data-theme-start="dark"] #public-shell .auth-page {
   .inventory-dialog { max-height: calc(100dvh - 32px); }
   .notification-center { max-height: min(540px, calc(100dvh - 24px)); }
 }
+
+/* Keep the signed-in phone header pinned above the scrolling page content. */
+@media (max-width: 880px) {
+  body .app-shell .main-panel > .topbar {
+    position: fixed !important;
+    inset: 0 0 auto !important;
+    z-index: 1000 !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+  body .app-shell .main-panel { padding-top: calc(62px + env(safe-area-inset-top, 0px)) !important; }
+}
+@media (max-width: 600px) {
+  body .app-shell .main-panel { padding-top: calc(58px + env(safe-area-inset-top, 0px)) !important; }
+}
