@@ -13145,25 +13145,20 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
 @media (max-width: 599px) {
   html .app-shell.app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    min-height: 128px;
+    flex-direction: row;
+    align-items: center;
+    gap: 7px;
+    min-height: 104px;
     padding: 12px 10px 13px;
     border-radius: 18px;
   }
   .app-shell .kpi-card .kpi-glyph { width: 34px; height: 34px; border-radius: 11px; }
   .app-shell .kpi-card .kpi-glyph svg { width: 19px; height: 19px; }
-  .app-shell .kpi-card .kpi-text { flex: 1 1 auto; width: 100%; gap: 3px; }
-  .app-shell .kpi-card .kpi-amount { margin-top: auto; }
-  .app-shell .kpi-card .kpi-name { font-size: 12px; }
-  .app-shell .kpi-card .kpi-amount { font-size: 19px; overflow-wrap: normal; }
+  .app-shell .kpi-card .kpi-text { flex: 1 1 0; width: auto; gap: 4px; }
+  .app-shell .kpi-card .kpi-name { font-size: 10px; line-height: 1.15; white-space: nowrap; }
+  .app-shell .kpi-card .kpi-amount { font-size: 16px; overflow-wrap: normal; white-space: nowrap; }
   .app-shell .kpi-card .kpi-amount[data-size="sm"] { font-size: 16px; }
-  .app-shell .kpi-card .kpi-amount[data-size="xs"] { font-size: 14px; }
-  /* Currency on its own small first line, number below: "KSh" / "133,000". */
-  .app-shell :is(.income-card, .spending-card).kpi-card .kpi-amount { width: min-content; max-width: 100%; }
-  .app-shell :is(.income-card, .spending-card).kpi-card .kpi-amount::first-line { font-size: 11px; font-weight: 600; color: #5b6b63; letter-spacing: 0; }
-  .app-shell.theme-dark :is(.income-card, .spending-card).kpi-card .kpi-amount::first-line { color: rgba(232, 240, 235, .68); }
+  .app-shell .kpi-card .kpi-amount[data-size="xs"] { font-size: 13px; }
 }
 /* Same surface for all three cards; only a negative savings rate gets the red tint. */
 html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card {
@@ -13184,3 +13179,9 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
   border-color: rgba(255, 138, 128, .26) !important;
   background: #2a1b1a !important;
 }
+
+/* Let the primary navigation use the full space between the brand and actions. */
+.app-shell .topbar { width: 100%; }
+.app-shell .top-nav { flex: 1 1 auto; justify-content: space-evenly; }
+.app-shell .top-nav .top-nav-item { flex: 1 1 0; text-align: center; }
+.app-shell:has(.top-nav-item[data-page="Dashboard"].active) .topbar-actions .privacy-toggle { display: none; }
