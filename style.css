@@ -13235,26 +13235,30 @@ body.theme-dark dialog input[type="checkbox"] { accent-color: #53c294 !important
 
 html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card,
 html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card[data-net-worth-state="negative"] {
-  border-color: color-mix(in srgb, var(--green) 32%, transparent) !important;
-  background: color-mix(in srgb, var(--green) 12%, var(--fx-card, #fffefa)) !important;
-  color: var(--green) !important;
-  box-shadow: 0 2px 10px color-mix(in srgb, var(--green) 8%, transparent) !important;
+  border-color: var(--green) !important;
+  background: var(--green) !important;
+  color: var(--app-popup-accent-foreground, #fff) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--green) 24%, transparent) !important;
 }
 html .app-shell.app-shell.theme-dark[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card,
 html .app-shell.app-shell.theme-dark[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card.networth-card.networth-card.networth-card.networth-card[data-net-worth-state="negative"] {
-  border-color: color-mix(in srgb, var(--green) 34%, transparent) !important;
-  background: color-mix(in srgb, var(--green) 16%, var(--fx-card, #17241e)) !important;
-  box-shadow: none !important;
+  border-color: var(--green) !important;
+  background: var(--green) !important;
+  color: var(--app-popup-accent-foreground, #fff) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--green) 24%, transparent) !important;
 }
 html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card :is(.nw-title, .nw-eye, .nw-amount, .nw-change, .nw-change-arrow, .nw-tag, .nw-chart) {
-  color: var(--green) !important;
+  color: var(--app-popup-accent-foreground, #fff) !important;
 }
 html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card .nw-eye:hover,
 html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card .nw-tag {
-  background: color-mix(in srgb, var(--green) 15%, var(--fx-card, #fffefa)) !important;
+  background: color-mix(in srgb, var(--app-popup-accent-foreground, #fff) 16%, transparent) !important;
+}
+html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card .nw-change-arrow {
+  stroke: var(--app-popup-accent-foreground, #fff) !important;
 }
 html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card .nw-change[data-direction="down"] .nw-change-arrow {
-  stroke: var(--green) !important;
+  stroke: var(--app-popup-accent-foreground, #fff) !important;
 }
 .app-shell[data-accent] .kpi-card .kpi-glyph { color: var(--green) !important; }
 .dashboard-activity-icon,
