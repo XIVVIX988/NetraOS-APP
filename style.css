@@ -12681,21 +12681,30 @@ body.theme-dark .security-pin-entry.is-focused .security-pin-slot.is-current { b
 }
 
 /* Calm, one-question-at-a-time first-run setup. */
-.onboarding-dialog {
+.inventory-dialog.onboarding-dialog {
+  position: fixed;
+  inset: 0;
   box-sizing: border-box;
-  width: min(520px, calc(100% - 32px));
-  max-height: min(90dvh, 820px);
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
   overflow: auto;
-  border: 1px solid #e5e9e4;
-  border-radius: 24px;
-  background: #fffefa;
-  box-shadow: 0 24px 80px rgba(22, 42, 30, .2);
+  border: 0;
+  border-radius: 0;
+  background: #f5f4ef;
+  box-shadow: none;
 }
 .onboarding-dialog .inventory-form {
   display: flex;
-  min-height: min(640px, 78dvh);
+  width: min(100%, 600px);
+  min-height: 100dvh;
   flex-direction: column;
+  margin: 0 auto;
   padding: clamp(24px, 5vw, 36px);
+  background: #fffefa;
 }
 .onboarding-dialog .inventory-dialog-heading { margin-bottom: 22px; border: 0; }
 .onboarding-dialog .inventory-dialog-heading .section-kicker { color: #68776d; font-size: 10px; }
@@ -12714,7 +12723,8 @@ body.theme-dark .security-pin-entry.is-focused .security-pin-slot.is-current { b
 .onboarding-dialog .onboarding-actions [data-onboarding-back] { min-width: 94px; min-height: 50px; border: 1px solid #d8dfd9; border-radius: 14px; background: #fff; color: #34433a; }
 .onboarding-dialog .onboarding-actions [data-onboarding-next] { min-width: 148px; min-height: 50px; border-radius: 14px; background: var(--app-popup-accent, #174b36); color: var(--app-popup-accent-foreground, #fff); font-size: 14px; }
 .onboarding-dialog .onboarding-actions [hidden] { display: none !important; }
-body.theme-dark .onboarding-dialog { border-color: #35463b; background: #19221c; }
+body.theme-dark .onboarding-dialog { background: #101a16; }
+body.theme-dark .onboarding-dialog .inventory-form { background: #19221c; }
 body.theme-dark .onboarding-dialog .onboarding-fields .inventory-form-field { border-color: #35463b; background: #121b15; }
 body.theme-dark .onboarding-dialog .onboarding-fields .inventory-form-field > span { color: #e9f0eb; }
 body.theme-dark .onboarding-dialog .onboarding-actions [data-onboarding-back] { border-color: #46554b; background: #121b15; color: #e9f0eb; }

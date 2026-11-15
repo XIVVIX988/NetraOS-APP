@@ -2641,9 +2641,11 @@ function enterApp(profile, { restoredSession = false, page = "Dashboard", skipTo
   maybePromptForBackup();
   scheduleAutoLockNudge({ force: true });
   scheduleShortcutPrompt();
+  if (skipTour) {
+    markAppTourSeen(profile);
+    appTourPending = cookieBannerPendingAfterTour;
+  } else maybeStartAppTour(profile, restoredSession);
   showCookieBanner();
-  if (skipTour) markAppTourSeen(profile);
-  else maybeStartAppTour(profile, restoredSession);
   if (restoredSession || getPinFailureCount() > 0) lockWorkspace({ onLaunch: true });
 }
 
@@ -7187,6 +7189,9 @@ async function confirmEmailChallenge(pending, code, purpose) {
 }
 
 function showPreferredNamePrompt(profile) {
+  appTourPending = true;
+  cookieBannerPendingAfterTour = !hasCurrentCookieConsent();
+  document.querySelector("[data-cookie-banner]")?.remove();
   // Keep the app visible behind onboarding so the tour can show each real section.
   if (appShell.hidden) enterApp(profile);
   const currentSettings = getStoredSettings();
@@ -9943,6 +9948,11 @@ function openCookiePreferences() {
 function showCookieBanner() {
   if ((!publicShell || publicShell.hidden) && (!appShell || appShell.hidden)) return;
   if (publicShell && !publicShell.hidden && ["terms", "privacy", "cookies"].includes(window.location.hash.slice(1))) return;
+  if (appShell && !appShell.hidden && !hasCurrentCookieConsent() && (appTourPending || appTourState)) {
+    cookieBannerPendingAfterTour = true;
+    document.querySelector("[data-cookie-banner]")?.remove();
+    return;
+  }
   if (document.querySelector("[data-cookie-banner]")) return;
   if (hasCurrentCookieConsent()) return;
   const banner = document.createElement("aside");
@@ -10086,6 +10096,8 @@ var appTourSteps = [
   { page: "Dashboard", targets: ["[data-onboarding]:not([hidden])", "[data-dashboard-next-action]"], title: "Start here", text: "These steps set up your dashboard, and each button opens the right form. You can replay this tour any time from Settings." }
 ];
 var appTourState = null;
+var appTourPending = false;
+var cookieBannerPendingAfterTour = false;
 var appTourAccountId = "local";
 
 function appTourSeen() {
@@ -10102,6 +10114,7 @@ function markAppTourSeen(profile) {
 function maybeStartAppTour(profile, restoredSession) {
   if (restoredSession || !String(profile?.username || "").trim()) return;
   appTourAccountId = String(profile?.email || profile?.username || profile?.name || "local").toLowerCase();
+  appTourPending = true;
   window.setTimeout(() => startAppTour(), 1200);
 }
 
@@ -10117,7 +10130,15 @@ function appTourTarget(step) {
 
 function startAppTour({ force = false } = {}) {
   if (appTourState || appShell.hidden) return;
-  if (!force && (appTourSeen() || document.querySelector("dialog[open]"))) return;
+  if (!force && (appTourSeen() || document.querySelector("dialog[open]"))) {
+    appTourPending = false;
+    if (cookieBannerPendingAfterTour) {
+      cookieBannerPendingAfterTour = false;
+      window.setTimeout(showCookieBanner, 0);
+    }
+    return;
+  }
+  appTourPending = false;
   const shield = document.createElement("div");
   shield.className = "tour-shield";
   const spot = document.createElement("div");
@@ -10218,4 +10239,8 @@ function endAppTour(markSeen) {
   if (markSeen) { try { localStorage.setItem(appTourStorageKey + ":" + appTourAccountId, "true"); } catch { /* Tour may repeat if storage is unavailable. */ } }
   if (crumb.textContent !== "Dashboard") showPage("Dashboard");
   state.opener?.focus?.({ preventScroll: true });
+  if (cookieBannerPendingAfterTour) {
+    cookieBannerPendingAfterTour = false;
+    window.setTimeout(showCookieBanner, 0);
+  }
 }
