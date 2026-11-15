@@ -10214,7 +10214,9 @@ body.theme-dark { background: var(--bg); }
     transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
   }
   .app-search:focus-within { border-color: #78bba0; background: #fff; box-shadow: 0 0 0 3px #13875f12; }
-  .app-search > svg { flex: 0 0 17px; width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+  .app-search > svg { flex: 0 0 13px;
+  width: 13px;
+  height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
   .app-search input { flex: 1 1 auto; width: 100%; min-width: 0; padding: 0; border: 0; outline: 0; background: transparent; color: #173d32; font: 12px var(--sans); }
   .app-search input::placeholder { color: #809087; }
   .app-search kbd { padding: 1px 5px; border: 1px solid #e2e9e4; border-radius: 4px; color: #89968e; font: 10px var(--sans); }
@@ -13237,9 +13239,9 @@ html body dialog input[type="checkbox"] {
   -webkit-appearance: none !important;
   appearance: none !important;
   display: inline-grid;
-  flex: 0 0 17px;
-  width: 17px;
-  height: 17px;
+  flex: 0 0 13px;
+  width: 13px;
+  height: 13px;
   box-sizing: border-box;
   place-content: center;
   margin: 0;
@@ -13252,10 +13254,10 @@ html body dialog input[type="checkbox"] {
 }
 html body .app-shell input[type="checkbox"]::before,
 html body dialog input[type="checkbox"]::before {
-  width: 8px;
-  height: 5px;
+  width: 6px;
+  height: 4px;
   border: solid #fff;
-  border-width: 0 0 2px 2px;
+  border-width: 0 0 1.5px 1.5px;
   content: "";
   transform: rotate(-45deg) scale(0);
 }
@@ -13333,6 +13335,12 @@ html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metr
   stroke: var(--app-popup-accent-foreground, #fff) !important;
 }
 .app-shell[data-accent] .kpi-card .kpi-glyph { color: var(--green) !important; }
+.app-shell[data-accent] .topbar :is(.nav-toggle, .notification-toggle, .theme-toggle, .privacy-toggle, .sign-out-button, .profile-button),
+.app-shell[data-accent] .topbar :is(.nav-toggle, .notification-toggle, .theme-toggle, .privacy-toggle, .sign-out-button, .profile-button):hover,
+.app-shell[data-accent] .topbar :is(.nav-toggle, .notification-toggle, .theme-toggle, .privacy-toggle, .sign-out-button, .profile-button) svg {
+  color: var(--green) !important;
+  stroke: currentColor;
+}
 .dashboard-activity-icon,
 .dashboard-activity-row.is-spending .dashboard-activity-icon,
 .app-shell.theme-dark .dashboard-activity-icon,
