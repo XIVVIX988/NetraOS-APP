@@ -13193,6 +13193,7 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
 .app-shell .topbar { width: 100%; }
 .app-shell .topbar,
 .app-shell .top-nav { border-radius: 0 !important; }
+.app-shell .topbar { background: var(--fx-bg, #fffefa) !important; }
 .app-shell .top-nav { flex: 1 1 auto; justify-content: space-evenly; }
 .app-shell .top-nav .top-nav-item { flex: 1 1 0; text-align: center; }
 
@@ -13220,6 +13221,7 @@ html .app-shell.app-shell.theme-dark #page-content:has(> .welcome-row) > .metric
   .app-shell { padding: 0 !important; }
   .app-shell .topbar {
     width: 100% !important;
+    margin-top: 0 !important;
     margin-right: 0 !important;
     margin-left: 0 !important;
   }
