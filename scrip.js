@@ -4066,11 +4066,11 @@ function updateDashboardRecentActivity() {
   const data = getPowerUpData();
   const entries = [
     ...data.incomes.filter(item => item.status === "received").map(item => ({
-      kind: "income", name: item.name || "Income", category: item.category || "Income", recordedAt: item.recordedAt || "",
+      id: item.id, kind: "income", name: item.name || "Income", category: item.category || "Income", recordedAt: item.recordedAt || "",
       amount: Number(item.amount || 0), date: item.date || item.expectedDate || ""
     })),
     ...data.spending.map(item => ({
-      kind: "spending", name: item.name || "Expense", category: item.category || "Spending", recordedAt: item.recordedAt || "",
+      id: item.id, kind: "spending", name: item.name || "Expense", category: item.category || "Spending", recordedAt: item.recordedAt || "",
       amount: Number(item.amount || 0), date: /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : /^\d{4}-\d{2}$/.test(item.month || "") ? `${item.month}-01` : ""
     }))
   ].filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && Number.isFinite(item.amount))
@@ -4082,10 +4082,12 @@ function updateDashboardRecentActivity() {
   }
   const now = Date.now();
   list.innerHTML = entries.map(item => {
-    const recordedTime = Date.parse(item.recordedAt);
+    const idTimestamp = Number(String(item.id || "").split("-")[0]);
+    const savedTime = Date.parse(item.recordedAt);
+    const recordedTime = Number.isFinite(savedTime) ? savedTime : idTimestamp > 1e12 ? idTimestamp : NaN;
     const age = now - recordedTime;
     const recent = Number.isFinite(recordedTime) && age >= 0 && age <= 48 * 60 * 60 * 1000;
-    const date = recent
+    const displayDate = recent
       ? new Date(recordedTime).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
       : new Date(`${item.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
     const incoming = item.kind === "income";
@@ -4094,7 +4096,7 @@ function updateDashboardRecentActivity() {
       ? budgetCategoryIcons[item.category]
       : budgetCategoryIcons.Other;
     const icon = incomeCategory?.icon || (incoming ? incomeCategoryByLabel["Other income"].icon : spendingIcon);
-    return `<article class="dashboard-activity-row ${incoming ? "is-income" : "is-spending"}"><span class="dashboard-activity-icon" aria-hidden="true">${icon}</span><span class="dashboard-activity-name"><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category)} · ${date}</small></span><strong class="dashboard-activity-amount">${incoming ? "+" : "−"}${formatKsh(item.amount)}</strong></article>`;
+    return `<article class="dashboard-activity-row ${incoming ? "is-income" : "is-spending"}"><span class="dashboard-activity-icon" aria-hidden="true">${icon}</span><span class="dashboard-activity-name"><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category)}</small><time${recent ? ` datetime="${new Date(recordedTime).toISOString()}"` : ""}>${escapeHTML(displayDate)}</time></span><strong class="dashboard-activity-amount">${incoming ? "+" : "−"}${formatKsh(item.amount)}</strong></article>`;
   }).join("");
 }
 
@@ -9976,7 +9978,12 @@ showCookieBanner();
 
 // Fixed help answers keep this chat private, predictable, and independent of AI services.
 const scriptedHelpTopics = [
-  { id: "greeting", question: "What can you help me with?", keywords: [], answer: "Hello! Welcome to NetraOS. I can help you understand your finances, plan a budget, track goals and assets, and find your way around the app. What would you like help with?", followUps: ["start", "budget", "emergency", "assets", "payday", "reports"] },
+  { id: "greeting", question: "What can you help me with?", keywords: [], answer: "Hello! Welcome to NetraOS. I can explain your Quick Overview cards, recent activity dates, accent colors, Privacy Shield, budgeting, goals, assets, and reports. What would you like to know?", followUps: ["quick-overview", "recent-activity", "privacy-shield", "accent", "budget", "reports"] },
+  { id: "quick-overview", question: "What do the Quick Overview cards show?", keywords: ["quick overview", "overview cards", "income card", "expenses card", "savings card", "dashboard cards"], answer: "Quick Overview shows this month’s income outlook, recorded expenses, and the cash left after expenses (shown as Savings). Each card includes a comparison with the previous month. The See All button opens Stats for more detail.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["recent-activity", "budget", "reports"] },
+  { id: "recent-activity", question: "Why does Recent Activity show a time?", keywords: ["recent activity", "date and time", "activity time", "timestamp", "48 hours"], answer: "Recent Activity lists received income and recorded expenses. Entries with a saved recording time show their date and time for the first 48 hours; older entries show only month and day. Older records created before recording times were saved may not have an original time to display.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["quick-overview", "privacy-shield"] },
+  { id: "privacy-shield", question: "Where is Privacy Shield?", keywords: ["privacy shield", "hide net worth", "mask amount", "hide amounts", "net worth privacy"], answer: "Use the eye control on the Net Worth card to hide or reveal its amount. You can also use the configured keyboard shortcut; its setting is in Settings. The shield is attached to the Net Worth card.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["privacy", "accent"] },
+  { id: "accent", question: "How do I change the accent color?", keywords: ["accent color", "accent colour", "change accent", "accent theme", "accent"], answer: "Open Settings and change Accent color under preferences. The selected accent updates the dashboard cards, icons, navbar, and other highlighted controls. Available choices include Growth, Trust, Momentum, Harvest, Progress, and Clarity.", page: "Settings", pageLabel: "Go to Settings", followUps: ["privacy-shield", "quick-overview"] },
+  { id: "mobile-navigation", question: "How does phone navigation work?", keywords: ["mobile navbar", "mobile navigation", "phone navigation", "bottom navigation", "phone menu"], answer: "On a phone, use the bottom navigation for Home, Inventory, Power-Up, and Quests. Open More for Stats, Achievements, Contact, and Settings. The top bar stays pinned while you scroll.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["quick-overview", "accent"] },
   { id: "start", question: "How do I get started?", keywords: ["start", "getting started", "begin", "setup", "set up"], answer: "Welcome! To get a useful overview, add your income, recurring budget, assets, and debts. You can update these details whenever things change.", page: "Inventory", pageLabel: "Go to Inventory", followUps: ["budget", "emergency", "reports"] },
   { id: "budget", question: "How does the budget suggestion work?", keywords: ["budget", "split", "55", "allocation", "income rule"], answer: "The suggested monthly plan sets aside up to 55% for essentials, 10% for debt repayment or investing, 15% for short-term goals, 15% for long-term goals, and 5% for everyday spending. It uses your take-home pay. If essentials are over the suggested limit, you’ll see ideas for bringing the plan back into balance.", page: "Power-Up", pageLabel: "Go to Power-Up", followUps: ["emergency", "rent", "goals"] },
   { id: "emergency", question: "How much should my emergency fund be?", keywords: ["emergency", "rainy day", "six months", "6 months", "fund target"], answer: "A helpful target is six months of your recurring monthly expenses. While you’re building the fund, most of the short-term savings share goes toward it. Your budget and progress can help you see how close you are.", page: "Power-Up", pageLabel: "Review my budget", followUps: ["budget", "savings", "goals"] },
@@ -9988,7 +9995,7 @@ const scriptedHelpTopics = [
   { id: "privacy", question: "How does my data stay private?", keywords: ["privacy", "data", "security", "account", "sync", "backup", "delete"], answer: "Your information is used to show your financial overview and related suggestions. Keep your sign-in details private. You can review the account, backup, and export options available to you in Settings.", page: "Settings", pageLabel: "Go to Settings", followUps: ["reports", "payday"] }
 ];
 let helpChatOpen = false;
-const helpChatHistory = [{ role: "assistant", text: "Hello! Welcome to NetraOS. I can help with budgeting, savings goals, assets, settings, and reports. What would you like to know?" }];
+const helpChatHistory = [{ role: "assistant", text: "Hello! Welcome to NetraOS. I can explain your Quick Overview, Recent Activity dates, accent colors, Privacy Shield, budgeting, savings goals, assets, settings, and reports. What would you like to know?", followUps: ["quick-overview", "recent-activity", "privacy-shield", "accent", "mobile-navigation", "budget"] }];
 
 function renderHelpChat() {
   const root = document.querySelector("[data-help-chat]");
@@ -10019,7 +10026,7 @@ function answerHelpQuestion(question, topicId) {
   if (topic) {
     helpChatHistory.push({ role: "assistant", text: topic.answer, page: topic.page, pageLabel: topic.pageLabel, followUps: topic.followUps });
   } else {
-    helpChatHistory.push({ role: "assistant", text: "I’m sorry, I couldn’t find an answer to that. I can help with budgeting, emergency savings, goals, assets, payday, privacy, or downloads. Could you try asking in a different way?", followUps: ["budget", "emergency", "goals", "assets", "payday", "reports"] });
+    helpChatHistory.push({ role: "assistant", text: "I’m sorry, I couldn’t find an answer to that. I can help with Quick Overview, Recent Activity, phone navigation, accent colors, Privacy Shield, budgeting, goals, assets, payday, or downloads. Could you try asking in a different way?", followUps: ["quick-overview", "recent-activity", "mobile-navigation", "privacy-shield", "accent", "budget"] });
   }
   if (helpChatHistory.length > 18) helpChatHistory.splice(1, 2);
   renderHelpChat();

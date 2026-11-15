@@ -12849,6 +12849,7 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
 .dashboard-activity-name { display: grid; gap: 4px; min-width: 0; }
 .dashboard-activity-name strong { overflow: hidden; color: var(--text, #19241f); font: 650 13px/1.2 var(--sans, Inter, sans-serif); text-overflow: ellipsis; white-space: nowrap; }
 .dashboard-activity-name small { overflow: hidden; color: var(--muted, #6c7870); font: 450 11px/1.2 var(--sans, Inter, sans-serif); text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-activity-name time { color: var(--muted, #6c7870); font: 450 11px/1.2 var(--sans, Inter, sans-serif); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dashboard-activity-amount { color: #126c4d; font: 700 13px/1.2 var(--sans, Inter, sans-serif); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dashboard-activity-row.is-spending .dashboard-activity-amount { color: #9f3436; }
 .dashboard-activity-empty { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 0 2px; border-top: 1px solid var(--line, #e6ebe7); }
