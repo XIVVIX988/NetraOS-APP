@@ -7094,6 +7094,11 @@ body.privacy-mode [role="menu"] [data-privacy-currency] {
   user-select: none;
   transition: filter .16s ease;
 }
+.app-shell.privacy-mode :is(.nw-amount, .kpi-amount) {
+  filter: blur(7px);
+  user-select: none;
+  transition: filter .16s ease;
+}
 
 .onboarding-card {
   display: grid;
@@ -13143,7 +13148,7 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
   .app-shell .kpi-card .kpi-amount[data-size="xs"] { font-size: 16px; }
 }
 @media (max-width: 599px) {
-  html .app-shell.app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  html .app-shell.app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card {
     display: grid !important;
     grid-template-columns: 34px minmax(0, 1fr) !important;
@@ -13160,9 +13165,9 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .sav
   .app-shell .kpi-card .kpi-text { display: contents; }
   .app-shell .kpi-card .kpi-name { font-size: 10px; line-height: 1.15; white-space: nowrap; }
   .app-shell .kpi-card .kpi-name { grid-column: 2; grid-row: 1; }
-  .app-shell .kpi-card .kpi-amount { grid-column: 2; grid-row: 2; margin: 0; font-size: 16px; overflow-wrap: normal; white-space: nowrap; }
-  .app-shell .kpi-card .kpi-amount[data-size="sm"] { font-size: 16px; }
-  .app-shell .kpi-card .kpi-amount[data-size="xs"] { font-size: 13px; }
+  .app-shell .kpi-card .kpi-amount { grid-column: 2; grid-row: 2; margin: 0; font-size: clamp(11px, 3.5vw, 14px); overflow-wrap: normal; white-space: normal; }
+  .app-shell .kpi-card .kpi-amount[data-size="sm"] { font-size: 13px; }
+  .app-shell .kpi-card .kpi-amount[data-size="xs"] { font-size: 12px; }
 }
 /* Same surface for all three cards; only a negative savings rate gets the red tint. */
 html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid .kpi-card.kpi-card.kpi-card.kpi-card.kpi-card {
