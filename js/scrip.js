@@ -3864,7 +3864,7 @@ function renderAccountRows(entries) {
         <span class="inventory-empty-icon" aria-hidden="true">＋</span>
         <div>
           <strong>No accounts added yet</strong>
-          <p>Use Add item above to keep this balance in your financial inventory.</p>
+          <p>Use the + button above to add your first asset or liability.</p>
         </div>
       </div>`;
   }
@@ -3875,28 +3875,33 @@ function renderAccountRows(entries) {
   };
   return `
     <div class="inventory-account-rows">
-      <div class="inventory-table-head" aria-hidden="true"><span>Item</span><span>Type</span><span>Account / Source</span><span>Value</span><span>Status</span><span></span></div>
-      ${[...entries.filter(entry => entry.type === "asset"), ...entries.filter(entry => entry.type === "liability")].map((entry, index, orderedEntries) => `
+      <div class="inventory-table-head" aria-hidden="true"><span>Account / Source</span><span>Type</span><span>Status</span><span></span></div>
+      ${[...entries.filter(entry => entry.type === "asset"), ...entries.filter(entry => entry.type === "liability")].map((entry, index, orderedEntries) => {
+        const categories = entry.type === "asset" ? assetCategories : liabilityCategories;
+        const categoryIcon = categories.find(category => category.name === entry.category)?.icon || "◇";
+        const categorySource = `${entry.category || "Other"}${entry.mobileType ? ` · ${entry.mobileType}` : ""}`;
+        return `
         ${index === 0 || orderedEntries[index - 1].type !== entry.type ? `<div class="inventory-account-group-heading" data-inventory-group-heading="${entry.type}"><strong>${entry.type === "asset" ? "Assets" : "Liabilities"}</strong><span>${groupCounts[entry.type]} ${groupCounts[entry.type] === 1 ? "item" : "items"}</span></div>` : ""}
         <div class="inventory-account-row" data-inventory-type="${entry.type}">
           <div class="inventory-row-summary">
-            <strong class="inventory-summary-cell inventory-summary-item" data-label="Item"><span class="inventory-account-type-icon" aria-hidden="true">${entry.type === "asset" ? '<svg viewBox="0 0 24 24" fill="none"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"/><path d="m4.3 7.7 7.7 4.4 7.7-4.4M12 12v9"/></svg>' : '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg>'}</span>${escapeHTML(entry.name)}</strong>
+            <div class="inventory-summary-cell inventory-account-source" data-label="Account / Source">
+              <span class="inventory-account-type-icon" aria-hidden="true">${escapeHTML(categoryIcon)}</span>
+              <span class="inventory-account-source-copy"><small class="inventory-account-source-label">Account / Source</small><strong class="inventory-summary-item">${escapeHTML(entry.name)}</strong><small class="inventory-account-category">${escapeHTML(categorySource)}</small></span>
+            </div>
             <span class="inventory-kind-pill ${entry.type === "asset" ? "is-asset" : "is-liability"}" data-label="Type">${entry.type === "asset" ? "Asset" : "Liability"}</span>
-            <span class="inventory-summary-cell inventory-account-source" data-label="Account / Source">${escapeHTML(entry.category)}${entry.mobileType ? ` · ${escapeHTML(entry.mobileType)}` : ""}</span>
-            <strong class="inventory-account-amount inventory-summary-cell" data-label="Value">${formatKsh(entry.amount)}</strong>
             <span class="inventory-status-pill" data-label="Status">Active</span>
             <button class="inventory-row-toggle" type="button" data-inventory-toggle aria-expanded="false" aria-label="Show details for ${escapeHTML(entry.name)}">
               <svg class="inventory-row-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m5 6 3 3 3-3"/></svg>
             </button>
           </div>
           <div class="inventory-account-details" data-inventory-details hidden>
-          <span class="inventory-row-icon">${entry.type === "asset" ? "◉" : "▤"}</span>
+          <span class="inventory-row-icon" aria-hidden="true">${escapeHTML(categoryIcon)}</span>
           <span class="inventory-account-name">
+            <small class="inventory-account-balance"><span>Amount</span><strong>${formatKsh(entry.amount)}</strong></small>
             ${entry.mobileReference ? `<small class="inventory-account-notes">${escapeHTML(entry.mobileReference)}</small>` : ""}
             ${entry.notes ? `<small class="inventory-account-notes">${escapeHTML(entry.notes)}</small>` : ""}
             ${entry.loan ? `<span class="loan-metrics">
               <span><small>LENDER / TYPE</small><b>${escapeHTML(entry.loan.lenderType)}</b></span>
-              <span><small>OUTSTANDING BALANCE</small><b>${formatKsh(entry.amount)}</b></span>
               <span><small>INTEREST (APR / TYPE)</small><b>${escapeHTML(formatLoanRate(entry.loan))}</b></span>
               <span><small>INTEREST INCURRED THIS MONTH</small><b>${formatKsh(entry.loan.interestAccruedThisMonth || 0)}</b></span>
               ${(() => {
@@ -3917,8 +3922,6 @@ function renderAccountRows(entries) {
               const r = entry.returns;
               const rate = v => `${Math.round(v * 100) / 100}%`;
               return `<span class="loan-metrics asset-metrics">
-                <span><small>CATEGORY / LOCATION</small><b>${escapeHTML(entry.category)}</b></span>
-                <span><small>OUTSTANDING BALANCE</small><b>${formatKsh(entry.amount)}</b></span>
                 <span><small>EXPECTED RETURN</small><b>${rate(y.gross)} gross p.a. · ${y.taxFree ? "no withdrawal withholding" : `${Math.round(y.taxRate * 100)}% withholding on withdrawal`}</b></span>
                 <span><small>COMPOUNDING / LIQUIDITY</small><b>${escapeHTML(r.compounding || "Not set")} · ${escapeHTML(r.liquidity || "Not set")}</b></span>
                 <span><small>ESTIMATED DAILY GROSS GROWTH</small><b>${formatKsh(y.daily)}/day</b></span>
@@ -3929,7 +3932,8 @@ function renderAccountRows(entries) {
           <button class="inventory-row-edit" type="button" data-edit-entry="${escapeHTML(entry.id)}" aria-label="Edit ${escapeHTML(entry.name)}" title="Edit item">Edit</button>
           <button class="inventory-delete" type="button" data-delete-entry="${escapeHTML(entry.id)}" aria-label="Delete ${escapeHTML(entry.name)}" title="Delete item">×</button>
           </div>
-        </div>`).join("")}
+        </div>`;
+      }).join("")}
     </div>`;
 }
 
@@ -3952,17 +3956,17 @@ function renderInventoryPage() {
         <article class="inventory-summary-card inventory-summary-assets">
           <span class="inventory-summary-icon">${assetIcon}</span>
           <span class="inventory-label">TOTAL ASSETS</span>
-          <strong>${formatKsh(totals.assets)}</strong>
+          <strong>${formatCompactKpiCurrency(totals.assets)}</strong>
         </article>
         <article class="inventory-summary-card inventory-summary-liabilities">
           <span class="inventory-summary-icon">${liabilityIcon}</span>
           <span class="inventory-label">TOTAL LIABILITIES</span>
-          <strong>${formatKsh(totals.liabilities)}</strong>
+          <strong>${formatCompactKpiCurrency(totals.liabilities)}</strong>
         </article>
         <article class="inventory-summary-card net-worth-summary" data-net-worth-state="${totals.netWorth < 0 ? "negative" : totals.netWorth > 0 ? "positive" : "zero"}">
           <span class="inventory-summary-icon">${netWorthIcon}</span>
           <span class="inventory-label">NET WORTH</span>
-          <strong>${formatKsh(totals.netWorth)}</strong>
+          <strong>${formatCompactKpiCurrency(totals.netWorth, 100000)}</strong>
         </article>
       </section>
 
