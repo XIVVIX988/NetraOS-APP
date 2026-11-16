@@ -4093,7 +4093,16 @@ function updateDashboardRecentActivity() {
       amount: Number(item.amount || 0), date: /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : /^\d{4}-\d{2}$/.test(item.month || "") ? `${item.month}-01` : ""
     }))
   ].filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && Number.isFinite(item.amount))
-    .sort((a, b) => b.date.localeCompare(a.date))
+    .sort((a, b) => {
+      const sortTime = item => {
+        const recordedTime = Date.parse(item.recordedAt);
+        if (Number.isFinite(recordedTime)) return recordedTime;
+        const idTime = Number(String(item.id || "").split("-")[0]);
+        if (idTime > 1e12) return idTime;
+        return Date.parse(`${item.date}T12:00:00`);
+      };
+      return sortTime(b) - sortTime(a);
+    })
     .slice(0, 5);
   if (!entries.length) {
     list.innerHTML = `<div class="dashboard-activity-empty"><span aria-hidden="true">⌁</span><div><strong>No activity yet</strong><p>Income you mark as received and expenses you record will show here.</p></div><button type="button" data-jump="Power-Up">Open Power-Up <span aria-hidden="true">›</span></button></div>`;
