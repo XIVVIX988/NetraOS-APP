@@ -13464,3 +13464,25 @@ html body .app-shell[data-accent] #page-content:has(> .welcome-row) > .dashboard
 .app-shell.theme-dark .dashboard-activity-icon,
 .app-shell.theme-dark .dashboard-activity-row.is-spending .dashboard-activity-icon { background: transparent !important; }
 .app-shell[data-accent] .dashboard-activity-icon { color: var(--green) !important; }
+.app-shell .networth-card .nw-eye,
+.app-shell .networth-card .nw-eye:hover,
+.app-shell .networth-card .nw-eye[aria-pressed="true"],
+.app-shell .networth-card .nw-eye[aria-pressed="true"]:hover {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.app-shell.theme-dark .networth-card .nw-eye,
+.app-shell.theme-dark .networth-card .nw-eye:hover,
+.app-shell.theme-dark .networth-card .nw-eye[aria-pressed="true"] {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card .nw-eye,
+html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card .nw-eye:hover,
+html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metrics-grid > .networth-card .nw-eye[aria-pressed="true"] {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
