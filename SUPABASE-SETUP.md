@@ -1,6 +1,6 @@
 # NetraOS Supabase setup
 
-The browser client is configured for project `nqacreyemzoiarnaaska`. The publishable key is intentionally visible in `supabase-config.js`; it is safe to expose only because the database schema applies Row Level Security. Never put a Supabase `service_role` key in any browser file.
+The browser client is configured for project `nqacreyemzoiarnaaska`. The publishable key is intentionally visible in `js/supabase-config.js`; it is safe to expose only because the database schema applies Row Level Security. Never put a Supabase `service_role` key in any browser file.
 
 ## 1. Create the database tables
 
@@ -46,7 +46,7 @@ For Facebook sign-in, create a Facebook app with Facebook Login enabled. In the 
 
 For Apple sign-in, configure Sign in with Apple in Apple Developer and add the callback URL shown in the Supabase Apple provider settings to the Apple service configuration. Enable Apple under Supabase **Authentication → Sign In / Providers → Apple** and enter the requested Apple identifiers and signing key details there. Keep private keys in Supabase only. The Google option is the only full-size provider button; Facebook and Apple appear as text links.
 
-Keep the Google client secret in the Supabase Dashboard; do not put it in `supabase-config.js` or another browser file. Google sign-in requires an internet connection and redirects back to the app after authentication.
+Keep the Google client secret in the Supabase Dashboard; do not put it in `js/supabase-config.js` or another browser file. Google sign-in requires an internet connection and redirects back to the app after authentication.
 
 ### Enable fingerprint and passkey sign-in
 
@@ -80,4 +80,4 @@ The service worker caches the app shell and public render assets after the first
 - Factory reset deletes account data but does not delete the Supabase Auth identity. Deleting the identity safely needs a protected server function; never use a service-role key from the browser.
 - Confirm the project’s database region, retention, backups, email settings, and production redirect domain in the Supabase Dashboard.
 
-For the second-factor setup, choose a transactional sender (for example Resend or Brevo) and a verified sender address. Add its API secret directly in Supabase Edge Function secrets; do not send that secret in chat or add it to `supabase-config.js`.
+For the second-factor setup, choose a transactional sender (for example Resend or Brevo) and a verified sender address. Add its API secret directly in Supabase Edge Function secrets; do not send that secret in chat or add it to `js/supabase-config.js`.

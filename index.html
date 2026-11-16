@@ -6,18 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#13875f" />
     <meta name="color-scheme" content="light dark" />
-    <script>
-      (() => {
-        try {
-          const themeSettings = JSON.parse(localStorage.getItem("netraos-settings-v1") || "{}");
-          const dark = themeSettings.themeMode === "dark" || (themeSettings.themeMode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
-          if (dark) document.documentElement.dataset.themeStart = "dark";
-        } catch {}
-      })();
-    </script>
+    <script src="js/theme-init.js"></script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NetraOS" />
-    <style>[hidden] { display: none !important; }</style>
     <title>
       NetraOS — Your Financial Operating System
     </title>
@@ -355,10 +346,6 @@
     <!-- Main application logic: navigation, saved data, interactions, and report downloads. -->
     <script src="js/scrip.js?v=getstarted-image-20261115-1">
     </script>
-    <script>
-      if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname))) {
-        navigator.serviceWorker.register("./service-worker.js").catch(error => console.warn("Offline app shell is unavailable:", error));
-      }
-    </script>
+    <script src="js/register-service-worker.js"></script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = "netraos-shell-20261115-24";
+const CACHE_NAME = "netraos-shell-20261115-25";
 const SHELL_ASSETS = [
   "./",
   "./index.html",
@@ -7,6 +7,8 @@ const SHELL_ASSETS = [
   "./js/scrip.js?v=getstarted-image-20261115-1",
   "./js/supabase-sync.js?v=onboarding-profile-save-20261113-1",
   "./js/supabase-config.js",
+  "./js/theme-init.js",
+  "./js/register-service-worker.js",
   "./manifest.webmanifest",
   "./assets/netraos-logo.svg",
   "./assets/netraos-logo-dark.svg",
@@ -15,7 +17,7 @@ const SHELL_ASSETS = [
 ];
 const SHELL_PATHS = new Set([
   "", "index.html", "css/style.css", "css/mobile-accessibility.css", "js/scrip.js", "js/supabase-sync.js",
-  "js/supabase-config.js", "manifest.webmanifest", "assets/netraos-logo.svg",
+  "js/supabase-config.js", "js/theme-init.js", "js/register-service-worker.js", "manifest.webmanifest", "assets/netraos-logo.svg",
   "assets/netraos-logo-dark.svg", "assets/netraos-app-icon.svg", "assets/phone-welcome-wallet.jpeg"
 ]);
 
