@@ -11918,6 +11918,7 @@ html .app-shell.app-shell #page-content .metrics-grid .metric-card.metric-card.m
 }
 html .app-shell.app-shell #page-content .metrics-grid .networth-card.metric-card.metric-card.metric-card > .metric-heading { grid-column: 1; grid-row: 1; }
 html .app-shell.app-shell #page-content .metrics-grid .networth-card.metric-card.metric-card.metric-card > .metric-value { grid-column: 1; grid-row: 2; }
+html .app-shell.app-shell #page-content .metrics-grid .networth-card.metric-card.metric-card.metric-card > .metric-value { font-weight: 800; }
 html .app-shell.app-shell #page-content .metrics-grid .networth-card.metric-card.metric-card.metric-card > .networth-caption { display: block; grid-column: 1; grid-row: 3; }
 .app-shell .networth-card > .networth-chart { grid-column: 2; grid-row: 1 / span 3; align-self: center; margin: 0; min-width: 0; }
 .app-shell .networth-card .networth-chart-plot { height: 68px; }
