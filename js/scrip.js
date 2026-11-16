@@ -3880,7 +3880,7 @@ function renderAccountRows(entries) {
         ${index === 0 || orderedEntries[index - 1].type !== entry.type ? `<div class="inventory-account-group-heading" data-inventory-group-heading="${entry.type}"><strong>${entry.type === "asset" ? "Assets" : "Liabilities"}</strong><span>${groupCounts[entry.type]} ${groupCounts[entry.type] === 1 ? "item" : "items"}</span></div>` : ""}
         <div class="inventory-account-row" data-inventory-type="${entry.type}">
           <div class="inventory-row-summary">
-            <strong class="inventory-summary-cell inventory-summary-item" data-label="Item">${escapeHTML(entry.name)}</strong>
+            <strong class="inventory-summary-cell inventory-summary-item" data-label="Item"><span class="inventory-account-type-icon" aria-hidden="true">${entry.type === "asset" ? '<svg viewBox="0 0 24 24" fill="none"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"/><path d="m4.3 7.7 7.7 4.4 7.7-4.4M12 12v9"/></svg>' : '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg>'}</span>${escapeHTML(entry.name)}</strong>
             <span class="inventory-kind-pill ${entry.type === "asset" ? "is-asset" : "is-liability"}" data-label="Type">${entry.type === "asset" ? "Asset" : "Liability"}</span>
             <span class="inventory-summary-cell inventory-account-source" data-label="Account / Source">${escapeHTML(entry.category)}${entry.mobileType ? ` · ${escapeHTML(entry.mobileType)}` : ""}</span>
             <strong class="inventory-account-amount inventory-summary-cell" data-label="Value">${formatKsh(entry.amount)}</strong>
@@ -3936,6 +3936,9 @@ function renderAccountRows(entries) {
 function renderInventoryPage() {
   const entries = getInventoryEntries();
   const totals = getInventoryTotals();
+  const assetIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"/><path d="m4.3 7.7 7.7 4.4 7.7-4.4M12 12v9M8 5.2l8 4.5"/></svg>';
+  const liabilityIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg>';
+  const netWorthIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg>';
 
   return `
     <section class="inventory-page">
@@ -3945,25 +3948,30 @@ function renderInventoryPage() {
           <h1><span class="inventory-title-desktop">My Inventory</span><span class="inventory-title-mobile">Inventory</span></h1>
           <p class="welcome-sub">See what you own, owe, and how it adds up.</p>
         </div>
-        <button class="inventory-action" type="button" data-inventory-action="add-account" aria-label="Add item" title="Add item">
-          <span class="inventory-add-plus" aria-hidden="true">+</span><span class="inventory-add-label">Add item</span>
-        </button>
       </header>
 
       <section class="inventory-summary" aria-label="Balance sheet summary">
-        <article class="inventory-summary-card">
+        <article class="inventory-summary-card inventory-summary-assets">
+          <span class="inventory-summary-icon">${assetIcon}</span>
           <span class="inventory-label">TOTAL ASSETS</span>
           <strong>${formatKsh(totals.assets)}</strong>
         </article>
-        <article class="inventory-summary-card">
+        <article class="inventory-summary-card inventory-summary-liabilities">
+          <span class="inventory-summary-icon">${liabilityIcon}</span>
           <span class="inventory-label">TOTAL LIABILITIES</span>
           <strong>${formatKsh(totals.liabilities)}</strong>
         </article>
         <article class="inventory-summary-card net-worth-summary" data-net-worth-state="${totals.netWorth < 0 ? "negative" : totals.netWorth > 0 ? "positive" : "zero"}">
+          <span class="inventory-summary-icon">${netWorthIcon}</span>
           <span class="inventory-label">NET WORTH</span>
           <strong>${formatKsh(totals.netWorth)}</strong>
         </article>
       </section>
+
+      <div class="inventory-quick-actions" aria-label="Inventory actions">
+        <button class="inventory-action" type="button" data-inventory-action="add-asset">${assetIcon}<span>Add asset</span></button>
+        <button class="inventory-action inventory-action-liability" type="button" data-inventory-action="add-liability">${liabilityIcon}<span>Add liability</span></button>
+      </div>
 
       <section class="panel inventory-accounts">
         <div class="panel-heading">

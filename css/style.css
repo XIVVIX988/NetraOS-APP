@@ -14657,3 +14657,197 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
 .app-shell .dashboard-shortcuts > button {
   box-shadow: 0 6px 18px rgba(20, 45, 65, .05) !important;
 }
+
+/* Inventory uses the dashboard's glass surfaces, accent-led hierarchy, and compact actions. */
+.app-shell .inventory-page {
+  width: min(100%, 1440px);
+  display: grid;
+  gap: clamp(14px, 2vw, 22px);
+}
+.app-shell .inventory-page > .inventory-heading {
+  margin: 0;
+  align-items: center;
+}
+.app-shell .inventory-page > .inventory-heading h1 {
+  color: var(--dash-ink, #10233f);
+  font-size: clamp(27px, 3vw, 36px);
+}
+.app-shell .inventory-page > .inventory-heading .welcome-sub {
+  color: var(--dash-muted, #63736a);
+  font-size: 13px;
+}
+.app-shell .inventory-page .inventory-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(9px, 1.5vw, 16px);
+}
+.app-shell .inventory-page .inventory-summary-card {
+  position: relative;
+  min-width: 0;
+  min-height: 126px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  align-content: center;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 6px;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--green, #008f55) 24%, var(--dash-border, #dce6e8)) !important;
+  border-radius: 24px;
+  background: var(--dash-glass, rgba(255,255,255,.78)) !important;
+  color: var(--dash-ink, #10233f);
+  box-shadow: 0 8px 24px rgba(20,45,65,.055);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.app-shell .inventory-page .inventory-summary-icon {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: var(--green, #008f55);
+}
+.app-shell .inventory-page .inventory-summary-icon svg,
+.app-shell .inventory-page .inventory-quick-actions svg,
+.app-shell .inventory-account-type-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.app-shell .inventory-page .inventory-summary-card .inventory-label {
+  grid-column: 2;
+  grid-row: 1;
+  color: var(--dash-muted, #63736a);
+  font: 700 10px/1.25 var(--sans);
+  letter-spacing: .075em;
+}
+.app-shell .inventory-page .inventory-summary-card > strong {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  color: var(--dash-ink, #10233f) !important;
+  font: 800 clamp(18px, 2.25vw, 29px)/1.15 var(--display);
+  letter-spacing: -.035em;
+  overflow-wrap: anywhere;
+}
+.app-shell .inventory-page .inventory-summary-card.net-worth-summary {
+  border-color: color-mix(in srgb, var(--green, #008f55) 42%, var(--dash-border, #dce6e8)) !important;
+  background: color-mix(in srgb, var(--green, #008f55) 10%, var(--dash-glass, #fff)) !important;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--green, #008f55) 10%, transparent);
+}
+.app-shell .inventory-page .inventory-summary-card.net-worth-summary .inventory-label,
+.app-shell .inventory-page .inventory-summary-card.net-worth-summary > strong,
+.app-shell.theme-dark .inventory-page .inventory-summary-card.net-worth-summary .inventory-label,
+.app-shell.theme-dark .inventory-page .inventory-summary-card.net-worth-summary > strong { color: var(--dash-ink, #10233f) !important; }
+.app-shell .inventory-page .inventory-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(9px, 1.5vw, 16px);
+}
+.app-shell .inventory-page .inventory-quick-actions > button {
+  min-width: 0;
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--green, #008f55) 30%, var(--dash-border, #dce6e8)) !important;
+  border-radius: 20px;
+  background: var(--dash-glass, rgba(255,255,255,.78)) !important;
+  color: var(--green, #008f55) !important;
+  box-shadow: 0 6px 18px rgba(20,45,65,.045);
+  font: 700 14px/1.2 var(--sans);
+  cursor: pointer;
+}
+.app-shell .inventory-page .inventory-quick-actions > button:hover {
+  border-color: var(--green, #008f55) !important;
+  background: color-mix(in srgb, var(--green, #008f55) 8%, var(--dash-glass, #fff)) !important;
+}
+.app-shell .inventory-page .inventory-quick-actions svg { width: 24px; height: 24px; flex: 0 0 24px; }
+.app-shell .inventory-page .inventory-quick-actions .inventory-action-liability { color: var(--dash-ink, #10233f) !important; }
+.app-shell .inventory-page > .inventory-accounts {
+  min-width: 0;
+  margin: 0;
+  padding: clamp(16px, 2.2vw, 24px);
+  border: 1px solid var(--dash-border, #dce6e8) !important;
+  border-radius: 26px;
+  background: var(--dash-glass, rgba(255,255,255,.78)) !important;
+  color: var(--dash-ink, #10233f);
+  box-shadow: 0 8px 24px rgba(20,45,65,.05);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.app-shell .inventory-page > .inventory-accounts .panel-heading { align-items: center; }
+.app-shell .inventory-page > .inventory-accounts .panel-heading h2 { margin: 4px 0 0; color: var(--dash-ink, #10233f); font-size: 20px; }
+.app-shell .inventory-page .inventory-account-count { background: color-mix(in srgb, var(--green, #008f55) 10%, transparent); color: var(--green, #008f55); }
+.app-shell .inventory-page .inventory-account-row {
+  margin: 6px 0;
+  padding: 0 12px;
+  overflow: hidden;
+  border: 1px solid var(--dash-border, #dce6e8) !important;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--dash-glass, #fff) 88%, transparent);
+  transition: border-color .16s ease, background .16s ease;
+}
+.app-shell .inventory-page .inventory-account-row:hover {
+  border-color: color-mix(in srgb, var(--green, #008f55) 35%, var(--dash-border, #dce6e8)) !important;
+  background: color-mix(in srgb, var(--green, #008f55) 4%, var(--dash-glass, #fff));
+}
+.app-shell .inventory-page .inventory-account-group-heading { margin-top: 15px; }
+.app-shell .inventory-page .inventory-account-group-heading strong { color: var(--dash-ink, #10233f); }
+.app-shell .inventory-page .inventory-summary-item { display: flex; align-items: center; gap: 9px; }
+.app-shell .inventory-page .inventory-account-type-icon { display: inline-flex; width: 23px; height: 23px; flex: 0 0 23px; color: var(--green, #008f55); }
+.app-shell .inventory-page .inventory-account-amount { color: var(--dash-ink, #10233f); font-size: 13px; font-weight: 750; }
+.app-shell.theme-dark .inventory-page .inventory-summary-card,
+.app-shell.theme-dark .inventory-page .inventory-quick-actions > button,
+.app-shell.theme-dark .inventory-page > .inventory-accounts {
+  background-color: var(--dash-glass, rgba(27,38,33,.88)) !important;
+  color: var(--dash-ink, #eef5f1);
+}
+.app-shell.theme-dark .inventory-page .inventory-summary-card > strong,
+.app-shell.theme-dark .inventory-page .inventory-summary-card .inventory-label,
+.app-shell.theme-dark .inventory-page .inventory-account-amount,
+.app-shell.theme-dark .inventory-page .inventory-summary-item,
+.app-shell.theme-dark .inventory-page > .inventory-accounts .panel-heading h2,
+.app-shell.theme-dark .inventory-page .inventory-account-group-heading strong { color: var(--dash-ink, #eef5f1) !important; }
+.app-shell.theme-dark .inventory-page .inventory-account-row { background: rgba(19,30,24,.55); }
+@media (max-width: 760px) {
+  .app-shell .inventory-page { gap: 13px; }
+  .app-shell .inventory-page .inventory-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .app-shell .inventory-page .inventory-summary-card {
+    min-height: 94px;
+    grid-template-columns: 30px minmax(0, 1fr);
+    column-gap: 8px;
+    padding: 13px;
+    border-radius: 19px;
+  }
+  .app-shell .inventory-page .inventory-summary-card.net-worth-summary { grid-column: 1 / -1; order: -1; }
+  .app-shell .inventory-page .inventory-summary-icon { width: 30px; height: 30px; }
+  .app-shell .inventory-page .inventory-summary-card .inventory-label { font-size: 8px; }
+  .app-shell .inventory-page .inventory-summary-card > strong { font-size: clamp(15px, 4vw, 21px); }
+  .app-shell .inventory-page .inventory-quick-actions { gap: 8px; }
+  .app-shell .inventory-page .inventory-quick-actions > button { min-height: 58px; padding: 10px; border-radius: 17px; font-size: 12px; }
+  .app-shell .inventory-page .inventory-quick-actions svg { width: 21px; height: 21px; flex-basis: 21px; }
+  .app-shell .inventory-page > .inventory-accounts { padding: 15px 12px; border-radius: 22px; }
+  .app-shell .inventory-page .inventory-account-row { padding-inline: 8px; border-radius: 14px; }
+  .app-shell .inventory-page .inventory-summary-item { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 6px; }
+  .app-shell .inventory-page .inventory-summary-item::before { grid-column: 1 / -1; }
+  .app-shell .inventory-page .inventory-account-type-icon { width: 19px; height: 19px; flex-basis: 19px; }
+}
+@media (max-width: 360px) {
+  .app-shell .inventory-page .inventory-summary-card { grid-template-columns: 24px minmax(0, 1fr); padding: 10px; column-gap: 6px; }
+  .app-shell .inventory-page .inventory-summary-icon { width: 24px; height: 24px; }
+  .app-shell .inventory-page .inventory-summary-card > strong { font-size: 14px; }
+  .app-shell .inventory-page .inventory-quick-actions > button { gap: 7px; padding-inline: 7px; font-size: 11px; }
+}
