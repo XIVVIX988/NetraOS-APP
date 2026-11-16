@@ -15546,16 +15546,16 @@ html body .app-shell.theme-dark:has(.inventory-page) #page-content { background:
 
 /* Asset and liability totals mirror the paired dashboard summary cards. */
 .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) {
-  min-height: 152px;
-  grid-template-columns: 66px minmax(0, 1fr);
+  min-height: 126px;
+  grid-template-columns: 54px minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-content: center;
   align-items: center;
-  column-gap: 15px;
-  row-gap: 12px;
-  padding: 22px clamp(17px, 3vw, 32px);
+  column-gap: 12px;
+  row-gap: 9px;
+  padding: 17px clamp(15px, 2.5vw, 24px);
   border: 1px solid rgba(220,230,232,.94) !important;
-  border-radius: 31px;
+  border-radius: 26px;
   background: rgba(255,255,255,.82) !important;
   box-shadow: 0 9px 24px rgba(20,45,65,.085);
   backdrop-filter: blur(18px);
@@ -15565,10 +15565,10 @@ html body .app-shell.theme-dark:has(.inventory-page) #page-content { background:
   grid-column: 1;
   grid-row: 1;
   display: grid;
-  width: 66px;
-  height: 66px;
+  width: 54px;
+  height: 54px;
   place-items: center;
-  padding: 15px;
+  padding: 12px;
   border-radius: 50%;
   background: #dff8ed !important;
   color: #087b50 !important;
@@ -15586,7 +15586,7 @@ html body .app-shell.theme-dark:has(.inventory-page) #page-content { background:
   grid-column: 2;
   grid-row: 1;
   color: #10233f;
-  font: 600 clamp(15px, 2.1vw, 22px)/1.25 var(--sans);
+  font: 600 clamp(14px, 1.8vw, 19px)/1.25 var(--sans);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -15595,7 +15595,7 @@ html body .app-shell.theme-dark:has(.inventory-page) #page-content { background:
   grid-row: 2;
   min-width: 0;
   color: #10233f !important;
-  font: 800 clamp(23px, 3.7vw, 39px)/1.12 var(--display);
+  font: 800 clamp(21px, 3vw, 32px)/1.12 var(--display);
   letter-spacing: -.035em;
   white-space: nowrap;
 }
@@ -15612,41 +15612,42 @@ html body .app-shell.theme-dark:has(.inventory-page) #page-content { background:
 }
 @media (max-width: 760px) {
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) {
-    min-height: 142px;
-    grid-template-columns: 54px minmax(0,1fr);
-    column-gap: 11px;
-    row-gap: 12px;
-    padding: 18px;
-    border-radius: 26px;
+    min-height: 116px;
+    grid-template-columns: 46px minmax(0,1fr);
+    column-gap: 9px;
+    row-gap: 9px;
+    padding: 14px;
+    border-radius: 22px;
   }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-summary-icon {
-    width: 54px;
-    height: 54px;
-    padding: 12px;
+    width: 46px;
+    height: 46px;
+    padding: 10px;
   }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label {
-    font-size: clamp(13px, 3.3vw, 18px);
+    font-size: clamp(12px, 3vw, 16px);
   }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong {
-    font-size: clamp(16px, 4.4vw, 29px);
+    font-size: clamp(14px, 3.6vw, 24px);
   }
 }
 @media (max-width: 390px) {
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) {
-    min-height: 126px;
-    grid-template-columns: 40px minmax(0,1fr);
-    column-gap: 8px;
-    padding: 13px 11px;
-    border-radius: 22px;
+    min-height: 104px;
+    grid-template-columns: 36px minmax(0,1fr);
+    column-gap: 7px;
+    row-gap: 7px;
+    padding: 11px 9px;
+    border-radius: 19px;
   }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-summary-icon {
-    width: 40px;
-    height: 40px;
-    padding: 9px;
+    width: 36px;
+    height: 36px;
+    padding: 8px;
   }
-  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label { font-size: 11px; }
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label { font-size: 10px; }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong {
-    font-size: clamp(13px, 3.7vw, 17px);
+    font-size: clamp(12px, 3.4vw, 15px);
     letter-spacing: -.045em;
   }
 }
