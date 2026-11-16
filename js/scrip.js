@@ -3552,13 +3552,13 @@ function formatKsh(amount) {
   });
 }
 
-function formatCompactKpiCurrency(amount) {
+function formatCompactKpiCurrency(amount, compactThreshold = 1000) {
   const currencyState = getCurrencyState();
   const currency = displayCurrencies[currencyState.active];
   const rate = currencyState.rates[currencyState.active] || 1;
   const converted = Number(amount || 0) / rate;
   const absolute = Math.abs(converted);
-  if (absolute < 1000) return formatKsh(amount);
+  if (absolute < compactThreshold) return formatKsh(amount);
 
   const tiers = [
     { size: 1e3, suffix: "K" },
@@ -3943,7 +3943,7 @@ function updateDashboardInventorySummary() {
   updateDashboardAssetAllocation();
   const netWorthValue = document.querySelector(".networth-card [data-networth-value]");
 
-  if (netWorthValue) netWorthValue.textContent = formatKsh(totals.netWorth);
+  if (netWorthValue) netWorthValue.textContent = formatCompactKpiCurrency(totals.netWorth, 100000);
   const netWorthSnapshots = !appShell.hidden && crumb.textContent === "Dashboard"
     ? getStatsNetWorthSnapshots(totals.netWorth).slice(-6)
     : [];
