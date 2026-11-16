@@ -15595,7 +15595,7 @@ html body .app-shell.theme-dark:has(.inventory-page) #page-content { background:
   grid-row: 2;
   min-width: 0;
   color: #10233f !important;
-  font: 800 clamp(21px, 3vw, 32px)/1.12 var(--display);
+  font: 800 clamp(24px, 3.5vw, 36px)/1.12 var(--display);
   letter-spacing: -.035em;
   white-space: nowrap;
 }
@@ -15628,7 +15628,7 @@ html body .app-shell.theme-dark:has(.inventory-page) #page-content { background:
     font-size: clamp(12px, 3vw, 16px);
   }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong {
-    font-size: clamp(14px, 3.6vw, 24px);
+    font-size: clamp(17px, 4.2vw, 27px);
   }
 }
 @media (max-width: 390px) {
@@ -15647,7 +15647,7 @@ html body .app-shell.theme-dark:has(.inventory-page) #page-content { background:
   }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label { font-size: 10px; }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong {
-    font-size: clamp(12px, 3.4vw, 15px);
+    font-size: clamp(14px, 3.8vw, 17px);
     letter-spacing: -.045em;
   }
 }
