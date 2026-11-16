@@ -3552,6 +3552,30 @@ function formatKsh(amount) {
   });
 }
 
+function formatCompactKpiCurrency(amount) {
+  const currencyState = getCurrencyState();
+  const currency = displayCurrencies[currencyState.active];
+  const rate = currencyState.rates[currencyState.active] || 1;
+  const converted = Number(amount || 0) / rate;
+  const absolute = Math.abs(converted);
+  if (absolute < 1000) return formatKsh(amount);
+
+  const tiers = [
+    { size: 1e3, suffix: "K" },
+    { size: 1e6, suffix: "M" },
+    { size: 1e9, suffix: "B" },
+    { size: 1e12, suffix: "T" }
+  ];
+  let tierIndex = tiers.reduce((selected, tier, index) => absolute >= tier.size ? index : selected, 0);
+  let compact = absolute / tiers[tierIndex].size;
+  if (Number(compact.toFixed(2)) >= 1000 && tierIndex < tiers.length - 1) {
+    tierIndex += 1;
+    compact = absolute / tiers[tierIndex].size;
+  }
+  const formatted = compact.toLocaleString(currency.locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return `${converted < 0 ? "−" : ""}${currency.symbol} ${formatted}${tiers[tierIndex].suffix}`;
+}
+
 // Find currency amounts in rendered text so the privacy toggle can mask them.
 function markPrivacySensitiveText(node) {
   if (!node || node.nodeType !== Node.TEXT_NODE || !currencyAmountPattern.test(node.nodeValue || "")) return;
@@ -4086,19 +4110,19 @@ function updateDashboardPowerUpSummary() {
   const spendingCard = document.querySelector(".spending-card");
 
   if (incomeCard) {
-    setKpiAmount(incomeCard, formatKsh(actualIncome));
+    setKpiAmount(incomeCard, formatCompactKpiCurrency(actualIncome));
     setKpiTrend(incomeCard, actualIncome, previousIncome);
   }
 
   if (savingsCard) {
-    setKpiAmount(savingsCard, `${cashAfterSpending < 0 ? "−" : ""}${formatKsh(Math.abs(cashAfterSpending))}`);
+    setKpiAmount(savingsCard, `${cashAfterSpending < 0 ? "−" : ""}${formatCompactKpiCurrency(Math.abs(cashAfterSpending))}`);
     setKpiTrend(savingsCard, cashAfterSpending, previousSavings);
     savingsCard.dataset.cashflow = cashAfterSpending < 0 ? "deficit" : "within-income";
   }
 
   if (spendingCard) {
     spendingCard.dataset.cashflow = cashAfterSpending < 0 ? "deficit" : "within-income";
-    setKpiAmount(spendingCard, formatKsh(actualSpending));
+    setKpiAmount(spendingCard, formatCompactKpiCurrency(actualSpending));
     setKpiTrend(spendingCard, actualSpending, previousSpending);
   }
 
