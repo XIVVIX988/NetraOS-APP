@@ -14565,3 +14565,41 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   .app-shell .dashboard-overview-grid .kpi-amount[data-size="sm"] { font-size: 10px !important; }
   .app-shell .dashboard-overview-grid .kpi-amount[data-size="xs"] { font-size: 9px !important; }
 }
+
+@media (max-width: 600px) {
+  .app-shell {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #f8faf9 !important;
+  }
+  .app-shell::before {
+    content: "";
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--green, #008f55) 38%, transparent), color-mix(in srgb, var(--green, #008f55) 38%, transparent)),
+      url("../assets/mobile-app-background.jpeg");
+    background-position: center, center top;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-blend-mode: color, normal;
+  }
+  html body .app-shell:not(.theme-dark) .main-panel,
+  html body .app-shell:not(.theme-dark) .content,
+  html body .app-shell:not(.theme-dark) #page-content,
+  html body .app-shell.theme-dark .main-panel,
+  html body .app-shell.theme-dark .content,
+  html body .app-shell.theme-dark #page-content { background: transparent !important; }
+  .app-shell.theme-dark { background: #101815 !important; }
+  .app-shell.theme-dark::before {
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--green, #008f55) 34%, transparent), color-mix(in srgb, var(--green, #008f55) 34%, transparent)),
+      linear-gradient(rgba(7, 17, 13, .78), rgba(7, 17, 13, .78)),
+      url("../assets/mobile-app-background.jpeg");
+    background-blend-mode: color, normal, normal;
+  }
+}
