@@ -21,13 +21,13 @@
     <title>
       NetraOS — Your Financial Operating System
     </title>
-    <link rel="icon" type="image/svg+xml" sizes="any" href="netraos-logo.svg?v=20261010-2" />
+    <link rel="icon" type="image/svg+xml" sizes="any" href="assets/netraos-logo.svg?v=20261010-2" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=onboarding-fullscreen-20261115-1" />
-    <link rel="stylesheet" href="mobile-accessibility.css?v=category-label-icons-20261115-1" />
+    <link rel="stylesheet" href="css/style.css?v=getstarted-image-20261115-1" />
+    <link rel="stylesheet" href="css/mobile-accessibility.css?v=category-label-icons-20261115-1" />
   </head>
   <body data-user-name="Jordan Davis">
     <a class="skip-to-content" href="#page-content">Skip to main content</a>
@@ -40,7 +40,7 @@
     <aside class="mobile-drawer" id="mobile-drawer" aria-label="Main menu" inert>
       <div class="drawer-head">
         <a class="top-brand" href="#dashboard" data-home-link aria-label="NetraOS dashboard home">
-          <span class="brand-mark"><img data-brand-logo src="netraos-logo.svg" alt="" /></span>
+          <span class="brand-mark"><img data-brand-logo src="assets/netraos-logo.svg" alt="" /></span>
           <span class="brand-copy"><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL<br />OPERATING SYSTEM</small></span>
         </a>
         <button class="drawer-close" type="button" data-drawer-close aria-label="Close menu">
@@ -90,7 +90,7 @@
       <aside class="desktop-sidebar" aria-label="Primary navigation">
         <div class="desktop-sidebar-head">
           <a class="desktop-sidebar-brand" href="#dashboard" data-home-link aria-label="NetraOS dashboard home">
-            <img data-brand-logo src="netraos-logo.svg" alt="" />
+            <img data-brand-logo src="assets/netraos-logo.svg" alt="" />
             <span>NETRA<span>OS</span></span>
           </a>
         </div>
@@ -116,7 +116,7 @@
           <!-- Brand link returns to the dashboard. -->
           <a class="top-brand" href="#dashboard" data-home-link aria-label="NetraOS dashboard home">
             <span class="brand-mark">
-              <img data-brand-logo src="netraos-logo.svg" alt="" />
+              <img data-brand-logo src="assets/netraos-logo.svg" alt="" />
             </span>
             <span class="brand-copy"><strong>NETRA<span>OS</span></strong><small>YOUR FINANCIAL<br />OPERATING SYSTEM</small></span>
           </a>
@@ -350,10 +350,10 @@
     </div>
     <!-- Supabase public client configuration and local-first account synchronization. -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-    <script src="supabase-config.js"></script>
-    <script src="supabase-sync.js?v=onboarding-profile-save-20261113-1"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-sync.js?v=onboarding-profile-save-20261113-1"></script>
     <!-- Main application logic: navigation, saved data, interactions, and report downloads. -->
-    <script src="scrip.js?v=tour-before-pin-prompt-20261115-1">
+    <script src="js/scrip.js?v=getstarted-image-20261115-1">
     </script>
     <script>
       if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname))) {

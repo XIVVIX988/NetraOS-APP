@@ -60,7 +60,7 @@ Keep email confirmation enabled. Supabase’s default email sender is best-effor
 
 ## 4. Serve the app
 
-Use a local web server such as VS Code Live Server at port `5500`; do not open `index.html` as a `file://` URL. Keep `index.html`, `scrip.js`, `style.css`, `supabase-config.js`, `supabase-sync.js`, the SVG assets, and `manifest.webmanifest` together in the same app directory. The SQL file is for the Dashboard only.
+Use a local web server such as VS Code Live Server at port `5500`; do not open `index.html` as a `file://` URL. Keep `index.html` and `manifest.webmanifest` in the app root, browser scripts in `js/`, stylesheets in `css/`, and image or logo files in `assets/`. The SQL file is for the Dashboard only.
 
 ## 5. Check the first sync
 

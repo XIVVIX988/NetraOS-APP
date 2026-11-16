@@ -10,7 +10,7 @@
   "theme_color": "#13875f",
   "icons": [
     {
-      "src": "netraos-app-icon.svg",
+      "src": "assets/netraos-app-icon.svg",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"

@@ -1084,7 +1084,7 @@ function applyStoredSettings(themeModeOverride = "") {
   document.body.classList.toggle("theme-dark", darkMode);
   appShell.classList.toggle("theme-dark", darkMode);
   publicShell.classList.toggle("theme-dark", darkMode);
-  const logoPath = darkMode ? "netraos-logo-dark.svg" : "netraos-logo.svg";
+  const logoPath = darkMode ? "assets/netraos-logo-dark.svg" : "assets/netraos-logo.svg";
   document.querySelectorAll("[data-brand-logo]").forEach(logo => {
     if (logo.getAttribute("src") !== logoPath) logo.setAttribute("src", logoPath);
   });
@@ -1643,7 +1643,7 @@ function compressProfileImage(file) {
 }
 
 function renderBrandMark() {
-  const logoPath = getStoredSettings().darkMode ? "netraos-logo-dark.svg" : "netraos-logo.svg";
+  const logoPath = getStoredSettings().darkMode ? "assets/netraos-logo-dark.svg" : "assets/netraos-logo.svg";
   return `<span class="public-brand-mark" aria-hidden="true"><img data-brand-logo src="${logoPath}" alt="" /></span>`;
 }
 
@@ -1839,7 +1839,7 @@ function showPhoneWelcome() {
   document.body.classList.remove("public-view");
   document.body.classList.add("auth-view", "phone-entry-view");
   window.location.hash = "welcome";
-  publicShell.innerHTML = '<main class="phone-entry phone-entry-welcome">' + renderFluidArt() + '<section class="phone-welcome-copy"><span class="phone-entry-kicker">YOUR FINANCIAL OPERATING SYSTEM</span><h1>See your money<br><em>with more clarity.</em></h1><p>Bring your balances, monthly plan, and goals together in one private workspace.</p></section><div class="phone-entry-actions"><button class="public-primary" type="button" data-public-action="signup">Create an account</button><button class="phone-entry-secondary" type="button" data-public-action="login">Sign in</button><button class="phone-entry-tour" type="button" data-phone-replay-intro>Take a quick tour</button></div></main>';
+  publicShell.innerHTML = '<main class="phone-entry phone-entry-welcome"><img class="phone-welcome-art" src="assets/phone-welcome-wallet.jpeg" alt="A green wallet holding a payment card, displayed on a glowing pedestal" fetchpriority="high"><div class="phone-welcome-shade" aria-hidden="true"></div><header class="phone-welcome-brand">' + renderBrandMark() + '<span>NETRA OS</span></header><section class="phone-welcome-copy"><span class="phone-entry-kicker">YOUR FINANCIAL OPERATING SYSTEM</span><h1>See your money<br><em>with more clarity.</em></h1><p>Bring your balances, monthly plan, and goals together in one private workspace.</p></section><div class="phone-entry-actions"><button class="public-primary" type="button" data-public-action="signup">Create an account <span aria-hidden="true">→</span></button><button class="phone-entry-secondary" type="button" data-public-action="login">Sign in</button><button class="phone-entry-tour" type="button" data-phone-replay-intro>Take a quick tour <span aria-hidden="true">→</span></button></div></main>';
   publicShell.querySelector("[data-phone-replay-intro]")?.addEventListener("click", showPhoneIntro);
 }
 
