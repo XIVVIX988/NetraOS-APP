@@ -15538,8 +15538,8 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   padding: 17px clamp(15px, 2.5vw, 24px);
   border: 1px solid rgba(220,230,232,.94) !important;
   border-radius: 26px;
-  background: rgba(255,255,255,.82) !important;
-  box-shadow: 0 9px 24px rgba(20,45,65,.085);
+  background: rgba(255,255,255,.78) !important;
+  box-shadow: 0 8px 24px rgba(20,45,65,.065);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
@@ -15583,7 +15583,7 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
 }
 .app-shell.theme-dark .inventory-page .inventory-summary-card:not(.net-worth-summary) {
   border-color: color-mix(in srgb, var(--green, #53c294) 26%, transparent) !important;
-  background: rgba(27,38,33,.9) !important;
+  background: rgba(27,38,33,.88) !important;
   box-shadow: 0 8px 22px rgba(0,0,0,.16);
 }
 .app-shell.theme-dark .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label,
