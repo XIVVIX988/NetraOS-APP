@@ -13692,6 +13692,7 @@ html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metr
   transition: filter .18s ease, transform .18s ease;
 }
 #public-shell .auth-login-page .auth-submit span { font-size: 24px; line-height: 1; }
+#public-shell .auth-login-page .auth-submit .segmented-spinner-art { width: 25px; height: 25px; stroke-width: 2.6; }
 #public-shell .auth-login-page .auth-submit:hover { filter: brightness(1.08); }
 #public-shell .auth-login-page .auth-submit:active { transform: scale(.985); }
 #public-shell .auth-login-page .auth-submit:disabled { filter: saturate(.65); opacity: .78; }
@@ -13799,3 +13800,17 @@ body.theme-dark #public-shell .auth-login-page .auth-input-shell > input:autofil
   caret-color: #132a3c;
   transition: background-color 99999s ease-out 0s;
 }
+#public-shell .auth-login-page .auth-content > .auth-welcome-text {
+  display: block;
+  min-height: 0;
+  margin: 0 0 12px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #176347;
+  font: 750 12px/1.3 var(--sans);
+  letter-spacing: .19em;
+  text-align: center;
+}
+#public-shell .auth-login-page .auth-content > .auth-welcome-text::before { display: none; }
+#public-shell .auth-login-page .auth-content h1 { text-align: center; }

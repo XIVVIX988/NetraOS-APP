@@ -1180,6 +1180,28 @@ function segmentedSpinnerMarkup() {
   return `<svg class="segmented-spinner-art" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${spokes}</svg>`;
 }
 
+function setAuthSubmitLoading(form, loading) {
+  const button = form.querySelector(".auth-submit");
+  if (!button) return;
+  if (loading) {
+    if (button.dataset.authIdleHtml !== undefined) return;
+    button.dataset.authIdleHtml = button.innerHTML;
+    button.disabled = true;
+    button.classList.add("is-loading");
+    button.setAttribute("aria-busy", "true");
+    button.setAttribute("aria-label", "Signing in");
+    button.innerHTML = segmentedSpinnerMarkup();
+    return;
+  }
+  if (button.dataset.authIdleHtml === undefined) return;
+  button.innerHTML = button.dataset.authIdleHtml;
+  delete button.dataset.authIdleHtml;
+  button.disabled = false;
+  button.classList.remove("is-loading");
+  button.removeAttribute("aria-busy");
+  button.removeAttribute("aria-label");
+}
+
 function clearButtonLoading(button) {
   const state = buttonLoadingStates.get(button);
   if (!state) return;
@@ -1194,7 +1216,7 @@ function clearButtonLoading(button) {
 document.addEventListener("click", event => {
   if (!(event.target instanceof Element)) return;
   const button = event.target.closest("button");
-  if (!button || button.disabled || button.matches(".mobile-tab, [data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
+  if (!button || button.disabled || (button.matches(".auth-submit") && button.closest('[data-auth-form="login"]')) || button.matches(".mobile-tab, [data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
   const state = { spinner: null, observer: null, timer: 0, minUntil: performance.now() + 300 };
   buttonLoadingStates.set(button, state);
   button.classList.add("is-loading");
@@ -2078,12 +2100,12 @@ function showPublicPage(page = "landing", { preserveAuthCallback = false } = {})
     publicShell.innerHTML = `
       <div class="auth-page${isSignup ? "" : " auth-login-page"}">
         ${isSignup ? renderFluidArt() : '<img class="auth-login-background" src="assets/log%20in.jpeg" alt="A bald eagle flying through a mountain sky" fetchpriority="high">'}
-        <button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button>
+        ${isSignup ? '<button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button>' : ""}
         <section class="auth-card">
           <div class="auth-content">
-          <div class="section-kicker">${isSignup ? "START WITH A CLEAR PICTURE" : "WELCOME BACK"}</div>
+          <div class="section-kicker${isSignup ? "" : " auth-welcome-text"}">${isSignup ? "START WITH A CLEAR PICTURE" : "WELCOME BACK"}</div>
           <h1>${isSignup ? "Create your account." : "Log in to NetraOS."}</h1>
-          <p class="auth-description">${isSignup ? "Create your account and start organizing your finances." : "Continue to your financial command center."}</p>
+          ${isSignup ? '<p class="auth-description">Create your account and start organizing your finances.</p>' : ""}
           <form class="auth-form" data-auth-form="${isSignup ? "signup" : "login"}" novalidate>
             ${isSignup ? `<label class="inventory-form-field"><span>Full name</span><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your full name" required></label>` : ""}
             ${isSignup ? `<label class="inventory-form-field"><span>Phone number <small>Optional</small></span><input name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="e.g. +254 712 345 678"></label>` : ""}
@@ -2094,7 +2116,7 @@ function showPublicPage(page = "landing", { preserveAuthCallback = false } = {})
             ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="#cookies" target="_blank" rel="noopener">Cookie Policy</a>.</span></label>` : ""}
             ${isSignup ? "" : '<button class="auth-reset-password" type="button" data-password-reset>Forgot your password?</button>'}
             <div class="auth-error" role="status" aria-live="polite" hidden></div>
-            <button class="public-primary auth-submit" type="submit">${isSignup ? "Create account" : 'Log in <span aria-hidden="true">→</span>'}</button>
+            <button class="public-primary auth-submit" type="submit">${isSignup ? "Create account" : "Log in"}</button>
             ${isSignup ? "" : '<button class="auth-passkey-button" type="button" data-passkey-signin><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a7 7 0 0 0-7 7v2m14 0v-2a7 7 0 0 0-14 0v4m4 0v-3a3 3 0 1 1 6 0v5m-3-5v8m-4-5v3m8-3v3"/></svg>Use a passkey / fingerprint</button>'}
             <div class="auth-divider"><span>OR</span></div>
             <button class="auth-google-button" type="button" data-oauth-signin="google"><span class="google-g-mark" aria-hidden="true">G</span>Continue with Google</button>
@@ -8892,6 +8914,7 @@ document.addEventListener("submit", async event => {
       let authStage = isSignup ? "sign-up" : "sign-in";
       if (isSignup && name.length < 2) { fail("The name you’d like associated with your account is needed."); return; }
       if (isSignup && !formData.has("acceptTerms")) { fail("Please accept the Terms of Service and acknowledge the Privacy Policy to create your account."); return; }
+      if (!isSignup) setAuthSubmitLoading(form, true);
       try {
         if (isSignup) {
           const termsAcceptedAt = new Date().toISOString();
@@ -8923,6 +8946,8 @@ document.addEventListener("submit", async event => {
         fail(friendlyAuthMessage(authError, isSignup
           ? "We couldn’t finish setting up your account just now. This may work again in a little while."
           : "We couldn’t sign you in just now. Another try or the password-reset link may help."));
+      } finally {
+        if (!isSignup) setAuthSubmitLoading(form, false);
       }
       return;
     }
@@ -8988,8 +9013,10 @@ document.addEventListener("submit", async event => {
       return;
     }
     let passwordMatches = false;
+    setAuthSubmitLoading(form, true);
     try { passwordMatches = await verifyLocalPassword(password, profile); }
     catch { fail("We couldn’t verify your password securely in this browser. Another browser or device may help."); return; }
+    finally { setAuthSubmitLoading(form, false); }
     if (!passwordMatches) { fail("That password didn’t match this local profile. Please try again."); return; }
     showEmailCodeChallenge({
       email,
