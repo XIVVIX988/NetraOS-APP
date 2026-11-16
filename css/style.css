@@ -15300,3 +15300,246 @@ html body .app-shell.theme-dark:has(.inventory-page) #page-content { background:
   .app-shell .inventory-page .inventory-status-pill { grid-area: status; justify-self: start; }
   .app-shell .inventory-page .inventory-row-toggle { grid-area: toggle; }
 }
+
+/* Financial items layout matched to the supplied mobile reference. */
+.app-shell .inventory-page > .inventory-accounts {
+  padding: 0 !important;
+  overflow: visible;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.app-shell .inventory-page > .inventory-accounts .panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 17px;
+}
+.app-shell .inventory-page > .inventory-accounts .panel-heading h2 {
+  margin: 0;
+  color: #10233f;
+  font: 750 clamp(22px, 3vw, 30px)/1.15 var(--display);
+  letter-spacing: -.035em;
+}
+.app-shell .inventory-page .inventory-account-count {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px 0 17px;
+  border: 1px solid rgba(190,228,221,.95);
+  border-radius: 999px;
+  background: rgba(224,250,244,.82);
+  color: #10233f;
+  font: 600 14px var(--sans);
+  white-space: nowrap;
+}
+.app-shell .inventory-page .inventory-account-count svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.app-shell .inventory-page .inventory-filters {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 0;
+  overflow-x: auto;
+  border: 0;
+  scrollbar-width: none;
+}
+.app-shell .inventory-page .inventory-filters::-webkit-scrollbar { display: none; }
+.app-shell .inventory-page .inventory-filter {
+  min-height: 48px;
+  flex: 0 0 auto;
+  justify-content: center;
+  padding: 0 clamp(18px, 3vw, 30px);
+  border: 1px solid rgba(216,229,234,.85);
+  border-radius: 999px;
+  background: rgba(255,255,255,.72);
+  color: #294c6b;
+  box-shadow: 0 4px 12px rgba(20,45,65,.04);
+  font: 600 15px var(--sans);
+}
+.app-shell .inventory-page .inventory-filter.active {
+  border-color: var(--green, #008f55) !important;
+  background: var(--green, #008f55) !important;
+  color: var(--app-popup-accent-foreground, #fff) !important;
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--green, #008f55) 30%, transparent);
+}
+.app-shell .inventory-page .inventory-account-rows { display: grid; gap: 15px; }
+.app-shell .inventory-page .inventory-account-row {
+  margin: 0;
+  padding: 12px 18px;
+  border: 1px solid rgba(220,230,232,.88) !important;
+  border-radius: 27px;
+  background: rgba(255,255,255,.78);
+  box-shadow: 0 7px 19px rgba(20,45,65,.075);
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.app-shell .inventory-page .inventory-account-row:hover {
+  border-color: color-mix(in srgb, var(--green, #008f55) 28%, #dce6e8) !important;
+  background: rgba(255,255,255,.86);
+  box-shadow: 0 9px 23px rgba(20,45,65,.09);
+}
+.app-shell .inventory-page .inventory-row-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content 48px;
+  grid-template-areas: "source badges toggle";
+  align-items: center;
+  gap: 14px;
+  min-height: 106px;
+  padding: 0;
+}
+.app-shell .inventory-page .inventory-account-source {
+  display: flex;
+  grid-area: source;
+  min-width: 0;
+  align-items: center;
+  gap: 16px;
+}
+.app-shell .inventory-page .inventory-account-type-icon {
+  display: grid;
+  flex: 0 0 76px;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  border-radius: 50%;
+  background: #dff8ed;
+  color: #087b50;
+  font-size: 27px;
+}
+.app-shell .inventory-page .inventory-account-type-icon svg {
+  width: 54%;
+  height: 54%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.app-shell .inventory-page .inventory-account-source-copy {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.app-shell .inventory-page .inventory-summary-item {
+  overflow: hidden;
+  color: #10233f;
+  font: 700 clamp(15px, 2vw, 20px)/1.25 var(--sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-shell .inventory-page .inventory-account-source-label {
+  color: #617487;
+  font: 400 14px/1.2 var(--sans);
+}
+.app-shell .inventory-page .inventory-account-category {
+  overflow: hidden;
+  color: #526477;
+  font: 400 15px/1.25 var(--sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-shell .inventory-page .inventory-item-badges {
+  display: grid;
+  grid-area: badges;
+  justify-items: start;
+  gap: 8px;
+}
+.app-shell .inventory-page .inventory-kind-pill {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  font: 650 14px var(--sans);
+}
+.app-shell .inventory-page .inventory-kind-pill.is-asset { background: #d9f7e7; color: #08734b; }
+.app-shell .inventory-page .inventory-kind-pill.is-liability { background: #fde5e7; color: #a23c49; }
+.app-shell .inventory-page .inventory-status-pill {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid #b8d8ed;
+  border-radius: 999px;
+  background: #eef7fc;
+  color: #173752;
+  font: 650 14px var(--sans);
+}
+.app-shell .inventory-page .inventory-status-pill > i {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 50%;
+  background: #12a85f;
+}
+.app-shell .inventory-page .inventory-row-toggle {
+  grid-area: toggle;
+  width: 48px;
+  height: 48px;
+  justify-self: end;
+  border: 1px solid rgba(220,230,232,.9);
+  border-radius: 50%;
+  background: rgba(255,255,255,.9);
+  color: #294c6b;
+  box-shadow: 0 4px 12px rgba(20,45,65,.08);
+}
+.app-shell .inventory-page .inventory-row-chevron { width: 21px; height: 21px; stroke: #294c6b; }
+.app-shell.theme-dark .inventory-page > .inventory-accounts .panel-heading h2 { color: #eef5f1; }
+.app-shell.theme-dark .inventory-page .inventory-account-count { border-color: rgba(120,148,134,.32); background: rgba(30,49,40,.85); color: #eef5f1; }
+.app-shell.theme-dark .inventory-page .inventory-filter { border-color: rgba(120,148,134,.28); background: rgba(27,38,33,.88); color: #d8e5dd; }
+.app-shell.theme-dark .inventory-page .inventory-filter.active { background: var(--green, #008f55) !important; color: var(--app-popup-accent-foreground, #fff) !important; }
+.app-shell.theme-dark .inventory-page .inventory-account-row { border-color: rgba(120,148,134,.24) !important; background: rgba(27,38,33,.88); }
+.app-shell.theme-dark .inventory-page .inventory-account-row:hover { background: rgba(33,49,41,.94); }
+.app-shell.theme-dark .inventory-page .inventory-summary-item { color: #eef5f1; }
+.app-shell.theme-dark .inventory-page .inventory-account-source-label,
+.app-shell.theme-dark .inventory-page .inventory-account-category { color: #a8b7af; }
+.app-shell.theme-dark .inventory-page .inventory-account-type-icon { background: color-mix(in srgb, var(--green, #53c294) 18%, #17241e); color: #7ee0ad; }
+.app-shell.theme-dark .inventory-page .inventory-row-toggle { border-color: rgba(120,148,134,.25); background: #1b2821; }
+@media (max-width: 760px) {
+  .app-shell .inventory-page > .inventory-accounts .panel-heading { margin-bottom: 16px; }
+  .app-shell .inventory-page > .inventory-accounts .panel-heading h2 { font-size: clamp(21px, 5.5vw, 27px); }
+  .app-shell .inventory-page .inventory-account-count { min-height: 40px; gap: 8px; padding-inline: 12px; font-size: 12px; }
+  .app-shell .inventory-page .inventory-filters { gap: 8px; margin-bottom: 14px; }
+  .app-shell .inventory-page .inventory-filter { min-height: 42px; padding-inline: clamp(13px, 4vw, 22px); font-size: 13px; }
+  .app-shell .inventory-page .inventory-account-rows { gap: 13px; }
+  .app-shell .inventory-page .inventory-account-row { padding: 12px; border-radius: 24px; }
+  .app-shell .inventory-page .inventory-row-summary {
+    grid-template-columns: minmax(0, 1fr) max-content 42px;
+    grid-template-areas: "source badges toggle";
+    min-height: 104px;
+    gap: 9px;
+  }
+  .app-shell .inventory-page .inventory-account-source { gap: 12px; }
+  .app-shell .inventory-page .inventory-account-type-icon { flex-basis: 66px; width: 66px; height: 66px; }
+  .app-shell .inventory-page .inventory-summary-item { font-size: clamp(14px, 3.8vw, 18px); white-space: normal; }
+  .app-shell .inventory-page .inventory-account-source-label { font-size: 12px; }
+  .app-shell .inventory-page .inventory-account-category { font-size: 13px; white-space: normal; }
+  .app-shell .inventory-page .inventory-item-badges { gap: 7px; }
+  .app-shell .inventory-page .inventory-kind-pill { min-height: 31px; padding-inline: 11px; font-size: 12px; }
+  .app-shell .inventory-page .inventory-status-pill { min-height: 36px; gap: 6px; padding-inline: 10px; font-size: 12px; }
+  .app-shell .inventory-page .inventory-status-pill > i { width: 8px; height: 8px; flex-basis: 8px; }
+  .app-shell .inventory-page .inventory-row-toggle { width: 42px; height: 42px; }
+}
+@media (max-width: 390px) {
+  .app-shell .inventory-page .inventory-account-row { padding: 10px; border-radius: 21px; }
+  .app-shell .inventory-page .inventory-row-summary { grid-template-columns: minmax(0, 1fr) max-content 36px; gap: 7px; }
+  .app-shell .inventory-page .inventory-account-source { gap: 8px; }
+  .app-shell .inventory-page .inventory-account-type-icon { flex-basis: 54px; width: 54px; height: 54px; }
+  .app-shell .inventory-page .inventory-summary-item { font-size: 13px; }
+  .app-shell .inventory-page .inventory-account-category { font-size: 11px; }
+  .app-shell .inventory-page .inventory-kind-pill { min-height: 28px; padding-inline: 8px; font-size: 11px; }
+  .app-shell .inventory-page .inventory-status-pill { min-height: 32px; padding-inline: 8px; font-size: 11px; }
+  .app-shell .inventory-page .inventory-row-toggle { width: 36px; height: 36px; }
+}

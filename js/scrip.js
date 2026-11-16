@@ -3857,6 +3857,30 @@ function renderInventoryRows(type, categories) {
     .join("");
 }
 
+function inventoryCategoryIcon(entry) {
+  const icons = {
+    "Property & vehicles": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8v10h-6v-6H9v6H3z"/></svg>',
+    "Cash & savings": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c-1.5 2-7 7-7 12a7 7 0 0 0 14 0c0-5-5.5-10-7-12Z"/><path d="M9 13h6m-3-3v8"/></svg>',
+    "Money market funds": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c-1.4 1.5-6 5.4-6 10a6 6 0 0 0 12 0c0-4.6-4.6-8.5-6-10Z"/><path d="M9.5 13h5m-2.5-2.5v5"/></svg>',
+    "Bank accounts": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>',
+    "Mobile money": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 5h4m-3 14h2"/></svg>',
+    "SACCO deposits": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9 12 3l9 6v11H3zM7 20v-7h10v7M9 8h.01M15 8h.01"/></svg>',
+    "SACCO shares": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19h18M5 16l5-5 3 3 6-8M16 6h3v3"/></svg>',
+    "Treasury Bonds": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9m5 11V4m6 16v-8m5 8V6M2 20h20"/></svg>',
+    "Treasury Bills": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7m-7 4h7"/></svg>',
+    "Infrastructure Bonds": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M5 20V9l7-5 7 5v11M9 20v-6h6v6M8 10h.01M16 10h.01"/></svg>',
+    "Equities": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5m0 14h17M7 15l4-4 3 2 6-7M16 6h4v4"/></svg>',
+    "Cryptocurrency": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4V2m6 2V2M9 22v-2m6 2v-2M7 5h8a4 4 0 0 1 0 8H7zm0 8h9a4 4 0 0 1 0 8H7z"/></svg>',
+    "Investments": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5m0 14h17M7 15l4-4 3 2 6-7M16 6h4v4"/></svg>',
+    "Credit cards": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18m-13 5h4"/></svg>',
+    "Personal loans": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18m-13 5h4m6 0h.01"/></svg>',
+    "Home loans": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8v10h-6v-6H9v6H3zM7 13h3"/></svg>'
+  };
+  return icons[entry.category] || (entry.type === "asset"
+    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"/><path d="m4.3 7.7 7.7 4.4 7.7-4.4M12 12v9"/></svg>'
+    : '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg>');
+}
+
 function renderAccountRows(entries) {
   if (entries.length === 0) {
     return `
@@ -3869,33 +3893,25 @@ function renderAccountRows(entries) {
       </div>`;
   }
 
-  const groupCounts = {
-    asset: entries.filter(entry => entry.type === "asset").length,
-    liability: entries.filter(entry => entry.type === "liability").length
-  };
   return `
     <div class="inventory-account-rows">
-      <div class="inventory-table-head" aria-hidden="true"><span>Account / Source</span><span>Type</span><span>Status</span><span></span></div>
-      ${[...entries.filter(entry => entry.type === "asset"), ...entries.filter(entry => entry.type === "liability")].map((entry, index, orderedEntries) => {
-        const categories = entry.type === "asset" ? assetCategories : liabilityCategories;
-        const categoryIcon = categories.find(category => category.name === entry.category)?.icon || "◇";
+      ${[...entries.filter(entry => entry.type === "asset"), ...entries.filter(entry => entry.type === "liability")].map(entry => {
+        const categoryIcon = inventoryCategoryIcon(entry);
         const categorySource = `${entry.category || "Other"}${entry.mobileType ? ` · ${entry.mobileType}` : ""}`;
         return `
-        ${index === 0 || orderedEntries[index - 1].type !== entry.type ? `<div class="inventory-account-group-heading" data-inventory-group-heading="${entry.type}"><strong>${entry.type === "asset" ? "Assets" : "Liabilities"}</strong><span>${groupCounts[entry.type]} ${groupCounts[entry.type] === 1 ? "item" : "items"}</span></div>` : ""}
         <div class="inventory-account-row" data-inventory-type="${entry.type}">
           <div class="inventory-row-summary">
             <div class="inventory-summary-cell inventory-account-source" data-label="Account / Source">
-              <span class="inventory-account-type-icon" aria-hidden="true">${escapeHTML(categoryIcon)}</span>
-              <span class="inventory-account-source-copy"><small class="inventory-account-source-label">Account / Source</small><strong class="inventory-summary-item">${escapeHTML(entry.name)}</strong><small class="inventory-account-category">${escapeHTML(categorySource)}</small></span>
+              <span class="inventory-account-type-icon">${categoryIcon}</span>
+              <span class="inventory-account-source-copy"><strong class="inventory-summary-item">${escapeHTML(entry.name)}</strong><small class="inventory-account-source-label">Account / Source</small><small class="inventory-account-category">${escapeHTML(categorySource)}</small></span>
             </div>
-            <span class="inventory-kind-pill ${entry.type === "asset" ? "is-asset" : "is-liability"}" data-label="Type">${entry.type === "asset" ? "Asset" : "Liability"}</span>
-            <span class="inventory-status-pill" data-label="Status">Active</span>
+            <span class="inventory-item-badges"><span class="inventory-kind-pill ${entry.type === "asset" ? "is-asset" : "is-liability"}">${entry.type === "asset" ? "Asset" : "Liability"}</span><span class="inventory-status-pill"><i aria-hidden="true"></i>Active</span></span>
             <button class="inventory-row-toggle" type="button" data-inventory-toggle aria-expanded="false" aria-label="Show details for ${escapeHTML(entry.name)}">
               <svg class="inventory-row-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m5 6 3 3 3-3"/></svg>
             </button>
           </div>
           <div class="inventory-account-details" data-inventory-details hidden>
-          <span class="inventory-row-icon" aria-hidden="true">${escapeHTML(categoryIcon)}</span>
+          <span class="inventory-row-icon" aria-hidden="true">${categoryIcon}</span>
           <span class="inventory-account-name">
             <small class="inventory-account-balance"><span>Amount</span><strong>${formatKsh(entry.amount)}</strong></small>
             ${entry.mobileReference ? `<small class="inventory-account-notes">${escapeHTML(entry.mobileReference)}</small>` : ""}
@@ -3972,8 +3988,8 @@ function renderInventoryPage() {
 
       <section class="panel inventory-accounts">
         <div class="panel-heading">
-          <div><div class="section-kicker">YOUR FINANCIAL ITEMS</div><h2>All items</h2></div>
-          <span class="inventory-account-count">${entries.length} ${entries.length === 1 ? "item" : "items"}</span>
+          <h2>Your Financial Items</h2>
+          <span class="inventory-account-count"><span>${entries.length} ${entries.length === 1 ? "item" : "items"}</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7 5 5 5-5"/></svg></span>
         </div>
         <div class="inventory-filters" role="group" aria-label="Filter inventory items">
           <button type="button" class="inventory-filter active" data-inventory-filter="all" aria-pressed="true">All (${entries.length})</button>
