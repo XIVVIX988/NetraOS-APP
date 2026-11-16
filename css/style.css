@@ -14428,7 +14428,7 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   min-width: 0;
   overflow-wrap: anywhere;
   color: var(--dash-ink, #10233f) !important;
-  font-size: clamp(12px, 1.65vw, 16px);
+  font-size: clamp(11px, 1.45vw, 14px);
   font-weight: 650;
 }
 .app-shell .dashboard-overview-grid .kpi-amount {
@@ -14549,7 +14549,7 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   .app-shell .dashboard-overview-grid .kpi-card { min-height: 132px; padding: 12px 10px !important; column-gap: 6px; row-gap: 8px; border-radius: 22px !important; }
   .app-shell .dashboard-overview-grid .kpi-glyph { width: 36px; height: 36px; }
   .app-shell .dashboard-overview-grid .kpi-glyph svg { width: 20px; height: 20px; }
-  .app-shell .dashboard-overview-grid .kpi-name { font-size: 12px; }
+  .app-shell .dashboard-overview-grid .kpi-name { font-size: 11px; }
   .app-shell .dashboard-overview-grid .kpi-amount { font-size: clamp(12px, 3.45vw, 16px) !important; }
   .app-shell .dashboard-overview-grid .kpi-trend { padding: 4px 8px; font-size: 11px; }
   .app-shell .dashboard-next-action { padding: 18px 92px 18px 17px !important; border-radius: 24px !important; }
@@ -14559,7 +14559,7 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
 @media (max-width: 360px) {
   .app-shell .dashboard-overview-grid .kpi-card { padding-inline: 8px !important; }
   .app-shell .dashboard-overview-grid .kpi-glyph { width: 32px; height: 32px; }
-  .app-shell .dashboard-overview-grid .kpi-name { font-size: 11px; }
+  .app-shell .dashboard-overview-grid .kpi-name { font-size: 10px; }
   .app-shell .dashboard-overview-grid .kpi-amount { font-size: 10px !important; letter-spacing: -.045em; }
   .app-shell .dashboard-overview-grid .kpi-amount[data-size="sm"] { font-size: 10px !important; }
   .app-shell .dashboard-overview-grid .kpi-amount[data-size="xs"] { font-size: 9px !important; }
