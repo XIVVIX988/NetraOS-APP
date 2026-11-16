@@ -1216,7 +1216,7 @@ function clearButtonLoading(button) {
 document.addEventListener("click", event => {
   if (!(event.target instanceof Element)) return;
   const button = event.target.closest("button");
-  if (!button || button.disabled || (button.matches(".auth-submit") && button.closest('[data-auth-form="login"]')) || button.matches(".mobile-tab, [data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
+  if (!button || button.disabled || button.matches(".auth-submit") || button.matches(".mobile-tab, [data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
   const state = { spinner: null, observer: null, timer: 0, minUntil: performance.now() + 300 };
   buttonLoadingStates.set(button, state);
   button.classList.add("is-loading");
@@ -2098,25 +2098,23 @@ function showPublicPage(page = "landing", { preserveAuthCallback = false } = {})
   } else {
     const isSignup = page === "signup";
     publicShell.innerHTML = `
-      <div class="auth-page${isSignup ? "" : " auth-login-page"}">
-        ${isSignup ? renderFluidArt() : '<img class="auth-login-background" src="assets/log%20in.jpeg" alt="A bald eagle flying through a mountain sky" fetchpriority="high">'}
-        ${isSignup ? '<button class="auth-back" type="button" data-public-action="landing">← Back to NetraOS</button>' : ""}
+      <div class="auth-page${isSignup ? " auth-signup-page" : " auth-login-page"}">
+        ${isSignup ? '<img class="auth-signup-background" src="assets/sign%20up.jpeg" alt="A bald eagle soaring above clouds and mountain peaks" fetchpriority="high">' : '<img class="auth-login-background" src="assets/log%20in.jpeg" alt="A bald eagle flying through a mountain sky" fetchpriority="high">'}
         <section class="auth-card">
           <div class="auth-content">
-          <div class="section-kicker${isSignup ? "" : " auth-welcome-text"}">${isSignup ? "START WITH A CLEAR PICTURE" : "WELCOME BACK"}</div>
-          <h1>${isSignup ? "Create your account." : "Log in to NetraOS."}</h1>
-          ${isSignup ? '<p class="auth-description">Create your account and start organizing your finances.</p>' : ""}
+          <div class="section-kicker${isSignup ? "" : " auth-welcome-text"}">${isSignup ? "GET STARTED" : "WELCOME BACK"}</div>
+          <h1>${isSignup ? "Create Your Account" : "Log in to NetraOS."}</h1>
+          ${isSignup ? '<p class="auth-description">Join NetraOS and take control of your finances.</p>' : ""}
           <form class="auth-form" data-auth-form="${isSignup ? "signup" : "login"}" novalidate>
-            ${isSignup ? `<label class="inventory-form-field"><span>Full name</span><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your full name" required></label>` : ""}
-            ${isSignup ? `<label class="inventory-form-field"><span>Phone number <small>Optional</small></span><input name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="e.g. +254 712 345 678"></label>` : ""}
-            ${isSignup ? `<label class="inventory-form-field"><span>Email address</span><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></label>` : `<label class="inventory-form-field"><span>Email address</span><span class="auth-input-shell"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></span></label>`}
-            ${isSignup ? `<div class="inventory-form-field"><span>Password</span><span class="password-field"><input name="password" aria-label="Password" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>` : `<div class="inventory-form-field"><span>Password</span><span class="auth-input-shell password-field"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg><input name="password" aria-label="Password" type="password" autocomplete="current-password" placeholder="Your password" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>`}
+            ${isSignup ? `<label class="inventory-form-field"><span>Full Name</span><span class="auth-input-shell"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4 21c0-4.2 3.4-7 8-7s8 2.8 8 7"/></svg><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Enter your full name" required></span></label>` : ""}
+            <label class="inventory-form-field"><span>${isSignup ? "Email Address" : "Email address"}</span><span class="auth-input-shell"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg><input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@example.com" required></span></label>
+            ${isSignup ? `<div class="inventory-form-field"><span>Password</span><span class="auth-input-shell password-field"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg><input name="password" aria-label="Password" type="password" autocomplete="new-password" minlength="8" placeholder="Create a password" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>` : `<div class="inventory-form-field"><span>Password</span><span class="auth-input-shell password-field"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg><input name="password" aria-label="Password" type="password" autocomplete="current-password" placeholder="Your password" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span></div>`}
             ${isSignup ? `<ul class="password-rules" data-password-rules role="group" aria-label="Password requirements"><li data-password-rule="length"><span aria-hidden="true">○</span> 8+ characters</li><li data-password-rule="uppercase"><span aria-hidden="true">○</span> One uppercase letter</li><li data-password-rule="special"><span aria-hidden="true">○</span> One special character</li><li data-password-rule="number"><span aria-hidden="true">○</span> One number</li></ul>` : ""}
-            ${isSignup ? `<label class="inventory-form-field"><span>Re-enter password</span><span class="password-field"><input name="confirmPassword" aria-label="Re-enter password" type="password" autocomplete="new-password" placeholder="Re-enter your password" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show re-entered password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 19 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span><small class="password-match" data-password-match hidden></small></label>` : ""}
-            ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="#cookies" target="_blank" rel="noopener">Cookie Policy</a>.</span></label>` : ""}
+            ${isSignup ? `<label class="inventory-form-field"><span>Confirm Password</span><span class="auth-input-shell password-field"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg><input name="confirmPassword" aria-label="Confirm Password" type="password" autocomplete="new-password" placeholder="Confirm your password" required><button class="password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="Show re-entered password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-open" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 19 2 12Z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-off" d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6C3.9 9.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1"/></svg></button></span><small class="password-match" data-password-match hidden></small></label>` : ""}
+            ${isSignup ? `<label class="terms-consent"><input name="acceptTerms" type="checkbox" required><span>I agree to the <a href="#terms" target="_blank" rel="noopener">Terms of Service</a> and <a href="#privacy" target="_blank" rel="noopener">Privacy Policy</a>. See our <a href="#cookies" target="_blank" rel="noopener">Cookie Policy</a>.</span></label>` : ""}
             ${isSignup ? "" : '<button class="auth-reset-password" type="button" data-password-reset>Forgot your password?</button>'}
             <div class="auth-error" role="status" aria-live="polite" hidden></div>
-            <button class="public-primary auth-submit" type="submit">${isSignup ? "Create account" : "Log in"}</button>
+            <button class="public-primary auth-submit" type="submit">${isSignup ? 'Create Account <span aria-hidden="true">→</span>' : "Log in"}</button>
             ${isSignup ? "" : '<button class="auth-passkey-button" type="button" data-passkey-signin><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a7 7 0 0 0-7 7v2m14 0v-2a7 7 0 0 0-14 0v4m4 0v-3a3 3 0 1 1 6 0v5m-3-5v8m-4-5v3m8-3v3"/></svg>Use a passkey / fingerprint</button>'}
             <div class="auth-divider"><span>OR</span></div>
             <button class="auth-google-button" type="button" data-oauth-signin="google"><span class="google-g-mark" aria-hidden="true">G</span>Continue with Google</button>
@@ -3597,6 +3595,7 @@ function markRequiredFields(root = document) {
   if (root instanceof Element && root.matches("input[required], select[required], textarea[required]")) controls.push(root);
   root.querySelectorAll?.("input[required], select[required], textarea[required]").forEach(control => controls.push(control));
   controls.forEach(control => {
+    if (control.closest(".terms-consent")) return;
     let label = control.closest("label");
     if (!label && control.id) label = document.querySelector(`label[for="${CSS.escape(control.id)}"]`);
     const field = label || control.closest(".inventory-form-field, .settings-field, .security-lock-card form");
@@ -8914,7 +8913,7 @@ document.addEventListener("submit", async event => {
       let authStage = isSignup ? "sign-up" : "sign-in";
       if (isSignup && name.length < 2) { fail("The name you’d like associated with your account is needed."); return; }
       if (isSignup && !formData.has("acceptTerms")) { fail("Please accept the Terms of Service and acknowledge the Privacy Policy to create your account."); return; }
-      if (!isSignup) setAuthSubmitLoading(form, true);
+      setAuthSubmitLoading(form, true);
       try {
         if (isSignup) {
           const termsAcceptedAt = new Date().toISOString();
@@ -8947,7 +8946,7 @@ document.addEventListener("submit", async event => {
           ? "We couldn’t finish setting up your account just now. This may work again in a little while."
           : "We couldn’t sign you in just now. Another try or the password-reset link may help."));
       } finally {
-        if (!isSignup) setAuthSubmitLoading(form, false);
+        setAuthSubmitLoading(form, false);
       }
       return;
     }
@@ -8972,8 +8971,10 @@ document.addEventListener("submit", async event => {
         return;
       }
       let passwordVerifier;
+      setAuthSubmitLoading(form, true);
       try { passwordVerifier = await createLocalPasswordVerifier(password); }
       catch { fail("We couldn’t set up your password securely in this browser. Please try another browser or device."); return; }
+      finally { setAuthSubmitLoading(form, false); }
       const profile = {
         ...(currentProfile || {}),
         name,
