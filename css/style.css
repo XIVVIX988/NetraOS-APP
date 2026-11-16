@@ -14341,7 +14341,7 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
 .app-shell:not(.theme-dark) .networth-card .nw-change,
 .app-shell:not(.theme-dark) .networth-card .nw-amount { color: var(--dash-ink) !important; }
 .app-shell:not(.theme-dark) .networth-card .nw-title { color: #43556c !important; font-weight: 650; }
-.app-shell:not(.theme-dark) .networth-card .nw-amount { font-size: clamp(32px, 6vw, 54px) !important; font-weight: 800 !important; letter-spacing: -.045em; }
+.app-shell:not(.theme-dark) .networth-card .nw-amount { font-size: clamp(36px, 8vw, 60px) !important; font-weight: 800 !important; letter-spacing: -.045em; }
 .app-shell:not(.theme-dark) .networth-card .nw-change { color: var(--dash-muted) !important; font-weight: 500; }
 .app-shell:not(.theme-dark) .networth-card .nw-tag { background: #e7f5ef !important; color: #006b42 !important; }
 .app-shell:not(.theme-dark) .networth-card .nw-eye { color: var(--green, #008f55) !important; }
