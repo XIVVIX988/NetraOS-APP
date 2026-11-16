@@ -15520,20 +15520,22 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   .app-shell .inventory-page .inventory-account-count { min-height: 36px; gap: 6px; padding-inline: 9px; font-size: 11px; }
   .app-shell .inventory-page .inventory-account-row { padding: 10px; border-radius: 21px; }
   .app-shell .inventory-page .inventory-row-summary {
-    grid-template-columns: minmax(0, 1fr) 36px;
-    grid-template-areas: "source toggle" "badges toggle";
-    gap: 9px 7px;
-    min-height: 0;
-    padding: 2px 0;
+    grid-template-columns: minmax(0, 1fr) max-content 34px;
+    grid-template-areas: "source badges toggle";
+    gap: 7px;
+    min-height: 92px;
+    padding: 0;
   }
   .app-shell .inventory-page .inventory-account-source { gap: 8px; }
-  .app-shell .inventory-page .inventory-account-type-icon { flex-basis: 54px; width: 54px; height: 54px; }
-  .app-shell .inventory-page .inventory-summary-item { font-size: 13px; }
-  .app-shell .inventory-page .inventory-account-category { font-size: 11px; }
-  .app-shell .inventory-page .inventory-item-badges { display: flex; flex-wrap: wrap; grid-area: badges; gap: 7px; padding-left: 62px; }
-  .app-shell .inventory-page .inventory-kind-pill { min-height: 28px; padding-inline: 8px; font-size: 11px; }
-  .app-shell .inventory-page .inventory-status-pill { min-height: 32px; padding-inline: 8px; font-size: 11px; }
-  .app-shell .inventory-page .inventory-row-toggle { grid-area: toggle; align-self: center; width: 36px; height: 36px; }
+  .app-shell .inventory-page .inventory-account-source-copy { gap: 3px; }
+  .app-shell .inventory-page .inventory-account-type-icon { flex-basis: 50px; width: 50px; height: 50px; }
+  .app-shell .inventory-page .inventory-summary-item { font-size: 13px; line-height: 1.2; }
+  .app-shell .inventory-page .inventory-account-source-label { font-size: 10px; line-height: 1.2; }
+  .app-shell .inventory-page .inventory-account-category { font-size: 11px; line-height: 1.2; }
+  .app-shell .inventory-page .inventory-item-badges { display: grid; grid-area: badges; gap: 6px; }
+  .app-shell .inventory-page .inventory-kind-pill { min-height: 27px; padding-inline: 8px; font-size: 10px; }
+  .app-shell .inventory-page .inventory-status-pill { min-height: 30px; padding-inline: 8px; font-size: 10px; }
+  .app-shell .inventory-page .inventory-row-toggle { grid-area: toggle; align-self: center; width: 34px; height: 34px; }
 }
 
 /* Asset and liability totals mirror the paired dashboard summary cards. */
