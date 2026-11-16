@@ -13472,6 +13472,28 @@ html body .app-shell[data-accent] #page-content:has(> .welcome-row) > .dashboard
   background: transparent !important;
   box-shadow: none !important;
 }
+
+/* Carry the selected palette into dark workspace surfaces and active states. */
+.app-shell.theme-dark[data-accent] {
+  --bg: color-mix(in srgb, var(--green) 4%, #070907);
+  --panel: color-mix(in srgb, var(--green) 7%, #0a0a0a);
+  --panel-2: color-mix(in srgb, var(--green) 12%, #141414);
+  --line: color-mix(in srgb, var(--green) 25%, #262626);
+  --fx-bg: color-mix(in srgb, var(--green) 5%, #101311);
+  --fx-card: color-mix(in srgb, var(--green) 11%, #17201b);
+  --fx-line: color-mix(in srgb, var(--green) 27%, rgba(220, 235, 224, .12));
+  --fx-shadow: 0 5px 20px color-mix(in srgb, var(--green) 9%, rgba(0, 0, 0, .28));
+}
+.app-shell.theme-dark[data-accent] .topbar { background: color-mix(in srgb, var(--green) 7%, var(--fx-bg)); }
+.app-shell.theme-dark[data-accent] .top-nav-item.active {
+  background: color-mix(in srgb, var(--green) 20%, var(--panel));
+  color: var(--green);
+  box-shadow: inset 0 -2px var(--green);
+}
+.app-shell.theme-dark[data-accent] :is(.settings-mobile-tab.is-active, .settings-theme-choice button.is-selected) {
+  background: var(--green);
+  color: var(--app-popup-accent-foreground, #fff);
+}
 .app-shell.theme-dark .networth-card .nw-eye,
 .app-shell.theme-dark .networth-card .nw-eye:hover,
 .app-shell.theme-dark .networth-card .nw-eye[aria-pressed="true"] {
