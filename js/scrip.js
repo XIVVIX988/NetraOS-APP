@@ -3944,10 +3944,12 @@ function renderInventoryPage() {
     <section class="inventory-page">
       <header class="inventory-heading">
         <div>
-          <div class="eyebrow"><span class="eyebrow-line"></span> YOUR BALANCE SHEET</div>
           <h1><span class="inventory-title-desktop">My Inventory</span><span class="inventory-title-mobile">Inventory</span></h1>
           <p class="welcome-sub">See what you own, owe, and how it adds up.</p>
         </div>
+        <button class="inventory-action inventory-heading-add" type="button" data-inventory-action="add-account" aria-label="Add an inventory item" title="Add an inventory item">
+          <span class="inventory-add-plus" aria-hidden="true">+</span>
+        </button>
       </header>
 
       <section class="inventory-summary" aria-label="Balance sheet summary">
@@ -3967,11 +3969,6 @@ function renderInventoryPage() {
           <strong>${formatKsh(totals.netWorth)}</strong>
         </article>
       </section>
-
-      <div class="inventory-quick-actions" aria-label="Inventory actions">
-        <button class="inventory-action" type="button" data-inventory-action="add-asset">${assetIcon}<span>Add asset</span></button>
-        <button class="inventory-action inventory-action-liability" type="button" data-inventory-action="add-liability">${liabilityIcon}<span>Add liability</span></button>
-      </div>
 
       <section class="panel inventory-accounts">
         <div class="panel-heading">

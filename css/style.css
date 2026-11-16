@@ -14851,3 +14851,303 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   .app-shell .inventory-page .inventory-summary-card > strong { font-size: 14px; }
   .app-shell .inventory-page .inventory-quick-actions > button { gap: 7px; padding-inline: 7px; font-size: 11px; }
 }
+
+/* Inventory visual pass based on the supplied screen: two balances, then net worth. */
+.app-shell .inventory-page {
+  gap: clamp(16px, 2.2vw, 24px);
+  color: #10233f;
+}
+.app-shell .inventory-page > .inventory-heading {
+  align-items: center;
+  gap: 18px;
+  margin: 0;
+}
+.app-shell .inventory-page > .inventory-heading h1 {
+  margin: 0 0 7px;
+  color: #10233f;
+  font-size: clamp(32px, 4.5vw, 46px);
+  letter-spacing: -.045em;
+}
+.app-shell .inventory-page > .inventory-heading .welcome-sub {
+  margin: 0;
+  color: #526477;
+  font-size: clamp(14px, 1.8vw, 18px);
+  line-height: 1.45;
+}
+.app-shell .inventory-page > .inventory-heading .inventory-heading-add {
+  width: 56px;
+  height: 56px;
+  min-height: 56px;
+  flex: 0 0 56px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--green, #008f55) 55%, transparent) !important;
+  border-radius: 50%;
+  background: var(--green, #008f55) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 21px color-mix(in srgb, var(--green, #008f55) 28%, transparent);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.app-shell .inventory-page > .inventory-heading .inventory-heading-add:hover { transform: translateY(-1px); }
+.app-shell .inventory-page > .inventory-heading .inventory-heading-add:active { transform: scale(.95); }
+.app-shell .inventory-page > .inventory-heading .inventory-add-plus {
+  width: auto;
+  height: auto;
+  border: 0;
+  font: 400 32px/1 var(--sans);
+}
+.app-shell .inventory-page .inventory-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(12px, 2vw, 20px);
+}
+.app-shell .inventory-page .inventory-summary-card {
+  min-height: 142px;
+  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  column-gap: 13px;
+  row-gap: 9px;
+  padding: clamp(17px, 2.5vw, 28px);
+  border-color: rgba(220,230,232,.95) !important;
+  border-radius: 26px;
+  background: rgba(255,255,255,.8) !important;
+  box-shadow: 0 8px 24px rgba(20,45,65,.075);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.app-shell .inventory-page .inventory-summary-icon {
+  grid-column: 1;
+  grid-row: 1;
+  width: 42px;
+  height: 42px;
+  padding: 9px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--green, #008f55) 12%, white);
+  color: var(--green, #008f55);
+}
+.app-shell .inventory-page .inventory-summary-card.inventory-summary-liabilities .inventory-summary-icon { color: #294c6b; }
+.app-shell .inventory-page .inventory-summary-card .inventory-label {
+  grid-column: 2;
+  grid-row: 1;
+  color: #294c6b;
+  font: 650 clamp(11px, 1.4vw, 15px)/1.25 var(--sans);
+  letter-spacing: 0;
+  text-transform: capitalize;
+}
+.app-shell .inventory-page .inventory-summary-card > strong {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  color: #10233f !important;
+  font-size: clamp(20px, 3vw, 32px);
+  font-weight: 800;
+  letter-spacing: -.035em;
+  white-space: nowrap;
+}
+.app-shell .inventory-page .inventory-summary-card.net-worth-summary {
+  grid-column: 1 / -1;
+  min-height: 174px;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto;
+  row-gap: 4px;
+  order: 1;
+  padding: clamp(22px, 3vw, 34px);
+  overflow: hidden;
+  border: 1px solid rgba(58,190,141,.68) !important;
+  border-radius: 28px;
+  background: linear-gradient(115deg, #0d2b36 0%, #063f36 57%, #006b48 100%) !important;
+  box-shadow: 0 14px 32px rgba(0,107,66,.2);
+}
+.app-shell .inventory-page .inventory-summary-card.net-worth-summary .inventory-summary-icon { display: none; }
+.app-shell .inventory-page .inventory-summary-card.net-worth-summary .inventory-label {
+  grid-column: 1;
+  grid-row: 1;
+  color: rgba(255,255,255,.78) !important;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: none;
+}
+.app-shell .inventory-page .inventory-summary-card.net-worth-summary > strong {
+  grid-column: 1;
+  grid-row: 2;
+  color: #fff !important;
+  font-size: clamp(30px, 5vw, 48px);
+  font-weight: 800;
+  letter-spacing: -.04em;
+}
+.app-shell .inventory-page > .inventory-accounts {
+  padding: clamp(17px, 2.5vw, 28px);
+  border-radius: 26px;
+  background: rgba(255,255,255,.8) !important;
+  box-shadow: 0 8px 24px rgba(20,45,65,.07);
+}
+.app-shell .inventory-page > .inventory-accounts .panel-heading h2 {
+  color: #10233f;
+  font-size: clamp(20px, 2.5vw, 27px);
+  letter-spacing: -.03em;
+}
+.app-shell .inventory-page .inventory-account-count {
+  padding: 8px 13px;
+  border: 1px solid rgba(220,230,232,.95);
+  border-radius: 999px;
+  background: rgba(255,255,255,.68);
+  color: #294c6b;
+  font: 600 12px var(--sans);
+}
+.app-shell .inventory-page .inventory-filters {
+  gap: 9px;
+  margin-top: 17px;
+  padding-bottom: 15px;
+  border-color: rgba(220,230,232,.9);
+}
+.app-shell .inventory-page .inventory-filter {
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid rgba(220,230,232,.95);
+  border-radius: 999px;
+  background: rgba(255,255,255,.68);
+  color: #294c6b;
+  font-size: 13px;
+  transition: background .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+}
+.app-shell .inventory-page .inventory-filter:hover { transform: translateY(-1px); }
+.app-shell .inventory-page .inventory-filter.active {
+  border-color: color-mix(in srgb, var(--green, #008f55) 28%, white);
+  background: color-mix(in srgb, var(--green, #008f55) 12%, white);
+  color: var(--green, #008f55);
+}
+.app-shell .inventory-page .inventory-account-group-heading {
+  margin-top: 14px;
+  padding: 13px 4px 9px;
+  border-color: rgba(220,230,232,.9);
+}
+.app-shell .inventory-page .inventory-account-group-heading strong {
+  color: #294c6b;
+  font: 700 11px var(--sans);
+  letter-spacing: .07em;
+}
+.app-shell .inventory-page .inventory-account-row {
+  margin: 9px 0;
+  padding: 4px 12px;
+  border: 1px solid rgba(220,230,232,.8) !important;
+  border-radius: 19px;
+  background: rgba(255,255,255,.66);
+  box-shadow: 0 5px 16px rgba(20,45,65,.045);
+}
+.app-shell .inventory-page .inventory-account-row:hover {
+  border-color: color-mix(in srgb, var(--green, #008f55) 32%, white) !important;
+  background: rgba(255,255,255,.9);
+}
+.app-shell .inventory-page .inventory-row-summary { min-height: 72px; }
+.app-shell .inventory-page .inventory-account-type-icon {
+  color: var(--green, #008f55);
+}
+.app-shell .inventory-page .inventory-kind-pill.is-asset {
+  color: #08734b;
+  background: #dff6e9;
+}
+.app-shell .inventory-page .inventory-kind-pill.is-liability {
+  color: #a23c49;
+  background: #fde9e9;
+}
+.app-shell .inventory-page .inventory-status-pill {
+  border: 1px solid rgba(116,164,199,.45);
+  background: #eef7fc;
+  color: #294c6b;
+}
+.app-shell .inventory-page .inventory-row-toggle {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(220,230,232,.95);
+  border-radius: 50%;
+  background: rgba(255,255,255,.8);
+  color: #294c6b;
+  box-shadow: 0 3px 10px rgba(20,45,65,.06);
+}
+.app-shell .inventory-page .inventory-row-chevron { stroke: #294c6b; }
+.app-shell .inventory-page .inventory-account-amount { color: #10233f; font-size: 13px; }
+.app-shell .inventory-page .inventory-account-details {
+  padding-top: 10px;
+  border-top: 1px solid rgba(220,230,232,.75);
+}
+.app-shell .inventory-page .inventory-empty-state {
+  border-color: color-mix(in srgb, var(--green, #008f55) 28%, #dce6e8);
+  border-radius: 20px;
+  background: rgba(255,255,255,.65);
+}
+.app-shell.theme-dark .inventory-page { color: #eef5f1; }
+.app-shell.theme-dark .inventory-page > .inventory-heading h1,
+.app-shell.theme-dark .inventory-page > .inventory-accounts .panel-heading h2 { color: #eef5f1; }
+.app-shell.theme-dark .inventory-page > .inventory-heading .welcome-sub { color: #a8b7af; }
+.app-shell.theme-dark .inventory-page .inventory-summary-card:not(.net-worth-summary),
+.app-shell.theme-dark .inventory-page > .inventory-accounts {
+  border-color: rgba(120,148,134,.28) !important;
+  background: rgba(27,38,33,.9) !important;
+}
+.app-shell.theme-dark .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label,
+.app-shell.theme-dark .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong,
+.app-shell.theme-dark .inventory-page .inventory-summary-item,
+.app-shell.theme-dark .inventory-page .inventory-account-amount,
+.app-shell.theme-dark .inventory-page .inventory-account-group-heading strong { color: #eef5f1 !important; }
+.app-shell.theme-dark .inventory-page .inventory-filter,
+.app-shell.theme-dark .inventory-page .inventory-account-count { border-color: rgba(120,148,134,.28); background: rgba(27,38,33,.82); color: #c8d6ce; }
+.app-shell.theme-dark .inventory-page .inventory-filter.active { background: color-mix(in srgb, var(--green, #008f55) 25%, #17231d); color: #a9ebc8; }
+.app-shell.theme-dark .inventory-page .inventory-account-row { border-color: rgba(120,148,134,.2) !important; background: rgba(18,28,23,.65); }
+.app-shell.theme-dark .inventory-page .inventory-status-pill { border-color: rgba(116,164,199,.36); background: #1b2a30; color: #b9d9eb; }
+.app-shell.theme-dark .inventory-page .inventory-row-toggle { border-color: rgba(120,148,134,.3); background: #1b2821; }
+@media (max-width: 760px) {
+  .app-shell .inventory-page { gap: 15px; }
+  .app-shell .inventory-page > .inventory-heading { align-items: center; }
+  .app-shell .inventory-page > .inventory-heading h1 { font-size: clamp(29px, 8vw, 38px); }
+  .app-shell .inventory-page > .inventory-heading .welcome-sub { max-width: 34ch; font-size: 14px; }
+  .app-shell .inventory-page > .inventory-heading .inventory-heading-add { width: 50px; height: 50px; min-height: 50px; flex-basis: 50px; }
+  .app-shell .inventory-page .inventory-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .app-shell .inventory-page .inventory-summary-card { min-height: 112px; grid-template-columns: 36px minmax(0,1fr); column-gap: 8px; row-gap: 11px; padding: 14px; border-radius: 21px; }
+  .app-shell .inventory-page .inventory-summary-icon { width: 36px; height: 36px; padding: 7px; }
+  .app-shell .inventory-page .inventory-summary-card .inventory-label { font-size: 11px; }
+  .app-shell .inventory-page .inventory-summary-card > strong { font-size: clamp(11px, 3.8vw, 22px); }
+  .app-shell .inventory-page .inventory-summary-card.net-worth-summary { min-height: 142px; padding: 20px; border-radius: 23px; }
+  .app-shell .inventory-page .inventory-summary-card.net-worth-summary .inventory-label { font-size: 14px; }
+  .app-shell .inventory-page .inventory-summary-card.net-worth-summary > strong { font-size: clamp(26px, 7vw, 40px); }
+  .app-shell .inventory-page > .inventory-accounts { padding: 17px 13px; border-radius: 23px; }
+  .app-shell .inventory-page .inventory-filters { overflow-x: auto; margin-inline: -2px; padding: 0 2px 13px; scrollbar-width: none; }
+  .app-shell .inventory-page .inventory-filters::-webkit-scrollbar { display: none; }
+  .app-shell .inventory-page .inventory-filter { flex: 0 0 auto; min-height: 40px; padding-inline: 15px; }
+  .app-shell .inventory-page .inventory-account-row { margin: 8px 0; padding-inline: 8px; border-radius: 17px; }
+  .app-shell .inventory-page .inventory-row-summary { grid-template-columns: minmax(0,1fr) max-content 40px; grid-template-areas: "item type toggle" "account status toggle" "value value toggle"; gap: 6px 9px; padding: 12px 2px; }
+  .app-shell .inventory-page .inventory-summary-item { display: flex; min-width: 0; gap: 7px; overflow: hidden; }
+  .app-shell .inventory-page .inventory-summary-item::before { display: none; }
+  .app-shell .inventory-page .inventory-summary-item > .inventory-account-type-icon { width: 22px; height: 22px; flex-basis: 22px; }
+  .app-shell .inventory-page .inventory-kind-pill { display: inline-flex; grid-area: type; }
+  .app-shell .inventory-page .inventory-kind-pill::before,
+  .app-shell .inventory-page .inventory-status-pill::before { display: none; }
+  .app-shell .inventory-page .inventory-account-source { display: block; grid-area: account; }
+  .app-shell .inventory-page .inventory-status-pill { grid-area: status; }
+  .app-shell .inventory-page .inventory-account-amount { grid-area: value; justify-self: start; }
+  .app-shell .inventory-page .inventory-account-amount::before { content: "Value · "; color: #667580; font: 500 10px var(--sans); }
+  .app-shell .inventory-page .inventory-row-toggle { grid-area: toggle; }
+  .app-shell.theme-dark .inventory-page .inventory-account-amount::before { color: #a8b7af; }
+}
+@media (max-width: 390px) {
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) { grid-template-columns: 27px minmax(0,1fr); padding: 11px; column-gap: 6px; }
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-summary-icon { width: 27px; height: 27px; padding: 5px; }
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label { font-size: 9px; }
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong { font-size: clamp(10px, 3.45vw, 14px); }
+  .app-shell .inventory-page .inventory-account-row { padding-inline: 6px; }
+}
+@media (max-width: 600px) {
+  .app-shell:has(.inventory-page) {
+    background: #f8faf9 !important;
+  }
+  .app-shell:has(.inventory-page)::before,
+  .app-shell:has(.inventory-page)::after { display: none !important; }
+  .app-shell.theme-dark:has(.inventory-page) { background: #111916 !important; }
+  html body .app-shell:not(.theme-dark):has(.inventory-page) .main-panel,
+  html body .app-shell:not(.theme-dark):has(.inventory-page) .content,
+  html body .app-shell:not(.theme-dark):has(.inventory-page) #page-content,
+  html body .app-shell.theme-dark:has(.inventory-page) .main-panel,
+  html body .app-shell.theme-dark:has(.inventory-page) .content,
+  html body .app-shell.theme-dark:has(.inventory-page) #page-content { background: transparent !important; }
+}
+html body .app-shell:not(.theme-dark):has(.inventory-page) .content,
+html body .app-shell:not(.theme-dark):has(.inventory-page) #page-content { background: #f8faf9 !important; }
+html body .app-shell.theme-dark:has(.inventory-page) .content,
+html body .app-shell.theme-dark:has(.inventory-page) #page-content { background: #111916 !important; }
