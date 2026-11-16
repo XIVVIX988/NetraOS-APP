@@ -15133,24 +15133,6 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong { font-size: clamp(10px, 3.45vw, 14px); }
   .app-shell .inventory-page .inventory-account-row { padding-inline: 6px; }
 }
-@media (max-width: 600px) {
-  .app-shell:has(.inventory-page) {
-    background: #f8faf9 !important;
-  }
-  .app-shell:has(.inventory-page)::before,
-  .app-shell:has(.inventory-page)::after { display: none !important; }
-  .app-shell.theme-dark:has(.inventory-page) { background: #111916 !important; }
-  html body .app-shell:not(.theme-dark):has(.inventory-page) .main-panel,
-  html body .app-shell:not(.theme-dark):has(.inventory-page) .content,
-  html body .app-shell:not(.theme-dark):has(.inventory-page) #page-content,
-  html body .app-shell.theme-dark:has(.inventory-page) .main-panel,
-  html body .app-shell.theme-dark:has(.inventory-page) .content,
-  html body .app-shell.theme-dark:has(.inventory-page) #page-content { background: transparent !important; }
-}
-html body .app-shell:not(.theme-dark):has(.inventory-page) .content,
-html body .app-shell:not(.theme-dark):has(.inventory-page) #page-content { background: #f8faf9 !important; }
-html body .app-shell.theme-dark:has(.inventory-page) .content,
-html body .app-shell.theme-dark:has(.inventory-page) #page-content { background: #111916 !important; }
 .app-shell .inventory-page > .inventory-heading { justify-content: flex-end; }
 
 /* Match the dashboard KPI and net-worth amount treatment on Inventory. */
