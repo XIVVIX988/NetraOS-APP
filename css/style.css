@@ -13813,4 +13813,4 @@ body.theme-dark #public-shell .auth-login-page .auth-input-shell > input:autofil
   text-align: center;
 }
 #public-shell .auth-login-page .auth-content > .auth-welcome-text::before { display: none; }
-#public-shell .auth-login-page .auth-content h1 { text-align: center; }
+#public-shell .auth-login-page .auth-content h1 { margin-bottom: 20px; text-align: center; }
