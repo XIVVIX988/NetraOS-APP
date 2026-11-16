@@ -13581,7 +13581,7 @@ html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metr
   padding: 0 13px;
   border-radius: 999px;
   background: #ffffffb8;
-  color: #1c4036;
+  color: #176347;
   font: 700 11px/1 var(--sans);
   letter-spacing: .17em;
 }
@@ -13837,7 +13837,7 @@ html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metr
   display: none;
 }
 #public-shell .auth-signup-page .auth-content h1 {
-  margin: 0;
+  margin: 0 0 20px;
   color: #102638;
   font: 750 clamp(30px, 7.5vw, 43px)/1.08 var(--display);
   letter-spacing: -.045em;
@@ -13993,7 +13993,6 @@ body.theme-dark #public-shell .auth-signup-page .auth-input-shell > input {
   #public-shell .auth-signup-page .auth-card { border-radius: 31px; }
   #public-shell .auth-signup-page .auth-content { padding: 21px 20px 20px; }
   #public-shell .auth-signup-page .auth-content h1 { font-size: clamp(29px, 8vw, 37px); }
-  #public-shell .auth-signup-page .auth-description { margin-bottom: 16px; font-size: 14px; }
 }
 @media (max-width: 360px) {
   #public-shell .auth-signup-page { padding-top: max(270px, 34svh); }

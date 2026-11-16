@@ -2104,7 +2104,6 @@ function showPublicPage(page = "landing", { preserveAuthCallback = false } = {})
           <div class="auth-content">
           <div class="section-kicker${isSignup ? "" : " auth-welcome-text"}">${isSignup ? "GET STARTED" : "WELCOME BACK"}</div>
           <h1>${isSignup ? "Create Your Account" : "Log in to NetraOS."}</h1>
-          ${isSignup ? '<p class="auth-description">Join NetraOS and take control of your finances.</p>' : ""}
           <form class="auth-form" data-auth-form="${isSignup ? "signup" : "login"}" novalidate>
             ${isSignup ? `<label class="inventory-form-field"><span>Full Name</span><span class="auth-input-shell"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4 21c0-4.2 3.4-7 8-7s8 2.8 8 7"/></svg><input name="name" type="text" autocomplete="name" maxlength="80" placeholder="Enter your full name" required></span></label>` : ""}
             ${isSignup ? `<label class="inventory-form-field"><span>Phone Number <small>Optional</small></span><span class="auth-input-shell"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M10 18h4"/></svg><input name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="e.g. +254 712 345 678"></span></label>` : ""}
