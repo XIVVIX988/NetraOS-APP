@@ -40,6 +40,11 @@ const pageDescriptions = {
 // Cache shared DOM roots and local storage keys used by the app's page modules.
 const navItems = [...document.querySelectorAll("[data-page]")];
 const content = document.querySelector("#page-content");
+content?.addEventListener("click", event => {
+  const seeAllStats = event.target.closest('[aria-label="See all financial stats"]');
+  if (!seeAllStats || !content.contains(seeAllStats)) return;
+  showPage("Stats");
+});
 const crumb = document.querySelector("#crumb-page");
 const publicShell = document.querySelector("#public-shell");
 const appShell = document.querySelector(".app-shell");
@@ -4083,14 +4088,18 @@ function updateDashboardRecentActivity() {
   const list = document.querySelector("[data-dashboard-recent-activity]");
   if (!list) return;
   const data = getPowerUpData();
+  const activityDate = value => {
+    const match = String(value || "").match(/^(\d{4}-\d{2}-\d{2})/);
+    return match && Number.isFinite(Date.parse(`${match[1]}T12:00:00`)) ? match[1] : "";
+  };
   const entries = [
-    ...data.incomes.filter(item => item.status === "received").map(item => ({
+    ...data.incomes.filter(item => item.status === "received" || (!item.status && item.date)).map(item => ({
       id: item.id, kind: "income", name: item.name || "Income", category: item.category || "Income", recordedAt: item.recordedAt || item.createdAt || item.timestamp || item.created_at || "",
-      amount: Number(item.amount || 0), date: item.date || item.expectedDate || ""
+      amount: Number(item.amount || 0), date: activityDate(item.date || item.expectedDate)
     })),
     ...data.spending.map(item => ({
       id: item.id, kind: "spending", name: item.name || "Expense", category: item.category || "Spending", recordedAt: item.recordedAt || item.createdAt || item.timestamp || item.created_at || "",
-      amount: Number(item.amount || 0), date: /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : /^\d{4}-\d{2}$/.test(item.month || "") ? `${item.month}-01` : ""
+      amount: Number(item.amount || 0), date: activityDate(item.date) || (/^\d{4}-\d{2}$/.test(item.month || "") ? `${item.month}-01` : "")
     }))
   ].filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && Number.isFinite(item.amount))
     .sort((a, b) => {
