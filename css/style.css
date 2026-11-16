@@ -13535,11 +13535,12 @@ html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metr
 #public-shell .auth-login-background {
   position: fixed;
   z-index: 0;
-  inset: 0;
+  top: -12vh;
+  left: 0;
   display: block;
   width: 100%;
-  height: 100vh;
-  height: 100dvh;
+  height: 112vh;
+  height: 112dvh;
   object-fit: cover;
   object-position: center top;
 }
@@ -13565,10 +13566,10 @@ html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metr
   overflow: hidden;
   border: 1px solid #ffffffad;
   border-radius: 34px;
-  background: #f5fbf1b8;
+  background: #f5fbf19e;
   box-shadow: 0 22px 60px #072a2a35, inset 0 1px 0 #ffffffb8;
-  backdrop-filter: blur(24px) saturate(145%);
-  -webkit-backdrop-filter: blur(24px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
 }
 #public-shell .auth-login-page .auth-content { padding: 24px clamp(20px, 5.4vw, 40px) 24px; }
 #public-shell .auth-login-page .auth-content > .section-kicker {
@@ -13759,6 +13760,7 @@ html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metr
 #public-shell .auth-login-page .auth-error { border-radius: 12px; }
 @media (max-width: 600px) {
   #public-shell .auth-login-page { padding: max(250px, 34svh) 12px max(26px, env(safe-area-inset-bottom)); }
+  #public-shell .auth-login-background { top: -24vh; height: 124vh; height: 124dvh; }
   #public-shell .auth-login-page .auth-card { border-radius: 31px; }
   #public-shell .auth-login-page .auth-content { padding: 22px 20px 21px; }
   #public-shell .auth-login-page .auth-content h1 { font-size: clamp(29px, 8vw, 37px); }
@@ -13770,4 +13772,30 @@ html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metr
 }
 @media (prefers-reduced-motion: reduce) {
   #public-shell .auth-login-page *, #public-shell .auth-login-page *::before, #public-shell .auth-login-page *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
+/* Keep typed and autofilled login values on the glass field surface. */
+#public-shell .auth-login-page .auth-input-shell > input,
+body.theme-dark #public-shell .auth-login-page .auth-input-shell > input {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #132a3c !important;
+  -webkit-text-fill-color: #132a3c !important;
+}
+#public-shell .auth-login-page .auth-input-shell > input:-webkit-autofill,
+#public-shell .auth-login-page .auth-input-shell > input:-webkit-autofill:hover,
+#public-shell .auth-login-page .auth-input-shell > input:-webkit-autofill:focus,
+#public-shell .auth-login-page .auth-input-shell > input:autofill,
+body.theme-dark #public-shell .auth-login-page .auth-input-shell > input:-webkit-autofill,
+body.theme-dark #public-shell .auth-login-page .auth-input-shell > input:-webkit-autofill:hover,
+body.theme-dark #public-shell .auth-login-page .auth-input-shell > input:-webkit-autofill:focus,
+body.theme-dark #public-shell .auth-login-page .auth-input-shell > input:autofill {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: #132a3c !important;
+  caret-color: #132a3c;
+  transition: background-color 99999s ease-out 0s;
 }
