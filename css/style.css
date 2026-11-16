@@ -15151,3 +15151,4 @@ html body .app-shell:not(.theme-dark):has(.inventory-page) .content,
 html body .app-shell:not(.theme-dark):has(.inventory-page) #page-content { background: #f8faf9 !important; }
 html body .app-shell.theme-dark:has(.inventory-page) .content,
 html body .app-shell.theme-dark:has(.inventory-page) #page-content { background: #111916 !important; }
+.app-shell .inventory-page > .inventory-heading { justify-content: flex-end; }
