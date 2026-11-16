@@ -14606,6 +14606,8 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   html body .app-shell.theme-dark .main-panel,
   html body .app-shell.theme-dark .content,
   html body .app-shell.theme-dark #page-content { background: transparent !important; }
+  /* Dashboard has a stronger desktop dark-surface rule; keep its mobile canvas transparent too. */
+  html body .app-shell.theme-dark #page-content:has(> .metrics-grid.dashboard-metric-layout) { background: transparent !important; }
   .app-shell.theme-dark { background: #101815 !important; }
   .app-shell.theme-dark::before {
     background-image: linear-gradient(rgba(7, 17, 13, .78), rgba(7, 17, 13, .78)), url("../assets/mobile-app-background.jpeg");
@@ -14620,4 +14622,38 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
     min-height: 0;
     aspect-ratio: 1 / 1;
   }
+}
+
+/* Keep forecast actions spanning the header so the received action can align to its far edge. */
+.app-shell .cashflow-forecast-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+}
+.app-shell .cashflow-forecast-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+}
+.app-shell .cashflow-forecast-actions .forecast-received-action {
+  margin-inline-start: auto;
+}
+
+/* Financial insight should remain a text-first card without the decorative target. */
+.app-shell .dashboard-next-action::after {
+  display: none !important;
+  content: none !important;
+}
+.app-shell .dashboard-next-action {
+  padding-right: clamp(20px, 3vw, 32px) !important;
+}
+@media (max-width: 600px) {
+  .app-shell .dashboard-next-action {
+    padding-right: 17px !important;
+  }
+}
+.app-shell .dashboard-shortcuts > button {
+  box-shadow: 0 6px 18px rgba(20, 45, 65, .05) !important;
 }

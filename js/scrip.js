@@ -1516,6 +1516,7 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
       clearPinFailureCount();
       appShell.hidden = false;
       publicShell.hidden = true;
+      setPrivacyMode(true);
       recordSecurityAudit("Workspace unlocked");
       scheduleAutoLock();
       if (autoLockNudgePendingAfterTour) {
@@ -2669,6 +2670,7 @@ function enterApp(profile, { restoredSession = false, page = "Dashboard", skipTo
   setProfileName(profile.username || profile.name);
   applyProfileAvatar();
   applyStoredSettings();
+  setPrivacyMode(true);
   document.body.classList.remove("auth-view", "public-view", "phone-entry-view");
   publicShell.hidden = true;
   appShell.hidden = false;
@@ -3422,59 +3424,87 @@ function updateDashboardOnboarding() {
     });
     if (key === "plan" && done) row.setAttribute("aria-label", "Monthly plan complete");
   });
+  updateDashboardFinancialInsight(stepState, quests);
+}
+
+let dashboardInsightIndex = 0;
+let dashboardInsightRotationTimer = null;
+
+function updateDashboardFinancialInsight(stepState, quests = getQuests()) {
   const nextAction = document.querySelector("[data-dashboard-next-action]");
+  if (!nextAction) return;
+  const title = nextAction.querySelector("[data-next-action-title]");
+  const copy = nextAction.querySelector("[data-next-action-copy]");
+  const button = nextAction.querySelector("button[data-jump]");
+  const buttonLabel = nextAction.querySelector("[data-next-action-button-label]");
+  const insights = [];
+  const add = (page, label, heading, message, destination = "") => insights.push({ page, label, heading, message, destination });
+  const powerData = getPowerUpData();
+  const insightMonth = monthKey();
+  const monthlyIncome = incomeOutlookForMonth(powerData.incomes, insightMonth);
+  const monthlySpending = actualSpendingForMonth(powerData.spending, insightMonth);
+  const monthlyBudget = budgetTotalForMonth(powerData.budgets, insightMonth);
+  const monthlyRemainder = monthlyIncome - monthlySpending;
+  const balances = getInventoryTotals();
   const topQuest = getMilestonesEngine(quests).top;
-  if (nextAction) {
-    const title = nextAction.querySelector("[data-next-action-title]");
-    const copy = nextAction.querySelector("[data-next-action-copy]");
-    const button = nextAction.querySelector("button[data-jump]");
-    const buttonLabel = nextAction.querySelector("[data-next-action-button-label]");
-    const setAction = (page, label, heading, description, destination = "") => {
-      if (button) {
-        button.dataset.jump = page;
-        if (destination) button.dataset.jumpAction = destination;
-        else delete button.dataset.jumpAction;
-      }
-      if (buttonLabel) buttonLabel.textContent = label;
-      if (title) title.textContent = heading;
-      if (copy) copy.textContent = description;
-    };
 
-    nextAction.hidden = false;
-    const powerData = getPowerUpData();
-    const insightMonth = monthKey();
-    const monthlyIncome = incomeOutlookForMonth(powerData.incomes, insightMonth);
-    const monthlySpending = actualSpendingForMonth(powerData.spending, insightMonth);
-    const monthlyBudget = budgetTotalForMonth(powerData.budgets, insightMonth);
-    const monthlyRemainder = monthlyIncome - monthlySpending;
-    const balances = getInventoryTotals();
+  if (monthlySpending > 0 && monthlyRemainder < 0) {
+    add("Power-Up", "Review expenses", "Spending exceeds income", `Short by ${formatKsh(Math.abs(monthlyRemainder))} this month.`, "spending");
+  }
+  if (monthlyBudget > 0 && monthlySpending > monthlyBudget) {
+    add("Power-Up", "Review budget", "Over budget", `${formatKsh(monthlySpending - monthlyBudget)} above plan.`, "budget");
+  }
+  if (!stepState.account) {
+    add("Inventory", "Add balances", "Add balances", "See your net worth across accounts.", "add-account");
+  }
+  if (balances.liabilities > balances.assets) {
+    add("Inventory", "Review balances", "Liabilities exceed assets", `Difference: ${formatKsh(balances.liabilities - balances.assets)}.`);
+  }
+  if (!stepState.income) {
+    add("Power-Up", "Add income", "Track your income", "Compare income with spending.", "add-income");
+  }
+  if (!stepState.budget) {
+    add("Power-Up", "Add a budget", "Set a spending plan", "Compare expenses with your budget.", "add-budget");
+  }
+  if (monthlyIncome > 0 && monthlyRemainder > 0 && monthlyRemainder / monthlyIncome < .1) {
+    add("Power-Up", "Review expenses", "Low monthly surplus", `${formatKsh(monthlyRemainder)} remains after spending.`, "spending");
+  } else if (monthlyIncome > 0 && monthlyRemainder > 0) {
+    add("Power-Up", "Review cash flow", "Positive cash flow", `${formatKsh(monthlyRemainder)} remains this month.`);
+  } else if (monthlyIncome > 0 && monthlyRemainder === 0) {
+    add("Power-Up", "Review cash flow", "Income matches spending", "Nothing remains after this month’s expenses.");
+  } else if (monthlyIncome === 0 && monthlySpending === 0) {
+    add("Power-Up", "Review cash flow", "No transactions this month", "Add income or expenses to see cash flow.");
+  }
+  if (topQuest) {
+    const remaining = Math.max(0, Number(topQuest.target) - Number(topQuest.current || 0));
+    add("Quests", "Update goal", `${topQuest.name}`, `${questProgress(topQuest)}% complete · ${formatKsh(remaining)} to go.`, topQuest.id);
+  } else if (!stepState.goal) {
+    add("Quests", "Set a goal", "Choose a savings goal", "Set a target to track progress.", "add");
+  }
+  if (balances.netWorth > 0) {
+    add("Inventory", "Review balances", "Positive net worth", `${formatKsh(balances.netWorth)} across your assets and liabilities.`);
+  } else if (stepState.account && balances.netWorth === 0) {
+    add("Inventory", "Review balances", "Net worth is balanced", "Tracked assets and liabilities are equal.");
+  }
+  if (!insights.length) add("Inventory", "Review balances", "Your finances are on track", "Review your balances and monthly plan.");
 
-    // Choose a dashboard insight from cash flow, spending, balance sheet, setup,
-    // and goals so the card reflects more than goal progress alone.
-    if (monthlySpending > 0 && monthlyRemainder < 0) {
-      setAction("Power-Up", "Review expenses", "Spending is above your income", `This month, spending exceeds expected income by ${formatKsh(Math.abs(monthlyRemainder))}. Review recent expenses and find a category to adjust.`, "spending");
-    } else if (monthlyBudget > 0 && monthlySpending > monthlyBudget) {
-      setAction("Power-Up", "Review spending plan", "Spending is over budget", `Recorded spending is ${formatKsh(monthlySpending - monthlyBudget)} above this month’s budget. Check the categories that have moved furthest from plan.`, "budget");
-    } else if (!stepState.account) {
-      setAction("Inventory", "Add an account", "Complete your financial picture", "Add your cash, bank, or mobile money balances so NetraOS can calculate your net worth.", "add-account");
-    } else if (balances.liabilities > balances.assets) {
-      setAction("Inventory", "Review balances", "Liabilities exceed tracked assets", `You have ${formatKsh(balances.liabilities - balances.assets)} more in liabilities than assets. Review your balances to see what could improve your position.`, "");
-    } else if (!stepState.income) {
-      setAction("Power-Up", "Add income", "Track your monthly income", "Add expected or received income to see how it compares with spending and your monthly plan.", "add-income");
-    } else if (!stepState.budget) {
-      setAction("Power-Up", "Add a budget", "Compare spending with a plan", "Set a monthly budget to see which expenses are on track and where your money is going.", "add-budget");
-    } else if (monthlyIncome > 0 && monthlyRemainder > 0 && monthlyRemainder / monthlyIncome < .1) {
-      setAction("Power-Up", "Review expenses", "Most of this month’s income is committed", `After recorded spending, ${formatKsh(monthlyRemainder)} remains (${(monthlyRemainder / monthlyIncome * 100).toFixed(1)}% of expected income). Review your plan for room to save.`, "spending");
-    } else if (monthlyIncome > 0 && monthlyRemainder > 0) {
-      setAction("Power-Up", "Review cash flow", "You have money left after spending", `${formatKsh(monthlyRemainder)} remains from this month’s expected income after recorded expenses. Check your plan to decide where it should go next.`, "");
-    } else if (topQuest) {
-      const remaining = Math.max(0, Number(topQuest.target) - Number(topQuest.current || 0));
-      setAction("Quests", "Update goal", `Keep moving on ${topQuest.name}`, `${formatKsh(topQuest.current || 0)} saved of ${formatKsh(topQuest.target)} · ${formatKsh(remaining)} to go.`, topQuest.id);
-    } else if (!stepState.goal) {
-      setAction("Quests", "Set a goal", "Choose a savings goal", "Pick a target and track your progress toward it.", "add");
-    } else {
-      setAction("Inventory", "Review balances", "Your assets exceed liabilities", `Your current net worth is ${formatKsh(balances.netWorth)}. Review your balances as you add or update financial items.`, "");
-    }
+  nextAction.hidden = false;
+  const insight = insights[dashboardInsightIndex % insights.length];
+  if (button) {
+    button.dataset.jump = insight.page;
+    if (insight.destination) button.dataset.jumpAction = insight.destination;
+    else delete button.dataset.jumpAction;
+  }
+  if (buttonLabel) buttonLabel.textContent = insight.label;
+  if (title) title.textContent = insight.heading;
+  if (copy) copy.textContent = insight.message;
+
+  if (!dashboardInsightRotationTimer && !appShell.hidden && crumb.textContent === "Dashboard") {
+    dashboardInsightRotationTimer = window.setInterval(() => {
+      if (appShell.hidden || crumb.textContent !== "Dashboard" || document.visibilityState !== "visible") return;
+      dashboardInsightIndex += 1;
+      updateDashboardOnboarding();
+    }, 210000);
   }
 }
 
@@ -4153,10 +4183,18 @@ function updateDashboardRecentActivity() {
     return match && Number.isFinite(Date.parse(`${match[1]}T12:00:00`)) ? match[1] : "";
   };
   const entries = [
-    ...data.incomes.filter(item => item.status === "received" || (!item.status && item.date)).map(item => ({
-      id: item.id, kind: "income", name: item.name || "Income", category: item.category || "Income", recordedAt: item.recordedAt || item.createdAt || item.timestamp || item.created_at || "",
-      amount: Number(item.amount || 0), date: activityDate(item.date || item.expectedDate)
-    })),
+    ...data.incomes.map(item => {
+      const received = String(item.status || "").toLowerCase() === "received" || (!item.status && Boolean(item.date));
+      const date = received
+        ? activityDate(item.date || item.expectedDate)
+        : activityDate(item.expectedDate || incomeAnchorDate(item));
+      return {
+        id: item.id, kind: "income", incomeStatus: received ? "received" : "expected",
+        name: item.name || "Income", category: item.category || "Income",
+        recordedAt: item.recordedAt || item.createdAt || item.timestamp || item.created_at || "",
+        amount: Number(item.amount || 0), date
+      };
+    }),
     ...data.spending.map(item => ({
       id: item.id, kind: "spending", name: item.name || "Expense", category: item.category || "Spending", recordedAt: item.recordedAt || item.createdAt || item.timestamp || item.created_at || "",
       amount: Number(item.amount || 0), date: activityDate(item.date) || (/^\d{4}-\d{2}$/.test(item.month || "") ? `${item.month}-01` : "")
@@ -4174,7 +4212,7 @@ function updateDashboardRecentActivity() {
     })
     .slice(0, 5);
   if (!entries.length) {
-    list.innerHTML = `<div class="dashboard-activity-empty"><span aria-hidden="true">⌁</span><div><strong>No activity yet</strong><p>Income you mark as received and expenses you record will show here.</p></div><button type="button" data-jump="Power-Up">Open Power-Up <span aria-hidden="true">›</span></button></div>`;
+    list.innerHTML = `<div class="dashboard-activity-empty"><span aria-hidden="true">⌁</span><div><strong>No activity yet</strong><p>Income you add and expenses you record will show here.</p></div><button type="button" data-jump="Power-Up">Open Power-Up <span aria-hidden="true">›</span></button></div>`;
     return;
   }
   const now = Date.now();
@@ -4193,8 +4231,9 @@ function updateDashboardRecentActivity() {
       ? budgetCategoryIcons[item.category]
       : budgetCategoryIcons.Other;
     const icon = incomeCategory?.icon || (incoming ? incomeCategoryByLabel["Other income"].icon : spendingIcon);
+    const categoryLabel = incoming && item.incomeStatus === "expected" ? `Expected · ${item.category}` : item.category;
     const timeStamp = recent ? new Date(recordedTime).toISOString() : item.date;
-    return `<article class="dashboard-activity-row ${incoming ? "is-income" : "is-spending"}"><span class="dashboard-activity-name"><strong>${escapeHTML(item.name)}</strong><small class="dashboard-activity-category"><span class="dashboard-activity-icon" aria-hidden="true">${icon}</span>${escapeHTML(item.category)}</small></span><span class="dashboard-activity-meta"><strong class="dashboard-activity-amount">${incoming ? "+" : "−"}${formatKsh(item.amount)}</strong><time datetime="${timeStamp}">${escapeHTML(displayDate)}</time></span></article>`;
+    return `<article class="dashboard-activity-row ${incoming ? "is-income" : "is-spending"}"><span class="dashboard-activity-name"><strong>${escapeHTML(item.name)}</strong><small class="dashboard-activity-category"><span class="dashboard-activity-icon" aria-hidden="true">${icon}</span>${escapeHTML(categoryLabel)}</small></span><span class="dashboard-activity-meta"><strong class="dashboard-activity-amount">${incoming ? "+" : "−"}${formatKsh(item.amount)}</strong><time datetime="${timeStamp}">${escapeHTML(displayDate)}</time></span></article>`;
   }).join("");
 }
 
@@ -9602,10 +9641,15 @@ document.addEventListener("click", event => {
       const selectedMonth = selectedDate.slice(0, 7);
       const dueSources = getPowerUpData().incomes.filter(item => incomeExpectedInMonth(item, selectedMonth)
         && forecastPaymentDate(item, selectedMonth) === selectedDate);
-      openPowerUpDialog("received-income", null, {
-        date: selectedDate,
-        sourceId: dueSources.length === 1 ? dueSources[0].id : ""
-      });
+      try {
+        openPowerUpDialog("received-income", null, {
+          date: selectedDate,
+          sourceId: dueSources.length === 1 ? dueSources[0].id : ""
+        });
+      } catch (error) {
+        console.error("Could not open the received-income form", error);
+        showToast("Couldn’t open the income form. Please try again.");
+      }
     } else {
       openPowerUpDialog(button.dataset.powerAction);
     }
@@ -10103,7 +10147,7 @@ showCookieBanner();
 const scriptedHelpTopics = [
   { id: "greeting", question: "What can you help me with?", keywords: [], answer: "Hello! Welcome to NetraOS. I can explain your Quick Overview cards, recent activity dates, accent colors, Privacy Shield, budgeting, goals, assets, and reports. What would you like to know?", followUps: ["quick-overview", "recent-activity", "privacy-shield", "accent", "budget", "reports"] },
   { id: "quick-overview", question: "What do the Quick Overview cards show?", keywords: ["quick overview", "overview cards", "income card", "expenses card", "savings card", "dashboard cards"], answer: "Quick Overview shows this month’s income outlook, recorded expenses, and the cash left after expenses (shown as Savings). Each card includes a comparison with the previous month. The See All button opens Stats for more detail.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["recent-activity", "budget", "reports"] },
-  { id: "recent-activity", question: "Why does Recent Activity show a time?", keywords: ["recent activity", "date and time", "activity time", "timestamp", "48 hours"], answer: "Recent Activity lists received income and recorded expenses. Entries with a saved recording time show their date and time for the first 48 hours; older entries show only month and day. Older records created before recording times were saved may not have an original time to display.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["quick-overview", "privacy-shield"] },
+  { id: "recent-activity", question: "Why does Recent Activity show a time?", keywords: ["recent activity", "date and time", "activity time", "timestamp", "48 hours"], answer: "Recent Activity lists expected and received income along with recorded expenses. Entries with a saved recording time show their date and time for the first 48 hours; older entries show only the month and day. Older records created before recording times were saved may not have an original time to display.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["quick-overview", "privacy-shield"] },
   { id: "privacy-shield", question: "Where is Privacy Shield?", keywords: ["privacy shield", "hide net worth", "mask amount", "hide amounts", "net worth privacy"], answer: "Use the eye control on the Net Worth card to hide or reveal its amount. You can also use the configured keyboard shortcut; its setting is in Settings. The shield is attached to the Net Worth card.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["privacy", "accent"] },
   { id: "accent", question: "How do I change the accent color?", keywords: ["accent color", "accent colour", "change accent", "accent theme", "accent"], answer: "Open Settings and change Accent color under preferences. The selected accent updates the dashboard cards, icons, navbar, and other highlighted controls. Available choices include Growth, Trust, Royal, Terracotta, Blush, and Silverstone.", page: "Settings", pageLabel: "Go to Settings", followUps: ["privacy-shield", "quick-overview"] },
   { id: "mobile-navigation", question: "How does phone navigation work?", keywords: ["mobile navbar", "mobile navigation", "phone navigation", "bottom navigation", "phone menu"], answer: "On a phone, use the bottom navigation for Home, Inventory, Power-Up, and Quests. Open More for Stats, Achievements, Contact, and Settings. The top bar stays pinned while you scroll.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["quick-overview", "accent"] },
