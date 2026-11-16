@@ -986,14 +986,14 @@ function getPowerUpReportTotals() {
 // Read and save the browser-local profile and preference settings.
 const ACCENT_IDS = ["leo", "pwani", "kitenge", "mukimo", "neon-lime", "muted-grey"];
 const ACCENT_PRESETS = [
-  { id: "leo", name: "Growth", primary: "#174b36", accent: "#b6e35c", surface: "#f8fbf5" },
-  { id: "pwani", name: "Trust", primary: "#285c8a", accent: "#54d5d0", surface: "#f4fbfc" },
-  { id: "kitenge", name: "Momentum", primary: "#873e78", accent: "#ff927f", surface: "#fff6f5" },
-  { id: "mukimo", name: "Harvest", primary: "#466b30", accent: "#e9b84e", surface: "#fcf9ef" },
-  { id: "neon-lime", name: "Progress", primary: "#4d6500", accent: "#c8ff3d", surface: "#f8fbef" },
-  { id: "muted-grey", name: "Clarity", primary: "#626b67", accent: "#aeb8b2", surface: "#f6f7f6" }
+  { id: "leo", name: "Growth", primary: "#07552f", accent: "#b5e82d", surface: "#f3faf5" },
+  { id: "pwani", name: "Trust", primary: "#063c78", accent: "#30c8cd", surface: "#eef9fc" },
+  { id: "kitenge", name: "Royal", primary: "#3f0068", accent: "#c68bee", surface: "#f7f0fc" },
+  { id: "mukimo", name: "Terracotta", primary: "#b43908", accent: "#ff9a46", surface: "#fff7eb" },
+  { id: "neon-lime", name: "Blush", primary: "#820035", accent: "#f27ea8", surface: "#fff0f4" },
+  { id: "muted-grey", name: "Silverstone", primary: "#343b45", accent: "#a9b3c0", surface: "#f1f3f7" }
 ];
-const LEGACY_ACCENT_MAP = { emerald: "leo", amber: "kitenge", matrix: "mukimo", blue: "pwani", violet: "pwani", coral: "kitenge", aqua: "mukimo" };
+const LEGACY_ACCENT_MAP = { emerald: "leo", amber: "mukimo", matrix: "leo", blue: "pwani", violet: "kitenge", coral: "neon-lime", aqua: "pwani" };
 function normalizeAccent(accent) {
   return ACCENT_IDS.includes(accent) ? accent : LEGACY_ACCENT_MAP[accent] || "leo";
 }
@@ -10105,7 +10105,7 @@ const scriptedHelpTopics = [
   { id: "quick-overview", question: "What do the Quick Overview cards show?", keywords: ["quick overview", "overview cards", "income card", "expenses card", "savings card", "dashboard cards"], answer: "Quick Overview shows this month’s income outlook, recorded expenses, and the cash left after expenses (shown as Savings). Each card includes a comparison with the previous month. The See All button opens Stats for more detail.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["recent-activity", "budget", "reports"] },
   { id: "recent-activity", question: "Why does Recent Activity show a time?", keywords: ["recent activity", "date and time", "activity time", "timestamp", "48 hours"], answer: "Recent Activity lists received income and recorded expenses. Entries with a saved recording time show their date and time for the first 48 hours; older entries show only month and day. Older records created before recording times were saved may not have an original time to display.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["quick-overview", "privacy-shield"] },
   { id: "privacy-shield", question: "Where is Privacy Shield?", keywords: ["privacy shield", "hide net worth", "mask amount", "hide amounts", "net worth privacy"], answer: "Use the eye control on the Net Worth card to hide or reveal its amount. You can also use the configured keyboard shortcut; its setting is in Settings. The shield is attached to the Net Worth card.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["privacy", "accent"] },
-  { id: "accent", question: "How do I change the accent color?", keywords: ["accent color", "accent colour", "change accent", "accent theme", "accent"], answer: "Open Settings and change Accent color under preferences. The selected accent updates the dashboard cards, icons, navbar, and other highlighted controls. Available choices include Growth, Trust, Momentum, Harvest, Progress, and Clarity.", page: "Settings", pageLabel: "Go to Settings", followUps: ["privacy-shield", "quick-overview"] },
+  { id: "accent", question: "How do I change the accent color?", keywords: ["accent color", "accent colour", "change accent", "accent theme", "accent"], answer: "Open Settings and change Accent color under preferences. The selected accent updates the dashboard cards, icons, navbar, and other highlighted controls. Available choices include Growth, Trust, Royal, Terracotta, Blush, and Silverstone.", page: "Settings", pageLabel: "Go to Settings", followUps: ["privacy-shield", "quick-overview"] },
   { id: "mobile-navigation", question: "How does phone navigation work?", keywords: ["mobile navbar", "mobile navigation", "phone navigation", "bottom navigation", "phone menu"], answer: "On a phone, use the bottom navigation for Home, Inventory, Power-Up, and Quests. Open More for Stats, Achievements, Contact, and Settings. The top bar stays pinned while you scroll.", page: "Dashboard", pageLabel: "Go to Dashboard", followUps: ["quick-overview", "accent"] },
   { id: "start", question: "How do I get started?", keywords: ["start", "getting started", "begin", "setup", "set up"], answer: "Welcome! To get a useful overview, add your income, recurring budget, assets, and debts. You can update these details whenever things change.", page: "Inventory", pageLabel: "Go to Inventory", followUps: ["budget", "emergency", "reports"] },
   { id: "budget", question: "How does the budget suggestion work?", keywords: ["budget", "split", "55", "allocation", "income rule"], answer: "The suggested monthly plan sets aside up to 55% for essentials, 10% for debt repayment or investing, 15% for short-term goals, 15% for long-term goals, and 5% for everyday spending. It uses your take-home pay. If essentials are over the suggested limit, you’ll see ideas for bringing the plan back into balance.", page: "Power-Up", pageLabel: "Go to Power-Up", followUps: ["emergency", "rent", "goals"] },
