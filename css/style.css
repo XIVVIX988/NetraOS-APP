@@ -15515,15 +15515,25 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   .app-shell .inventory-page .inventory-row-toggle { width: 42px; height: 42px; }
 }
 @media (max-width: 390px) {
+  .app-shell .inventory-page > .inventory-accounts .panel-heading { gap: 7px; }
+  .app-shell .inventory-page > .inventory-accounts .panel-heading h2 { min-width: 0; font-size: clamp(18px, 5vw, 21px); }
+  .app-shell .inventory-page .inventory-account-count { min-height: 36px; gap: 6px; padding-inline: 9px; font-size: 11px; }
   .app-shell .inventory-page .inventory-account-row { padding: 10px; border-radius: 21px; }
-  .app-shell .inventory-page .inventory-row-summary { grid-template-columns: minmax(0, 1fr) max-content 36px; gap: 7px; }
+  .app-shell .inventory-page .inventory-row-summary {
+    grid-template-columns: minmax(0, 1fr) 36px;
+    grid-template-areas: "source toggle" "badges toggle";
+    gap: 9px 7px;
+    min-height: 0;
+    padding: 2px 0;
+  }
   .app-shell .inventory-page .inventory-account-source { gap: 8px; }
   .app-shell .inventory-page .inventory-account-type-icon { flex-basis: 54px; width: 54px; height: 54px; }
   .app-shell .inventory-page .inventory-summary-item { font-size: 13px; }
   .app-shell .inventory-page .inventory-account-category { font-size: 11px; }
+  .app-shell .inventory-page .inventory-item-badges { display: flex; flex-wrap: wrap; grid-area: badges; gap: 7px; padding-left: 62px; }
   .app-shell .inventory-page .inventory-kind-pill { min-height: 28px; padding-inline: 8px; font-size: 11px; }
   .app-shell .inventory-page .inventory-status-pill { min-height: 32px; padding-inline: 8px; font-size: 11px; }
-  .app-shell .inventory-page .inventory-row-toggle { width: 36px; height: 36px; }
+  .app-shell .inventory-page .inventory-row-toggle { grid-area: toggle; align-self: center; width: 36px; height: 36px; }
 }
 
 /* Asset and liability totals mirror the paired dashboard summary cards. */

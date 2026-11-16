@@ -9505,7 +9505,7 @@ document.addEventListener("click", event => {
     if (row && details) {
       const expanded = button.getAttribute("aria-expanded") !== "true";
       button.setAttribute("aria-expanded", String(expanded));
-      button.setAttribute("aria-label", `${expanded ? "Hide" : "Show"} ${row.dataset.inventoryType === "asset" ? "asset" : "liability"} details for ${row.querySelector(".inventory-account-name strong")?.textContent || "item"}`);
+      button.setAttribute("aria-label", `${expanded ? "Hide" : "Show"} ${row.dataset.inventoryType === "asset" ? "asset" : "liability"} details for ${row.querySelector(".inventory-summary-item")?.textContent || "item"}`);
       details.hidden = !expanded;
       row.classList.toggle("is-expanded", expanded);
     }
