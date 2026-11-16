@@ -3441,25 +3441,39 @@ function updateDashboardOnboarding() {
     };
 
     nextAction.hidden = false;
-    const financialPosition = getPowerUpReportTotals();
-    if (financialPosition.reportIncome > 0 && financialPosition.cashAfterSpending < 0) {
-      const deficit = Math.abs(financialPosition.cashAfterSpending);
-      setAction("Power-Up", "Review expenses", "You’re spending more than you earn", `Expenses exceed income by ${formatKsh(deficit)}. Review your spending categories and look for a cost you can reduce before the next cycle.`, "spending");
-      return;
-    }
-    if (!stepState.account) {
-      setAction("Inventory", "Add an account", "Add your first account", "Start with a bank, M-Pesa, or cash balance to see your net worth.", "add-account");
-    } else if (!stepState.goal) {
-      setAction("Quests", "Set a goal", "Choose a savings goal", "Pick a target and track your progress toward it.", "add");
+    const powerData = getPowerUpData();
+    const insightMonth = monthKey();
+    const monthlyIncome = incomeOutlookForMonth(powerData.incomes, insightMonth);
+    const monthlySpending = actualSpendingForMonth(powerData.spending, insightMonth);
+    const monthlyBudget = budgetTotalForMonth(powerData.budgets, insightMonth);
+    const monthlyRemainder = monthlyIncome - monthlySpending;
+    const balances = getInventoryTotals();
+
+    // Choose a dashboard insight from cash flow, spending, balance sheet, setup,
+    // and goals so the card reflects more than goal progress alone.
+    if (monthlySpending > 0 && monthlyRemainder < 0) {
+      setAction("Power-Up", "Review expenses", "Spending is above your income", `This month, spending exceeds expected income by ${formatKsh(Math.abs(monthlyRemainder))}. Review recent expenses and find a category to adjust.`, "spending");
+    } else if (monthlyBudget > 0 && monthlySpending > monthlyBudget) {
+      setAction("Power-Up", "Review spending plan", "Spending is over budget", `Recorded spending is ${formatKsh(monthlySpending - monthlyBudget)} above this month’s budget. Check the categories that have moved furthest from plan.`, "budget");
+    } else if (!stepState.account) {
+      setAction("Inventory", "Add an account", "Complete your financial picture", "Add your cash, bank, or mobile money balances so NetraOS can calculate your net worth.", "add-account");
+    } else if (balances.liabilities > balances.assets) {
+      setAction("Inventory", "Review balances", "Liabilities exceed tracked assets", `You have ${formatKsh(balances.liabilities - balances.assets)} more in liabilities than assets. Review your balances to see what could improve your position.`, "");
     } else if (!stepState.income) {
-      setAction("Power-Up", "Add income", "Add your income", "Add an income source so your monthly plan reflects what you expect to receive.", "add-income");
+      setAction("Power-Up", "Add income", "Track your monthly income", "Add expected or received income to see how it compares with spending and your monthly plan.", "add-income");
     } else if (!stepState.budget) {
-      setAction("Power-Up", "Add a budget", "Give your income a plan", "Add a budget line to decide where your income should go.", "add-budget");
+      setAction("Power-Up", "Add a budget", "Compare spending with a plan", "Set a monthly budget to see which expenses are on track and where your money is going.", "add-budget");
+    } else if (monthlyIncome > 0 && monthlyRemainder > 0 && monthlyRemainder / monthlyIncome < .1) {
+      setAction("Power-Up", "Review expenses", "Most of this month’s income is committed", `After recorded spending, ${formatKsh(monthlyRemainder)} remains (${(monthlyRemainder / monthlyIncome * 100).toFixed(1)}% of expected income). Review your plan for room to save.`, "spending");
+    } else if (monthlyIncome > 0 && monthlyRemainder > 0) {
+      setAction("Power-Up", "Review cash flow", "You have money left after spending", `${formatKsh(monthlyRemainder)} remains from this month’s expected income after recorded expenses. Check your plan to decide where it should go next.`, "");
     } else if (topQuest) {
       const remaining = Math.max(0, Number(topQuest.target) - Number(topQuest.current || 0));
       setAction("Quests", "Update goal", `Keep moving on ${topQuest.name}`, `${formatKsh(topQuest.current || 0)} saved of ${formatKsh(topQuest.target)} · ${formatKsh(remaining)} to go.`, topQuest.id);
+    } else if (!stepState.goal) {
+      setAction("Quests", "Set a goal", "Choose a savings goal", "Pick a target and track your progress toward it.", "add");
     } else {
-      setAction("Quests", "Choose a goal", "Your current goals are complete", "Review your milestones or choose a new savings goal.", "add");
+      setAction("Inventory", "Review balances", "Your assets exceed liabilities", `Your current net worth is ${formatKsh(balances.netWorth)}. Review your balances as you add or update financial items.`, "");
     }
   }
 }
