@@ -12905,6 +12905,7 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
   .app-shell #page-content > .dashboard-section-heading { display: flex; order: 5; }
   .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid { display: grid; order: 6; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .app-shell #page-content > .dashboard-recent-panel { display: grid; order: 7; }
+  .app-shell #page-content > .dashboard-recent-panel > .dashboard-section-heading { display: flex; margin: 0 0 6px; }
   .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid .deficit-card { display: none !important; }
   .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid .savings-card { display: grid !important; grid-column: auto; }
   .app-shell #page-content > .dashboard-next-action { order: 8; }
