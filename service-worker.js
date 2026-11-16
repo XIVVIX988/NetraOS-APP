@@ -1,10 +1,10 @@
-const CACHE_NAME = "netraos-shell-20261115-25";
+const CACHE_NAME = "netraos-shell-20261115-29";
 const SHELL_ASSETS = [
   "./",
   "./index.html",
-  "./css/style.css?v=getstarted-image-20261115-1",
+  "./css/style.css?v=tour-illustrations-20261115-1",
   "./css/mobile-accessibility.css?v=category-label-icons-20261115-1",
-  "./js/scrip.js?v=getstarted-image-20261115-1",
+  "./js/scrip.js?v=tour-illustrations-20261115-1",
   "./js/supabase-sync.js?v=onboarding-profile-save-20261113-1",
   "./js/supabase-config.js",
   "./js/theme-init.js",
@@ -13,12 +13,16 @@ const SHELL_ASSETS = [
   "./assets/netraos-logo.svg",
   "./assets/netraos-logo-dark.svg",
   "./assets/netraos-app-icon.svg",
-  "./assets/phone-welcome-wallet.jpeg"
+  "./assets/phone-welcome-wallet.jpeg",
+  "./assets/tour%201.jpeg",
+  "./assets/tour%202.jpeg",
+  "./assets/tour%203.jpeg"
 ];
 const SHELL_PATHS = new Set([
   "", "index.html", "css/style.css", "css/mobile-accessibility.css", "js/scrip.js", "js/supabase-sync.js",
   "js/supabase-config.js", "js/theme-init.js", "js/register-service-worker.js", "manifest.webmanifest", "assets/netraos-logo.svg",
-  "assets/netraos-logo-dark.svg", "assets/netraos-app-icon.svg", "assets/phone-welcome-wallet.jpeg"
+  "assets/netraos-logo-dark.svg", "assets/netraos-app-icon.svg", "assets/phone-welcome-wallet.jpeg",
+  "assets/tour%201.jpeg", "assets/tour%202.jpeg", "assets/tour%203.jpeg"
 ]);
 
 self.addEventListener("install", event => {

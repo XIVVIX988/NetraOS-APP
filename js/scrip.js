@@ -1846,16 +1846,22 @@ function showPhoneWelcome() {
 function showPhoneIntro() {
   if (!publicShell || !appShell) return;
   const slides = [
-    { icon: "◉", label: "GET A CLEAR PICTURE", title: "Your money, in one view.", copy: "Track cash, bank and M-Pesa balances alongside what you owe. NetraOS brings the pieces together so you can understand your overall position." },
-    { icon: "↗", label: "MAKE A PLAN", title: "Give your month a direction.", copy: "Record income, set spending plans and build savings goals. Simple projections help you see how steady contributions can grow over time." },
-    { icon: "✦", label: "KEEP MOVING", title: "Progress, at your pace.", copy: "Turn goals into quests, follow milestones and review your progress. Mask amounts when you need privacy, and keep a downloadable backup of your data." }
+    { icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 4l9 6.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M8 20v-6h8v6M7 10h.01M12 10h.01M17 10h.01"/></svg>', label: "GET A CLEAR PICTURE", title: "Your money, in one view.", titleLead: "Your money,", titleAccent: "in one view.", copy: "Track cash, bank and M-Pesa balances alongside what you owe. NetraOS brings the pieces together so you can understand your overall position.", image: "assets/tour%201.jpeg", imageAlt: "A 3D green wallet with a financial growth chart and coins" },
+    { icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v3m10-3v3M4.5 9h15M5 5h14a1.5 1.5 0 0 1 1.5 1.5v12A1.5 1.5 0 0 1 19 20H5a1.5 1.5 0 0 1-1.5-1.5v-12A1.5 1.5 0 0 1 5 5Z"/><path d="m8 14 2.2 2.2L16 11"/></svg>', label: "MAKE A PLAN", title: "Give your month a direction.", titleLead: "Give your month a", titleAccent: "direction.", copy: "Record income, set spending plans and build savings goals. Simple projections help you see how steady contributions can grow over time.", image: "assets/tour%203.jpeg", imageAlt: "A 3D illustration of a rising financial chart, check mark, and trophy" },
+    { icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/><path d="m9.2 12.2 1.8 1.8 3.8-4"/></svg>', label: "KEEP MOVING", title: "Progress, at your pace.", titleLead: "Progress,", titleAccent: "at your pace.", copy: "Turn goals into quests, follow milestones and review your progress. Mask amounts when you need privacy, and keep a downloadable backup of your data.", image: "assets/tour%202.jpeg", imageAlt: "A 3D calendar, clock, and check mark for tracking progress" }
   ];
   appShell.hidden = true;
   publicShell.hidden = false;
   document.body.classList.remove("public-view");
   document.body.classList.add("auth-view", "phone-entry-view");
   window.location.hash = "intro";
-  const cards = slides.map((slide, index) => '<article class="phone-intro-card" data-intro-card aria-label="Card ' + (index + 1) + ' of ' + slides.length + '" ' + (index ? 'hidden' : '') + '><span class="phone-intro-icon" aria-hidden="true">' + slide.icon + '</span><span class="phone-entry-kicker">' + slide.label + '</span><h1>' + slide.title + '</h1><p>' + slide.copy + '</p></article>').join("");
+  const cards = slides.map((slide, index) => {
+    const cardLabel = 'Card ' + (index + 1) + ' of ' + slides.length;
+    const content = slide.image
+      ? '<div class="phone-intro-hero"><div class="phone-intro-hero-glow" aria-hidden="true"></div><img src="' + slide.image + '" alt="' + slide.imageAlt + '" fetchpriority="' + (index ? 'low' : 'high') + '" loading="' + (index ? 'lazy' : 'eager') + '"></div><div class="phone-intro-content-card"><div class="phone-intro-eyebrow"><span class="phone-intro-icon" aria-hidden="true">' + slide.icon + '</span><span class="phone-intro-plan-label">' + slide.label + '</span></div><h1>' + slide.titleLead + '<br><em>' + slide.titleAccent + '</em></h1><p>' + slide.copy + '</p></div>'
+      : '<span class="phone-intro-icon" aria-hidden="true">' + slide.icon + '</span><span class="phone-entry-kicker">' + slide.label + '</span><h1>' + slide.title + '</h1><p>' + slide.copy + '</p>';
+    return '<article class="phone-intro-card' + (slide.image ? ' phone-intro-illustrated-card' : '') + '" data-intro-card aria-label="' + cardLabel + '" ' + (index ? 'hidden' : '') + '>' + content + '</article>';
+  }).join("");
   const dots = slides.map((slide, index) => '<span class="phone-intro-dot' + (index ? '' : ' is-active') + '" data-intro-dot aria-hidden="true"></span>').join("");
   publicShell.innerHTML = '<main class="phone-entry phone-entry-intro"><header class="phone-intro-header"><span class="phone-intro-header-label">A QUICK TOUR</span><button class="phone-intro-skip" type="button" data-intro-skip>Skip</button></header><div class="phone-intro-progress"><span data-intro-progress></span></div><section class="phone-intro-stage" data-intro-track aria-live="polite">' + cards + '</section><footer class="phone-intro-footer"><span class="phone-intro-count" data-intro-count>1 / ' + slides.length + '</span><div class="phone-intro-dots" aria-hidden="true">' + dots + '</div><button class="phone-intro-next" type="button" data-intro-next>Next <span>→</span></button></footer></main>';
   const cardNodes = [...publicShell.querySelectorAll("[data-intro-card]")];
