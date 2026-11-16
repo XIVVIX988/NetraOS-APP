@@ -14098,13 +14098,13 @@ body.phone-entry-view .phone-entry.phone-entry-welcome {
 body.phone-entry-view .phone-entry-welcome .phone-welcome-art {
   position: fixed;
   z-index: -2;
-  inset: -7vh 0 auto;
-  inset: -7dvh 0 auto;
+  inset: -14vh 0 auto;
+  inset: -14dvh 0 auto;
   display: block;
   width: 100%;
   width: 100vw;
-  height: 110vh;
-  height: 110dvh;
+  height: 114vh;
+  height: 114dvh;
   object-fit: cover;
   object-position: center top;
 }
@@ -14113,7 +14113,7 @@ body.phone-entry-view .phone-entry-welcome .phone-welcome-shade {
   z-index: -1;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, #06274a08 0%, #06274a00 36%, #e9f6fa0a 60%, #052e2918 100%);
+  background: linear-gradient(180deg, #06274a00 0%, #06274a00 25%, #eaf7f5a6 43%, #eef9f5d9 68%, #eef9f5ef 100%);
 }
 body.phone-entry-view .phone-entry-welcome .phone-welcome-brand {
   position: relative;
@@ -14158,7 +14158,7 @@ body.phone-entry-view .phone-entry-welcome .phone-welcome-copy h1 {
   color: #102440;
   font: 800 clamp(35px, 9vw, 54px)/1.03 var(--display);
   letter-spacing: -.055em;
-  text-shadow: 0 1px 12px #eff9ff72;
+  text-shadow: 0 1px 12px #eff9ffcc;
 }
 body.phone-entry-view .phone-entry-welcome .phone-welcome-copy h1 em {
   color: #087d43;
@@ -14169,7 +14169,7 @@ body.phone-entry-view .phone-entry-welcome .phone-welcome-copy p {
   margin: 0;
   color: #243a55;
   font: 550 clamp(15px, 3.9vw, 18px)/1.45 var(--sans);
-  text-shadow: 0 1px 10px #f4fbff8c;
+  text-shadow: 0 1px 10px #f4fbffed;
 }
 body.phone-entry-view .phone-entry-welcome .phone-entry-actions-panel {
   position: relative;
