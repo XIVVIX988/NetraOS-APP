@@ -1491,6 +1491,14 @@ function lockWorkspace({ onLaunch = false, onBackground = false } = {}) {
       publicShell.hidden = true;
       recordSecurityAudit("Workspace unlocked");
       scheduleAutoLock();
+      if (autoLockNudgePendingAfterTour) {
+        autoLockNudgePendingAfterTour = false;
+        scheduleAutoLockNudge({ force: true });
+      }
+      if (cookieBannerPendingAfterTour) {
+        cookieBannerPendingAfterTour = false;
+        window.setTimeout(showCookieBanner, 0);
+      }
     } catch (pinError) {
       if (pinError.locked) {
         lockOutAndSignOut();
@@ -2639,14 +2647,17 @@ function enterApp(profile, { restoredSession = false, page = "Dashboard", skipTo
   if (!restoredSession) recordSecurityAudit("Local profile signed in");
   scheduleAutoLock();
   maybePromptForBackup();
-  scheduleAutoLockNudge({ force: true });
+  if (appTourPending) autoLockNudgePendingAfterTour = true;
+  else scheduleAutoLockNudge({ force: true });
   scheduleShortcutPrompt();
   if (skipTour) {
     markAppTourSeen(profile);
-    appTourPending = cookieBannerPendingAfterTour;
   } else maybeStartAppTour(profile, restoredSession);
   showCookieBanner();
-  if (restoredSession || getPinFailureCount() > 0) lockWorkspace({ onLaunch: true });
+  if (restoredSession || getPinFailureCount() > 0) {
+    if (appTourPending) workspacePinPendingAfterTour = true;
+    else lockWorkspace({ onLaunch: true });
+  }
 }
 
 function scheduleShortcutPrompt() {
@@ -10098,6 +10109,8 @@ var appTourSteps = [
 var appTourState = null;
 var appTourPending = false;
 var cookieBannerPendingAfterTour = false;
+var workspacePinPendingAfterTour = false;
+var autoLockNudgePendingAfterTour = false;
 var appTourAccountId = "local";
 
 function appTourSeen() {
@@ -10112,10 +10125,27 @@ function markAppTourSeen(profile) {
 // enterApp() can run for a restored session before this block is reached at the bottom of the
 // script, so these declarations use var (hoisted) and nothing here reads them until the timer fires.
 function maybeStartAppTour(profile, restoredSession) {
-  if (restoredSession || !String(profile?.username || "").trim()) return;
+  if (!String(profile?.username || "").trim()) return;
   appTourAccountId = String(profile?.email || profile?.username || profile?.name || "local").toLowerCase();
+  if (appTourSeen()) return;
   appTourPending = true;
   window.setTimeout(() => startAppTour(), 1200);
+}
+
+function completeTourSequence() {
+  if (workspacePinPendingAfterTour) {
+    workspacePinPendingAfterTour = false;
+    lockWorkspace({ onLaunch: true });
+    if (appShell.hidden) return;
+  }
+  if (autoLockNudgePendingAfterTour) {
+    autoLockNudgePendingAfterTour = false;
+    scheduleAutoLockNudge({ force: true });
+  }
+  if (cookieBannerPendingAfterTour) {
+    cookieBannerPendingAfterTour = false;
+    window.setTimeout(showCookieBanner, 0);
+  }
 }
 
 function appTourTarget(step) {
@@ -10132,10 +10162,7 @@ function startAppTour({ force = false } = {}) {
   if (appTourState || appShell.hidden) return;
   if (!force && (appTourSeen() || document.querySelector("dialog[open]"))) {
     appTourPending = false;
-    if (cookieBannerPendingAfterTour) {
-      cookieBannerPendingAfterTour = false;
-      window.setTimeout(showCookieBanner, 0);
-    }
+    completeTourSequence();
     return;
   }
   appTourPending = false;
@@ -10239,8 +10266,5 @@ function endAppTour(markSeen) {
   if (markSeen) { try { localStorage.setItem(appTourStorageKey + ":" + appTourAccountId, "true"); } catch { /* Tour may repeat if storage is unavailable. */ } }
   if (crumb.textContent !== "Dashboard") showPage("Dashboard");
   state.opener?.focus?.({ preventScroll: true });
-  if (cookieBannerPendingAfterTour) {
-    cookieBannerPendingAfterTour = false;
-    window.setTimeout(showCookieBanner, 0);
-  }
+  completeTourSequence();
 }
