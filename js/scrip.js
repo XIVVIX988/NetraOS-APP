@@ -3957,7 +3957,7 @@ function renderInventoryPage() {
   const entries = getInventoryEntries();
   const totals = getInventoryTotals();
   const assetIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"/><path d="m4.3 7.7 7.7 4.4 7.7-4.4M12 12v9M8 5.2l8 4.5"/></svg>';
-  const liabilityIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg>';
+  const liabilityIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 20 6v5.5c0 4.8-3.2 7.8-8 9.5-4.8-1.7-8-4.7-8-9.5V6l8-3Z"/><path d="M12 8v5m0 3h.01"/></svg>';
   const netWorthIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg>';
 
   return `
@@ -3971,12 +3971,12 @@ function renderInventoryPage() {
       <section class="inventory-summary" aria-label="Balance sheet summary">
         <article class="inventory-summary-card inventory-summary-assets">
           <span class="inventory-summary-icon">${assetIcon}</span>
-          <span class="inventory-label">TOTAL ASSETS</span>
+          <span class="inventory-label">Total Assets</span>
           <strong>${formatCompactKpiCurrency(totals.assets)}</strong>
         </article>
         <article class="inventory-summary-card inventory-summary-liabilities">
           <span class="inventory-summary-icon">${liabilityIcon}</span>
-          <span class="inventory-label">TOTAL LIABILITIES</span>
+          <span class="inventory-label">Total Liabilities</span>
           <strong>${formatCompactKpiCurrency(totals.liabilities)}</strong>
         </article>
         <article class="inventory-summary-card net-worth-summary" data-net-worth-state="${totals.netWorth < 0 ? "negative" : totals.netWorth > 0 ? "positive" : "zero"}">

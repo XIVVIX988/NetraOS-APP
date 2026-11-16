@@ -15543,3 +15543,110 @@ html body .app-shell.theme-dark:has(.inventory-page) #page-content { background:
   .app-shell .inventory-page .inventory-status-pill { min-height: 32px; padding-inline: 8px; font-size: 11px; }
   .app-shell .inventory-page .inventory-row-toggle { width: 36px; height: 36px; }
 }
+
+/* Asset and liability totals mirror the paired dashboard summary cards. */
+.app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) {
+  min-height: 152px;
+  grid-template-columns: 66px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  align-items: center;
+  column-gap: 15px;
+  row-gap: 12px;
+  padding: 22px clamp(17px, 3vw, 32px);
+  border: 1px solid rgba(220,230,232,.94) !important;
+  border-radius: 31px;
+  background: rgba(255,255,255,.82) !important;
+  box-shadow: 0 9px 24px rgba(20,45,65,.085);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-summary-icon {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  width: 66px;
+  height: 66px;
+  place-items: center;
+  padding: 15px;
+  border-radius: 50%;
+  background: #dff8ed !important;
+  color: #087b50 !important;
+}
+.app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-summary-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label {
+  grid-column: 2;
+  grid-row: 1;
+  color: #10233f;
+  font: 600 clamp(15px, 2.1vw, 22px)/1.25 var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+  color: #10233f !important;
+  font: 800 clamp(23px, 3.7vw, 39px)/1.12 var(--display);
+  letter-spacing: -.035em;
+  white-space: nowrap;
+}
+.app-shell.theme-dark .inventory-page .inventory-summary-card:not(.net-worth-summary) {
+  border-color: color-mix(in srgb, var(--green, #53c294) 26%, transparent) !important;
+  background: rgba(27,38,33,.9) !important;
+  box-shadow: 0 8px 22px rgba(0,0,0,.16);
+}
+.app-shell.theme-dark .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label,
+.app-shell.theme-dark .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong { color: #eef5f1 !important; }
+.app-shell.theme-dark .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-summary-icon {
+  background: color-mix(in srgb, var(--green, #53c294) 18%, #17241e) !important;
+  color: #7ee0ad !important;
+}
+@media (max-width: 760px) {
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) {
+    min-height: 142px;
+    grid-template-columns: 54px minmax(0,1fr);
+    column-gap: 11px;
+    row-gap: 12px;
+    padding: 18px;
+    border-radius: 26px;
+  }
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-summary-icon {
+    width: 54px;
+    height: 54px;
+    padding: 12px;
+  }
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label {
+    font-size: clamp(13px, 3.3vw, 18px);
+  }
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong {
+    font-size: clamp(16px, 4.4vw, 29px);
+  }
+}
+@media (max-width: 390px) {
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) {
+    min-height: 126px;
+    grid-template-columns: 40px minmax(0,1fr);
+    column-gap: 8px;
+    padding: 13px 11px;
+    border-radius: 22px;
+  }
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-summary-icon {
+    width: 40px;
+    height: 40px;
+    padding: 9px;
+  }
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label { font-size: 11px; }
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong {
+    font-size: clamp(13px, 3.7vw, 17px);
+    letter-spacing: -.045em;
+  }
+}
