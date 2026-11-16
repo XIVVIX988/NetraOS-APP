@@ -14577,16 +14577,23 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   .app-shell::before {
     content: "";
     position: fixed;
+    z-index: -2;
+    inset: 0;
+    pointer-events: none;
+    background-image: url("../assets/mobile-app-background.jpeg");
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+  .app-shell::after {
+    content: "";
+    position: fixed;
     z-index: -1;
     inset: 0;
     pointer-events: none;
-    background-image:
-      linear-gradient(color-mix(in srgb, var(--green, #008f55) 38%, transparent), color-mix(in srgb, var(--green, #008f55) 38%, transparent)),
-      url("../assets/mobile-app-background.jpeg");
-    background-position: center, center top;
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-blend-mode: color, normal;
+    background: var(--green, #008f55);
+    mix-blend-mode: color;
+    opacity: .62;
   }
   html body .app-shell:not(.theme-dark) .main-panel,
   html body .app-shell:not(.theme-dark) .content,
@@ -14596,10 +14603,9 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   html body .app-shell.theme-dark #page-content { background: transparent !important; }
   .app-shell.theme-dark { background: #101815 !important; }
   .app-shell.theme-dark::before {
-    background-image:
-      linear-gradient(color-mix(in srgb, var(--green, #008f55) 34%, transparent), color-mix(in srgb, var(--green, #008f55) 34%, transparent)),
-      linear-gradient(rgba(7, 17, 13, .78), rgba(7, 17, 13, .78)),
-      url("../assets/mobile-app-background.jpeg");
-    background-blend-mode: color, normal, normal;
+    background-image: linear-gradient(rgba(7, 17, 13, .78), rgba(7, 17, 13, .78)), url("../assets/mobile-app-background.jpeg");
+    background-position: center, center top;
+    background-repeat: no-repeat;
+    background-size: cover;
   }
 }
