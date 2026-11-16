@@ -4115,7 +4115,8 @@ function updateDashboardRecentActivity() {
       ? budgetCategoryIcons[item.category]
       : budgetCategoryIcons.Other;
     const icon = incomeCategory?.icon || (incoming ? incomeCategoryByLabel["Other income"].icon : spendingIcon);
-    return `<article class="dashboard-activity-row ${incoming ? "is-income" : "is-spending"}"><span class="dashboard-activity-name"><strong>${escapeHTML(item.name)}</strong><small class="dashboard-activity-category"><span class="dashboard-activity-icon" aria-hidden="true">${icon}</span>${escapeHTML(item.category)}</small><time${recent ? ` datetime="${new Date(recordedTime).toISOString()}"` : ""}>${escapeHTML(displayDate)}</time></span><strong class="dashboard-activity-amount">${incoming ? "+" : "−"}${formatKsh(item.amount)}</strong></article>`;
+    const timeStamp = recent ? new Date(recordedTime).toISOString() : item.date;
+    return `<article class="dashboard-activity-row ${incoming ? "is-income" : "is-spending"}"><span class="dashboard-activity-name"><strong>${escapeHTML(item.name)}</strong><small class="dashboard-activity-category"><span class="dashboard-activity-icon" aria-hidden="true">${icon}</span>${escapeHTML(item.category)}</small></span><span class="dashboard-activity-meta"><strong class="dashboard-activity-amount">${incoming ? "+" : "−"}${formatKsh(item.amount)}</strong><time datetime="${timeStamp}">${escapeHTML(displayDate)}</time></span></article>`;
   }).join("");
 }
 
@@ -4403,7 +4404,7 @@ function openInventoryDialog(action, editId = null) {
         </label>
         <label class="inventory-form-field">
           <span>Category</span>
-          <select name="category" id="inventory-entry-category" required></select>
+          <span class="income-category-select-wrap inventory-category-select-wrap"><span class="income-category-select-icon inventory-category-select-icon" aria-hidden="true"></span><select name="category" id="inventory-entry-category" required></select></span>
         </label>
         <div class="inventory-form-fields mobile-money-fields" hidden>
           <label class="inventory-form-field"><span>Mobile account type</span><select name="mobileType"><option>Mobile wallet</option><option>Till</option><option>Paybill</option></select></label>
@@ -4465,6 +4466,12 @@ function openInventoryDialog(action, editId = null) {
   const form = dialog.querySelector(".inventory-form");
   const typeSelect = dialog.querySelector("#inventory-entry-type");
   const categorySelect = dialog.querySelector("#inventory-entry-category");
+  const categoryIconPreview = dialog.querySelector(".inventory-category-select-icon");
+  let activeCategoryOptions = [];
+  const syncInventoryCategoryIcon = () => {
+    const selectedCategory = activeCategoryOptions.find(category => category.name === categorySelect.value);
+    categoryIconPreview.textContent = selectedCategory?.icon || "◇";
+  };
   const linkQuestToggle = form.elements.linkQuest;
   const questSelect = form.elements.questId;
   linkQuestToggle?.addEventListener("change", () => {
@@ -4559,9 +4566,11 @@ function openInventoryDialog(action, editId = null) {
         icon: legacyAssetCategory === "Bonds & equities" ? "▲" : legacyAssetCategory === "Bonds" ? "▤" : "◈"
       });
     }
+    activeCategoryOptions = categories;
     categorySelect.innerHTML = categories
       .map(category => `<option value="${category.name}">${category.name}</option>`)
       .join("");
+    syncInventoryCategoryIcon();
     dialog.querySelector(".mobile-money-fields").hidden = categorySelect.value !== "Mobile money";
     const isLiability = entryType === "liability";
     refreshQuestLinkCopy();
@@ -4586,6 +4595,7 @@ function openInventoryDialog(action, editId = null) {
     refreshCategories();
     form.elements.name.value = editing.name || "";
     form.elements.category.value = editing.category || "";
+    syncInventoryCategoryIcon();
     refreshAssetTaxTreatment();
     form.elements.amount.value = editing.amount ?? "";
     form.elements.mobileType.value = editing.mobileType || "Mobile wallet";
@@ -4611,6 +4621,7 @@ function openInventoryDialog(action, editId = null) {
   }
   typeSelect?.addEventListener("change", refreshCategories);
   categorySelect.addEventListener("change", () => {
+    syncInventoryCategoryIcon();
     dialog.querySelector(".mobile-money-fields").hidden = categorySelect.value !== "Mobile money";
     applyAssetDefaults();
     refreshAssetTaxTreatment();

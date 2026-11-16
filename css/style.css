@@ -2,7 +2,7 @@
 [hidden] { display: none !important; }
 
 :root {
-  --bg: #F2F0E9;
+  --bg: #ffffff;
   --panel: #ffffff;
   --panel-2: #f4f5f4;
   --line: #e5e7e5;
@@ -1517,7 +1517,7 @@ button:focus-visible {
 /* Light, green dashboard theme */
 body {
   min-height: 100vh;
-  background: #dcdbdf;
+  background: #ffffff;
   color: #171b19;
 }
 
@@ -1529,7 +1529,7 @@ body {
   gap: 16px;
   border: 0;
   border-radius: 0;
-  background: #f2f2f3;
+  background: #ffffff;
   box-shadow: none;
 }
 
@@ -3715,6 +3715,7 @@ h1 em {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.inventory-category-select-icon { font-size: 17px; font-weight: 700; line-height: 1; }
 
 .inventory-form-field textarea {
   min-height: 84px;
@@ -9946,14 +9947,14 @@ body.theme-dark .security-lock-screen { background: color-mix(in srgb, var(--app
 .dashboard-next-action[hidden] { display: none; }
 
 @media (min-width: 881px) {
-  body { background: #f4f7f5; }
+  body { background: #ffffff; }
   .app-shell {
     display: flex;
     align-items: stretch;
     gap: 0;
     min-height: 100vh;
     padding: 0;
-    background: #f4f7f5;
+    background: #ffffff;
   }
   .desktop-sidebar {
     display: flex;
@@ -12935,7 +12936,7 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
 .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid .metric-card .metric-icon svg { width: 18px; height: 18px; }
 .app-shell #page-content > .dashboard-metric-layout > .dashboard-overview-grid .metric-card .metric-value { font-size: clamp(16px, 1.8vw, 24px) !important; overflow-wrap: anywhere; }
 .app-shell #page-content > .dashboard-next-action { margin: 0; border-radius: 18px; }
-.app-shell #page-content > .dashboard-recent-panel { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 18px 20px; border: 1px solid var(--line, #e6ebe7); border-radius: 20px; background: var(--panel, #fffefa); box-shadow: var(--shadow, 0 5px 18px rgba(16, 38, 27, .05)); }
+.app-shell #page-content > .dashboard-recent-panel { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 18px 20px; border: 1px solid var(--line, #e6ebe7); border-radius: 20px; background: transparent; box-shadow: none; }
 .dashboard-recent-list { display: grid; }
 .dashboard-activity-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 11px; min-height: 65px; border-top: 1px solid var(--line, #e6ebe7); }
 .dashboard-activity-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 50%; background: #e8f4ec; color: #0b7652; }
@@ -12947,7 +12948,8 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
 .dashboard-activity-name .dashboard-activity-category { display: inline-flex; align-items: center; gap: 5px; }
 .dashboard-activity-category .dashboard-activity-icon { display: inline-grid; flex: none; width: 14px; height: 14px; place-items: center; color: var(--green, #0b7652); }
 .dashboard-activity-category .dashboard-activity-icon svg { width: 14px; height: 14px; }
-.dashboard-activity-name time { color: var(--muted, #6c7870); font: 450 11px/1.2 var(--sans, Inter, sans-serif); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dashboard-activity-meta { display: grid; justify-items: end; gap: 5px; min-width: 0; }
+.dashboard-activity-meta time { color: var(--muted, #6c7870); font: 450 10px/1.2 var(--sans, Inter, sans-serif); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dashboard-activity-amount { color: #126c4d; font: 700 13px/1.2 var(--sans, Inter, sans-serif); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dashboard-activity-row.is-spending .dashboard-activity-amount { color: #9f3436; }
 .dashboard-activity-empty { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 0 2px; border-top: 1px solid var(--line, #e6ebe7); }
@@ -12956,8 +12958,8 @@ html .app-shell.app-shell #page-content:has(> .welcome-row) > .metrics-grid > .n
 .dashboard-activity-empty strong { color: var(--text, #19241f); font-size: 13px; }
 .dashboard-activity-empty p { margin: 4px 0 0; color: var(--muted, #6c7870); font-size: 11px; line-height: 1.45; }
 .dashboard-activity-empty button { min-height: 40px; padding: 0 12px; border: 1px solid var(--line, #e6ebe7); border-radius: 12px; background: var(--panel, #fffefa); color: var(--green, #08764f); font: 650 11px var(--sans, Inter, sans-serif); cursor: pointer; }
-.app-shell.theme-dark .dashboard-shortcuts button,
-.app-shell.theme-dark .dashboard-recent-panel { border-color: var(--line); background: var(--panel); }
+.app-shell.theme-dark .dashboard-shortcuts button { border-color: var(--line); background: var(--panel); }
+.app-shell.theme-dark .dashboard-recent-panel { border-color: var(--line); background: transparent; box-shadow: none; }
 .app-shell.theme-dark .dashboard-activity-icon { background: #18382b; color: #8ce0b2; }
 .app-shell.theme-dark .dashboard-activity-row.is-spending .dashboard-activity-icon { background: #3a2423; color: #ffaaa5; }
 .app-shell.theme-dark .dashboard-activity-amount { color: #8ce0b2; }
