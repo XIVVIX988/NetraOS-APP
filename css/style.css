@@ -13823,36 +13823,31 @@ html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metr
 }
 #public-shell .auth-signup-page .auth-content { padding: 23px clamp(20px, 5.4vw, 40px) 23px; }
 #public-shell .auth-signup-page .auth-content > .section-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 32px;
-  margin: 0 0 13px;
-  padding: 0 13px;
-  border-radius: 999px;
-  background: #ffffffb8;
+  display: block;
+  min-height: 0;
+  margin: 0 0 10px;
+  padding: 0;
+  background: transparent;
   color: #1c4036;
-  font: 750 11px/1 var(--sans);
+  font: 750 12px/1.3 var(--sans);
   letter-spacing: .16em;
+  text-align: center;
 }
 #public-shell .auth-signup-page .auth-content > .section-kicker::before {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #078447;
-  box-shadow: 0 0 0 4px #1bb44b20;
-  content: "";
+  display: none;
 }
 #public-shell .auth-signup-page .auth-content h1 {
   margin: 0;
   color: #102638;
   font: 750 clamp(30px, 7.5vw, 43px)/1.08 var(--display);
   letter-spacing: -.045em;
+  text-align: center;
 }
 #public-shell .auth-signup-page .auth-description {
   margin: 8px 0 19px;
   color: #415a6c;
   font: 500 16px/1.45 var(--sans);
+  text-align: center;
 }
 #public-shell .auth-signup-page .auth-form { gap: 12px; }
 #public-shell .auth-signup-page .auth-form .inventory-form-field { display: grid; gap: 6px; min-width: 0; }
