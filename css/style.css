@@ -13558,6 +13558,38 @@ html .app-shell.app-shell[data-accent] #page-content:has(> .welcome-row) > .metr
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+#public-shell .auth-page > .auth-back-icon {
+  position: absolute;
+  z-index: 5;
+  top: max(16px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  min-height: 46px;
+  padding: 0;
+  border: 1px solid #ffffffc7;
+  border-radius: 50%;
+  background: #f2fbf5a8;
+  color: #153d35;
+  box-shadow: 0 4px 14px #0b354022, inset 0 1px 0 #ffffffbd;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  cursor: pointer;
+}
+#public-shell .auth-page > .auth-back-icon svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#public-shell .auth-page > .auth-back-icon:hover { background: #ffffffdf; color: #075b38; }
+#public-shell .auth-page > .auth-back-icon:focus-visible { outline: 3px solid #0f7659; outline-offset: 3px; }
+#public-shell .auth-login-page > .auth-back-icon { padding: 0; }
 #public-shell .auth-login-page .auth-card {
   position: relative;
   z-index: 3;

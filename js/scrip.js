@@ -2100,6 +2100,7 @@ function showPublicPage(page = "landing", { preserveAuthCallback = false } = {})
     publicShell.innerHTML = `
       <div class="auth-page${isSignup ? " auth-signup-page" : " auth-login-page"}">
         ${isSignup ? '<img class="auth-signup-background" src="assets/sign%20up.jpeg" alt="A bald eagle soaring above clouds and mountain peaks" fetchpriority="high">' : '<img class="auth-login-background" src="assets/log%20in.jpeg" alt="A bald eagle flying through a mountain sky" fetchpriority="high">'}
+        <button class="auth-back auth-back-icon" type="button" data-public-action="landing" aria-label="Back to NetraOS"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg></button>
         <section class="auth-card">
           <div class="auth-content">
           <div class="section-kicker${isSignup ? "" : " auth-welcome-text"}">${isSignup ? "GET STARTED" : "WELCOME BACK"}</div>
