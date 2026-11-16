@@ -14358,6 +14358,7 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   padding: 12px 8px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
   gap: 8px;
   border: 1px solid var(--dash-border, #dce6e8) !important;
@@ -14365,7 +14366,9 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   background: var(--dash-glass, rgba(255,255,255,.78)) !important;
   color: var(--dash-ink, #10233f) !important;
   box-shadow: 0 6px 18px rgba(20,45,65,.05), inset 0 1px 0 #fff !important;
+  font-size: 13px;
   font-weight: 650;
+  text-align: center;
   transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
 .app-shell .dashboard-shortcuts > button:active { transform: scale(.97); }
@@ -14544,7 +14547,7 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   .app-shell #page-content:has(> .metrics-grid.dashboard-metric-layout) { gap: 13px; padding: 12px 14px calc(110px + env(safe-area-inset-bottom)); }
   .app-shell:not(.theme-dark) .networth-card { padding: 19px !important; border-radius: 25px !important; }
   .app-shell .dashboard-shortcuts { gap: 8px; }
-  .app-shell .dashboard-shortcuts > button { min-height: 78px; padding: 9px 4px; gap: 6px; border-radius: 20px !important; font-size: 12px; }
+  .app-shell .dashboard-shortcuts > button { min-height: 78px; padding: 9px 4px; gap: 6px; border-radius: 20px !important; font-size: 11px; }
   .app-shell .dashboard-shortcut-icon { width: 25px; height: 25px; }
   .app-shell .dashboard-overview-grid { gap: 8px; }
   .app-shell .dashboard-overview-grid .kpi-card { min-height: 132px; padding: 12px 10px !important; column-gap: 6px; row-gap: 8px; border-radius: 22px !important; }
