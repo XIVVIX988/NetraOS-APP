@@ -1,8 +1,8 @@
-const CACHE_NAME = "netraos-shell-20261116-7";
+const CACHE_NAME = "netraos-shell-20261116-8";
 const SHELL_ASSETS = [
   "./",
   "./index.html",
-  "./css/style.css?v=mobile-welcome-copy-contrast-20261116-1",
+  "./css/style.css?v=mobile-eagle-lowered-20261116-1",
   "./css/mobile-accessibility.css?v=category-label-icons-20261115-1",
   "./js/scrip.js?v=mobile-welcome-image-20261116-1",
   "./js/supabase-sync.js?v=onboarding-profile-save-20261113-1",

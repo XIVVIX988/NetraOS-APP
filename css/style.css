@@ -14098,8 +14098,8 @@ body.phone-entry-view .phone-entry.phone-entry-welcome {
 body.phone-entry-view .phone-entry-welcome .phone-welcome-art {
   position: fixed;
   z-index: -2;
-  inset: -14vh 0 auto;
-  inset: -14dvh 0 auto;
+  inset: -10vh 0 auto;
+  inset: -10dvh 0 auto;
   display: block;
   width: 100%;
   width: 100vw;
