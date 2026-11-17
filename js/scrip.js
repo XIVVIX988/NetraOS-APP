@@ -3858,27 +3858,27 @@ function renderInventoryRows(type, categories) {
 }
 
 function inventoryCategoryIcon(entry) {
+  // Solid glyphs; the "cut" strokes pick up the disc colour so details read as cut-outs.
+  const svg = body => `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
+  const house = svg('<path d="M12 2.8 2.6 11.1c-.5.5-.2 1.4.6 1.4H5V20c0 .6.4 1 1 1h4v-6h4v6h4c.6 0 1-.4 1-1v-7.5h1.8c.8 0 1.1-.9.6-1.4L12 2.8Z"/>');
+  const bag = svg('<path d="M8.7 2.3 10.6 4l1.4-1.8L13.4 4l1.9-1.7-.9 3.6H9.6l-.9-3.6Z"/><path d="M9 7.2C6 9.2 3.5 12.4 3.5 15.8c0 3.2 2.3 5.4 5.6 5.4h5.8c3.3 0 5.6-2.2 5.6-5.4 0-3.4-2.5-6.6-5.5-8.6H9Z"/><path class="cut" d="M12 10.6v9M14.3 12.7c-.4-.8-1.3-1.2-2.4-1.2-1.4 0-2.3.7-2.3 1.7 0 2.1 4.9.9 4.9 3.2 0 1.1-1 1.9-2.6 1.9-1.2 0-2.2-.5-2.6-1.4"/>');
+  const card = svg('<rect x="2.2" y="4.6" width="19.6" height="14.8" rx="2.8"/><path class="cut" d="M2.2 9.6h19.6M5.4 15.2h2.8"/><rect class="cut" x="10.6" y="13.6" width="4.4" height="3.2" rx=".9"/>');
+  const bank = svg('<path d="M12 2.4 3 7v1.8h18V7l-9-4.6ZM4.6 10.4v6.4h2.4v-6.4H4.6Zm4.1 0v6.4h2.4v-6.4H8.7Zm4.1 0v6.4h2.4v-6.4h-2.4Zm4.1 0v6.4h2.4v-6.4h-2.4ZM3 18.6v2h18v-2H3Z"/>');
+  const phone = svg('<rect x="6.4" y="2" width="11.2" height="20" rx="2.6"/><path class="cut" d="M10 5.2h4M11 18.8h2"/>');
+  const chart = svg('<path d="M3 20.2h18v1.6H3zM4.8 11.4h3.6v7.4H4.8zM10.2 6.2h3.6v12.6h-3.6zM15.6 9.4h3.6v9.4h-3.6z"/>');
+  const doc = svg('<path d="M6.2 2h8l4.6 4.6V20c0 1.1-.9 2-2 2H6.2c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2Z"/><path class="cut" d="M8.2 12.2h7.6M8.2 15.8h7.6M14.2 2.4v4.8h4.4"/>');
+  const coin = svg('<circle cx="12" cy="12" r="9.6"/><path class="cut" d="M9.6 7.6h3.8a2.2 2.2 0 0 1 0 4.4H9.6m0 0h4.2a2.2 2.2 0 0 1 0 4.4H9.6M11 6v1.6m0 8.8V18m2.4-12v1.6m0 8.8V18"/>');
   const icons = {
-    "Property & vehicles": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8v10h-6v-6H9v6H3z"/></svg>',
-    "Cash & savings": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c-1.5 2-7 7-7 12a7 7 0 0 0 14 0c0-5-5.5-10-7-12Z"/><path d="M9 13h6m-3-3v8"/></svg>',
-    "Money market funds": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c-1.4 1.5-6 5.4-6 10a6 6 0 0 0 12 0c0-4.6-4.6-8.5-6-10Z"/><path d="M9.5 13h5m-2.5-2.5v5"/></svg>',
-    "Bank accounts": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>',
-    "Mobile money": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 5h4m-3 14h2"/></svg>',
-    "SACCO deposits": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9 12 3l9 6v11H3zM7 20v-7h10v7M9 8h.01M15 8h.01"/></svg>',
-    "SACCO shares": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19h18M5 16l5-5 3 3 6-8M16 6h3v3"/></svg>',
-    "Treasury Bonds": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9m5 11V4m6 16v-8m5 8V6M2 20h20"/></svg>',
-    "Treasury Bills": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7m-7 4h7"/></svg>',
-    "Infrastructure Bonds": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M5 20V9l7-5 7 5v11M9 20v-6h6v6M8 10h.01M16 10h.01"/></svg>',
-    "Equities": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5m0 14h17M7 15l4-4 3 2 6-7M16 6h4v4"/></svg>',
-    "Cryptocurrency": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4V2m6 2V2M9 22v-2m6 2v-2M7 5h8a4 4 0 0 1 0 8H7zm0 8h9a4 4 0 0 1 0 8H7z"/></svg>',
-    "Investments": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5m0 14h17M7 15l4-4 3 2 6-7M16 6h4v4"/></svg>',
-    "Credit cards": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18m-13 5h4"/></svg>',
-    "Personal loans": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18m-13 5h4m6 0h.01"/></svg>',
-    "Home loans": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8v10h-6v-6H9v6H3zM7 13h3"/></svg>'
+    "Property & vehicles": house, "Home loans": house,
+    "Cash & savings": bag, "Money market funds": bag, "SACCO deposits": bag,
+    "Bank accounts": bank, "Infrastructure Bonds": bank,
+    "Mobile money": phone,
+    "SACCO shares": chart, "Equities": chart, "Investments": chart,
+    "Treasury Bonds": doc, "Treasury Bills": doc,
+    "Cryptocurrency": coin,
+    "Credit cards": card, "Personal loans": card
   };
-  return icons[entry.category] || (entry.type === "asset"
-    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"/><path d="m4.3 7.7 7.7 4.4 7.7-4.4M12 12v9"/></svg>'
-    : '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg>');
+  return icons[entry.category] || (entry.type === "asset" ? bag : card);
 }
 
 function renderAccountRows(entries) {
@@ -3902,10 +3902,10 @@ function renderAccountRows(entries) {
         <div class="inventory-account-row" data-inventory-type="${entry.type}">
           <div class="inventory-row-summary">
             <div class="inventory-summary-cell inventory-account-source" data-label="Account / Source">
-              <span class="inventory-account-type-icon">${categoryIcon}</span>
-              <span class="inventory-account-source-copy"><strong class="inventory-summary-item">${escapeHTML(entry.name)}</strong><small class="inventory-account-source-label">Account / Source</small><small class="inventory-account-category">${escapeHTML(categorySource)}</small></span>
+              <span class="inventory-account-type-disc">${categoryIcon}</span>
+              <span class="inventory-account-source-text"><strong class="inventory-summary-item">${escapeHTML(entry.name)}</strong><small class="inventory-account-source-field">Account / Source</small><small class="inventory-account-category">${escapeHTML(categorySource)}</small></span>
             </div>
-            <span class="inventory-item-badges"><span class="inventory-kind-pill ${entry.type === "asset" ? "is-asset" : "is-liability"}">${entry.type === "asset" ? "Asset" : "Liability"}</span><span class="inventory-status-pill"><i aria-hidden="true"></i>Active</span></span>
+            <span class="inventory-item-badges"><span class="inventory-kind-chip ${entry.type === "asset" ? "is-asset" : "is-liability"}">${entry.type === "asset" ? "Asset" : "Liability"}</span><span class="inventory-state-chip"><i aria-hidden="true"></i>Active</span></span>
             <button class="inventory-row-toggle" type="button" data-inventory-toggle aria-expanded="false" aria-label="Show details for ${escapeHTML(entry.name)}">
               <svg class="inventory-row-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m5 6 3 3 3-3"/></svg>
             </button>
@@ -9505,7 +9505,7 @@ document.addEventListener("click", event => {
     if (row && details) {
       const expanded = button.getAttribute("aria-expanded") !== "true";
       button.setAttribute("aria-expanded", String(expanded));
-      button.setAttribute("aria-label", `${expanded ? "Hide" : "Show"} ${row.dataset.inventoryType === "asset" ? "asset" : "liability"} details for ${row.querySelector(".inventory-summary-item")?.textContent || "item"}`);
+      button.setAttribute("aria-label", `${expanded ? "Hide" : "Show"} ${row.dataset.inventoryType === "asset" ? "asset" : "liability"} details for ${row.querySelector(".inventory-account-name strong")?.textContent || "item"}`);
       details.hidden = !expanded;
       row.classList.toggle("is-expanded", expanded);
     }

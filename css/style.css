@@ -15133,6 +15133,24 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong { font-size: clamp(10px, 3.45vw, 14px); }
   .app-shell .inventory-page .inventory-account-row { padding-inline: 6px; }
 }
+@media (max-width: 600px) {
+  .app-shell:has(.inventory-page) {
+    background: #f8faf9 !important;
+  }
+  .app-shell:has(.inventory-page)::before,
+  .app-shell:has(.inventory-page)::after { display: none !important; }
+  .app-shell.theme-dark:has(.inventory-page) { background: #111916 !important; }
+  html body .app-shell:not(.theme-dark):has(.inventory-page) .main-panel,
+  html body .app-shell:not(.theme-dark):has(.inventory-page) .content,
+  html body .app-shell:not(.theme-dark):has(.inventory-page) #page-content,
+  html body .app-shell.theme-dark:has(.inventory-page) .main-panel,
+  html body .app-shell.theme-dark:has(.inventory-page) .content,
+  html body .app-shell.theme-dark:has(.inventory-page) #page-content { background: transparent !important; }
+}
+html body .app-shell:not(.theme-dark):has(.inventory-page) .content,
+html body .app-shell:not(.theme-dark):has(.inventory-page) #page-content { background: #f8faf9 !important; }
+html body .app-shell.theme-dark:has(.inventory-page) .content,
+html body .app-shell.theme-dark:has(.inventory-page) #page-content { background: #111916 !important; }
 .app-shell .inventory-page > .inventory-heading { justify-content: flex-end; }
 
 /* Match the dashboard KPI and net-worth amount treatment on Inventory. */
@@ -15515,43 +15533,31 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   .app-shell .inventory-page .inventory-row-toggle { width: 42px; height: 42px; }
 }
 @media (max-width: 390px) {
-  .app-shell .inventory-page > .inventory-accounts .panel-heading { gap: 7px; }
-  .app-shell .inventory-page > .inventory-accounts .panel-heading h2 { min-width: 0; font-size: clamp(18px, 5vw, 21px); }
-  .app-shell .inventory-page .inventory-account-count { min-height: 36px; gap: 6px; padding-inline: 9px; font-size: 11px; }
   .app-shell .inventory-page .inventory-account-row { padding: 10px; border-radius: 21px; }
-  .app-shell .inventory-page .inventory-row-summary {
-    grid-template-columns: minmax(0, 1fr) max-content 34px;
-    grid-template-areas: "source badges toggle";
-    gap: 7px;
-    min-height: 92px;
-    padding: 0;
-  }
+  .app-shell .inventory-page .inventory-row-summary { grid-template-columns: minmax(0, 1fr) max-content 36px; gap: 7px; }
   .app-shell .inventory-page .inventory-account-source { gap: 8px; }
-  .app-shell .inventory-page .inventory-account-source-copy { gap: 3px; }
-  .app-shell .inventory-page .inventory-account-type-icon { flex-basis: 50px; width: 50px; height: 50px; }
-  .app-shell .inventory-page .inventory-summary-item { font-size: 13px; line-height: 1.2; }
-  .app-shell .inventory-page .inventory-account-source-label { font-size: 10px; line-height: 1.2; }
-  .app-shell .inventory-page .inventory-account-category { font-size: 11px; line-height: 1.2; }
-  .app-shell .inventory-page .inventory-item-badges { display: grid; grid-area: badges; gap: 6px; }
-  .app-shell .inventory-page .inventory-kind-pill { min-height: 27px; padding-inline: 8px; font-size: 10px; }
-  .app-shell .inventory-page .inventory-status-pill { min-height: 30px; padding-inline: 8px; font-size: 10px; }
-  .app-shell .inventory-page .inventory-row-toggle { grid-area: toggle; align-self: center; width: 34px; height: 34px; }
+  .app-shell .inventory-page .inventory-account-type-icon { flex-basis: 54px; width: 54px; height: 54px; }
+  .app-shell .inventory-page .inventory-summary-item { font-size: 13px; }
+  .app-shell .inventory-page .inventory-account-category { font-size: 11px; }
+  .app-shell .inventory-page .inventory-kind-pill { min-height: 28px; padding-inline: 8px; font-size: 11px; }
+  .app-shell .inventory-page .inventory-status-pill { min-height: 32px; padding-inline: 8px; font-size: 11px; }
+  .app-shell .inventory-page .inventory-row-toggle { width: 36px; height: 36px; }
 }
 
 /* Asset and liability totals mirror the paired dashboard summary cards. */
 .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) {
-  min-height: 126px;
-  grid-template-columns: 54px minmax(0, 1fr);
+  min-height: 152px;
+  grid-template-columns: 66px minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-content: center;
   align-items: center;
-  column-gap: 12px;
-  row-gap: 9px;
-  padding: 17px clamp(15px, 2.5vw, 24px);
+  column-gap: 15px;
+  row-gap: 12px;
+  padding: 22px clamp(17px, 3vw, 32px);
   border: 1px solid rgba(220,230,232,.94) !important;
-  border-radius: 26px;
-  background: rgba(255,255,255,.78) !important;
-  box-shadow: 0 8px 24px rgba(20,45,65,.065);
+  border-radius: 31px;
+  background: rgba(255,255,255,.82) !important;
+  box-shadow: 0 9px 24px rgba(20,45,65,.085);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
@@ -15559,10 +15565,10 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   grid-column: 1;
   grid-row: 1;
   display: grid;
-  width: 54px;
-  height: 54px;
+  width: 66px;
+  height: 66px;
   place-items: center;
-  padding: 12px;
+  padding: 15px;
   border-radius: 50%;
   background: #dff8ed !important;
   color: #087b50 !important;
@@ -15580,7 +15586,7 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   grid-column: 2;
   grid-row: 1;
   color: #10233f;
-  font: 600 clamp(14px, 1.8vw, 19px)/1.25 var(--sans);
+  font: 600 clamp(15px, 2.1vw, 22px)/1.25 var(--sans);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -15589,13 +15595,13 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
   grid-row: 2;
   min-width: 0;
   color: #10233f !important;
-  font: 800 clamp(24px, 3.5vw, 36px)/1.12 var(--display);
+  font: 800 clamp(23px, 3.7vw, 39px)/1.12 var(--display);
   letter-spacing: -.035em;
   white-space: nowrap;
 }
 .app-shell.theme-dark .inventory-page .inventory-summary-card:not(.net-worth-summary) {
   border-color: color-mix(in srgb, var(--green, #53c294) 26%, transparent) !important;
-  background: rgba(27,38,33,.88) !important;
+  background: rgba(27,38,33,.9) !important;
   box-shadow: 0 8px 22px rgba(0,0,0,.16);
 }
 .app-shell.theme-dark .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label,
@@ -15606,42 +15612,308 @@ body.phone-entry-view .phone-entry-welcome .phone-entry-tour span { margin-left:
 }
 @media (max-width: 760px) {
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) {
-    min-height: 116px;
-    grid-template-columns: 46px minmax(0,1fr);
-    column-gap: 9px;
-    row-gap: 9px;
-    padding: 14px;
-    border-radius: 22px;
+    min-height: 142px;
+    grid-template-columns: 54px minmax(0,1fr);
+    column-gap: 11px;
+    row-gap: 12px;
+    padding: 18px;
+    border-radius: 26px;
   }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-summary-icon {
-    width: 46px;
-    height: 46px;
-    padding: 10px;
+    width: 54px;
+    height: 54px;
+    padding: 12px;
   }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label {
-    font-size: clamp(12px, 3vw, 16px);
+    font-size: clamp(13px, 3.3vw, 18px);
   }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong {
-    font-size: clamp(17px, 4.2vw, 27px);
+    font-size: clamp(16px, 4.4vw, 29px);
   }
 }
 @media (max-width: 390px) {
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) {
-    min-height: 104px;
-    grid-template-columns: 36px minmax(0,1fr);
-    column-gap: 7px;
-    row-gap: 7px;
-    padding: 11px 9px;
-    border-radius: 19px;
+    min-height: 126px;
+    grid-template-columns: 40px minmax(0,1fr);
+    column-gap: 8px;
+    padding: 13px 11px;
+    border-radius: 22px;
   }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-summary-icon {
-    width: 36px;
-    height: 36px;
-    padding: 8px;
+    width: 40px;
+    height: 40px;
+    padding: 9px;
   }
-  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label { font-size: 10px; }
+  .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) .inventory-label { font-size: 11px; }
   .app-shell .inventory-page .inventory-summary-card:not(.net-worth-summary) > strong {
-    font-size: clamp(14px, 3.8vw, 17px);
+    font-size: clamp(13px, 3.7vw, 17px);
     letter-spacing: -.045em;
   }
 }
+
+/* ==========================================================================
+   Financial insight card: tinted card, bulb tile, two-line message and a chevron;
+   the whole card is one button. Colours come from the theme accent (--green), so
+   it follows the selected accent profile and light/dark mode.
+   ========================================================================== */
+html body .app-shell #page-content:has(> .welcome-row) > .dashboard-next-action.finsight.finsight.finsight.finsight.finsight:not([hidden]) {
+  display: block !important;
+  grid-template-columns: none !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 0 !important;
+  border-radius: 22px !important;
+  background: color-mix(in srgb, var(--green, #168660) 8%, #fffefa) !important;
+  box-shadow: none !important;
+  color: #19241f !important;
+}
+html body .app-shell.theme-dark #page-content:has(> .welcome-row) > .dashboard-next-action.finsight.finsight.finsight.finsight.finsight:not([hidden]) {
+  background: color-mix(in srgb, var(--green, #53c294) 12%, #17241e) !important;
+  color: #e8f1ec !important;
+}
+.app-shell #page-content .finsight .finsight-link.finsight-link {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 16px 18px 16px 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .15s ease;
+}
+.app-shell #page-content .finsight .finsight-link.finsight-link:hover { background: color-mix(in srgb, var(--green, #168660) 7%, transparent); }
+.app-shell #page-content .finsight .finsight-link.finsight-link:focus-visible { outline: 2px solid var(--green, #168660); outline-offset: -4px; }
+.app-shell .finsight .finsight-disc {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--green, #168660) 16%, #fffefa);
+  color: var(--green, #168660);
+}
+.app-shell.theme-dark .finsight .finsight-disc { background: color-mix(in srgb, var(--green, #53c294) 26%, #17241e); }
+.app-shell .finsight .finsight-disc svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.app-shell .finsight .finsight-body { display: grid; gap: 4px; min-width: 0; }
+.app-shell .finsight .finsight-title {
+  color: #19241f;
+  font: 700 17px/1.25 var(--display, Inter, sans-serif);
+  letter-spacing: -.015em;
+  overflow-wrap: anywhere;
+}
+.app-shell .finsight .finsight-sub {
+  color: #66736b;
+  font: 450 13px/1.4 var(--sans, Inter, sans-serif);
+  overflow-wrap: anywhere;
+}
+.app-shell .finsight .finsight-chevron { width: 20px; height: 20px; fill: none; stroke: #66736b; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.app-shell.theme-dark .finsight .finsight-title { color: #eef6f1; }
+.app-shell.theme-dark .finsight .finsight-sub { color: rgba(232, 240, 235, .68); }
+.app-shell.theme-dark .finsight .finsight-chevron { stroke: rgba(232, 240, 235, .68); }
+.app-shell .finsight .finsight-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@media (max-width: 599px) {
+  .app-shell #page-content .finsight .finsight-link.finsight-link { gap: 12px; padding: 14px 14px 14px 12px; }
+  .app-shell .finsight .finsight-disc { width: 48px; height: 48px; }
+  .app-shell .finsight .finsight-disc svg { width: 24px; height: 24px; }
+  .app-shell .finsight .finsight-title { font-size: 16px; }
+  .app-shell .finsight .finsight-sub { font-size: 12.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell #page-content .finsight .finsight-link.finsight-link { transition: none; }
+}
+
+/* ==========================================================================
+   Your Financial Items: soft cards with a mint icon disc, name / source / category,
+   stacked Asset + Active chips and a round chevron. Scoped to the Inventory page.
+   ========================================================================== */
+html body .app-shell .inventory-page > .inventory-accounts.inventory-accounts {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.app-shell .inventory-page > .inventory-accounts .panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 0;
+}
+.app-shell .inventory-page > .inventory-accounts .panel-heading h2 {
+  margin: 0;
+  color: #141b46;
+  font: 800 22px/1.15 var(--display, Inter, sans-serif);
+  letter-spacing: -.02em;
+}
+.app-shell .inventory-page > .inventory-accounts .panel-heading .inventory-account-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #e7f9ef, #d3f2e2);
+  box-shadow: 0 6px 16px rgba(46, 160, 110, .16), inset 0 1px 0 rgba(255, 255, 255, .9);
+  color: #1c2552;
+  font: 600 14px/1 var(--sans, Inter, sans-serif);
+}
+.app-shell .inventory-page > .inventory-accounts .inventory-account-count svg { width: 16px; height: 16px; fill: none; stroke: #1c2552; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.app-shell .inventory-page > .inventory-accounts .inventory-filters { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 16px; padding: 0; }
+.app-shell .inventory-page > .inventory-accounts .inventory-filter {
+  min-height: 40px;
+  padding: 0 20px;
+  border: 1px solid rgba(255, 255, 255, .95);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff, #edf7f1);
+  box-shadow: 0 6px 14px rgba(40, 100, 70, .10), inset 0 1px 0 #fff;
+  color: #1c2552;
+  font: 600 14.5px/1 var(--sans, Inter, sans-serif);
+  cursor: pointer;
+}
+.app-shell .inventory-page > .inventory-accounts .inventory-filter.active {
+  border-color: transparent;
+  background: linear-gradient(135deg, #0e8a55, #075a3a);
+  box-shadow: 0 8px 18px rgba(10, 110, 70, .36), inset 0 1px 0 rgba(255, 255, 255, .25);
+  color: #fff;
+  font-weight: 700;
+}
+.app-shell .inventory-page > .inventory-accounts .inventory-account-rows { display: grid; gap: 14px; padding: 0; }
+html body .app-shell .inventory-page .inventory-account-row.inventory-account-row {
+  display: block;
+  margin: 0;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .95) !important;
+  border-radius: 24px !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f1faf5 100%) !important;
+  box-shadow: 0 10px 26px rgba(38, 110, 78, .11), 0 2px 6px rgba(38, 110, 78, .06), inset 0 1px 0 #fff !important;
+  transform: none !important;
+}
+html body .app-shell .inventory-page .inventory-account-row .inventory-row-summary {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 10px 14px 12px;
+  background: transparent;
+}
+.app-shell .inventory-page .inventory-account-row .inventory-summary-cell.inventory-account-source { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 0; }
+.app-shell .inventory-page .inventory-account-row .inventory-account-type-disc {
+  display: grid;
+  place-items: center;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #f0fdf5 0%, #d3f4e1 62%, #c3eed5 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .8), 0 6px 14px rgba(40, 160, 100, .20);
+  color: #0a6a45;
+  --fi-cut: #d9f6e6;
+}
+.app-shell .inventory-page .inventory-account-row .inventory-account-type-disc svg { display: block; width: 25px; height: 25px; fill: currentColor; stroke: none; }
+.app-shell .inventory-page .inventory-account-row .inventory-account-type-disc svg .cut { fill: none; stroke: var(--fi-cut); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.app-shell .inventory-page .inventory-account-row .inventory-account-source-text { display: grid; gap: 3px; min-width: 0; grid-template-columns: minmax(0, 1fr); }
+.app-shell .inventory-page .inventory-account-row .inventory-account-source-text > * { grid-area: auto !important; grid-column: auto !important; grid-row: auto !important; order: 0; }
+.app-shell .inventory-page .inventory-account-row .inventory-summary-item {
+  display: block;
+  color: #141b46;
+  font: 800 14.5px/1.2 var(--display, Inter, sans-serif);
+  letter-spacing: -.015em;
+  overflow-wrap: anywhere;
+}
+.app-shell .inventory-page .inventory-account-row .inventory-summary-item::before { content: none; }
+.app-shell .inventory-page .inventory-account-row .inventory-account-source-field { display: block; color: #55658a; font: 500 12.5px/1.25 var(--sans, Inter, sans-serif); }
+.app-shell .inventory-page .inventory-account-row .inventory-account-category { display: block; color: #55658a; font: 500 13.5px/1.3 var(--sans, Inter, sans-serif); overflow-wrap: anywhere; }
+.app-shell .inventory-page .inventory-account-row .inventory-item-badges { display: grid; gap: 7px; justify-items: start; font-size: 15px; }
+.app-shell .inventory-page .inventory-account-row .inventory-kind-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border: 0;
+  border-radius: 9px;
+  font: 700 11.5px/1.25 var(--sans, Inter, sans-serif);
+}
+.app-shell .inventory-page .inventory-account-row .inventory-kind-chip.is-asset { background: #c9f1da; color: #0b7a4a; }
+.app-shell .inventory-page .inventory-account-row .inventory-kind-chip.is-liability { background: #ffd9dc; color: #b3262f; }
+.app-shell .inventory-page .inventory-account-row .inventory-state-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 8px;
+  border: 1.5px solid #b9cdf2;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #eef4ff);
+  box-shadow: inset 0 1px 0 #fff, 0 2px 6px rgba(80, 120, 200, .10);
+  color: #141b46;
+  font: 700 12px/1.25 var(--sans, Inter, sans-serif);
+}
+.app-shell .inventory-page .inventory-account-row .inventory-state-chip i { display: block; width: 7px; height: 7px; border-radius: 50%; background: #17a05d; }
+html body .app-shell .inventory-page .inventory-account-row .inventory-row-toggle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, .95);
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffffff, #f1f6f4);
+  box-shadow: 0 5px 12px rgba(40, 100, 70, .14), inset 0 1px 0 #fff;
+  color: #2b3566;
+  cursor: pointer;
+}
+.app-shell .inventory-page .inventory-account-row .inventory-row-toggle::before { content: ""; position: absolute; inset: -6px; }
+.app-shell .inventory-page .inventory-account-row .inventory-row-chevron { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .18s ease; }
+.app-shell .inventory-page .inventory-account-row .inventory-row-toggle[aria-expanded="true"] .inventory-row-chevron { transform: rotate(180deg); }
+.app-shell .inventory-page .inventory-account-row .inventory-account-details { margin: 0; padding: 12px 16px 16px; border-top: 1px solid rgba(40, 110, 80, .10); background: transparent; }
+.app-shell .inventory-page .inventory-account-row .inventory-account-details .inventory-row-icon { display: none; }
+@media (min-width: 600px) {
+  html body .app-shell .inventory-page .inventory-account-row .inventory-row-summary { gap: 16px; padding: 18px 18px 18px 18px; }
+  .app-shell .inventory-page .inventory-account-row .inventory-account-type-disc { flex-basis: 64px; width: 64px; height: 64px; }
+  .app-shell .inventory-page .inventory-account-row .inventory-account-type-disc svg { width: 33px; height: 33px; }
+  .app-shell .inventory-page .inventory-account-row .inventory-summary-item { font-size: 18px; }
+  .app-shell .inventory-page .inventory-account-row .inventory-kind-chip { padding: 3px 10px; font-size: 12px; }
+  .app-shell .inventory-page .inventory-account-row .inventory-state-chip { padding: 4px 11px 4px 9px; font-size: 12.5px; }
+  html body .app-shell .inventory-page .inventory-account-row .inventory-row-toggle { width: 36px; height: 36px; }
+  .app-shell .inventory-page .inventory-account-row .inventory-account-source-field { font-size: 13px; }
+  .app-shell .inventory-page .inventory-account-row .inventory-account-category { font-size: 14.5px; }
+  .app-shell .inventory-page > .inventory-accounts .panel-heading h2 { font-size: 26px; }
+}
+/* Dark theme */
+.app-shell.theme-dark .inventory-page > .inventory-accounts .panel-heading h2,
+.app-shell.theme-dark .inventory-page .inventory-account-row .inventory-summary-item { color: #eef6f1; }
+.app-shell.theme-dark .inventory-page .inventory-account-row .inventory-account-source-field,
+.app-shell.theme-dark .inventory-page .inventory-account-row .inventory-account-category { color: rgba(232, 240, 235, .66); }
+.app-shell.theme-dark .inventory-page > .inventory-accounts .panel-heading .inventory-account-count { border-color: rgba(255, 255, 255, .08); background: linear-gradient(135deg, #1f3a2f, #1a3027); box-shadow: none; color: #eaf3ee; }
+.app-shell.theme-dark .inventory-page > .inventory-accounts .inventory-account-count svg { stroke: #eaf3ee; }
+.app-shell.theme-dark .inventory-page > .inventory-accounts .inventory-filter { border-color: rgba(255, 255, 255, .07); background: linear-gradient(180deg, #1d2c25, #17231d); box-shadow: none; color: #e8f1ec; }
+html body .app-shell.theme-dark .inventory-page > .inventory-accounts .inventory-filter.active { border-color: transparent !important; background: linear-gradient(135deg, #12915a, #0a6a43) !important; box-shadow: 0 8px 18px rgba(0, 0, 0, .4) !important; color: #fff !important; }
+html body .app-shell.theme-dark .inventory-page .inventory-account-row.inventory-account-row {
+  border-color: rgba(255, 255, 255, .06) !important;
+  background: linear-gradient(135deg, #1b2a23 0%, #16221c 100%) !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .04) !important;
+}
+.app-shell.theme-dark .inventory-page .inventory-account-row .inventory-account-type-disc { background: radial-gradient(circle at 34% 28%, #2d5646, #1f3d31 70%); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06), 0 6px 14px rgba(0, 0, 0, .35); color: #6fe0a8; --fi-cut: #24463a; }
+.app-shell.theme-dark .inventory-page .inventory-account-row .inventory-kind-chip.is-asset { background: rgba(88, 214, 160, .18); color: #6fe0a8; }
+.app-shell.theme-dark .inventory-page .inventory-account-row .inventory-kind-chip.is-liability { background: rgba(255, 138, 128, .18); color: #ff9d94; }
+.app-shell.theme-dark .inventory-page .inventory-account-row .inventory-state-chip { border-color: rgba(150, 175, 255, .35); background: linear-gradient(180deg, #1b2a3a, #17232f); box-shadow: none; color: #eaf1ff; }
+html body .app-shell.theme-dark .inventory-page .inventory-account-row .inventory-row-toggle { border-color: rgba(255, 255, 255, .07); background: linear-gradient(180deg, #22332b, #1b2a23); box-shadow: 0 5px 12px rgba(0, 0, 0, .35); color: #dfeae4; }
+.app-shell.theme-dark .inventory-page .inventory-account-row .inventory-account-details { border-top-color: rgba(255, 255, 255, .07); }
+@media (prefers-reduced-motion: reduce) { .app-shell .inventory-page .inventory-account-row .inventory-row-chevron { transition: none; } }
