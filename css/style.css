@@ -15917,3 +15917,96 @@ html body .app-shell.theme-dark .inventory-page .inventory-account-row.inventory
 html body .app-shell.theme-dark .inventory-page .inventory-account-row .inventory-row-toggle { border-color: rgba(255, 255, 255, .07); background: linear-gradient(180deg, #22332b, #1b2a23); box-shadow: 0 5px 12px rgba(0, 0, 0, .35); color: #dfeae4; }
 .app-shell.theme-dark .inventory-page .inventory-account-row .inventory-account-details { border-top-color: rgba(255, 255, 255, .07); }
 @media (prefers-reduced-motion: reduce) { .app-shell .inventory-page .inventory-account-row .inventory-row-chevron { transition: none; } }
+
+/* ==========================================================================
+   Inventory: Assets / add button / Liabilities row. Every size is a multiple of --u
+   (one unit = 1/1010 of the row width), so the proportions match the design at any
+   width. The pills are cut by a circle around the button.
+   ========================================================================== */
+.app-shell .inventory-page > .isc-row {
+  --u: calc(100cqw / 1010);
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: 423fr 164fr 423fr;
+  align-items: center;
+  width: min(100%, 720px);
+  margin: 0 auto 6px;
+}
+.app-shell .isc-row .isc {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(15 * var(--u));
+  height: calc(146 * var(--u));
+  min-width: 0;
+}
+.app-shell .isc-row .isc-assets { padding: 0 calc(22 * var(--u)) 0 calc(40 * var(--u)); }
+.app-shell .isc-row .isc-liabilities { padding: 0 calc(40 * var(--u)) 0 calc(38 * var(--u)); }
+.app-shell .isc-row .isc-shadow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 calc(10 * var(--u)) calc(12 * var(--u)) rgba(34, 90, 70, .14)) drop-shadow(0 calc(2 * var(--u)) calc(3 * var(--u)) rgba(34, 90, 70, .08));
+}
+.app-shell .isc-row .isc-shape {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #f4f9fb 0%, #ffffff 100%);
+  box-shadow: inset 0 1px 0 #fff, inset 0 0 0 1px rgba(255, 255, 255, .8);
+}
+.app-shell .isc-row .isc-assets .isc-shape {
+  border-radius: calc(73 * var(--u)) calc(26 * var(--u)) calc(26 * var(--u)) calc(73 * var(--u));
+  -webkit-mask-image: radial-gradient(circle calc(99.6 * var(--u)) at calc(100% + 82 * var(--u)) 50%, transparent calc(98 * var(--u)), #000 calc(99.6 * var(--u)));
+  mask-image: radial-gradient(circle calc(99.6 * var(--u)) at calc(100% + 82 * var(--u)) 50%, transparent calc(98 * var(--u)), #000 calc(99.6 * var(--u)));
+}
+.app-shell .isc-row .isc-liabilities .isc-shape {
+  border-radius: calc(26 * var(--u)) calc(73 * var(--u)) calc(73 * var(--u)) calc(26 * var(--u));
+  -webkit-mask-image: radial-gradient(circle calc(99.6 * var(--u)) at calc(0% - 82 * var(--u)) 50%, transparent calc(98 * var(--u)), #000 calc(99.6 * var(--u)));
+  mask-image: radial-gradient(circle calc(99.6 * var(--u)) at calc(0% - 82 * var(--u)) 50%, transparent calc(98 * var(--u)), #000 calc(99.6 * var(--u)));
+}
+.app-shell .isc-row .isc-disc {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 calc(115 * var(--u));
+  width: calc(115 * var(--u));
+  height: calc(115 * var(--u));
+  border-radius: 50%;
+}
+.app-shell .isc-row .isc-assets .isc-disc { background: radial-gradient(circle at 40% 30%, #dcf9ea 0%, #b9f2d5 100%); color: #0b7a4a; }
+.app-shell .isc-row .isc-liabilities .isc-disc { background: radial-gradient(circle at 40% 30%, #ffe6eb 0%, #ffc9d4 100%); color: #e0212f; }
+.app-shell .isc-row .isc-disc svg { width: calc(98 * var(--u)); height: calc(98 * var(--u)); fill: none; stroke: currentColor; stroke-width: 1.95; stroke-linecap: round; stroke-linejoin: round; }
+.app-shell .isc-row .isc-text { position: relative; display: grid; flex: 1 1 0; justify-items: center; gap: calc(4 * var(--u)); min-width: 0; text-align: center; }
+.app-shell .isc-row .isc-name { color: #1d2a63; font: 500 max(11px, calc(30 * var(--u)))/1.15 var(--sans, Inter, sans-serif); letter-spacing: 0; }
+.app-shell .isc-row .isc-amount { color: #14205c; font: 800 max(12px, calc(40 * var(--u)))/1.1 var(--display, Inter, sans-serif); letter-spacing: -.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.app-shell .isc-row .isc-add {
+  position: relative;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: calc(127 * var(--u));
+  height: calc(127 * var(--u));
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #017a40 0%, #028f4b 68%, #03a357 100%);
+  box-shadow: 0 0 0 calc(8 * var(--u)) #d4faea, 0 0 0 calc(15 * var(--u)) #7fe9bf, 0 0 calc(34 * var(--u)) calc(6 * var(--u)) rgba(70, 215, 150, .45);
+  color: #fff;
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+.app-shell .isc-row .isc-add::before { content: ""; position: absolute; inset: calc(-12 * var(--u)); border-radius: 50%; }
+.app-shell .isc-row .isc-add svg { width: calc(60 * var(--u)); height: calc(60 * var(--u)); fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; }
+.app-shell .isc-row .isc-add:active { transform: scale(.96); }
+.app-shell .isc-row .isc-add:focus-visible { outline: 2px solid #0a7a4a; outline-offset: calc(20 * var(--u)); }
+/* Dark theme */
+.app-shell.theme-dark .isc-row .isc-shape { background: linear-gradient(180deg, #25362e 0%, #1a2721 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), inset 0 0 0 1px rgba(255, 255, 255, .05); }
+.app-shell.theme-dark .isc-row .isc-shadow { filter: drop-shadow(0 calc(10 * var(--u)) calc(12 * var(--u)) rgba(0, 0, 0, .45)); }
+.app-shell.theme-dark .isc-row .isc-assets .isc-disc { background: radial-gradient(circle at 40% 30%, #2f5a49, #214236); color: #6fe0a8; }
+.app-shell.theme-dark .isc-row .isc-liabilities .isc-disc { background: radial-gradient(circle at 40% 30%, #5a2c33, #40222a); color: #ff8f9a; }
+.app-shell.theme-dark .isc-row .isc-name { color: rgba(232, 240, 235, .82); }
+.app-shell.theme-dark .isc-row .isc-amount { color: #f1f7f3; }
+.app-shell.theme-dark .isc-row .isc-add { box-shadow: 0 0 0 calc(8 * var(--u)) #1d5a41, 0 0 0 calc(15 * var(--u)) #2f9a6e, 0 0 calc(34 * var(--u)) calc(6 * var(--u)) rgba(70, 215, 150, .35); }
+@media (prefers-reduced-motion: reduce) { .app-shell .isc-row .isc-add { transition: none; } }

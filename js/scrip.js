@@ -3956,29 +3956,29 @@ function renderAccountRows(entries) {
 function renderInventoryPage() {
   const entries = getInventoryEntries();
   const totals = getInventoryTotals();
-  const assetIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"/><path d="m4.3 7.7 7.7 4.4 7.7-4.4M12 12v9M8 5.2l8 4.5"/></svg>';
-  const liabilityIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 20 6v5.5c0 4.8-3.2 7.8-8 9.5-4.8-1.7-8-4.7-8-9.5V6l8-3Z"/><path d="M12 8v5m0 3h.01"/></svg>';
+  const houseIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.8 11.4 12 3l9.2 8.4"/><path d="M5.2 9.8v10.7h13.6V9.8"/><path d="M9.6 20.5v-5.2a2.4 2.4 0 0 1 4.8 0v5.2"/></svg>';
+  const shieldIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.8 20 5.8v5.6c0 4.8-3.3 8.1-8 9.8-4.7-1.7-8-5-8-9.8V5.8l8-3Z"/><path d="M12 8.2v5M12 16.4h.01"/></svg>';
   const netWorthIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg>';
 
   return `
     <section class="inventory-page">
-      <header class="inventory-heading">
-        <button class="inventory-action inventory-heading-add" type="button" data-inventory-action="add-account" aria-label="Add an inventory item" title="Add an inventory item">
-          <span class="inventory-add-plus" aria-hidden="true">+</span>
+      <section class="isc-row" aria-label="Assets, liabilities and add item">
+        <article class="isc isc-assets">
+          <span class="isc-shadow" aria-hidden="true"><span class="isc-shape"></span></span>
+          <span class="isc-disc" aria-hidden="true">${houseIcon}</span>
+          <span class="isc-text"><span class="isc-name">Assets</span><strong class="isc-amount">${formatCompactKpiCurrency(totals.assets)}</strong></span>
+        </article>
+        <button class="isc-add" type="button" data-inventory-action="add-account" aria-label="Add an inventory item" title="Add an inventory item">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5v19M2.5 12h19"/></svg>
         </button>
-      </header>
+        <article class="isc isc-liabilities">
+          <span class="isc-shadow" aria-hidden="true"><span class="isc-shape"></span></span>
+          <span class="isc-disc" aria-hidden="true">${shieldIcon}</span>
+          <span class="isc-text"><span class="isc-name">Liabilities</span><strong class="isc-amount">${formatCompactKpiCurrency(totals.liabilities)}</strong></span>
+        </article>
+      </section>
 
-      <section class="inventory-summary" aria-label="Balance sheet summary">
-        <article class="inventory-summary-card inventory-summary-assets">
-          <span class="inventory-summary-icon">${assetIcon}</span>
-          <span class="inventory-label">Total Assets</span>
-          <strong>${formatCompactKpiCurrency(totals.assets)}</strong>
-        </article>
-        <article class="inventory-summary-card inventory-summary-liabilities">
-          <span class="inventory-summary-icon">${liabilityIcon}</span>
-          <span class="inventory-label">Total Liabilities</span>
-          <strong>${formatCompactKpiCurrency(totals.liabilities)}</strong>
-        </article>
+      <section class="inventory-summary" aria-label="Net worth">
         <article class="inventory-summary-card net-worth-summary" data-net-worth-state="${totals.netWorth < 0 ? "negative" : totals.netWorth > 0 ? "positive" : "zero"}">
           <span class="inventory-summary-icon">${netWorthIcon}</span>
           <span class="inventory-label">NET WORTH</span>
@@ -3989,7 +3989,6 @@ function renderInventoryPage() {
       <section class="panel inventory-accounts">
         <div class="panel-heading">
           <h2>Your Financial Items</h2>
-          <span class="inventory-account-count"><span>${entries.length} ${entries.length === 1 ? "item" : "items"}</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7 5 5 5-5"/></svg></span>
         </div>
         <div class="inventory-filters" role="group" aria-label="Filter inventory items">
           <button type="button" class="inventory-filter active" data-inventory-filter="all" aria-pressed="true">All (${entries.length})</button>
