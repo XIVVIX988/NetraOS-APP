@@ -2321,6 +2321,20 @@ function renderSettingsPage() {
     .slice(0, 3);
   let privacyEnabled = false;
   try { privacyEnabled = localStorage.getItem(privacyModeStorageKey) === "true"; } catch { /* Use the visible default when storage is unavailable. */ }
+  const pushConfigured = window.NetraPush?.isConfigured?.() === true;
+  const pushPermission = window.NetraPush?.getPermission?.() || "default";
+  const pushRegistrationState = window.NetraPush?.getRegistrationState?.() || "unknown";
+  let pushStatus;
+  if (!pushConfigured) pushStatus = "Firebase web settings and the public VAPID key still need to be configured.";
+  else if (pushRegistrationState === "indeterminate") pushStatus = "Registration status is indeterminate. Close all NetraOS tabs, then open the app in a fresh tab before trying again.";
+  else if (pushRegistrationState === "registering") pushStatus = "Registration is in progress. Keep this page open while Firebase responds.";
+  else if (pushRegistrationState === "registered") pushStatus = "This device is registered for push notifications.";
+  else if (pushRegistrationState === "deactivation_unconfirmed") pushStatus = "Device pause is unconfirmed. NetraOS will retry when this account is available online.";
+  else if (pushRegistrationState === "paused") pushStatus = "Push notifications are paused for this device.";
+  else if (window.NetraPush?.hasRegistered?.()) pushStatus = "This device is registered for push notifications.";
+  else if (pushPermission === "denied") pushStatus = "Notifications are blocked for this site in your browser settings.";
+  else if (pushPermission === "granted") pushStatus = "Notification permission is granted. Registration status is unknown in this page session; enable this device to check or register it.";
+  else pushStatus = "This is optional. NetraOS will ask for permission only when you choose Enable.";
   const settingsTabs = [
     ["profile", "Profile"], ["privacy", "Privacy"], ["appearance", "Appearance"], ["currency", "Currency"], ["backups", "Backups"]
   ];
@@ -2386,6 +2400,7 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Income plan updates</strong><small>In-app 55/10/15/15/5 budget suggestions after monthly income changes.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Debt payoff</strong><small>In-app notices when a liability is marked as paid off.</small></span><input name="debtNotifications" type="checkbox" ${settings.debtNotifications ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Spending shortfall</strong><small>In-app notices if recorded spending moves above planned income.</small></span><input name="budgetNotifications" type="checkbox" ${settings.budgetNotifications ? "checked" : ""}></label>
+          <div class="settings-push-registration" data-push-settings><div><strong>Browser push notifications</strong><p class="settings-disclosure">NetraOS consent and browser permission are separate. Push delivery is not active until a later setup stage.</p></div><div class="settings-inline-actions"><button class="secondary-button" type="button" data-push-register ${pushConfigured && pushRegistrationState !== "indeterminate" ? "" : "disabled"}>Enable or resume on this device</button><button class="secondary-button" type="button" data-push-revoke>Unsubscribe this device</button></div><p class="passkey-status" data-push-status role="status" aria-live="polite">${escapeHTML(pushStatus)}</p></div>
         </section>
         <section class="panel settings-panel settings-danger-zone" data-settings-section="danger"><div class="panel-heading"><div><div class="section-kicker">ACCOUNT CONTROL</div><h2>Reset or delete account data</h2></div></div>
           <p class="settings-disclosure">These actions can permanently remove information from your NetraOS account. Review the confirmation before continuing.</p>
@@ -9952,6 +9967,11 @@ window.addEventListener("netraos-auth-event", event => {
     clearPinFailureCount();
     window.history.replaceState(null, "", `${window.location.pathname}#login`);
     showPasswordResetForm();
+  }
+});
+window.addEventListener("netraos:push-state", event => {
+  if (event.detail?.state === "deactivation_unconfirmed" && event.detail?.confirmed === false) {
+    showToast("Push deactivation is unconfirmed. The account-scoped retry will run when you sign in again.");
   }
 });
 if (window.NETRAOS_LAST_AUTH_EVENT === "PASSWORD_RECOVERY") {

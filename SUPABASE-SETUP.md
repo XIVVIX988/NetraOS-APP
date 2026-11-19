@@ -81,3 +81,36 @@ The service worker caches the app shell and public render assets after the first
 - Confirm the project’s database region, retention, backups, email settings, and production redirect domain in the Supabase Dashboard.
 
 For the second-factor setup, choose a transactional sender (for example Resend or Brevo) and a verified sender address. Add its API secret directly in Supabase Edge Function secrets; do not send that secret in chat or add it to `js/supabase-config.js`.
+
+## 6. Stage 3A push registration (local preparation only)
+
+Stage 3A adds authenticated device registration and consent storage. It does not send notifications and does not add a push handler to the service worker. Keep the existing root `service-worker.js` registration and offline cache unchanged.
+
+Before enabling the Settings control, configure the **public Firebase Web app values** in `js/register-service-worker.js`: `apiKey`, `authDomain`, `projectId`, `messagingSenderId`, `appId`, and the public Web Push certificate key (`vapidKey`). These values identify the public Firebase Web app; they are not Firebase Admin credentials. The repository currently has empty placeholders, so the browser registration control remains disabled until these values are supplied.
+
+The Edge Functions require these Supabase secrets/environment values:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` — server-side only. The Stage 3A functions use it only to call the restricted read-only Firebase configuration RPC. Never put it in browser code, source control or GitHub Pages.
+- `FIREBASE_APP_ID` — the expected public Firebase app identifier, held in the Edge Function environment and compared with the private database value.
+
+No Firebase service-account key or FCM send credential is required for Stage 3A. Sending credentials belong to a later delivery stage and must remain server-side.
+
+The migration is `supabase/migrations/20261118000100_push_devices.sql`. It creates private device, consent, idempotency and Firebase configuration tables, authenticated RPCs, and the service-role-only configuration reader. It is prepared locally and is **not applied** by this repository change. The first configuration row starts disabled. A database owner provisions the app ID from the Supabase SQL Editor by first calling `netra_private.provision_push_firebase_app('<app-id>', false)`, then (after setting the matching Edge Function `FIREBASE_APP_ID`) calling `netra_private.provision_push_firebase_app('<same-app-id>', true)`. The function is owner-only, writes an audit row and is not executable by application roles.
+
+For a future configuration change, first disable push operations through the owner-only provisioning function and allow in-flight registration requests to drain. Update the Edge Function `FIREBASE_APP_ID`, update the database app ID while keeping push disabled, verify they match, then enable push operations. During the disabled interval, opt-in, resume and registration fail closed; pause and revocation remain available. The database serializes registration/config provisioning with a shared/exclusive advisory lock.
+
+The functions are `push-register-device` and `push-device-lifecycle`. Both verify the user bearer token with Supabase Auth, derive user identity through the user-scoped RPCs, measure request bodies by streamed bytes, and allow only these CORS origins:
+
+- `https://xivvix988.github.io`
+- `http://127.0.0.1:5500`
+
+`localhost:5500` is not included because the development setup documents it only conditionally. Add another exact origin only after confirming it is an actual development origin; do not use wildcards or broad localhost patterns.
+
+Automated tests added for Stage 3A:
+
+- Run client and Edge request validation tests with `pnpm test:push` (or `node --test tests/push-stage3a.test.mjs`).
+- Run database behavior tests against a disposable local Supabase database with `supabase test db`. The database test file is `supabase/tests/push_stage3a.test.sql`; it must not be run against production.
+
+These files are not deployed by the local implementation. Do not apply the migration or deploy either function until a separate deployment approval is given.
