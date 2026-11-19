@@ -8003,6 +8003,26 @@ body.theme-dark .theme-toggle[aria-pressed="true"] svg {
 .settings-inline-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 .settings-inline-actions button { min-height: 40px; padding: 9px 13px; border: 1px solid #dce5de; border-radius: 10px; background: #f8faf8; color: #244232; cursor: pointer; font: inherit; font-size: 13px; }
 .settings-inline-actions button:hover { background: #eef5ef; }
+.settings-push-devices { display: grid; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #e1e8e3; }
+.settings-push-devices h3 { margin: 0; color: #263a2e; font: 700 14px var(--display); }
+.settings-push-device-list,
+[data-push-devices] { display: grid; gap: 9px; }
+.settings-push-device { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #dce5de; border-radius: 12px; background: #f8faf8; }
+.settings-push-device-details { display: grid; min-width: 0; gap: 4px; color: #47584d; font-size: 12px; }
+.settings-push-device-details strong { color: #24352a; font-size: 13px; }
+.settings-push-device-details code { overflow-wrap: anywhere; color: #64736a; font: 11px ui-monospace, SFMono-Regular, Consolas, monospace; }
+.settings-push-device-details span { overflow-wrap: anywhere; }
+.settings-push-device > button { flex: 0 0 auto; }
+.settings-push-device-empty { margin: 0; color: #65736a; font-size: 12px; }
+.settings-push-device .danger-button { border-color: #efd2ce; color: #a23c31; background: #fff8f6; }
+body.theme-dark .settings-push-devices { border-color: #39483e; }
+body.theme-dark .settings-push-devices h3,
+body.theme-dark .settings-push-device-details strong { color: #e0e8e2; }
+body.theme-dark .settings-push-device { border-color: #435148; background: #202b24; }
+body.theme-dark .settings-push-device-details,
+body.theme-dark .settings-push-device-details code,
+body.theme-dark .settings-push-device-empty { color: #b8c4bb; }
+body.theme-dark .settings-push-device .danger-button { border-color: #68413b; color: #ffc1b6; background: #30211f; }
 .settings-downloads { display: grid; gap: 14px; margin-top: 16px; padding: 16px; border: 1px solid #e0e8e2; border-radius: 13px; background: #f8faf8; }
 .settings-downloads-heading h3 { margin: 0; color: #263a2e; font: 700 14px var(--display); }
 .settings-downloads-heading p { margin: 4px 0 0; color: #758179; font-size: 11px; line-height: 1.45; }

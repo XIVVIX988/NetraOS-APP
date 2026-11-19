@@ -57,22 +57,33 @@ export function isUuid(value) {
   return typeof value === "string" && UUID_RE.test(value);
 }
 
+// The exact generated-FID grammar in the pinned SDK could not be independently
+// verified. Keep the existing database bound: 1-128 trimmed characters with
+// no control characters. This is shape validation only, never ownership proof.
+export function isFirebaseFid(value) {
+  const characters = typeof value === "string" ? Array.from(value).length : 0;
+  return typeof value === "string" && characters >= 1 && characters <= 128 &&
+    !/[ \u0000-\u001f\u007f-\u009f]/.test(value);
+}
+
 export function validateRegistrationBody(body) {
-  if (Object.keys(body).some(key => !["client_instance_id", "generation", "fid"].includes(key)) ||
+  if (Object.keys(body).some(key => !["client_instance_id", "generation", "fid", "operation_id"].includes(key)) ||
       !isUuid(body.client_instance_id) || !Number.isSafeInteger(body.generation) || body.generation < 1 ||
-      typeof body.fid !== "string" || body.fid.length < 1 || body.fid.length > 128 ||
-      body.fid.trim() !== body.fid || /[\u0000-\u001f\u007f]/.test(body.fid)) {
+      !isUuid(body.operation_id) ||
+      !isFirebaseFid(body.fid)) {
     return { ok: false, code: "INVALID_REGISTRATION" };
   }
   return { ok: true };
 }
 
 export function validateLifecycleBody(body) {
-  if (!isUuid(body.client_instance_id) || typeof body.action !== "string") return { ok: false, code: "INVALID_REQUEST" };
+  if (typeof body.action !== "string") return { ok: false, code: "INVALID_REQUEST" };
   const action = body.action;
+  if (action === "list") return { ok: Object.keys(body).length === 1, action, code: "INVALID_REQUEST" };
+  if (!isUuid(body.client_instance_id)) return { ok: false, code: "INVALID_REQUEST" };
   if (action === "state") return { ok: Object.keys(body).every(key => ["client_instance_id", "action"].includes(key)), action, code: "INVALID_REQUEST" };
   if (action === "opt_in") {
-    if (Object.keys(body).some(key => !["client_instance_id", "action", "consent_version"].includes(key)) || typeof body.consent_version !== "string" || body.consent_version.trim() !== body.consent_version ||
+    if (Object.keys(body).some(key => !["client_instance_id", "action", "consent_version", "operation_id"].includes(key)) || !isUuid(body.operation_id) || typeof body.consent_version !== "string" || body.consent_version.trim() !== body.consent_version ||
         body.consent_version.length < 1 || body.consent_version.length > 64) return { ok: false, code: "INVALID_REQUEST" };
     return { ok: true, action };
   }
@@ -81,7 +92,15 @@ export function validateLifecycleBody(body) {
     return { ok: true, action };
   }
   if (action === "resume") {
-    if (Object.keys(body).some(key => !["client_instance_id", "action", "operation_id"].includes(key)) || !isUuid(body.operation_id)) return { ok: false, code: "INVALID_REQUEST" };
+    if (Object.keys(body).some(key => !["client_instance_id", "action", "operation_id", "expected_generation"].includes(key)) || !isUuid(body.operation_id) || !Number.isSafeInteger(body.expected_generation) || body.expected_generation < 1) return { ok: false, code: "INVALID_REQUEST" };
+    return { ok: true, action };
+  }
+  if (action === "recover") {
+    if (Object.keys(body).some(key => !["client_instance_id", "action", "fid", "operation_id", "previous_client_instance_id", "expected_generation"].includes(key)) || !isUuid(body.operation_id) || !isFirebaseFid(body.fid) || !isUuid(body.previous_client_instance_id) || !Number.isSafeInteger(body.expected_generation) || body.expected_generation < 1) return { ok: false, code: "INVALID_REQUEST" };
+    return { ok: true, action };
+  }
+  if (action === "recovery_candidate") {
+    if (Object.keys(body).some(key => !["client_instance_id", "action", "fid"].includes(key)) || !isFirebaseFid(body.fid)) return { ok: false, code: "INVALID_REQUEST" };
     return { ok: true, action };
   }
   return { ok: false, code: "INVALID_REQUEST" };

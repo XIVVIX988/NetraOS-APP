@@ -2400,7 +2400,7 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Income plan updates</strong><small>In-app 55/10/15/15/5 budget suggestions after monthly income changes.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Debt payoff</strong><small>In-app notices when a liability is marked as paid off.</small></span><input name="debtNotifications" type="checkbox" ${settings.debtNotifications ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Spending shortfall</strong><small>In-app notices if recorded spending moves above planned income.</small></span><input name="budgetNotifications" type="checkbox" ${settings.budgetNotifications ? "checked" : ""}></label>
-          <div class="settings-push-registration" data-push-settings><div><strong>Browser push notifications</strong><p class="settings-disclosure">NetraOS consent and browser permission are separate. Push delivery is not active until a later setup stage.</p></div><div class="settings-inline-actions"><button class="secondary-button" type="button" data-push-register ${pushConfigured && pushRegistrationState !== "indeterminate" ? "" : "disabled"}>Enable or resume on this device</button><button class="secondary-button" type="button" data-push-revoke>Unsubscribe this device</button></div><p class="passkey-status" data-push-status role="status" aria-live="polite">${escapeHTML(pushStatus)}</p></div>
+          <div class="settings-push-registration" data-push-settings><div><strong>Browser push notifications</strong><p class="settings-disclosure">NetraOS consent and browser permission are separate. Push delivery is not active until a later setup stage.</p></div><div class="settings-inline-actions"><button class="secondary-button" type="button" data-push-register ${pushConfigured && pushRegistrationState !== "indeterminate" ? "" : "disabled"}>Enable or resume on this device</button><button class="secondary-button" type="button" data-push-recover>Recover a previous device</button><button class="secondary-button" type="button" data-push-revoke>Unsubscribe this device</button></div><p class="passkey-status" data-push-status role="status" aria-live="polite">${escapeHTML(pushStatus)}</p><div class="settings-push-devices" aria-label="Registered push devices"><h3>Registered devices</h3><div data-push-devices aria-live="polite"><p class="settings-push-device-empty">Sign in to view devices registered to this account.</p></div></div></div>
         </section>
         <section class="panel settings-panel settings-danger-zone" data-settings-section="danger"><div class="panel-heading"><div><div class="section-kicker">ACCOUNT CONTROL</div><h2>Reset or delete account data</h2></div></div>
           <p class="settings-disclosure">These actions can permanently remove information from your NetraOS account. Review the confirmation before continuing.</p>
@@ -5989,6 +5989,7 @@ function showPage(page) {
     window.location.hash = "settings";
     content.innerHTML = renderSettingsPage();
     setupSettingsTabs();
+    window.dispatchEvent(new CustomEvent("netraos:settings-rendered"));
     return;
   }
   const info = pageDescriptions[page];

@@ -2,13 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import { corsHeaders, readJsonBody, validateLifecycleBody, validateRegistrationBody } from "../supabase/functions/_shared/push-http.mjs";
+import { corsHeaders, isFirebaseFid, readJsonBody, validateLifecycleBody, validateRegistrationBody } from "../supabase/functions/_shared/push-http.mjs";
 
 const CLIENT_SOURCE = fs.readFileSync(new URL("../js/register-service-worker.js", import.meta.url), "utf8");
 const USER_A = "user-a";
 const USER_B = "user-b";
 const INSTANCE_A = "616f0b8e-644e-4f4b-a6a0-a5ac3e27be91";
 const OP_A = "2647d553-a927-40d2-a234-b4b8da6ab3c6";
+const VALID_FID = `c${"A".repeat(21)}`;
 
 class MemoryStorage {
   values = new Map();
@@ -80,19 +81,47 @@ test("same-account tabs serialize creation and reuse one installation identity",
   assert.equal(first, second);
   assert.equal(await manager.getExisting(USER_A), first);
 });
-
 test("account identities and pending deactivation records remain isolated", async () => {
   const app = loadClient();
   const manager = app.window.NetraPushCore.createIdentityManager({ storage: app.storage, locks: app.context.navigator.locks, cryptoObject: app.window.crypto });
   const first = await manager.getOrCreate(USER_A);
   const second = await manager.getOrCreate(USER_B);
   assert.notEqual(first, second);
-  await manager.savePending({ userId: USER_A, clientInstanceId: first, operationId: OP_A, fid: "must-not-persist" });
-  assert.deepEqual(JSON.parse(JSON.stringify(await manager.listPending(USER_A))), [{ userId: USER_A, clientInstanceId: first, operationId: OP_A }]);
+  await manager.savePending({ userId: USER_A, clientInstanceId: first, operationId: OP_A, expectedGeneration: 3, fid: "must-not-persist" });
+  assert.deepEqual(JSON.parse(JSON.stringify(await manager.listPending(USER_A))), [{ userId: USER_A, clientInstanceId: first, operationId: OP_A, expectedGeneration: 3 }]);
   assert.deepEqual(JSON.parse(JSON.stringify(await manager.listPending(USER_B))), []);
   const pendingJson = [...app.storage.values.entries()].find(([key]) => key.includes("pending-deactivation"))[1];
-  assert.deepEqual(Object.keys(JSON.parse(pendingJson)).sort(), ["clientInstanceId", "operationId", "userId"]);
+  assert.deepEqual(Object.keys(JSON.parse(pendingJson)).sort(), ["clientInstanceId", "expectedGeneration", "operationId", "userId"]);
   assert.equal(pendingJson.includes("must-not-persist"), false);
+});
+
+test("pending deactivation falls back to IndexedDB when localStorage cannot write it", async () => {
+  const app = loadClient();
+  const values = new Map();
+  const fakeIndexedDB = { open() {
+    const request = {};
+    queueMicrotask(() => {
+      request.result = {
+        objectStoreNames: { contains: () => true },
+        transaction() {
+          const tx = { objectStore() { return {
+            put(row) { values.set(row.key, row); queueMicrotask(() => tx.oncomplete?.()); },
+            getAll() { const req = {}; queueMicrotask(() => { req.result = [...values.values()]; req.onsuccess?.(); }); return req; },
+            delete(key) { values.delete(key); queueMicrotask(() => tx.oncomplete?.()); },
+          }; } };
+          return tx;
+        },
+      };
+      request.onsuccess?.();
+    });
+    return request;
+  } };
+  const storage = new MemoryStorage();
+  const originalSet = storage.setItem.bind(storage);
+  storage.setItem = (key, value) => { if (key.includes("pending-deactivation")) throw new Error("storage unavailable"); originalSet(key, value); };
+  const manager = app.window.NetraPushCore.createIdentityManager({ storage, locks: app.context.navigator.locks, cryptoObject: app.window.crypto, indexedDB: fakeIndexedDB });
+  await manager.savePending({ userId: USER_A, clientInstanceId: INSTANCE_A, operationId: OP_A, expectedGeneration: 4 });
+  assert.deepEqual(JSON.parse(JSON.stringify(await manager.listPending(USER_A))), [{ userId: USER_A, clientInstanceId: INSTANCE_A, operationId: OP_A, expectedGeneration: 4 }]);
 });
 
 test("callback gate requires same user, identity, active consent, current generation and granted permission", async () => {
@@ -123,7 +152,7 @@ test("sign-out failure retains only account-scoped retry metadata and retries af
   assert.ok(pendingKey);
   assert.equal(app.storage.getItem(`netraos.push.instance.v1:${USER_A}`), null);
   const pending = JSON.parse(app.storage.getItem(pendingKey));
-  assert.deepEqual(Object.keys(pending).sort(), ["clientInstanceId", "operationId", "userId"]);
+  assert.deepEqual(Object.keys(pending).sort(), ["clientInstanceId", "expectedGeneration", "operationId", "userId"]);
   assert.equal(calls.some(body => body.action === "pause"), true);
 
   // A different account cannot consume the first account's retry record.
@@ -162,8 +191,8 @@ test("public push API does not expose a FID accessor and the registration module
   assert.equal(Object.keys(app.window.NetraPush).some(key => /fid/i.test(key)), false);
   assert.equal("getLastFid" in app.window.NetraPush, false);
   assert.match(CLIENT_SOURCE, /let lastObservedFid;/);
-  assert.doesNotMatch(CLIENT_SOURCE, /console\.(?:log|warn|error)\([^\n]*(?:lastObservedFid|fid)/i);
-  assert.doesNotMatch(CLIENT_SOURCE, /localStorage\.(?:setItem|set)\([^\n]*(?:lastObservedFid|fid)/i);
+  assert.doesNotMatch(CLIENT_SOURCE, /console\.(?:log|warn|error)\([^)]*(?:lastObservedFid|\bfid\b)/i);
+  assert.doesNotMatch(CLIENT_SOURCE, /localStorage\.(?:setItem|set)\([^)]*(?:lastObservedFid|\bfid\b)/i);
 });
 
 test("CORS allows only the approved production and documented local origins", () => {
@@ -181,12 +210,26 @@ test("request size is measured from streamed bytes rather than Content-Length", 
 });
 
 test("Edge request validators reject injected user IDs and malformed lifecycle inputs", () => {
-  assert.equal(validateRegistrationBody({ client_instance_id: INSTANCE_A, generation: 1, fid: "fid-value" }).ok, true);
-  assert.equal(validateRegistrationBody({ client_instance_id: INSTANCE_A, generation: 1, fid: "fid-value", user_id: USER_B }).ok, false);
-  assert.equal(validateRegistrationBody({ client_instance_id: INSTANCE_A, generation: 0, fid: "fid-value" }).ok, false);
-  assert.equal(validateLifecycleBody({ action: "opt_in", client_instance_id: INSTANCE_A, consent_version: " " }).ok, false);
+  assert.equal(validateRegistrationBody({ client_instance_id: INSTANCE_A, generation: 1, fid: VALID_FID, operation_id: OP_A }).ok, true);
+  assert.equal(validateRegistrationBody({ client_instance_id: INSTANCE_A, generation: 1, fid: VALID_FID, operation_id: OP_A, user_id: USER_B }).ok, false);
+  assert.equal(validateRegistrationBody({ client_instance_id: INSTANCE_A, generation: 0, fid: VALID_FID, operation_id: OP_A }).ok, false);
+  assert.equal(validateLifecycleBody({ action: "opt_in", client_instance_id: INSTANCE_A, consent_version: " ", operation_id: OP_A }).ok, false);
   assert.equal(validateLifecycleBody({ action: "pause", client_instance_id: INSTANCE_A, expected_generation: 2, operation_id: OP_A }).ok, true);
+  assert.equal(validateLifecycleBody({ action: "resume", client_instance_id: INSTANCE_A, expected_generation: 2, operation_id: OP_A }).ok, true);
+  assert.equal(validateLifecycleBody({ action: "resume", client_instance_id: INSTANCE_A, operation_id: OP_A }).ok, false);
   assert.equal(validateLifecycleBody({ action: "state", client_instance_id: INSTANCE_A, user_id: USER_B }).ok, false);
+});
+
+test("FID validation uses bounded shape checks without claiming an unverified SDK grammar", () => {
+  for (const first of ["c", "d", "e", "f"]) assert.equal(isFirebaseFid(`${first}${"a".repeat(21)}`), true);
+  assert.equal(isFirebaseFid("legacy-fixture-fid"), true);
+  assert.equal(isFirebaseFid("x".repeat(128)), true);
+  for (const malformed of ["", " fid-fixture-one", "fid-fixture-one ", "internal space", "bad\nvalue", "bad\u0085value", "x".repeat(129)]) {
+    assert.equal(isFirebaseFid(malformed), false, malformed);
+  }
+  assert.equal(validateLifecycleBody({ action: "recovery_candidate", client_instance_id: INSTANCE_A, fid: VALID_FID }).ok, true);
+  assert.equal(validateLifecycleBody({ action: "recover", client_instance_id: INSTANCE_A, fid: VALID_FID, previous_client_instance_id: INSTANCE_A, expected_generation: 3, operation_id: OP_A }).ok, true);
+  assert.match(CLIENT_SOURCE, /function isAcceptableFid\(fid\)[\s\S]*Array\.from\(fid\)\.length[\s\S]*captureFirebaseFid\(fid\)[\s\S]*if \(!isAcceptableFid\(fid\)\) return/);
 });
 
 test("migration declares private ownership, serial locks, idempotency and slot reservation invariants", () => {
