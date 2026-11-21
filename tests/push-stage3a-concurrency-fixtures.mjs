@@ -64,7 +64,7 @@ export async function makeConcurrencyFixture(scenario) {
       const d=dev[0]; setup += `\n${await seedPending(userA,d)}`;
       sessionA = `${gateWait}\n${register(userA,d,1,fidA,fpA,id())}`;
       sessionB = `${gateWait}\n${tx(`do $$ declare old_id text; begin select firebase_app_id into old_id from netra_private.push_firebase_config where singleton; perform netra_private.provision_push_firebase_app(old_id,false); perform netra_private.provision_push_firebase_app('netra-test-app-rotated',true); end $$;`)}`;
-      assertion = assertBoolean(`(select firebase_app_id='netra-test-app-rotated' and enabled from netra_private.push_firebase_config where singleton) and (select count(*)<=1 from netra_private.push_devices where user_id='${userA}' and client_instance_id='${d}')`);
+      assertion = assertBoolean(`(select firebase_app_id='netra-test-app-rotated' and enabled from netra_private.push_firebase_config where singleton) and exists(select 1 from netra_private.push_devices where user_id='${userA}' and client_instance_id='${d}' and registration_generation=1 and ((status='active' and fid='${fidA}' and last_registered_at is not null and exists(select 1 from netra_private.push_device_fingerprints where user_id='${userA}' and client_instance_id='${d}' and key_version='v1')) or (status='pending' and fid is null and not exists(select 1 from netra_private.push_device_fingerprints where user_id='${userA}' and client_instance_id='${d}'))))`);
       break;
     }
     case "HMAC key rotation versus registration": {
@@ -85,7 +85,7 @@ export async function makeConcurrencyFixture(scenario) {
       const d=dev[0], replacement=id(), gen=1; setup += `\n${await seedActive(userA,d,fidA,fpA)}`;
       sessionA = `${gateWait}\n${register(userA,d,gen,fidA,fpA,id())}`;
       sessionB = `${gateWait}\n${tx(`select public.push_edge_recover('${userA}','${replacement}','${d}',${gen},${quote(fidA)},'[ {"version":"v1","fingerprint":"${fpA}"} ]'::jsonb,'${id()}','netra-test-app');`)}`;
-      assertion = assertBoolean(`(select count(*)=1 and count(distinct fid)=1 from netra_private.push_devices where user_id='${userA}' and fid='${fidA}') and not exists(select 1 from netra_private.push_devices where user_id='${userA}' and client_instance_id='${d}' and client_instance_id<>'${replacement}')`);
+      assertion = assertBoolean(`exists(select 1 from netra_private.push_devices where user_id='${userA}' and client_instance_id='${replacement}' and fid='${fidA}' and status='active' and registration_generation=2) and not exists(select 1 from netra_private.push_devices where user_id='${userA}' and client_instance_id='${d}') and (select count(*)=1 from netra_private.push_devices where user_id='${userA}' and fid='${fidA}')`);
       break;
     }
     case "concurrent rate-limit requests": {

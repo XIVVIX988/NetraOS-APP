@@ -95,6 +95,7 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localho
 })();
 
 (() => {
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const firebaseWebConfig = Object.freeze({
     apiKey: "", authDomain: "", projectId: "", messagingSenderId: "", appId: "", vapidKey: ""
   });
@@ -478,6 +479,87 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localho
     return identity.withLifecycleLock(userId, instanceId, () => pauseDeviceLocked(userId, instanceId, state, operationId, preserveRetryRecord));
   }
 
+  async function pauseRegisteredDevice(instanceId, expectedGeneration) {
+    if (!identity || !UUID.test(instanceId || "") || !Number.isSafeInteger(expectedGeneration) || expectedGeneration < 0) {
+      throw new Error("Refresh the device list and try again.");
+    }
+    const initialSession = await getSession();
+    const userId = initialSession?.user?.id;
+    if (!userId) throw new Error("Sign in to manage registered devices.");
+    return identity.withLifecycleLock(userId, instanceId, async () => {
+      const currentSession = await getSession().catch(() => null);
+      if (currentSession?.user?.id !== userId) throw new Error("The signed-in account changed. Refresh the device list.");
+      const state = await readDeviceState(instanceId, userId);
+      if (!state?.ok || state.state === "not_registered") return { ok: false, confirmed: false, error: "DEVICE_NOT_FOUND" };
+      if (Number(state.generation) !== expectedGeneration) {
+        const pending = (await identity.listPending(userId).catch(() => []))
+          .find(row => row.clientInstanceId === instanceId && row.expectedGeneration === expectedGeneration);
+        if (pending) {
+          const retry = await lifecycle("pause", instanceId, {
+            expected_generation: pending.expectedGeneration, operation_id: pending.operationId,
+          }, userId).catch(() => null);
+          if (retry?.ok && retry.state === "paused") {
+            await identity.clearPending(pending).catch(() => {});
+            emitState({ state: "paused", confirmed: true, clientInstanceId: instanceId });
+            return { ...retry, confirmed: true, idempotent_retry: true };
+          }
+        }
+        return { ok: false, confirmed: false, error: "STALE_GENERATION" };
+      }
+      if (state.state === "paused") return { ok: true, confirmed: true, state: "paused", generation: Number(state.generation), already_paused: true };
+      const result = await pauseDeviceLocked(userId, instanceId, state);
+      if (!result.confirmed) return { ok: false, confirmed: false, error: result.result?.error || "PAUSE_UNCONFIRMED", retry_persisted: result.retryPersisted };
+      return { ...result.result, confirmed: true };
+    });
+  }
+
+  const pushPreferenceCategories = new Set(["financial_alerts", "reminders", "product_updates", "announcements_offers"]);
+  function validatePushPreferences(value) {
+    return value && typeof value === "object" && value.ok === true && value.account_security === true &&
+      ["financial_alerts", "reminders", "product_updates", "announcements_offers"].every(key => typeof value[key] === "boolean");
+  }
+
+  async function preferenceRpc(name, args, session) {
+    const config = window.NETRAOS_SUPABASE_CONFIG;
+    if (!config?.url || !config?.publishableKey || !session?.access_token) throw new Error("Sign in to manage push preferences.");
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), requestTimeoutMs);
+    try {
+      const response = await fetch(`${config.url.replace(/\/+$/, "")}/rest/v1/rpc/${name}`, {
+        method: "POST",
+        headers: { apikey: config.publishableKey, Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(args || {}),
+        signal: controller.signal,
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error("Push preferences could not be saved or loaded. Check your connection and sign in again.");
+      return data;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  async function getNotificationPreferences() {
+    const session = await getSession();
+    if (!session?.user?.id) throw new Error("Sign in to manage push preferences.");
+    const data = await preferenceRpc("push_get_notification_preferences", {}, session);
+    if (!validatePushPreferences(data)) throw new Error("Push preferences could not be loaded. Check your connection and refresh.");
+    const latest = await getSession().catch(() => null);
+    if (latest?.user?.id !== session.user.id) throw new Error("The signed-in account changed. Reload Settings to continue.");
+    return data;
+  }
+
+  async function setNotificationPreference(category, enabled) {
+    if (!pushPreferenceCategories.has(category) || typeof enabled !== "boolean") throw new Error("Choose a valid optional push category.");
+    const session = await getSession();
+    if (!session?.user?.id) throw new Error("Sign in to manage push preferences.");
+    const data = await preferenceRpc("push_set_notification_preference", { p_category: category, p_enabled: enabled }, session);
+    if (!validatePushPreferences(data)) throw new Error("That push preference was not saved. Check your connection and try again.");
+    const latest = await getSession().catch(() => null);
+    if (latest?.user?.id !== session.user.id) throw new Error("The signed-in account changed. Reload Settings to confirm the saved preference.");
+    return data;
+  }
+
   async function deactivateBeforeSignOut(userId) {
     let instanceId;
     try { instanceId = await identity.getExisting(userId); }
@@ -695,14 +777,34 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localho
         details.className = "settings-push-device-details";
         const name = document.createElement("strong");
         name.textContent = device.client_instance_id === currentId ? "This browser" : "Registered browser";
-        const id = document.createElement("code");
-        id.textContent = String(device.client_instance_id || "");
         const metadata = document.createElement("span");
         const seen = device.last_seen_at ? new Date(device.last_seen_at).toLocaleString() : "Not seen yet";
-        metadata.textContent = `Status: ${String(device.state || "unknown")} · Generation ${Number(device.generation) || 0} · Last seen ${seen}`;
-        details.append(name, id, metadata);
+        const consent = device.app_consent === true ? "Consent active" : "Consent revoked";
+        const registered = device.last_registered_at ? new Date(device.last_registered_at).toLocaleString() : "Not registered yet";
+        metadata.textContent = `Status: ${String(device.state || "unknown")} · ${consent} · Last seen ${seen} · Registered ${registered}`;
+        details.append(name, metadata);
         row.append(details);
         if (device.state !== "revoked" && typeof device.client_instance_id === "string" && Number.isSafeInteger(Number(device.generation))) {
+          const actions = document.createElement("div");
+          actions.className = "settings-push-device-actions";
+          if (["active", "pending"].includes(device.state)) {
+            const pause = document.createElement("button");
+            pause.type = "button";
+            pause.className = "secondary-button";
+            pause.textContent = "Pause";
+            pause.dataset.pushDevicePause = device.client_instance_id;
+            pause.dataset.expectedGeneration = String(device.generation);
+            pause.setAttribute("aria-label", `Pause notifications for ${device.client_instance_id === currentId ? "this browser" : "registered browser"}`);
+            actions.append(pause);
+          } else if (device.state === "paused" && device.client_instance_id === currentId) {
+            const resume = document.createElement("button");
+            resume.type = "button";
+            resume.className = "secondary-button";
+            resume.textContent = "Resume this browser";
+            resume.dataset.pushDeviceResume = device.client_instance_id;
+            resume.setAttribute("aria-label", "Resume push notifications on this browser");
+            actions.append(resume);
+          }
           const revoke = document.createElement("button");
           revoke.type = "button";
           revoke.className = "secondary-button danger-button";
@@ -710,7 +812,8 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localho
           revoke.dataset.pushDeviceRevoke = device.client_instance_id;
           revoke.dataset.expectedGeneration = String(device.generation);
           revoke.setAttribute("aria-label", `Revoke ${device.client_instance_id === currentId ? "this browser" : "registered browser"}`);
-          row.append(revoke);
+          actions.append(revoke);
+          row.append(actions);
         }
         container.append(row);
       }
@@ -721,6 +824,31 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localho
       failure.className = "settings-push-device-empty";
       failure.textContent = "Registered devices could not be loaded. Check your connection and refresh.";
       container.append(failure);
+    }
+  }
+
+  async function refreshNotificationPreferences() {
+    const container = document.querySelector("[data-push-preferences]");
+    if (!container) return;
+    const status = container.querySelector("[data-push-preference-status]");
+    const controls = [...container.querySelectorAll("[data-push-preference]")];
+    container.setAttribute("aria-busy", "true");
+    try {
+      const session = await getSession();
+      if (!session?.user?.id) throw new Error("Sign in to load push preferences.");
+      const preferences = await getNotificationPreferences();
+      if (!container.isConnected) return;
+      for (const control of controls) {
+        control.checked = preferences[control.dataset.pushPreference] === true;
+        control.dataset.savedValue = String(control.checked);
+        control.disabled = false;
+      }
+      if (status) status.textContent = "Optional browser push categories are off until you enable them.";
+    } catch (error) {
+      for (const control of controls) control.disabled = true;
+      if (status) status.textContent = error instanceof Error ? error.message : "Push preferences could not be loaded. Sign in and try again.";
+    } finally {
+      if (container.isConnected) container.setAttribute("aria-busy", "false");
     }
   }
 
@@ -738,6 +866,9 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localho
     revokeCurrentDevice,
     listDevices,
     isCurrentDevice,
+    pauseRegisteredDevice,
+    getNotificationPreferences,
+    setNotificationPreference,
     getPermission: currentPermission,
     reconcilePermission,
     retryPendingDeactivations,
@@ -785,6 +916,42 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localho
   }
 
   document.addEventListener("click", async event => {
+    const devicePause = event.target.closest("[data-push-device-pause]");
+    if (devicePause) {
+      const wrapper = devicePause.closest("[data-push-settings]");
+      const status = wrapper?.querySelector("[data-push-status]");
+      if (!status || devicePause.disabled) return;
+      const targetId = devicePause.dataset.pushDevicePause;
+      const generation = Number(devicePause.dataset.expectedGeneration);
+      if (!Number.isSafeInteger(generation) || !window.confirm("Pause push notifications for this browser? You can resume it later on that browser.")) return;
+      devicePause.disabled = true;
+      try {
+        const result = await pauseRegisteredDevice(targetId, generation);
+        if (!result?.ok || result.confirmed !== true) throw new Error(result?.error === "STALE_GENERATION" ? "This device changed. Refresh the list and try again." : "The server did not confirm that this device was paused.");
+        status.textContent = "Device pause was confirmed by the server.";
+        await refreshDeviceList();
+      } catch (error) {
+        status.textContent = error instanceof Error ? error.message : "Device pause could not be confirmed.";
+        await refreshDeviceList();
+      } finally { devicePause.disabled = false; }
+      return;
+    }
+    const deviceResume = event.target.closest("[data-push-device-resume]");
+    if (deviceResume) {
+      const wrapper = deviceResume.closest("[data-push-settings]");
+      const status = wrapper?.querySelector("[data-push-status]");
+      if (!status || deviceResume.disabled) return;
+      deviceResume.disabled = true;
+      try {
+        if (!await isCurrentDevice(deviceResume.dataset.pushDeviceResume)) throw new Error("Resume is available only on the browser that owns this device.");
+        status.textContent = "Checking permission and resuming this browser…";
+        await registerCurrentDevice();
+        status.textContent = "Registration is waiting for secure server confirmation.";
+      } catch (error) {
+        status.textContent = error instanceof Error ? error.message : "This browser could not be resumed.";
+      } finally { deviceResume.disabled = false; await refreshDeviceList(); }
+      return;
+    }
     const deviceRevoke = event.target.closest("[data-push-device-revoke]");
     if (deviceRevoke) {
       const wrapper = deviceRevoke.closest("[data-push-settings]");
@@ -837,6 +1004,30 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localho
       if (peer) peer.disabled = false;
     }
   });
+  document.addEventListener("change", async event => {
+    const preference = event.target.closest("[data-push-preference]");
+    if (!preference || preference.disabled) return;
+    const container = preference.closest("[data-push-preferences]");
+    const status = container?.querySelector("[data-push-preference-status]");
+    if (!container || !status) return;
+    const category = preference.dataset.pushPreference;
+    const previousValue = preference.dataset.savedValue === "true";
+    preference.disabled = true;
+    status.textContent = "Saving push preference…";
+    try {
+      const preferences = await setNotificationPreference(category, preference.checked);
+      if (!container.isConnected) return;
+      preference.checked = preferences[category] === true;
+      preference.dataset.savedValue = String(preference.checked);
+      preference.disabled = false;
+      status.textContent = "Push preference saved.";
+    } catch (error) {
+      preference.checked = previousValue;
+      preference.dataset.savedValue = String(previousValue);
+      preference.disabled = false;
+      status.textContent = error instanceof Error ? error.message : "The push preference could not be confirmed. Refresh before trying again.";
+    }
+  });
   window.addEventListener("netraos:push-state", event => {
     const status = document.querySelector("[data-push-status]");
     if (!status || !event.detail) return;
@@ -851,6 +1042,6 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localho
     if (messages[event.detail.state]) status.textContent = messages[event.detail.state];
     if (["registered", "paused", "revoked", "deactivation_unconfirmed"].includes(event.detail.state)) void refreshDeviceList();
   });
-  window.addEventListener("netraos:settings-rendered", () => { void refreshDeviceList(); });
-  window.addEventListener("netraos-auth-event", () => { void refreshDeviceList(); });
+  window.addEventListener("netraos:settings-rendered", () => { void refreshDeviceList(); void refreshNotificationPreferences(); });
+  window.addEventListener("netraos-auth-event", () => { void refreshDeviceList(); void refreshNotificationPreferences(); });
 })();

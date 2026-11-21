@@ -2400,7 +2400,23 @@ function renderSettingsPage() {
           <label class="settings-field"><span><strong>Income plan updates</strong><small>In-app 55/10/15/15/5 budget suggestions after monthly income changes.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Debt payoff</strong><small>In-app notices when a liability is marked as paid off.</small></span><input name="debtNotifications" type="checkbox" ${settings.debtNotifications ? "checked" : ""}></label>
           <label class="settings-field"><span><strong>Spending shortfall</strong><small>In-app notices if recorded spending moves above planned income.</small></span><input name="budgetNotifications" type="checkbox" ${settings.budgetNotifications ? "checked" : ""}></label>
-          <div class="settings-push-registration" data-push-settings><div><strong>Browser push notifications</strong><p class="settings-disclosure">NetraOS consent and browser permission are separate. Push delivery is not active until a later setup stage.</p></div><div class="settings-inline-actions"><button class="secondary-button" type="button" data-push-register ${pushConfigured && pushRegistrationState !== "indeterminate" ? "" : "disabled"}>Enable or resume on this device</button><button class="secondary-button" type="button" data-push-recover>Recover a previous device</button><button class="secondary-button" type="button" data-push-revoke>Unsubscribe this device</button></div><p class="passkey-status" data-push-status role="status" aria-live="polite">${escapeHTML(pushStatus)}</p><div class="settings-push-devices" aria-label="Registered push devices"><h3>Registered devices</h3><div data-push-devices aria-live="polite"><p class="settings-push-device-empty">Sign in to view devices registered to this account.</p></div></div></div>
+          <section class="settings-push-registration" data-push-settings aria-labelledby="push-settings-title">
+            <div><strong id="push-settings-title">Browser push notifications</strong><p class="settings-disclosure">Push preferences control browser notifications only. NetraOS consent and browser permission are separate; notification delivery is not active until the delivery service is configured.</p></div>
+            <div class="settings-inline-actions"><button class="secondary-button" type="button" data-push-register ${pushConfigured && pushRegistrationState !== "indeterminate" ? "" : "disabled"}>Enable or resume on this device</button><button class="secondary-button" type="button" data-push-recover>Recover a previous device</button><button class="secondary-button" type="button" data-push-revoke>Unsubscribe this device</button></div>
+            <p class="passkey-status" data-push-status role="status" aria-live="polite">${escapeHTML(pushStatus)}</p>
+            <section class="settings-push-preferences" aria-labelledby="push-preferences-title">
+              <div class="settings-push-preferences-heading"><h3 id="push-preferences-title">Browser push preferences</h3><p>Choose which optional updates NetraOS may send to your registered browsers.</p></div>
+              <div class="settings-push-preference-list" data-push-preferences aria-busy="true">
+                <p class="settings-push-preference-status" data-push-preference-status role="status" aria-live="polite">Sign in to load push preferences.</p>
+                <label class="settings-field settings-push-preference is-essential"><span><strong>Account and security</strong><small>Essential notices about sign-in, account protection, and security changes. Always enabled.</small></span><input type="checkbox" checked disabled aria-label="Account and security notifications are always enabled"></label>
+                <label class="settings-field settings-push-preference"><span><strong>Financial alerts</strong><small>Important updates about your financial activity and account records.</small></span><input type="checkbox" data-push-preference="financial_alerts" disabled aria-label="Financial alerts"></label>
+                <label class="settings-field settings-push-preference"><span><strong>Reminders</strong><small>Optional reminders related to plans, goals, and scheduled activity. Separate from in-app reminders above.</small></span><input type="checkbox" data-push-preference="reminders" disabled aria-label="Push reminders"></label>
+                <label class="settings-field settings-push-preference"><span><strong>Product updates</strong><small>Changes and new features in NetraOS.</small></span><input type="checkbox" data-push-preference="product_updates" disabled aria-label="Product updates"></label>
+                <label class="settings-field settings-push-preference"><span><strong>Announcements and offers</strong><small>Optional NetraOS announcements and special offers.</small></span><input type="checkbox" data-push-preference="announcements_offers" disabled aria-label="Announcements and offers"></label>
+              </div>
+            </section>
+            <div class="settings-push-devices" aria-label="Registered push devices"><h3>Registered devices</h3><div data-push-devices aria-live="polite"><p class="settings-push-device-empty">Sign in to view devices registered to this account.</p></div></div>
+          </section>
         </section>
         <section class="panel settings-panel settings-danger-zone" data-settings-section="danger"><div class="panel-heading"><div><div class="section-kicker">ACCOUNT CONTROL</div><h2>Reset or delete account data</h2></div></div>
           <p class="settings-disclosure">These actions can permanently remove information from your NetraOS account. Review the confirmation before continuing.</p>
@@ -3873,16 +3889,16 @@ function renderInventoryRows(type, categories) {
 }
 
 function inventoryCategoryIcon(entry) {
-  // Solid glyphs; the "cut" strokes pick up the disc colour so details read as cut-outs.
-  const svg = body => `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
-  const house = svg('<path d="M12 2.8 2.6 11.1c-.5.5-.2 1.4.6 1.4H5V20c0 .6.4 1 1 1h4v-6h4v6h4c.6 0 1-.4 1-1v-7.5h1.8c.8 0 1.1-.9.6-1.4L12 2.8Z"/>');
-  const bag = svg('<path d="M8.7 2.3 10.6 4l1.4-1.8L13.4 4l1.9-1.7-.9 3.6H9.6l-.9-3.6Z"/><path d="M9 7.2C6 9.2 3.5 12.4 3.5 15.8c0 3.2 2.3 5.4 5.6 5.4h5.8c3.3 0 5.6-2.2 5.6-5.4 0-3.4-2.5-6.6-5.5-8.6H9Z"/><path class="cut" d="M12 10.6v9M14.3 12.7c-.4-.8-1.3-1.2-2.4-1.2-1.4 0-2.3.7-2.3 1.7 0 2.1 4.9.9 4.9 3.2 0 1.1-1 1.9-2.6 1.9-1.2 0-2.2-.5-2.6-1.4"/>');
-  const card = svg('<rect x="2.2" y="4.6" width="19.6" height="14.8" rx="2.8"/><path class="cut" d="M2.2 9.6h19.6M5.4 15.2h2.8"/><rect class="cut" x="10.6" y="13.6" width="4.4" height="3.2" rx=".9"/>');
-  const bank = svg('<path d="M12 2.4 3 7v1.8h18V7l-9-4.6ZM4.6 10.4v6.4h2.4v-6.4H4.6Zm4.1 0v6.4h2.4v-6.4H8.7Zm4.1 0v6.4h2.4v-6.4h-2.4Zm4.1 0v6.4h2.4v-6.4h-2.4ZM3 18.6v2h18v-2H3Z"/>');
-  const phone = svg('<rect x="6.4" y="2" width="11.2" height="20" rx="2.6"/><path class="cut" d="M10 5.2h4M11 18.8h2"/>');
-  const chart = svg('<path d="M3 20.2h18v1.6H3zM4.8 11.4h3.6v7.4H4.8zM10.2 6.2h3.6v12.6h-3.6zM15.6 9.4h3.6v9.4h-3.6z"/>');
-  const doc = svg('<path d="M6.2 2h8l4.6 4.6V20c0 1.1-.9 2-2 2H6.2c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2Z"/><path class="cut" d="M8.2 12.2h7.6M8.2 15.8h7.6M14.2 2.4v4.8h4.4"/>');
-  const coin = svg('<circle cx="12" cy="12" r="9.6"/><path class="cut" d="M9.6 7.6h3.8a2.2 2.2 0 0 1 0 4.4H9.6m0 0h4.2a2.2 2.2 0 0 1 0 4.4H9.6M11 6v1.6m0 8.8V18m2.4-12v1.6m0 8.8V18"/>');
+  // Outline glyphs, drawn like the dashboard icons; colour comes from the tile (accent aware).
+  const svg = body => `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">${body}</svg>`;
+  const house = svg('<path d="M3 11.2 12 3.6l9 7.6"/><path d="M5.2 9.8V20h13.6V9.8"/><path d="M9.8 20v-5.4a2.2 2.2 0 0 1 4.4 0V20"/>');
+  const bag = svg('<path d="M9 3.2h6l-1.3 2.6h-3.4L9 3.2Z"/><path d="M10.3 5.8C7 8 4.8 11 4.8 14.6c0 3.4 2.4 5.8 5.8 5.8h2.8c3.4 0 5.8-2.4 5.8-5.8 0-3.6-2.2-6.6-5.5-8.8"/><path d="M12 10.4v7M14 12.2c-.4-.7-1.1-1-2-1-1.1 0-1.9.5-1.9 1.3 0 1.7 4 .7 4 2.5 0 .9-.8 1.5-2.1 1.5-.9 0-1.7-.4-2-1.1"/>');
+  const card = svg('<rect x="2.8" y="5" width="18.4" height="14" rx="2.6"/><path d="M2.8 9.6h18.4M6.4 15h3"/>');
+  const bank = svg('<path d="M12 3.6 3.4 8.4h17.2L12 3.6Z"/><path d="M5.2 10.8v6.4M9.7 10.8v6.4M14.3 10.8v6.4M18.8 10.8v6.4M3.4 20h17.2"/>');
+  const phone = svg('<rect x="6.8" y="2.8" width="10.4" height="18.4" rx="2.6"/><path d="M10.2 5.8h3.6M11 18h2"/>');
+  const chart = svg('<rect x="4.5" y="11.5" width="3.4" height="7.5" rx="1"/><rect x="10.3" y="5" width="3.4" height="14" rx="1"/><rect x="16.1" y="8.5" width="3.4" height="10.5" rx="1"/>');
+  const doc = svg('<path d="M6.5 2.8h7.2l4.8 4.8v12c0 .9-.7 1.6-1.6 1.6H6.5c-.9 0-1.6-.7-1.6-1.6V4.4c0-.9.7-1.6 1.6-1.6Z"/><path d="M13.5 3v5h5M8.2 13h7.6M8.2 16.6h7.6"/>');
+  const coin = svg('<circle cx="12" cy="12" r="8.8"/><path d="M9.6 8h3.6a2.1 2.1 0 0 1 0 4.2H9.6m0 0h4a2.1 2.1 0 0 1 0 4.2H9.6M11 6.6V8m0 8.4V18m2.4-11.4V8m0 8.4V18"/>');
   const icons = {
     "Property & vehicles": house, "Home loans": house,
     "Cash & savings": bag, "Money market funds": bag, "SACCO deposits": bag,
@@ -3973,7 +3989,6 @@ function renderInventoryPage() {
   const totals = getInventoryTotals();
   const houseIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.8 11.4 12 3l9.2 8.4"/><path d="M5.2 9.8v10.7h13.6V9.8"/><path d="M9.6 20.5v-5.2a2.4 2.4 0 0 1 4.8 0v5.2"/></svg>';
   const shieldIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.8 20 5.8v5.6c0 4.8-3.3 8.1-8 9.8-4.7-1.7-8-5-8-9.8V5.8l8-3Z"/><path d="M12 8.2v5M12 16.4h.01"/></svg>';
-  const netWorthIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg>';
 
   return `
     <section class="inventory-page">
@@ -3990,14 +4005,6 @@ function renderInventoryPage() {
           <span class="isc-shadow" aria-hidden="true"><span class="isc-shape"></span></span>
           <span class="isc-disc" aria-hidden="true">${shieldIcon}</span>
           <span class="isc-text"><span class="isc-name">Liabilities</span><strong class="isc-amount">${formatCompactKpiCurrency(totals.liabilities)}</strong></span>
-        </article>
-      </section>
-
-      <section class="inventory-summary" aria-label="Net worth">
-        <article class="inventory-summary-card net-worth-summary" data-net-worth-state="${totals.netWorth < 0 ? "negative" : totals.netWorth > 0 ? "positive" : "zero"}">
-          <span class="inventory-summary-icon">${netWorthIcon}</span>
-          <span class="inventory-label">NET WORTH</span>
-          <strong>${formatCompactKpiCurrency(totals.netWorth, 100000)}</strong>
         </article>
       </section>
 

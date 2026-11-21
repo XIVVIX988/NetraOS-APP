@@ -8,7 +8,7 @@
   "scripts": {
     "start": "electron .",
     "dist:windows": "electron-builder --win nsis",
-    "test:push": "node --test tests/push-stage3a*.test.mjs"
+    "test:push": "node --test tests/push-stage3a*.test.mjs tests/push-stage3b*.test.mjs"
   },
   "devDependencies": {
     "electron": "43.7.6",

@@ -8010,19 +8010,38 @@ body.theme-dark .theme-toggle[aria-pressed="true"] svg {
 .settings-push-device { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #dce5de; border-radius: 12px; background: #f8faf8; }
 .settings-push-device-details { display: grid; min-width: 0; gap: 4px; color: #47584d; font-size: 12px; }
 .settings-push-device-details strong { color: #24352a; font-size: 13px; }
-.settings-push-device-details code { overflow-wrap: anywhere; color: #64736a; font: 11px ui-monospace, SFMono-Regular, Consolas, monospace; }
 .settings-push-device-details span { overflow-wrap: anywhere; }
-.settings-push-device > button { flex: 0 0 auto; }
+.settings-push-device-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.settings-push-device-actions > button { min-height: 38px; }
 .settings-push-device-empty { margin: 0; color: #65736a; font-size: 12px; }
 .settings-push-device .danger-button { border-color: #efd2ce; color: #a23c31; background: #fff8f6; }
+.settings-push-preferences { display: grid; gap: 10px; margin-top: 16px; padding: 14px; border: 1px solid #e1e8e3; border-radius: 13px; background: #ffffff8c; }
+.settings-push-preferences-heading h3 { margin: 0; color: #263a2e; font: 700 14px var(--display); }
+.settings-push-preferences-heading p { margin: 4px 0 0; color: #65736a; font-size: 12px; line-height: 1.45; }
+.settings-push-preference-list { display: grid; gap: 0; }
+.settings-push-preference-list .settings-field { min-height: 58px; padding: 10px 0; border-bottom: 1px solid #e6ece8; }
+.settings-push-preference-list .settings-field:last-child { border-bottom: 0; }
+.settings-push-preference.is-essential { opacity: .88; }
+.settings-push-preference-status { min-height: 18px; margin: 0; color: #65736a; font-size: 12px; }
+.settings-push-preferences [data-push-preference]:disabled { cursor: wait; }
 body.theme-dark .settings-push-devices { border-color: #39483e; }
 body.theme-dark .settings-push-devices h3,
 body.theme-dark .settings-push-device-details strong { color: #e0e8e2; }
 body.theme-dark .settings-push-device { border-color: #435148; background: #202b24; }
 body.theme-dark .settings-push-device-details,
-body.theme-dark .settings-push-device-details code,
 body.theme-dark .settings-push-device-empty { color: #b8c4bb; }
 body.theme-dark .settings-push-device .danger-button { border-color: #68413b; color: #ffc1b6; background: #30211f; }
+body.theme-dark .settings-push-preferences { border-color: #39483e; background: #202b248c; }
+body.theme-dark .settings-push-preferences-heading h3 { color: #e0e8e2; }
+body.theme-dark .settings-push-preferences-heading p,
+body.theme-dark .settings-push-preference-status { color: #b8c4bb; }
+body.theme-dark .settings-push-preference-list .settings-field { border-color: #39483e; }
+@media (max-width: 640px) {
+  .settings-push-device { align-items: flex-start; flex-direction: column; }
+  .settings-push-device-actions { width: 100%; justify-content: flex-start; }
+  .settings-push-device-actions > button { flex: 1 1 auto; }
+  .settings-push-preferences { padding: 12px; }
+}
 .settings-downloads { display: grid; gap: 14px; margin-top: 16px; padding: 16px; border: 1px solid #e0e8e2; border-radius: 13px; background: #f8faf8; }
 .settings-downloads-heading h3 { margin: 0; color: #263a2e; font: 700 14px var(--display); }
 .settings-downloads-heading p { margin: 4px 0 0; color: #758179; font-size: 11px; line-height: 1.45; }
@@ -16030,3 +16049,32 @@ html body .app-shell.theme-dark .inventory-page .inventory-account-row .inventor
 .app-shell.theme-dark .isc-row .isc-amount { color: #f1f7f3; }
 .app-shell.theme-dark .isc-row .isc-add { box-shadow: 0 0 0 calc(8 * var(--u)) #1d5a41, 0 0 0 calc(15 * var(--u)) #2f9a6e, 0 0 calc(34 * var(--u)) calc(6 * var(--u)) rgba(70, 215, 150, .35); }
 @media (prefers-reduced-motion: reduce) { .app-shell .isc-row .isc-add { transition: none; } }
+
+/* ===== Inventory icons: same design as the dashboard glyphs, following the theme accent ===== */
+/* Tile = soft accent tint, glyph = accent colour, 1.7 outline stroke. Light and dark aware. */
+html .app-shell.app-shell .dashboard-overview-grid .kpi-glyph,
+html .app-shell.app-shell .inventory-page .isc-row .isc-disc.isc-disc,
+html .app-shell.app-shell .inventory-page .inventory-account-row .inventory-account-type-disc {
+  background: color-mix(in srgb, var(--green) 14%, #ffffff) !important;
+  box-shadow: none !important;
+  color: var(--green) !important;
+}
+html .app-shell.app-shell.theme-dark .dashboard-overview-grid .kpi-glyph,
+html .app-shell.app-shell.theme-dark .inventory-page .isc-row .isc-disc.isc-disc,
+html .app-shell.app-shell.theme-dark .inventory-page .inventory-account-row .inventory-account-type-disc {
+  background: color-mix(in srgb, var(--green) 18%, #17231d) !important;
+  color: var(--green) !important;
+}
+html .app-shell.app-shell .inventory-page .isc-row .isc-disc svg,
+html .app-shell.app-shell .inventory-page .inventory-account-row .inventory-account-type-disc svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+html .app-shell.app-shell .inventory-page .isc-row .isc-disc svg { width: calc(62 * var(--u)); height: calc(62 * var(--u)); }
+html .app-shell.app-shell .inventory-page .inventory-account-row .inventory-account-type-disc svg { width: 24px; height: 24px; }
+@media (max-width: 600px) {
+  html .app-shell.app-shell .inventory-page .inventory-account-row .inventory-account-type-disc svg { width: 30px; height: 30px; }
+}

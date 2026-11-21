@@ -24,6 +24,12 @@ export function jsonResponse(body, status, cors) {
   });
 }
 
+/**
+ * @returns {Promise<
+ *   { ok: true, value: Record<string, unknown> } |
+ *   { ok: false, status: number, code: string }
+ * >}
+ */
 export async function readJsonBody(request, maxBytes = PUSH_MAX_BODY_BYTES) {
   const contentType = request.headers.get("content-type") || "";
   if (!/^application\/json(?:\s*;|$)/i.test(contentType)) return { ok: false, status: 415, code: "JSON_REQUIRED" };
@@ -60,6 +66,10 @@ export function isUuid(value) {
 // The exact generated-FID grammar in the pinned SDK could not be independently
 // verified. Keep the existing database bound: 1-128 trimmed characters with
 // no control characters. This is shape validation only, never ownership proof.
+/**
+ * @param {unknown} value
+ * @returns {value is string}
+ */
 export function isFirebaseFid(value) {
   const characters = typeof value === "string" ? Array.from(value).length : 0;
   return typeof value === "string" && characters >= 1 && characters <= 128 &&

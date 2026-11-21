@@ -1,4 +1,4 @@
-import { corsHeaders, jsonResponse, readJsonBody, validateLifecycleBody, validateRegistrationBody } from "./push-http.mjs";
+import { corsHeaders, isFirebaseFid, jsonResponse, readJsonBody, validateLifecycleBody, validateRegistrationBody } from "./push-http.mjs";
 
 const reply = (body: Record<string, unknown>, status: number, cors: Record<string, string>) => jsonResponse(body, status, cors);
 
@@ -45,7 +45,9 @@ function readFingerprintKeys() {
 }
 
 async function hmacFingerprint(keyBytes: Uint8Array, fid: string) {
-  const key = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const rawKey = new Uint8Array(keyBytes.byteLength);
+  rawKey.set(keyBytes);
+  const key = await crypto.subtle.importKey("raw", rawKey.buffer, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const message = new TextEncoder().encode(`netraos:fid-fingerprint:v1\0${fid}`);
   const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, message));
   return Array.from(signature, byte => byte.toString(16).padStart(2, "0")).join("");
@@ -67,16 +69,20 @@ function serviceConfig() {
   return url && anon && service ? { url: url.replace(/\/+$/, ""), anon, service, appId } : null;
 }
 
-async function requestContext(request: Request, cors: Record<string, string>) {
+type RequestContext =
+  | { ok: false; error: Response }
+  | { ok: true; config: NonNullable<ReturnType<typeof serviceConfig>>; bearer: string; userId: string };
+
+async function requestContext(request: Request, cors: Record<string, string>): Promise<RequestContext> {
   const config = serviceConfig();
   const bearer = request.headers.get("authorization")?.match(/^Bearer\s+([^\s]+)$/i)?.[1];
-  if (!config || !bearer) return { error: reply({ error: "SERVICE_UNAVAILABLE" }, 503, cors) };
+  if (!config || !bearer) return { ok: false, error: reply({ error: "SERVICE_UNAVAILABLE" }, 503, cors) };
   const userId = await authenticatedUser(config.url, config.anon, bearer);
-  if (!userId) return { error: reply({ error: "AUTH_REQUIRED" }, 401, cors) };
-  return { config, bearer, userId };
+  if (!userId) return { ok: false, error: reply({ error: "AUTH_REQUIRED" }, 401, cors) };
+  return { ok: true, config, bearer, userId };
 }
 
-export async function handlePushRegistration(request: Request) {
+export async function handlePushRegistration(request: Request): Promise<Response> {
   const cors = corsHeaders(request.headers.get("origin"));
   if (!cors) return jsonResponse({ error: "ORIGIN_NOT_ALLOWED" }, 403, {});
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
@@ -85,8 +91,10 @@ export async function handlePushRegistration(request: Request) {
   if (!body.ok) return reply({ error: body.code }, body.status, cors);
   const validation = validateRegistrationBody(body.value);
   if (!validation.ok) return reply({ error: validation.code }, 400, cors);
+  const fid = body.value.fid;
+  if (!isFirebaseFid(fid)) return reply({ error: "INVALID_REGISTRATION" }, 400, cors);
   const context = await requestContext(request, cors);
-  if ("error" in context) return context.error;
+  if (!context.ok) return context.error;
   const { config, userId } = context;
   if (!config.appId) return reply({ error: "PUSH_NOT_CONFIGURED" }, 503, cors);
   try {
@@ -95,11 +103,11 @@ export async function handlePushRegistration(request: Request) {
     const keys = readFingerprintKeys();
     if (!keys || runtime.accepted_fingerprint_versions.some(version => !keys[version])) return reply({ error: "FINGERPRINT_KEYS_UNAVAILABLE" }, 503, cors);
     const fingerprints = await Promise.all(runtime.accepted_fingerprint_versions.map(async version => ({
-      version, fingerprint: await hmacFingerprint(keys[version], body.value.fid),
+      version, fingerprint: await hmacFingerprint(keys[version], fid),
     })));
     const response = await rpc(config.url, config.service, "push_edge_register", {
       p_user_id: userId, p_client_instance_id: body.value.client_instance_id, p_generation: body.value.generation,
-      p_fid: body.value.fid, p_fingerprints: fingerprints, p_operation_id: body.value.operation_id,
+      p_fid: fid, p_fingerprints: fingerprints, p_operation_id: body.value.operation_id,
       p_expected_app_id: config.appId,
     });
     const result = await response.json().catch(() => null);
@@ -122,7 +130,7 @@ const serverRpcByAction: Record<string, { name: string; args: (body: Record<stri
   recover: { name: "push_edge_recover", args: (body, userId, appId) => ({ p_user_id: userId, p_new_client_instance_id: body.client_instance_id, p_previous_client_instance_id: body.previous_client_instance_id, p_expected_generation: body.expected_generation, p_fid: body.fid, p_fingerprints: body.fingerprints, p_operation_id: body.operation_id, p_expected_app_id: appId }) },
 };
 
-export async function handlePushLifecycle(request: Request) {
+export async function handlePushLifecycle(request: Request): Promise<Response> {
   const cors = corsHeaders(request.headers.get("origin"));
   if (!cors) return jsonResponse({ error: "ORIGIN_NOT_ALLOWED" }, 403, {});
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
@@ -132,7 +140,7 @@ export async function handlePushLifecycle(request: Request) {
   const validation = validateLifecycleBody(body.value);
   if (!validation.ok) return reply({ error: validation.code }, 400, cors);
   const context = await requestContext(request, cors);
-  if ("error" in context) return context.error;
+  if (!context.ok) return context.error;
   const { config, bearer, userId } = context;
   try {
     const action = validation.action;
@@ -146,11 +154,13 @@ export async function handlePushLifecycle(request: Request) {
       if (!config.appId || !await runtimeConfig(config.url, config.anon, config.service, config.appId)) return reply({ error: "PUSH_NOT_CONFIGURED" }, 503, cors);
       let args = spec.args(body.value, userId, config.appId);
       if (action === "recover" || action === "recovery_candidate") {
+        const fid = body.value.fid;
+        if (!isFirebaseFid(fid)) return reply({ error: "INVALID_REQUEST" }, 400, cors);
         const runtime = await runtimeConfig(config.url, config.anon, config.service, config.appId);
         const keys = readFingerprintKeys();
         if (!runtime || !keys || runtime.accepted_fingerprint_versions.some(version => !keys[version])) return reply({ error: "FINGERPRINT_KEYS_UNAVAILABLE" }, 503, cors);
         const fingerprints = await Promise.all(runtime.accepted_fingerprint_versions.map(async version => ({
-          version, fingerprint: await hmacFingerprint(keys[version], body.value.fid),
+          version, fingerprint: await hmacFingerprint(keys[version], fid),
         })));
         args = { ...args, p_fingerprints: fingerprints };
       }
@@ -182,7 +192,7 @@ export async function handleFingerprintRekey(request: Request) {
   if (!body.ok || Object.keys(body.value).some(key => !["from_version", "to_version", "limit"].includes(key)) ||
       typeof body.value.from_version !== "string" || !/^[a-zA-Z0-9_-]{1,32}$/.test(body.value.from_version) ||
       typeof body.value.to_version !== "string" || !/^[a-zA-Z0-9_-]{1,32}$/.test(body.value.to_version) ||
-      body.value.from_version === body.value.to_version || !Number.isSafeInteger(body.value.limit) || body.value.limit < 1 || body.value.limit > 100) {
+      body.value.from_version === body.value.to_version || typeof body.value.limit !== "number" || !Number.isSafeInteger(body.value.limit) || body.value.limit < 1 || body.value.limit > 100) {
     return jsonResponse({ error: "INVALID_REQUEST" }, 400, {});
   }
   const config = serviceConfig(), keys = readFingerprintKeys();
