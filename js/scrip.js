@@ -5047,12 +5047,16 @@ function openPowerUpDialog(kind, editId = null, preset = {}) {
     const label = form.querySelector("[data-income-amount-label]");
     if (label && isIncome) {
       const grossBased = ["Salary", "Sacco returns"].includes(incomeCategorySelect.value);
-      const base = incomeRecurrenceToggle.checked ? "Amount per payment" : "One-time amount";
+      if (isReceivedIncome) {
+        label.textContent = "Amount received (KSh)";
+        return;
+      }
+      const base = incomeRecurrenceToggle?.checked === false ? "One-time amount" : "Amount per payment";
       label.textContent = `${base} (KSh)${grossBased ? " (gross)" : ""}`;
     }
   };
   const syncSalaryNetPreview = () => {
-    if (!isIncome) return;
+    if (!isIncome || isReceivedIncome) return;
     const preview = form.querySelector("[data-salary-net-preview]");
     const gross = Number(form.elements.amount.value);
     const category = incomeCategorySelect.value;
@@ -6147,28 +6151,23 @@ function renderPowerUpPage() {
 
   return `
     <section class="power-page">
-      <header class="inventory-heading">
-        <div>
-          <div class="eyebrow"><span class="eyebrow-line"></span> <span class="power-eyebrow-desktop">INCOME &amp; BUDGET</span><span class="power-eyebrow-mobile">YOUR MONEY</span></div>
-          <h1><span class="power-title-desktop">Give every shilling<br><em>a direction.</em></span><span class="power-title-mobile">Power-Up</span></h1>
-          <p class="welcome-sub">Plan income, budgets &amp; take-home pay.</p>
-        </div>
-        <button class="inventory-action power-heading-add" type="button" data-power-add-menu aria-haspopup="menu" aria-expanded="false" aria-label="Add income, budget, spending, or transfer" title="Add to Power-Up">
-          <span class="inventory-add-plus power-heading-add-plus" aria-hidden="true">+</span><span class="power-heading-add-label">Add</span>
+      <section class="isc-row power-isc-row" aria-label="Income, budget and add">
+        <article class="isc isc-assets">
+          <span class="isc-shadow" aria-hidden="true"><span class="isc-shape"></span></span>
+          <span class="isc-disc" aria-hidden="true">${powerIcons.income}</span>
+          <span class="isc-text"><span class="isc-name">Income</span><strong class="isc-amount">${formatCompactKpiCurrency(totals.reportIncome)}</strong></span>
+        </article>
+        <button class="isc-add" type="button" data-power-add-menu aria-haspopup="menu" aria-expanded="false" aria-label="Add income, budget, spending, or transfer" title="Add to Power-Up">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5v19M2.5 12h19"/></svg>
         </button>
-      </header>
+        <article class="isc isc-liabilities">
+          <span class="isc-shadow" aria-hidden="true"><span class="isc-shape"></span></span>
+          <span class="isc-disc" aria-hidden="true">${powerIcons.wallet}</span>
+          <span class="isc-text"><span class="isc-name">Budget</span><strong class="isc-amount">${formatCompactKpiCurrency(totals.reportBudget)}</strong></span>
+        </article>
+      </section>
 
       <section class="inventory-summary power-summary" aria-label="Monthly plan summary">
-        <article class="inventory-summary-card power-sum power-sum-income">
-          <span class="power-sum-icon" aria-hidden="true">${powerIcons.income}</span>
-          <span class="inventory-label">INCOME</span>
-          <strong>${formatKsh(totals.reportIncome)}</strong>
-        </article>
-        <article class="inventory-summary-card power-sum power-sum-budget">
-          <span class="power-sum-icon" aria-hidden="true">${powerIcons.wallet}</span>
-          <span class="inventory-label">BUDGET</span>
-          <strong>${formatKsh(totals.reportBudget)}</strong>
-        </article>
         <article class="inventory-summary-card power-sum-spending">
           <span class="inventory-label">SPENDING</span>
           <strong>${formatKsh(totals.spending)}</strong>
