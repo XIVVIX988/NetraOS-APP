@@ -16260,3 +16260,95 @@ html body .app-shell.app-shell .isc-row .isc-assets { padding: 0 calc(46 * var(-
 html body .app-shell.app-shell .isc-row .isc-liabilities { padding: 0 calc(26 * var(--u)) 0 calc(46 * var(--u)); }
 html body .app-shell.app-shell .isc-row .isc-liabilities .isc-text { order: 1; }
 html body .app-shell.app-shell .isc-row .isc-liabilities .isc-disc { order: 2; }
+
+/* ===== Dashboard insight card: gentle change every time the loop moves on ===== */
+@keyframes netraInsightIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.dashboard-next-action.is-changing [data-next-action-title],
+.dashboard-next-action.is-changing [data-next-action-copy] { animation: netraInsightIn .45s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-next-action.is-changing [data-next-action-title],
+  .dashboard-next-action.is-changing [data-next-action-copy] { animation: none; }
+}
+
+/* ===== Inventory rows: no "Active" pill; Asset / Liability are plain green or red words ===== */
+html body .app-shell.app-shell .inventory-page .inventory-account-row .inventory-state-chip { display: none !important; }
+html body .app-shell.app-shell .inventory-page .inventory-account-row .inventory-kind-chip {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  font-weight: 700;
+}
+html body .app-shell.app-shell .inventory-page .inventory-account-row .inventory-kind-chip.is-asset { color: #0b8a4f !important; }
+html body .app-shell.app-shell .inventory-page .inventory-account-row .inventory-kind-chip.is-liability { color: #d4343b !important; }
+html body .app-shell.app-shell.theme-dark .inventory-page .inventory-account-row .inventory-kind-chip.is-asset { color: #58d6a0 !important; }
+html body .app-shell.app-shell.theme-dark .inventory-page .inventory-account-row .inventory-kind-chip.is-liability { color: #ff8a80 !important; }
+
+/* ===== Power-Up: calendar note, empty states (accent aware) ===== */
+.forecast-received-note { color: #0b8a4f; font: 700 13px/1.2 var(--sans, Inter, sans-serif); cursor: help; padding: 8px 10px; border-radius: 10px; }
+.app-shell.theme-dark .forecast-received-note { color: #58d6a0; }
+.forecast-calendar-day.is-received::after { content: "✓"; position: absolute; right: 5px; bottom: 3px; font-size: 9px; font-weight: 800; color: #0b8a4f; }
+.power-empty { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.power-empty-icon { position: relative; display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 4px; border-radius: 17px; background: color-mix(in srgb, var(--green) 13%, var(--fx-card, #fff)); color: var(--green); transform: rotate(-5deg); }
+.power-empty-icon svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.power-empty-icon::before, .power-empty-icon::after { content: ""; position: absolute; top: 14px; width: 12px; height: 2.5px; border-radius: 2px; background: color-mix(in srgb, var(--green) 40%, transparent); box-shadow: 3px 12px 0 color-mix(in srgb, var(--green) 40%, transparent); }
+.power-empty-icon::before { left: -19px; }
+.power-empty-icon::after { right: -19px; transform: scaleX(-1); }
+.power-empty-title { color: var(--fx-muted, #6b7088); font: 600 13.5px/1.3 var(--sans, Inter, sans-serif); }
+.power-empty-detail { color: var(--fx-muted, #6b7088); font: 500 12.5px/1.35 var(--sans, Inter, sans-serif); }
+
+/* ===== Gross-to-net calculator: cleaner controls that follow the theme accent ===== */
+.app-shell .tax-panel { --tx-on: #ffffff; }
+.app-shell.theme-dark .tax-panel { --tx-on: #10141a; }
+html body .app-shell.app-shell .tax-panel .tax-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border: 0; border-radius: 14px; background: color-mix(in srgb, var(--green) 9%, var(--fx-card, #fff)); }
+html body .app-shell.app-shell .tax-panel .tax-toggle button { min-height: 36px; padding: 0 10px; border: 0; border-radius: 11px; background: transparent; box-shadow: none; color: var(--fx-muted, #6b7088); font: 700 13px/1 var(--sans, Inter, sans-serif); }
+html body .app-shell.app-shell .tax-panel .tax-toggle button.active { background: var(--green); color: var(--tx-on); box-shadow: 0 4px 12px color-mix(in srgb, var(--green) 30%, transparent); }
+html body .app-shell.app-shell .tax-panel .tax-field-label { color: var(--fx-muted, #6b7088); font: 700 11px/1.3 var(--sans, Inter, sans-serif); letter-spacing: .06em; text-transform: uppercase; }
+html body .app-shell.app-shell .tax-panel .tax-input-wrap { display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 14px; border: 1px solid var(--fx-line, #e6e8f0); border-radius: 14px; background: var(--fx-card, #fff); box-shadow: none; }
+html body .app-shell.app-shell .tax-panel .tax-input-wrap:focus-within { border-color: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 18%, transparent); }
+html body .app-shell.app-shell .tax-panel .tax-input-wrap span { color: var(--fx-muted, #6b7088); font: 700 13px/1 var(--sans, Inter, sans-serif); }
+html body .app-shell.app-shell .tax-panel .tax-input { width: 100%; min-width: 0; padding: 0; border: 0; outline: 0; background: transparent; color: var(--fx-ink, #171b3a); font: 800 20px/1 var(--display, Inter, sans-serif); letter-spacing: -.02em; }
+/* Slider: slim rounded track filled with the accent and a round white handle */
+html body .app-shell.app-shell .tax-panel .tax-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; margin: 8px 0 0; padding: 0; background: transparent; accent-color: var(--green); cursor: pointer; }
+html body .app-shell.app-shell .tax-panel .tax-slider::-webkit-slider-runnable-track { height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--green) 0 var(--fill, 0%), color-mix(in srgb, var(--green) 16%, var(--fx-line, #e6e8f0)) var(--fill, 0%) 100%); }
+html body .app-shell.app-shell .tax-panel .tax-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; margin-top: -8px; border: 3px solid var(--green); border-radius: 50%; background: #ffffff; box-shadow: 0 3px 10px rgba(20, 24, 40, .22); }
+html body .app-shell.app-shell .tax-panel .tax-slider::-moz-range-track { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--green) 16%, var(--fx-line, #e6e8f0)); }
+html body .app-shell.app-shell .tax-panel .tax-slider::-moz-range-progress { height: 8px; border-radius: 999px; background: var(--green); }
+html body .app-shell.app-shell .tax-panel .tax-slider::-moz-range-thumb { width: 18px; height: 18px; border: 3px solid var(--green); border-radius: 50%; background: #ffffff; box-shadow: 0 3px 10px rgba(20, 24, 40, .22); }
+html body .app-shell.app-shell .tax-panel .tax-slider:focus-visible { outline: 0; }
+html body .app-shell.app-shell .tax-panel .tax-slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px color-mix(in srgb, var(--green) 25%, transparent), 0 3px 10px rgba(20, 24, 40, .22); }
+html body .app-shell.app-shell .tax-panel .tax-slider-scale { display: flex; justify-content: space-between; margin-top: 0; color: var(--fx-muted, #6b7088); font: 500 10.5px/1 var(--sans, Inter, sans-serif); }
+html body .app-shell.app-shell .tax-panel .tax-use-income { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin: 10px 0 0; padding: 0 14px; border: 1px solid color-mix(in srgb, var(--green) 35%, var(--fx-line, #e6e8f0)); border-radius: 14px; background: color-mix(in srgb, var(--green) 9%, var(--fx-card, #fff)); box-shadow: none; color: var(--green); font: 700 13.5px/1 var(--sans, Inter, sans-serif); cursor: pointer; }
+html body .app-shell.app-shell .tax-panel .tax-use-income:hover { background: color-mix(in srgb, var(--green) 15%, var(--fx-card, #fff)); border-color: var(--green); color: var(--green); }
+html body .app-shell.app-shell .tax-panel .tax-use-income[data-tax-use-income]::before { content: ""; width: 16px; height: 16px; background: currentColor; -webkit-mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 12a8 8 0 1 1-2.6-5.9'/%3E%3Cpath d='M20 4v5h-5'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 12a8 8 0 1 1-2.6-5.9'/%3E%3Cpath d='M20 4v5h-5'/%3E%3C/svg%3E") center / contain no-repeat; }
+html body .app-shell.app-shell .tax-panel .tax-footnote { color: var(--fx-muted, #6b7088); font: 500 11px/1.45 var(--sans, Inter, sans-serif); }
+
+/* ===== Power-Up phone: calendar header on one line, smaller cards, icon next to its name ===== */
+@media (max-width: 880px) {
+html body .app-shell.app-shell #page-content .power-page {
+  & :is(.cashflow-forecast, .tax-panel, .power-list-panel) { padding: 12px 14px !important; border-radius: 20px !important; }
+  & .cashflow-forecast-heading { grid-template-columns: minmax(0, 1fr) auto !important; gap: 8px; margin: 0 0 8px !important; }
+  & .forecast-title { margin: 0; overflow: hidden; color: var(--pw-ink) !important; font: 700 12px/1.2 var(--display, Inter, sans-serif) !important; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; text-overflow: ellipsis; }
+  & .cashflow-forecast-actions .inventory-action { min-height: 32px !important; padding: 0 12px !important; font-size: 12.5px !important; }
+  & .forecast-calendar-day { height: 40px; }
+  & .forecast-calendar-weekdays span { padding: 4px 0; }
+  & .forecast-foot { margin-top: 2px; }
+  & .tax-panel > .panel-heading { grid-template-columns: 44px minmax(0, 1fr); }
+  & .tax-panel .section-kicker { font-size: 10.5px; }
+  & .tax-panel > .panel-heading h2 { font-size: 15px; }
+  & .tax-panel .tax-expand { min-height: 40px; margin-top: 10px !important; }
+  & .power-list-panel > .panel-heading { padding: 0 !important; margin: 0 0 2px !important; }
+  & .power-row { grid-template-columns: 30px minmax(0, 1fr) auto 40px 22px !important; padding: 6px 0 !important; }
+  & .power-row-icon { align-self: center !important; margin-top: 0 !important; place-items: center start; }
+  & .power-row:first-child .power-row-icon { margin-top: 0 !important; }
+  & .power-row-icon svg { width: 22px; height: 22px; }
+  & .power-row .inventory-row-edit { width: 40px; height: 42px; }
+  & .power-row-amount { padding: 0 10px 0 6px; }
+  & .power-list-panel .power-empty { padding: 12px 6px 6px !important; gap: 4px; }
+  & .power-empty::before { content: none !important; }
+  & .power-empty-detail { display: none; }
+  & .power-list-spending:has(.power-row) .inventory-panel-total { margin-left: 0; }
+  & .power-list-expand { padding-left: 0; }
+}
+}

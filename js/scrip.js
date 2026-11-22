@@ -1028,6 +1028,12 @@ function saveStoredProfile(profile) {
   localStorage.setItem(profileStorageKey, JSON.stringify(profile));
 }
 
+function longOrdinalDate(dateValue) {
+  const date = new Date(`${String(dateValue).slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return String(dateValue);
+  return `${date.toLocaleDateString("en-GB", { weekday: "long" })} ${ordinalDay(date.getDate())} ${date.toLocaleDateString("en-GB", { month: "long" })} ${date.getFullYear()}`;
+}
+
 function ordinalDay(day) {
   const mod100 = day % 100;
   if (mod100 >= 11 && mod100 <= 13) return `${day}th`;
@@ -2936,18 +2942,25 @@ function renderIncomeForecast(incomes) {
     const accessibleLabel = dayPayments.length
       ? `${accessibleDate}: ${dayPayments.length} expected payment${dayPayments.length === 1 ? "" : "s"}, ${formatKsh(dayTotal)}`
       : `${accessibleDate}: no expected income scheduled`;
-    const paydayDay = Math.min(getStoredSettings().paydayAnchorDay, dayCount);
-    const isPayday = day === paydayDay;
-    return `<button type="button" class="forecast-calendar-day${date === localDateValue() ? " is-today" : ""}${dayPayments.length ? " has-income" : ""}${isPayday ? " is-payday" : ""}" data-forecast-date="${date}" aria-pressed="false" aria-label="${escapeHTML(isPayday ? `${accessibleLabel}; payday` : accessibleLabel)}"${dayPayments.length ? ` title="${escapeHTML(names)}"` : ""}>${day}${dayPayments.length ? `<i aria-hidden="true"></i>` : ""}</button>`;
+    // The payday always follows the day saved in Settings, in every month shown.
+    const isPayday = paydayDate(monthDate.getFullYear(), monthDate.getMonth(), Number(getStoredSettings().paydayAnchorDay) || 1).getDate() === day;
+    const dayReceived = incomes.filter(item => item.status === "received" && String(item.date || "").slice(0, 10) === date);
+    return `<button type="button" class="forecast-calendar-day${date === localDateValue() ? " is-today" : ""}${dayPayments.length ? " has-income" : ""}${isPayday ? " is-payday" : ""}${dayReceived.length ? " is-received" : ""}" data-forecast-date="${date}" aria-pressed="false" aria-label="${escapeHTML(isPayday ? `${accessibleLabel}; payday` : accessibleLabel)}"${dayReceived.length ? ` title="${escapeHTML(`Income received on ${longOrdinalDate(date)}`)}"` : dayPayments.length ? ` title="${escapeHTML(names)}"` : ""}>${day}${dayPayments.length ? `<i aria-hidden="true"></i>` : ""}</button>`;
   }).join("")}`;
   const rows = payments.length ? payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")} · ${new Date(`${item.paymentDate}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("") : `<li class="forecast-month-empty">No expected payments</li>`;
   const paydayLabel = ordinalDay(getStoredSettings().paydayAnchorDay);
   const calendar = `<article class="forecast-month-card"><div class="forecast-month-heading"><div class="forecast-calendar-nav"><button type="button" data-forecast-month-nav="previous" aria-label="Previous month" ${incomeCalendarOffset <= -2 ? "disabled" : ""}>‹</button><h3>${escapeHTML(title)}</h3><button type="button" data-forecast-month-nav="next" aria-label="Next month" ${incomeCalendarOffset >= 11 ? "disabled" : ""}>›</button></div><small class="forecast-payday-note" title="Salary forecasts use this date">Payday · ${paydayLabel}</small></div><div class="forecast-calendar"><div class="forecast-calendar-weekdays" aria-hidden="true"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><section class="forecast-selected-day" data-forecast-selected-day aria-live="polite" hidden><strong>Choose a date</strong><span>Tap a calendar date to see its planned income.</span></section><ul>${rows}</ul></article>`;
   const received = incomes.filter(item => item.status === "received");
+  const receivedThisMonth = received.filter(item => String(item.date || "").slice(0, 7) === key).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  // Once the month's income has arrived there is nothing left to record, so the button gives way to a note.
+  const allReceived = !payments.length && receivedThisMonth.length > 0;
+  const receivedNote = allReceived
+    ? `<span class="forecast-received-note" tabindex="0" title="${escapeHTML(`On ${longOrdinalDate(String(receivedThisMonth[0].date).slice(0, 10))} the income was received.`)}">✓ Income received</span>`
+    : `<button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button>`;
   return `<section class="cashflow-forecast" aria-label="12-month income calendar">
-    <header class="cashflow-forecast-heading"><span class="power-panel-icon" aria-hidden="true">${powerIcons.calendar}</span><div><span class="section-kicker">12-MONTH PLAN</span><h2 class="forecast-title">Income calendar</h2></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button></div></header>
+    <header class="cashflow-forecast-heading"><h2 class="forecast-title">12-month income calendar</h2><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button></div></header>
     <div class="forecast-month-grid forecast-calendar-view">${calendar}</div>
-    <div class="forecast-foot">${received.length ? `<p class="forecast-footnote">Planned amounts are estimates. Mark them received when the money arrives.</p>` : `<p class="forecast-footnote">These amounts are estimates. Mark income as received when the money arrives.</p>`}<button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div>
+    <div class="forecast-foot">${received.length ? `<p class="forecast-footnote">Planned amounts are estimates. Mark them received when the money arrives.</p>` : `<p class="forecast-footnote">These amounts are estimates. Mark income as received when the money arrives.</p>`}${receivedNote}</div>
   </section>`;
 }
 
@@ -2992,7 +3005,16 @@ function getPowerUpTotals() {
   return getPowerUpReportTotals();
 }
 
+// The gross figure the calculator starts from: the salary logged for payday.
+function getPaydaySalaryGross() {
+  const salaries = getPowerUpData().incomes.filter(item => item.category === "Salary" && item.status !== "received");
+  const recurring = salaries.filter(item => incomeFrequency(item) !== "once");
+  return (recurring.length ? recurring : salaries).reduce((sum, item) => sum + Number(item.grossAmount ?? item.amount ?? 0), 0);
+}
+
 function getLoggedGrossIncome() {
+  const salary = getPaydaySalaryGross();
+  if (salary > 0) return salary;
   const grossIncomeEntries = getPowerUpData().incomes.map(item => ({
     ...item,
     amount: Number(item.grossAmount ?? item.amount ?? 0)
@@ -3517,6 +3539,40 @@ function updateDashboardFinancialInsight(stepState, quests = getQuests()) {
   } else if (stepState.account && balances.netWorth === 0) {
     add("Inventory", "Review balances", "Net worth is balanced", "Tracked assets and liabilities are equal.");
   }
+  const monthSpendingEntries = powerData.spending.filter(item => (item.month || String(item.date || "").slice(0, 7)) === insightMonth);
+  if (monthlyBudget > 0 && monthlySpending <= monthlyBudget) {
+    add("Power-Up", "Review budget", "Within budget", `${formatKsh(monthlyBudget - monthlySpending)} left of your ${formatKsh(monthlyBudget)} budget.`, "budget");
+  }
+  if (monthSpendingEntries.length && monthlySpending > 0) {
+    const byCategory = new Map();
+    monthSpendingEntries.forEach(item => byCategory.set(item.category || "Other", (byCategory.get(item.category || "Other") || 0) + Number(item.amount || 0)));
+    const [topName, topAmount] = [...byCategory.entries()].sort((a, b) => b[1] - a[1])[0];
+    add("Power-Up", "See spending", `Most spent on ${topName}`, `${Math.round(topAmount / monthlySpending * 100)}% of this month’s spending (${formatKsh(topAmount)}).`, "spending");
+  }
+  if (monthlyIncome > 0 && monthlyRemainder > 0) {
+    add("Stats", "See stats", "Savings rate", `You’re keeping ${Math.round(monthlyRemainder / monthlyIncome * 100)}% of this month’s income.`);
+  }
+  const receivedThisMonth = powerData.incomes
+    .filter(item => item.status === "received" && String(item.date || "").slice(0, 7) === insightMonth)
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  if (receivedThisMonth > 0) {
+    add("Power-Up", "See income", "Income received", `${formatKsh(receivedThisMonth)} received so far this month.`);
+  }
+  try {
+    const payday = nextPaydayDate();
+    const noon = new Date();
+    noon.setHours(12, 0, 0, 0);
+    const days = Math.round((Date.parse(`${payday}T12:00:00`) - noon.getTime()) / 86400000);
+    const paydayLabel = new Date(`${payday}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+    add("Power-Up", "Open calendar", days === 0 ? "Payday is today" : `Payday in ${days} day${days === 1 ? "" : "s"}`, `${paydayLabel}.`);
+  } catch { /* Payday is optional context for the loop. */ }
+  if (balances.assets > 0 && balances.liabilities > 0 && balances.assets >= balances.liabilities) {
+    add("Inventory", "Review balances", "Assets outweigh debts", `Assets cover your liabilities ${(balances.assets / balances.liabilities).toFixed(1)}×.`);
+  }
+  const largestAsset = getInventoryEntries().filter(item => item.type === "asset").sort((a, b) => Number(b.amount) - Number(a.amount))[0];
+  if (largestAsset && balances.assets > 0) {
+    add("Inventory", "Review balances", `Largest asset: ${largestAsset.name}`, `${formatKsh(Number(largestAsset.amount))} · ${Math.round(Number(largestAsset.amount) / balances.assets * 100)}% of your assets.`);
+  }
   if (!insights.length) add("Inventory", "Review balances", "Your finances are on track", "Review your balances and monthly plan.");
 
   nextAction.hidden = false;
@@ -3530,13 +3586,20 @@ function updateDashboardFinancialInsight(stepState, quests = getQuests()) {
   if (title) title.textContent = insight.heading;
   if (copy) copy.textContent = insight.message;
 
-  if (!dashboardInsightRotationTimer && !appShell.hidden && crumb.textContent === "Dashboard") {
-    dashboardInsightRotationTimer = window.setInterval(() => {
-      if (appShell.hidden || crumb.textContent !== "Dashboard" || document.visibilityState !== "visible") return;
-      dashboardInsightIndex += 1;
-      updateDashboardOnboarding();
-    }, 210000);
-  }
+  nextAction.classList.remove("is-changing");
+  void nextAction.offsetWidth;
+  nextAction.classList.add("is-changing");
+  startDashboardInsightRotation();
+}
+
+// The insight card moves to the next insight every 30 seconds while the dashboard is on screen.
+function startDashboardInsightRotation() {
+  if (dashboardInsightRotationTimer || appShell.hidden) return;
+  dashboardInsightRotationTimer = window.setInterval(() => {
+    if (appShell.hidden || crumb.textContent !== "Dashboard" || document.visibilityState !== "visible") return;
+    dashboardInsightIndex += 1;
+    updateDashboardOnboarding();
+  }, 30000);
 }
 
 // Currency helpers manage manual exchange rates, switcher labels, and formatted amounts.
@@ -4241,7 +4304,7 @@ function updateDashboardRecentActivity() {
       id: item.id, kind: "spending", name: item.name || "Expense", category: item.category || "Spending", recordedAt: item.recordedAt || item.createdAt || item.timestamp || item.created_at || "",
       amount: Number(item.amount || 0), date: activityDate(item.date) || (/^\d{4}-\d{2}$/.test(item.month || "") ? `${item.month}-01` : "")
     }))
-  ].filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && Number.isFinite(item.amount))
+  ].filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && Number.isFinite(item.amount) && !(item.kind === "income" && item.incomeStatus === "expected"))
     .sort((a, b) => {
       const sortTime = item => {
         const recordedTime = Date.parse(item.recordedAt);
@@ -4273,7 +4336,7 @@ function updateDashboardRecentActivity() {
       ? budgetCategoryIcons[item.category]
       : budgetCategoryIcons.Other;
     const icon = incomeCategory?.icon || (incoming ? incomeCategoryByLabel["Other income"].icon : spendingIcon);
-    const categoryLabel = incoming && item.incomeStatus === "expected" ? `Expected · ${item.category}` : item.category;
+    const categoryLabel = item.category;
     const timeStamp = recent ? new Date(recordedTime).toISOString() : item.date;
     return `<article class="dashboard-activity-row ${incoming ? "is-income" : "is-spending"}"><span class="dashboard-activity-name"><strong>${escapeHTML(item.name)}</strong><small class="dashboard-activity-category"><span class="dashboard-activity-icon" aria-hidden="true">${icon}</span>${escapeHTML(categoryLabel)}</small></span><span class="dashboard-activity-meta"><strong class="dashboard-activity-amount">${incoming ? "+" : "−"}${formatKsh(item.amount)}</strong><time datetime="${timeStamp}">${escapeHTML(displayDate)}</time></span></article>`;
   }).join("");
@@ -6072,7 +6135,6 @@ const powerIcons = {
 function renderPowerListPanel(key, heading, kicker, rows, totalLabel, total, phone = false, listControl = "") {
   return `
     <article class="panel power-list-panel power-list-${key}">
-      ${rows.includes('class="power-empty"') ? `<span class="power-panel-icon" aria-hidden="true">${key === "income" ? powerIcons.income : key === "budget" ? powerIcons.wallet : powerIcons.bars}</span>` : ""}
       <div class="panel-heading">
         <div><div class="section-kicker">${kicker}</div><h2>${heading}</h2></div>
         ${phone
@@ -6102,14 +6164,14 @@ function renderPowerUpPage() {
           <span class="power-row-icon income-icon" aria-hidden="true">${category?.icon || '<svg viewBox="0 0 24 24"><path d="M4 18h16M6 15l4-4 3 3 5-6M15 8h3v3"/></svg>'}</span>
           <span class="power-row-name">
             <strong>${escapeHTML(item.name)}</strong>
-            <small>${[received ? "" : "Expected", category?.label && category.label !== item.name ? category.label : "", cadenceLabel, item.notes].filter(Boolean).map(escapeHTML).join(" · ")}</small>
+            <small>${["", category?.label && category.label !== item.name ? category.label : "", cadenceLabel, item.notes].filter(Boolean).map(escapeHTML).join(" · ")}</small>
           </span>
           <strong class="power-row-amount">${formatKsh(item.amount)}<small>${received ? "received" : frequency === "once" ? "one-time" : `/ ${({ monthly: "month", quarterly: "quarter", yearly: "year" })[frequency] || frequency}`}</small></strong>
           <button class="inventory-row-edit" type="button" data-edit-power-item="${received ? "received-income" : "income"}" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit income">Edit</button>
           <button class="inventory-delete" type="button" data-delete-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete income">×</button>
         </div>`;
     }).join("")
-    : `<div class="power-empty">No income records yet. Plan expected payments or record income when it arrives.</div>`;
+    : `<div class="power-empty"><span class="power-empty-icon" aria-hidden="true">${powerIcons.income}</span><span class="power-empty-title">No income yet</span><span class="power-empty-detail">Plan expected payments or record income when it arrives.</span></div>`;
   const visibleBudgets = budgetListExpanded ? data.budgets : data.budgets.slice(0, 5);
   const budgetRows = data.budgets.length
     ? visibleBudgets.map(item => `
@@ -6123,7 +6185,7 @@ function renderPowerUpPage() {
           <button class="inventory-row-edit" type="button" data-edit-power-item="budget" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit budget line">Edit</button>
           <button class="inventory-delete" type="button" data-delete-power-item="budget" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete budget line">×</button>
         </div>`).join("")
-    : `<div class="power-empty">No budget lines yet. Add a monthly plan for your spending.</div>`;
+    : `<div class="power-empty"><span class="power-empty-icon" aria-hidden="true">${powerIcons.wallet}</span><span class="power-empty-title">No budget yet</span><span class="power-empty-detail">Add a monthly plan for your spending.</span></div>`;
   const budgetListControl = data.budgets.length > 5
     ? `<div class="power-list-expand"><button type="button" data-budget-list-toggle aria-expanded="${budgetListExpanded}">${budgetListExpanded ? "Show first 5" : `Show all ${data.budgets.length} budget lines`}</button></div>`
     : "";
@@ -6141,7 +6203,7 @@ function renderPowerUpPage() {
           <button class="inventory-row-edit" type="button" data-edit-power-item="spending" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit spending item">Edit</button>
           <button class="inventory-delete" type="button" data-delete-power-item="spending" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete spending item">×</button>
         </div>`).join("")
-    : `<div class="power-empty"><span class="power-empty-title">No spending recorded yet</span><span class="power-empty-detail">for ${getReportPeriod().toLowerCase()} · add an expense for ${reportMonthLabel()}</span></div>`;
+    : `<div class="power-empty"><span class="power-empty-icon" aria-hidden="true">${powerIcons.bars}</span><span class="power-empty-title">No spending recorded yet</span><span class="power-empty-detail">for ${getReportPeriod().toLowerCase()} · add an expense for ${reportMonthLabel()}</span></div>`;
   const spendingListControl = recentSpending.length > 5
     ? `<div class="power-list-expand"><button type="button" data-spending-list-toggle aria-expanded="${spendingListExpanded}">${spendingListExpanded ? "Show recent 5" : `Show all ${recentSpending.length} entries`}</button></div>`
     : "";
@@ -6281,7 +6343,14 @@ function solveGrossFromNet(targetNet) {
   return Math.round(high);
 }
 
+let taxSessionState = null;
+
 function getTaxState() {
+  // Changes made while playing with the calculator are kept until the page reloads;
+  // otherwise it opens on the logged payday salary.
+  if (taxSessionState) return taxSessionState;
+  const logged = Math.round(getLoggedGrossIncome());
+  if (logged > 0) return { mode: "gross", value: logged };
   let stored = null;
   try { stored = JSON.parse(localStorage.getItem(taxStorageKey) || "null"); } catch { stored = null; }
   if (stored && Number.isFinite(Number(stored.value)) && Number(stored.value) >= 0) {
@@ -6291,6 +6360,7 @@ function getTaxState() {
 }
 
 function saveTaxState(state) {
+  taxSessionState = { mode: state.mode === "net" ? "net" : "gross", value: Math.round(Number(state.value) || 0) };
   try { localStorage.setItem(taxStorageKey, JSON.stringify(state)); } catch { /* storage unavailable */ }
 }
 
@@ -6380,7 +6450,7 @@ function renderTaxWidget(compact = false, idSuffix = "", expandedByDefault = fal
       <div class="panel-heading">
         <span class="power-panel-icon" aria-hidden="true">${powerIcons.calculator}</span>
         <div>
-          <div class="section-kicker">${compact ? "KENYA · TAKE-HOME PAY" : "KENYA · PAYE, NSSF, SHIF &amp; HOUSING LEVY"}</div>
+          <div class="section-kicker">${compact ? "KENYA · TAKE-HOME PAY" : "KENYA · PAYROLL TAXES"}</div>
           <h2>${compact ? "Take-home calculator" : "Gross-to-net calculator"}</h2>
         </div>
         <button type="button" class="tax-expand" data-tax-toggle aria-expanded="${expandedByDefault}" aria-controls="${bodyId}"><span>${expandedByDefault ? "Close calculator" : "Open calculator"}</span><span class="tax-expand-icon" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><path d="m2.5 4.5 3.5 3.5 3.5-3.5" /></svg></span></button>
@@ -6526,7 +6596,7 @@ document.addEventListener("click", event => {
 
   const logged = Math.round(getLoggedGrossIncome());
   if (!logged) {
-    showToast("Add an income source first, then use it here.");
+    showToast("Add your salary in Power-Up first, then use it here.");
     return;
   }
   const state = { mode: "gross", value: logged };
