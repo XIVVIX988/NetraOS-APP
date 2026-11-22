@@ -16227,3 +16227,36 @@ html .app-shell.app-shell .power-page .isc-row .isc-disc svg { width: calc(62 * 
 @media (min-width: 881px) {
   .app-shell .power-page .power-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ===== Icons: plain accent-coloured glyphs (no circular background); pill icons moved to the outer edges ===== */
+html body .app-shell.app-shell.app-shell .isc-row .isc-disc.isc-disc.isc-disc,
+html body .app-shell.app-shell.app-shell .inventory-page .inventory-account-row .inventory-account-type-disc.inventory-account-type-disc,
+html body .app-shell.app-shell.app-shell .dashboard-overview-grid .kpi-glyph.kpi-glyph {
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--green) !important;
+}
+html body .app-shell.app-shell.app-shell .isc-row .isc-disc.isc-disc svg {
+  width: calc(66 * var(--u));
+  height: calc(66 * var(--u));
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* Icon box is only as wide as the glyph, so the name and amount get the room */
+html body .app-shell.app-shell.app-shell .isc-row .isc-disc.isc-disc {
+  flex: 0 0 calc(70 * var(--u));
+  width: calc(70 * var(--u));
+  height: calc(70 * var(--u));
+  border-radius: 0;
+}
+html body .app-shell.app-shell .isc-row .isc { gap: calc(8 * var(--u)); }
+/* Left pill: icon at the far left, words toward the button */
+html body .app-shell.app-shell .isc-row .isc-assets { padding: 0 calc(46 * var(--u)) 0 calc(26 * var(--u)); }
+/* Right pill: icon at the far right, words toward the button */
+html body .app-shell.app-shell .isc-row .isc-liabilities { padding: 0 calc(26 * var(--u)) 0 calc(46 * var(--u)); }
+html body .app-shell.app-shell .isc-row .isc-liabilities .isc-text { order: 1; }
+html body .app-shell.app-shell .isc-row .isc-liabilities .isc-disc { order: 2; }
