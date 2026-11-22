@@ -2942,12 +2942,12 @@ function renderIncomeForecast(incomes) {
   }).join("")}`;
   const rows = payments.length ? payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")} · ${new Date(`${item.paymentDate}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</small></span><b>${formatKsh(item.amount)}</b></li>`).join("") : `<li class="forecast-month-empty">No expected payments</li>`;
   const paydayLabel = ordinalDay(getStoredSettings().paydayAnchorDay);
-  const calendar = `<article class="forecast-month-card"><div class="forecast-month-heading"><div class="forecast-calendar-nav"><button type="button" data-forecast-month-nav="previous" aria-label="Previous month" ${incomeCalendarOffset <= -2 ? "disabled" : ""}>‹</button><h3>${escapeHTML(title)}</h3><button type="button" data-forecast-month-nav="next" aria-label="Next month" ${incomeCalendarOffset >= 11 ? "disabled" : ""}>›</button></div><small class="forecast-payday-note">Payday: ${paydayLabel} · Salary forecasts use this date</small></div><div class="forecast-calendar"><div class="forecast-calendar-weekdays" aria-hidden="true"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><section class="forecast-selected-day" data-forecast-selected-day aria-live="polite"><strong>Choose a date</strong><span>Tap a calendar date to see its planned income.</span></section><ul>${rows}</ul></article>`;
+  const calendar = `<article class="forecast-month-card"><div class="forecast-month-heading"><div class="forecast-calendar-nav"><button type="button" data-forecast-month-nav="previous" aria-label="Previous month" ${incomeCalendarOffset <= -2 ? "disabled" : ""}>‹</button><h3>${escapeHTML(title)}</h3><button type="button" data-forecast-month-nav="next" aria-label="Next month" ${incomeCalendarOffset >= 11 ? "disabled" : ""}>›</button></div><small class="forecast-payday-note" title="Salary forecasts use this date">Payday · ${paydayLabel}</small></div><div class="forecast-calendar"><div class="forecast-calendar-weekdays" aria-hidden="true"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="forecast-calendar-days">${calendarDays}</div></div><section class="forecast-selected-day" data-forecast-selected-day aria-live="polite" hidden><strong>Choose a date</strong><span>Tap a calendar date to see its planned income.</span></section><ul>${rows}</ul></article>`;
   const received = incomes.filter(item => item.status === "received");
   return `<section class="cashflow-forecast" aria-label="12-month income calendar">
-    <header class="cashflow-forecast-heading"><div><span class="section-kicker">12-MONTH INCOME CALENDAR</span></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button><button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div></header>
+    <header class="cashflow-forecast-heading"><span class="power-panel-icon" aria-hidden="true">${powerIcons.calendar}</span><div><span class="section-kicker">12-MONTH PLAN</span><h2 class="forecast-title">Income calendar</h2></div><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button></div></header>
     <div class="forecast-month-grid forecast-calendar-view">${calendar}</div>
-    ${received.length ? `<p class="forecast-footnote">Planned amounts are estimates. Mark them received when the money arrives.</p>` : `<p class="forecast-footnote">These amounts are estimates. Mark income as received when the money arrives.</p>`}
+    <div class="forecast-foot">${received.length ? `<p class="forecast-footnote">Planned amounts are estimates. Mark them received when the money arrives.</p>` : `<p class="forecast-footnote">These amounts are estimates. Mark income as received when the money arrives.</p>`}<button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button></div>
   </section>`;
 }
 
@@ -6056,9 +6056,19 @@ function navigateToAction(page, action = "") {
   });
 }
 
+// Outline icons for the Power-Up page (drawn like the dashboard glyphs; coloured by CSS).
+const powerIcons = {
+  calendar: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/></svg>',
+  calculator: '<svg viewBox="0 0 24 24"><rect x="5" y="2.8" width="14" height="18.4" rx="3"/><rect x="8" y="6" width="8" height="3.4" rx=".8"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 16.5h.01M12 16.5h.01M15.5 16.5h.01"/></svg>',
+  income: '<svg viewBox="0 0 24 24"><rect x="3.5" y="14" width="3.6" height="6" rx="1"/><rect x="9.3" y="11" width="3.6" height="9" rx="1"/><rect x="15.1" y="8" width="3.6" height="12" rx="1"/><path d="M4 9.5 9.5 5l3 2.5L20 2.5M16.5 2.5H20V6"/></svg>',
+  wallet: '<svg viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H17a2 2 0 0 1 2 2v1"/><rect x="3" y="7.5" width="18" height="12.5" rx="3"/><path d="M16 13h5v3.2h-5a1.6 1.6 0 0 1 0-3.2Z"/></svg>',
+  bars: '<svg viewBox="0 0 24 24"><rect x="4" y="11" width="4" height="9" rx="1.2"/><rect x="10" y="4" width="4" height="16" rx="1.2"/><rect x="16" y="14" width="4" height="6" rx="1.2"/></svg>'
+};
+
 function renderPowerListPanel(key, heading, kicker, rows, totalLabel, total, phone = false, listControl = "") {
   return `
-    <article class="panel power-list-panel">
+    <article class="panel power-list-panel power-list-${key}">
+      ${rows.includes('class="power-empty"') ? `<span class="power-panel-icon" aria-hidden="true">${key === "income" ? powerIcons.income : key === "budget" ? powerIcons.wallet : powerIcons.bars}</span>` : ""}
       <div class="panel-heading">
         <div><div class="section-kicker">${kicker}</div><h2>${heading}</h2></div>
         ${phone
@@ -6082,15 +6092,15 @@ function renderPowerUpPage() {
       const category = incomeCategoryByLabel[item.category];
       const received = item.status === "received";
       const frequency = incomeFrequency(item);
-      const cadenceLabel = received ? `Received ${item.date || ""}` : frequency === "once" ? `Expected ${item.expectedDate || item.startMonth || ""}` : item.category === "Salary" ? `${frequency[0].toUpperCase()}${frequency.slice(1)} · payday ${ordinalDay(getStoredSettings().paydayAnchorDay)}` : `${frequency[0].toUpperCase()}${frequency.slice(1)} · next ${item.expectedDate || "date to set"}`;
+      const cadenceLabel = received ? `Received ${item.date || ""}` : frequency === "once" ? `Expected ${item.expectedDate || item.startMonth || ""}` : item.category === "Salary" ? `${frequency[0].toUpperCase()}${frequency.slice(1)} · Payday ${ordinalDay(getStoredSettings().paydayAnchorDay)}` : `${frequency[0].toUpperCase()}${frequency.slice(1)} · next ${item.expectedDate || "date to set"}`;
       return `
         <div class="power-row">
           <span class="power-row-icon income-icon" aria-hidden="true">${category?.icon || '<svg viewBox="0 0 24 24"><path d="M4 18h16M6 15l4-4 3 3 5-6M15 8h3v3"/></svg>'}</span>
           <span class="power-row-name">
             <strong>${escapeHTML(item.name)}</strong>
-            <small>${received ? "Received" : "Expected"} · ${escapeHTML(category?.label || "Income")} · ${escapeHTML(cadenceLabel)}${item.notes ? ` · ${escapeHTML(item.notes)}` : ""}</small>
+            <small>${[received ? "" : "Expected", category?.label && category.label !== item.name ? category.label : "", cadenceLabel, item.notes].filter(Boolean).map(escapeHTML).join(" · ")}</small>
           </span>
-          <strong class="power-row-amount">${formatKsh(item.amount)}<small>${received ? "received" : frequency === "once" ? "one-time" : `/${frequency}`}</small></strong>
+          <strong class="power-row-amount">${formatKsh(item.amount)}<small>${received ? "received" : frequency === "once" ? "one-time" : `/ ${({ monthly: "month", quarterly: "quarter", yearly: "year" })[frequency] || frequency}`}</small></strong>
           <button class="inventory-row-edit" type="button" data-edit-power-item="${received ? "received-income" : "income"}" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit income">Edit</button>
           <button class="inventory-delete" type="button" data-delete-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete income">×</button>
         </div>`;
@@ -6127,7 +6137,7 @@ function renderPowerUpPage() {
           <button class="inventory-row-edit" type="button" data-edit-power-item="spending" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit spending item">Edit</button>
           <button class="inventory-delete" type="button" data-delete-power-item="spending" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete spending item">×</button>
         </div>`).join("")
-    : `<div class="power-empty">No spending recorded for ${getReportPeriod().toLowerCase()}. Add an expense for ${reportMonthLabel()}.</div>`;
+    : `<div class="power-empty"><span class="power-empty-title">No spending recorded yet</span><span class="power-empty-detail">for ${getReportPeriod().toLowerCase()} · add an expense for ${reportMonthLabel()}</span></div>`;
   const spendingListControl = recentSpending.length > 5
     ? `<div class="power-list-expand"><button type="button" data-spending-list-toggle aria-expanded="${spendingListExpanded}">${spendingListExpanded ? "Show recent 5" : `Show all ${recentSpending.length} entries`}</button></div>`
     : "";
@@ -6139,9 +6149,9 @@ function renderPowerUpPage() {
     <section class="power-page">
       <header class="inventory-heading">
         <div>
-          <div class="eyebrow"><span class="eyebrow-line"></span> INCOME &amp; BUDGET</div>
-          <h1><span class="power-title-desktop">Give every shilling<br><em>a direction.</em></span><span class="power-title-mobile">Power-Up &amp; Tax</span></h1>
-          <p class="welcome-sub">Plan your income, budget, and take-home pay.</p>
+          <div class="eyebrow"><span class="eyebrow-line"></span> <span class="power-eyebrow-desktop">INCOME &amp; BUDGET</span><span class="power-eyebrow-mobile">YOUR MONEY</span></div>
+          <h1><span class="power-title-desktop">Give every shilling<br><em>a direction.</em></span><span class="power-title-mobile">Power-Up</span></h1>
+          <p class="welcome-sub">Plan income, budgets &amp; take-home pay.</p>
         </div>
         <button class="inventory-action power-heading-add" type="button" data-power-add-menu aria-haspopup="menu" aria-expanded="false" aria-label="Add income, budget, spending, or transfer" title="Add to Power-Up">
           <span class="inventory-add-plus power-heading-add-plus" aria-hidden="true">+</span><span class="power-heading-add-label">Add</span>
@@ -6149,20 +6159,22 @@ function renderPowerUpPage() {
       </header>
 
       <section class="inventory-summary power-summary" aria-label="Monthly plan summary">
-        <article class="inventory-summary-card">
+        <article class="inventory-summary-card power-sum power-sum-income">
+          <span class="power-sum-icon" aria-hidden="true">${powerIcons.income}</span>
           <span class="inventory-label">INCOME</span>
           <strong>${formatKsh(totals.reportIncome)}</strong>
         </article>
-        <article class="inventory-summary-card">
+        <article class="inventory-summary-card power-sum power-sum-budget">
+          <span class="power-sum-icon" aria-hidden="true">${powerIcons.wallet}</span>
           <span class="inventory-label">BUDGET</span>
           <strong>${formatKsh(totals.reportBudget)}</strong>
         </article>
-        <article class="inventory-summary-card">
+        <article class="inventory-summary-card power-sum-spending">
           <span class="inventory-label">SPENDING</span>
           <strong>${formatKsh(totals.spending)}</strong>
           <span class="inventory-note">${reportSpending.length} ${getReportPeriod().toLowerCase()} ${reportSpending.length === 1 ? "record" : "records"}</span>
         </article>
-        <article class="inventory-summary-card net-worth-summary">
+        <article class="inventory-summary-card net-worth-summary power-sum-after">
           <span class="inventory-label">AFTER SPENDING</span>
           <strong>${formatKsh(totals.cashAfterSpending)}</strong>
           <span class="inventory-note">${savingsRate}% savings rate</span>
@@ -6367,11 +6379,12 @@ function renderTaxWidget(compact = false, idSuffix = "", expandedByDefault = fal
   return `
     <article class="panel tax-panel${expandedByDefault ? "" : " tax-collapsed"}${compact ? " tax-compact" : ""}" data-tax-mode="${state.mode}" aria-label="Gross to net calculator">
       <div class="panel-heading">
+        <span class="power-panel-icon" aria-hidden="true">${powerIcons.calculator}</span>
         <div>
           <div class="section-kicker">${compact ? "KENYA · TAKE-HOME PAY" : "KENYA · PAYE, NSSF, SHIF &amp; HOUSING LEVY"}</div>
-          <h2>${compact ? "Take-home calculator" : "Gross-to-net take-home"}</h2>
+          <h2>${compact ? "Take-home calculator" : "Gross-to-net calculator"}</h2>
         </div>
-        <button type="button" class="tax-expand" data-tax-toggle aria-expanded="${expandedByDefault}" aria-controls="${bodyId}"><span>${expandedByDefault ? "Hide calculator" : "Show calculator"}</span><span class="tax-expand-icon" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><path d="m2.5 4.5 3.5 3.5 3.5-3.5" /></svg></span></button>
+        <button type="button" class="tax-expand" data-tax-toggle aria-expanded="${expandedByDefault}" aria-controls="${bodyId}"><span>${expandedByDefault ? "Close calculator" : "Open calculator"}</span><span class="tax-expand-icon" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><path d="m2.5 4.5 3.5 3.5 3.5-3.5" /></svg></span></button>
       </div>
       <div class="tax-body" id="${bodyId}">
         <div class="tax-toggle" role="group" aria-label="Calculate from">
@@ -6497,7 +6510,7 @@ document.addEventListener("click", event => {
   if (taxToggle) {
     const expanded = panel.classList.toggle("tax-collapsed") === false;
     taxToggle.setAttribute("aria-expanded", String(expanded));
-    taxToggle.querySelector("span").textContent = expanded ? "Hide calculator" : "Show calculator";
+    taxToggle.querySelector("span").textContent = expanded ? "Close calculator" : "Open calculator";
     return;
   }
   const current = { mode: panel.dataset.taxMode === "net" ? "net" : "gross", value: Number(panel.querySelector(".tax-input").value.replace(/\D/g, "")) || 0 };
@@ -9719,6 +9732,7 @@ document.addEventListener("click", event => {
       .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
     const details = forecast?.querySelector("[data-forecast-selected-day]");
     if (details) {
+      details.hidden = false;
       const dateLabel = new Date(`${selectedDate}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
       const total = payments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
       const rows = payments.map(item => `<li><span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.category || "Income")}</small><b>${formatKsh(item.amount)}</b></span><div class="forecast-income-actions"><button type="button" data-edit-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit planned income">Edit</button><button type="button" data-delete-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete planned income">×</button></div></li>`).join("");
