@@ -1084,6 +1084,18 @@ function getStoredSettings() {
 }
 
 // Apply browser-saved preferences and keep the header and settings controls in sync.
+// Appearance choices save the moment they are picked, so they never wait for "Save changes".
+function saveSettingsPatch(patch) {
+  try {
+    localStorage.setItem(settingsStorageKey, JSON.stringify({ ...getStoredSettings(), ...patch }));
+  } catch {
+    showToast("Couldn’t save that change. Please try again.");
+    return false;
+  }
+  applyStoredSettings();
+  return true;
+}
+
 function applyStoredSettings(themeModeOverride = "") {
   const settings = getStoredSettings();
   const themeMode = ["light", "dark", "system"].includes(themeModeOverride) ? themeModeOverride : settings.themeMode;
@@ -1222,7 +1234,7 @@ function clearButtonLoading(button) {
 document.addEventListener("click", event => {
   if (!(event.target instanceof Element)) return;
   const button = event.target.closest("button");
-  if (!button || button.disabled || button.matches(".auth-submit") || button.matches(".mobile-tab, [data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
+  if (!button || button.disabled || button.matches(".auth-submit") || (button.closest(".settings-page") && !button.matches('[type="submit"]')) || button.matches(".mobile-tab, [data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
   const state = { spinner: null, observer: null, timer: 0, minUntil: performance.now() + 300 };
   buttonLoadingStates.set(button, state);
   button.classList.add("is-loading");
@@ -2106,7 +2118,7 @@ function showPublicPage(page = "landing", { preserveAuthCallback = false } = {})
     const isSignup = page === "signup";
     publicShell.innerHTML = `
       <div class="auth-page${isSignup ? " auth-signup-page" : " auth-login-page"}">
-        ${isSignup ? '<img class="auth-signup-background" src="assets/sign%20up.jpeg" alt="A bald eagle soaring above clouds and mountain peaks" fetchpriority="high">' : '<img class="auth-login-background" src="assets/log%20in.jpeg" alt="A bald eagle flying through a mountain sky" fetchpriority="high">'}
+        <img class="auth-signup-background" src="assets/sign%20up.jpeg" alt="A bald eagle soaring above clouds and mountain peaks" fetchpriority="high">
         <button class="auth-back auth-back-icon" type="button" data-public-action="landing" aria-label="Back to NetraOS"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg></button>
         <section class="auth-card">
           <div class="auth-content">
@@ -2430,14 +2442,17 @@ function renderSettingsPage() {
         </section>
         </section>
         <section class="settings-tab-panel" id="settings-panel-appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" data-settings-panel="appearance" tabindex="0" ${activeSettingsTab === "appearance" ? "" : "hidden"}>
-        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">LOOK &amp; FEEL</div><h2>Appearance</h2></div></div>
-          <div class="settings-field settings-theme-field"><span><strong>Theme</strong><small>Choose light, dark, or follow your device setting.</small></span><select name="themeMode" aria-label="Theme"><option value="light" ${settings.themeMode === "light" ? "selected" : ""}>Light</option><option value="dark" ${settings.themeMode === "dark" ? "selected" : ""}>Dark</option><option value="system" ${settings.themeMode === "system" ? "selected" : ""}>System</option></select><div class="settings-theme-choice" role="group" aria-label="Choose theme">${[["light", "Light"], ["dark", "Dark"], ["system", "System"]].map(([value, label]) => `<button type="button" data-theme-mode="${value}" class="${settings.themeMode === value ? "is-selected" : ""}" aria-pressed="${settings.themeMode === value}">${label}</button>`).join("")}</div></div>
-          <div class="settings-field settings-accent-field"><span class="settings-accent-heading"><strong>Theme accent</strong><small>Choose the colors used across the app.</small></span><div class="accent-picker" role="radiogroup" aria-label="Theme accent">${ACCENT_PRESETS.map(preset => `<button type="button" class="accent-choice${settings.accentProfile === preset.id ? " is-selected" : ""}" role="radio" aria-checked="${settings.accentProfile === preset.id}" tabindex="${settings.accentProfile === preset.id ? "0" : "-1"}" data-accent-choice="${preset.id}" style="--accent-swatch-primary:${preset.primary};--accent-swatch-color:${preset.accent};--accent-swatch-surface:${preset.surface}"><span class="accent-choice-swatch" aria-hidden="true"><i></i><i></i><i></i></span><span class="accent-choice-name">${preset.name}</span><svg class="accent-choice-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7 12 3.2 3.2L17.5 8"/></svg></button>`).join("")}</div><input type="hidden" name="accentProfile" value="${settings.accentProfile}"></div>
-          <label class="settings-field"><span><strong>Always show cents</strong><small>Show two decimal places in money amounts.</small></span><input name="alwaysShowCents" type="checkbox" ${settings.alwaysShowCents ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Reduce motion</strong><small>Use fewer animations and hover effects.</small></span><input name="reduceMotion" type="checkbox" ${settings.reduceMotion ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Show XP points</strong><small>Show quest status badges and XP-style progress labels.</small></span><input name="showXpPoints" type="checkbox" ${settings.showXpPoints ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Quest completion sounds</strong><small>Play a short sound when a quest is completed.</small></span><input name="questSounds" type="checkbox" ${settings.questSounds ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Quest completion animations</strong><small>Show the milestone celebration animation.</small></span><input name="questAnimations" type="checkbox" ${settings.questAnimations ? "checked" : ""}></label>
+        <section class="panel settings-panel settings-appearance-panel"><div class="panel-heading"><div><h2>Appearance</h2></div></div>
+          <div class="settings-field settings-theme-field">
+            <input type="hidden" name="themeMode" value="${settings.themeMode}">
+            <div class="settings-theme-choice" role="radiogroup" aria-label="Theme">${[["system", "System"], ["light", "Light"], ["dark", "Dark"]].map(([value, label]) => `<button type="button" role="radio" data-theme-mode="${value}" class="theme-tile theme-tile-${value}${settings.themeMode === value ? " is-selected" : ""}" aria-checked="${settings.themeMode === value}" aria-pressed="${settings.themeMode === value}"><span class="theme-tile-art" aria-hidden="true"><i class="tt-notch"></i><i class="tt-bar"></i><i class="tt-line"></i><i class="tt-card"></i></span><span class="theme-tile-check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m6.5 12.5 3.6 3.6 7.4-8"/></svg></span><span class="theme-tile-name">${label}</span></button>`).join("")}</div>
+          </div>
+          <div class="settings-field settings-accent-field"><span class="settings-accent-heading"><strong>Theme accent</strong></span><div class="accent-picker" role="radiogroup" aria-label="Theme accent">${ACCENT_PRESETS.map(preset => `<button type="button" class="accent-choice${settings.accentProfile === preset.id ? " is-selected" : ""}" role="radio" aria-checked="${settings.accentProfile === preset.id}" tabindex="${settings.accentProfile === preset.id ? "0" : "-1"}" data-accent-choice="${preset.id}" style="--accent-swatch-primary:${preset.primary};--accent-swatch-color:${preset.accent};--accent-swatch-surface:${preset.surface}"><span class="accent-choice-swatch" aria-hidden="true"><i></i><i></i><i></i></span><span class="accent-choice-name">${preset.name}</span><svg class="accent-choice-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7 12 3.2 3.2L17.5 8"/></svg></button>`).join("")}</div><input type="hidden" name="accentProfile" value="${settings.accentProfile}"></div>
+          <label class="settings-field"><span><strong>Always show cents</strong></span><input name="alwaysShowCents" type="checkbox" ${settings.alwaysShowCents ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Reduce motion</strong></span><input name="reduceMotion" type="checkbox" ${settings.reduceMotion ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Show XP points</strong></span><input name="showXpPoints" type="checkbox" ${settings.showXpPoints ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Quest completion sounds</strong></span><input name="questSounds" type="checkbox" ${settings.questSounds ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Quest completion animations</strong></span><input name="questAnimations" type="checkbox" ${settings.questAnimations ? "checked" : ""}></label>
         </section>
         </section>
         <section class="settings-tab-panel" id="settings-panel-currency" role="tabpanel" aria-labelledby="settings-tab-currency" data-settings-panel="currency" tabindex="0" ${activeSettingsTab === "currency" ? "" : "hidden"}>
@@ -2533,7 +2548,7 @@ function setupSettingsTabs(root = content) {
   const mobileTabs = [...root.querySelectorAll("[data-settings-mobile-tab]")];
   const panels = [...root.querySelectorAll("[data-settings-panel]")];
   const settingsForm = root.querySelector("[data-account-form='settings']");
-  const themeSelect = root.querySelector('select[name="themeMode"]');
+  const themeSelect = root.querySelector('[name="themeMode"]');
   const themeButtons = [...root.querySelectorAll("[data-theme-mode]")];
   const accentInput = root.querySelector('input[name="accentProfile"]');
   const accentButtons = [...root.querySelectorAll("[data-accent-choice]")];
@@ -2655,17 +2670,15 @@ function setupSettingsTabs(root = content) {
     const selected = button.dataset.themeMode === value;
     button.classList.toggle("is-selected", selected);
     button.setAttribute("aria-pressed", String(selected));
+    button.setAttribute("aria-checked", String(selected));
   });
   themeButtons.forEach(button => button.addEventListener("click", () => {
-    if (!themeSelect || !["light", "dark", "system"].includes(button.dataset.themeMode)) return;
-    themeSelect.value = button.dataset.themeMode;
-    syncThemeButtons(themeSelect.value);
-    applyStoredSettings(themeSelect.value);
+    const mode = button.dataset.themeMode;
+    if (!["light", "dark", "system"].includes(mode)) return;
+    if (themeSelect) themeSelect.value = mode;
+    syncThemeButtons(mode);
+    saveSettingsPatch({ themeMode: mode, darkMode: mode === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : mode === "dark" });
   }));
-  themeSelect?.addEventListener("change", () => {
-    syncThemeButtons(themeSelect.value);
-    applyStoredSettings(themeSelect.value);
-  });
   const syncAccentButtons = value => accentButtons.forEach(button => {
     const selected = button.dataset.accentChoice === value;
     button.classList.toggle("is-selected", selected);
@@ -2677,6 +2690,7 @@ function setupSettingsTabs(root = content) {
       if (!accentInput || !ACCENT_IDS.includes(button.dataset.accentChoice)) return;
       accentInput.value = button.dataset.accentChoice;
       syncAccentButtons(accentInput.value);
+      saveSettingsPatch({ accentProfile: accentInput.value });
     });
     button.addEventListener("keydown", event => {
       const nextIndex = event.key === "ArrowRight" || event.key === "ArrowDown" ? (index + 1) % accentButtons.length
