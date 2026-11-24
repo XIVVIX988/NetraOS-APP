@@ -5358,8 +5358,8 @@ function renderQuestsPage() {
       <header class="inventory-heading">
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> GOALS WITH MOMENTUM</div>
-          <h1><span class="quests-title-desktop">Financial quests</span><span class="quests-title-mobile">Quests</span></h1>
-          <p class="welcome-sub">Set a goal. Track progress. Celebrate each win.</p>
+          <h1><span class="quests-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2c.7 5 2.4 7.6 5.1 8.6C20 11.5 21.4 12 22 12c-.6 0-2 .5-4.9 1.4-2.7 1-4.4 3.6-5.1 8.6-.7-5-2.4-7.6-5.1-8.6C4 12.5 2.600 12 2 12c.6 0 2-.5 4.900-1.400C9.600 9.600 11.300 7 12 2Z"/></svg></span><span class="quests-title-desktop">Financial quests</span><span class="quests-title-mobile">Quests</span></h1>
+          <p class="welcome-sub">Set a goal. Track progress, celebrate each win.</p>
         </div>
         <button class="inventory-action quest-heading-add" type="button" data-quest-action="add" aria-label="Create a quest" ${canAddQuest ? "" : "disabled"} title="${canAddQuest ? "Create a quest" : "Complete or remove an active quest to make room"}">
           <span class="inventory-add-plus quest-heading-add-plus" aria-hidden="true">+</span><span class="quest-heading-add-label">New quest</span>
@@ -5374,7 +5374,7 @@ function renderQuestsPage() {
           <div class="quest-track" role="progressbar" aria-label="Overall quest savings progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${engine.rate}"><i style="width:${engine.rate}%"></i></div>
         </article>
       </section>
-      ${active.length ? `<aside class="quest-plan-insight"><span class="quest-insight-icon" aria-hidden="true">✳</span><span>${engine.monthly > 0 ? `Plan for about <strong>${formatKsh(Math.ceil(engine.monthly))} per month</strong> to stay on pace${engine.top ? ` with <strong>${escapeHTML(engine.top.name)}</strong> as your top priority` : ""}.` : `Add target dates to your active quests to see the monthly pace needed${engine.top ? ` for your top priority, <strong>${escapeHTML(engine.top.name)}</strong>` : ""}.`}</span></aside>` : ""}
+      ${active.length ? `<aside class="quest-plan-insight" data-quest-focus-top role="button" tabindex="0"><span class="quest-insight-icon" aria-hidden="true">${questNavigationIcon}</span><span class="quest-insight-text">${engine.monthly > 0 ? `Plan for about <strong>${formatKsh(Math.ceil(engine.monthly))} per month</strong> to stay on pace${engine.top ? ` with <strong>${escapeHTML(engine.top.name)}</strong> as your top priority` : ""}.` : `Add target dates to your active quests to see the monthly pace needed${engine.top ? ` for your top priority, <strong>${escapeHTML(engine.top.name)}</strong>` : ""}.`}</span><span class="quest-insight-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></span></aside>` : ""}
       <section class="panel quest-page-panel">
         <div class="quest-list-heading">
           <div><h2>Your quests</h2></div>
@@ -10126,6 +10126,26 @@ document.addEventListener("keydown", event => {
   openDropdown.dispatchEvent(new Event("dd-close"));
   event.stopPropagation();
 }, true);
+
+// The plan card at the bottom of Quests jumps to the top-priority quest and opens its details.
+function focusTopQuest() {
+  const card = document.querySelector(".quests-page .quest-card");
+  if (!card) return;
+  const details = card.querySelector("details");
+  if (details) details.open = true;
+  card.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+}
+
+document.addEventListener("click", event => {
+  if (event.target instanceof Element && event.target.closest("[data-quest-focus-top]")) focusTopQuest();
+});
+
+document.addEventListener("keydown", event => {
+  if ((event.key === "Enter" || event.key === " ") && event.target instanceof Element && event.target.matches("[data-quest-focus-top]")) {
+    event.preventDefault();
+    focusTopQuest();
+  }
+});
 
 function syncPaydayControls(input) {
   const wrap = input.closest(".settings-payday");

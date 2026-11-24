@@ -16619,3 +16619,89 @@ html body .app-shell.app-shell .settings-page .money-input:focus-within { border
   html body .app-shell.app-shell .settings-page .settings-pin-row { padding: 6px 12px; min-height: 48px; }
   html body .app-shell.app-shell .settings-page .settings-payday { padding: 4px 14px 14px; }
 }
+
+/* ===== Quests on phones: flat cards in the same style as Inventory, Power-Up and Settings ===== */
+.quests-title-icon { display: none; }
+@media (max-width: 760px) {
+html body .app-shell.app-shell #page-content .quests-page {
+  --qa: var(--green); --qon: #ffffff;
+  --qink: var(--fx-ink, #171b3a); --qmute: var(--fx-muted, #6b7088); --qcard: var(--fx-card, #ffffff); --qline: var(--fx-line, #e6e8f0);
+  display: flex !important; flex-direction: column; gap: 14px !important;
+
+  & .inventory-heading { order: 0; display: grid !important; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 10px; margin: 0 !important; padding: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; }
+  & .inventory-heading .eyebrow { display: none !important; }
+  & .inventory-heading h1 { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--qink) !important; font: 800 34px/1.05 var(--display, Inter, sans-serif); letter-spacing: -.03em; }
+  & .quests-title-desktop { display: none !important; }
+  & .quests-title-mobile { display: inline !important; }
+  & .quests-title-icon { display: inline-grid; flex: 0 0 auto; width: 30px; height: 30px; color: var(--qa); }
+  & .quests-title-icon svg { width: 100%; height: 100%; fill: currentColor; }
+  & .inventory-heading .welcome-sub { margin: 8px 0 0; color: var(--qmute) !important; font: 500 14.5px/1.35 var(--sans, Inter, sans-serif); }
+  & .quest-heading-add { display: grid !important; place-items: center; width: 56px; height: 56px; min-width: 0; min-height: 0; padding: 0 !important; border: 0 !important; border-radius: 50% !important; background: var(--qa) !important; color: var(--qon) !important; box-shadow: none !important; }
+  & .quest-heading-add:disabled { opacity: .45; }
+  & .quest-heading-add-label { display: none !important; }
+  & .quest-heading-add-plus { margin: 0 !important; color: inherit !important; font-size: 32px !important; font-weight: 500 !important; line-height: 1 !important; }
+  & .quest-overview { display: none !important; }
+
+  & .quest-page-panel { order: 1; display: grid; gap: 12px; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; }
+  & .quest-list-heading { display: none !important; }
+  & .quest-filters { margin: 0 !important; }
+  & .quest-page-list { container: questlist / inline-size; display: grid; gap: 12px; }
+
+  /* Quest card */
+  & .quest-card { display: grid !important; grid-template-columns: 48px minmax(0, 1fr) auto auto; grid-template-areas: "icon title title pct" "icon prog prog prog" "icon dets acts acts"; align-items: center; column-gap: 12px; row-gap: 10px; padding: 14px !important; border: 1px solid var(--qline) !important; border-radius: 22px !important; background: var(--qcard) !important; box-shadow: var(--fx-shadow, none) !important; }
+  & .quest-card-header { display: contents !important; }
+  & .quest-card-icon { grid-area: icon; align-self: start; display: grid; place-items: center; width: 44px; height: 44px; border: 0 !important; background: none !important; box-shadow: none !important; color: var(--qa) !important; }
+  & .quest-card-icon .quest-icon-default { display: none; }
+  & .quest-card-icon.is-complete .quest-icon-default { display: inline; font-size: 26px; }
+  & .quest-card-icon .quest-icon-category { display: grid; place-items: center; }
+  & .quest-card-icon .quest-icon-category svg { width: 32px; height: 32px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  & .quest-card-title-group { grid-area: title; min-width: 0; }
+  & .quest-card-title-line { display: grid; justify-items: start; gap: 8px; }
+  & .quest-card h3 { margin: 0; color: var(--qink) !important; font: 800 16px/1.2 var(--display, Inter, sans-serif); letter-spacing: -.01em; overflow-wrap: anywhere; }
+  & .quest-status { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border: 0 !important; border-radius: 999px; background: color-mix(in srgb, var(--qa) 13%, var(--qcard)) !important; color: var(--qa) !important; font: 700 12px/1 var(--sans, Inter, sans-serif); }
+  & .quest-status.is-progress::before { content: ""; width: 14px; height: 14px; background: currentColor; -webkit-mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") center / contain no-repeat; }
+  & .quest-status.is-on-track, & .quest-status.is-complete { background: color-mix(in srgb, #0f9d5c 14%, var(--qcard)) !important; color: #0b8a4f !important; }
+  & .quest-status.is-attention { background: color-mix(in srgb, #d98a1b 16%, var(--qcard)) !important; color: #b06a00 !important; }
+  & .quest-card-percent { grid-area: pct; justify-self: end; text-align: right; color: var(--qink) !important; font: 800 20px/1 var(--display, Inter, sans-serif); letter-spacing: -.02em; }
+  & .quest-card-percent::after { content: "Progress"; display: block; margin-top: 4px; color: var(--qmute); font: 500 11.5px/1 var(--sans, Inter, sans-serif); letter-spacing: 0; }
+  & .quest-card-actions { grid-area: acts; display: flex; align-items: center; justify-self: end; gap: 8px; }
+  & .quest-update { min-height: 40px; padding: 0 18px !important; border: 0 !important; border-radius: 14px !important; background: var(--qa) !important; box-shadow: none !important; color: var(--qon) !important; font: 700 14px/1 var(--sans, Inter, sans-serif) !important; }
+  & .quest-update-label-full { display: none !important; }
+  & .quest-update-label-short { display: inline !important; }
+  & .quest-more { width: 40px; height: 40px; min-width: 0; padding: 0 !important; border: 1px solid var(--qline) !important; border-radius: 50% !important; background: var(--qcard) !important; box-shadow: none !important; color: var(--qink) !important; font-size: 13px; letter-spacing: 1px; }
+  & .quest-card-progress { grid-area: prog; display: grid; gap: 6px; margin: 0 !important; }
+  & .quest-card-amounts { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; color: var(--qmute) !important; font: 500 11.5px/1.3 var(--sans, Inter, sans-serif); }
+  & .quest-card-amounts strong { color: var(--qink); font-weight: 700; }
+  & .quest-track { height: 8px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--qa) 14%, var(--qcard)) !important; box-shadow: none !important; }
+  & .quest-track i { display: block; height: 100%; border-radius: 999px; background: var(--qa) !important; box-shadow: none !important; }
+  & .quest-card-details { grid-area: dets; min-width: 0; margin: 0 !important; padding: 0 !important; border: 0 !important; background: none !important; }
+  & .quest-card-details[open] { grid-column: 2 / -1; grid-area: auto / 2 / auto / -1; }
+  & .quest-card-details > summary { display: flex; align-items: center; gap: 8px; min-height: 36px; color: var(--qmute) !important; font: 500 14px/1 var(--sans, Inter, sans-serif); list-style: none; cursor: pointer; }
+  & .quest-card-details > summary::-webkit-details-marker { display: none; }
+  & .quest-card-details > summary::before { content: ""; width: 18px; height: 18px; background: currentColor; -webkit-mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 2.8h7.2l4.8 4.8v12c0 .9-.7 1.6-1.6 1.6H6.5c-.9 0-1.6-.7-1.6-1.6V4.4c0-.9.7-1.6 1.6-1.6Z'/%3E%3Cpath d='M13.5 3v5h5M8.2 13h7.6M8.2 16.6h7.6'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 2.8h7.2l4.8 4.8v12c0 .9-.7 1.6-1.6 1.6H6.5c-.9 0-1.6-.7-1.6-1.6V4.4c0-.9.7-1.6 1.6-1.6Z'/%3E%3Cpath d='M13.5 3v5h5M8.2 13h7.6M8.2 16.6h7.6'/%3E%3C/svg%3E") center / contain no-repeat; }
+  & .quest-card-details > summary svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s ease; }
+  & .quest-card-details[open] > summary svg { transform: rotate(180deg); }
+  & .quest-card-details-grid { display: grid; gap: 10px; padding: 6px 0 4px; }
+  & .quest-card-detail small { color: var(--qmute); font: 700 10.5px/1.2 var(--sans, Inter, sans-serif); letter-spacing: .06em; }
+  & .quest-card-detail b { color: var(--qink); font: 600 13.5px/1.35 var(--sans, Inter, sans-serif); }
+  & .quest-card.is-complete { border-color: color-mix(in srgb, #0f9d5c 35%, var(--qline)) !important; }
+
+  /* Plan card at the bottom */
+  & .quest-plan-insight { order: 2; display: flex !important; align-items: center; gap: 14px; min-height: 0; padding: 14px 16px !important; border: 1px solid var(--qline) !important; border-radius: 22px !important; background: var(--qcard) !important; box-shadow: var(--fx-shadow, none) !important; color: var(--qink) !important; font: 500 14.5px/1.4 var(--sans, Inter, sans-serif); cursor: pointer; }
+  & .quest-plan-insight strong { color: var(--qa) !important; font-weight: 700; }
+  & .quest-insight-icon { display: grid; flex: 0 0 auto; place-items: center; width: 34px; height: 34px; padding-right: 14px; border-right: 1px solid var(--qline); color: var(--qa); box-sizing: content-box; }
+  & .quest-insight-icon svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  & .quest-insight-text { flex: 1 1 auto; min-width: 0; }
+  & .quest-insight-chevron { flex: 0 0 auto; width: 20px; height: 20px; color: var(--qmute); }
+  & .quest-insight-chevron svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Empty state */
+  & .quest-empty-state { padding: 26px 18px !important; border: 1px solid var(--qline) !important; border-radius: 22px !important; background: var(--qcard) !important; box-shadow: none !important; color: var(--qink); text-align: center; }
+  & .quest-empty-icon { color: var(--qa) !important; background: none !important; }
+}
+html body .app-shell.app-shell.theme-dark #page-content .quests-page { --qon: #10141a; }
+}
+/* Wide enough: Update and the menu sit beside the title, like the reference */
+@container questlist (min-width: 400px) {
+  html body .app-shell.app-shell #page-content .quests-page .quest-card { grid-template-columns: 48px minmax(0, 1fr) auto auto; grid-template-areas: "icon title pct acts" "icon prog prog prog" "icon dets dets dets"; }
+}
