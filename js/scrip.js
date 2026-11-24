@@ -1234,7 +1234,7 @@ function clearButtonLoading(button) {
 document.addEventListener("click", event => {
   if (!(event.target instanceof Element)) return;
   const button = event.target.closest("button");
-  if (!button || button.disabled || button.matches(".auth-submit") || (button.closest(".settings-page") && !button.matches('[type="submit"]')) || button.matches(".mobile-tab, [data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
+  if (!button || button.disabled || button.matches(".auth-submit") || button.closest(".dd") || (button.closest(".settings-page") && !button.matches('[type="submit"]')) || button.matches(".mobile-tab, [data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
   const state = { spinner: null, observer: null, timer: 0, minUntil: performance.now() + 300 };
   buttonLoadingStates.set(button, state);
   button.classList.add("is-loading");
@@ -1658,6 +1658,12 @@ function localDateValue(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+// Any normal photo works (phones send JPEG, HEIC and more); it is cropped square and shrunk before saving.
+function isProfileImageFile(file) {
+  const looksLikeImage = String(file.type || "").startsWith("image/") || /\.(png|jpe?g|webp|heic|heif)$/i.test(file.name || "");
+  return looksLikeImage && file.size <= 12 * 1024 * 1024;
+}
+
 function compressProfileImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1667,16 +1673,18 @@ function compressProfileImage(file) {
       image.onerror = () => reject(new Error("That image could not be opened."));
       image.onload = () => {
         try {
-          const scale = Math.min(1, 512 / Math.max(image.naturalWidth, image.naturalHeight));
+          // Centre-crop to a square so the photo always sits properly inside the round avatar.
+          const side = Math.max(1, Math.min(image.naturalWidth, image.naturalHeight));
+          const size = Math.min(512, side);
           const canvas = document.createElement("canvas");
-          canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-          canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+          canvas.width = size;
+          canvas.height = size;
           const context = canvas.getContext("2d");
           if (!context) {
             reject(new Error("Image resizing is unavailable."));
             return;
           }
-          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          context.drawImage(image, (image.naturalWidth - side) / 2, (image.naturalHeight - side) / 2, side, side, 0, 0, size, size);
           resolve(canvas.toDataURL("image/jpeg", 0.82));
         } catch (error) {
           reject(error);
@@ -2308,7 +2316,7 @@ function renderProfilePage() {
       <section class="panel account-panel">
         <div class="profile-summary"><span class="profile-initials profile-photo-preview">${photo}</span><div><strong>${escapeHTML(profile.username || profile.name)}</strong><small>${escapeHTML(profile.name)} · ${escapeHTML(profile.email || "No email added")}</small></div></div>
         <form class="account-form" data-account-form="profile">
-          <div class="inventory-form-field profile-photo-field"><label for="profile-photo-input"><span>Profile image <small>Optional · PNG, JPEG, or WebP up to 5 MB</small></span></label><input id="profile-photo-input" name="photo" type="file" accept="image/png,image/jpeg,image/webp"><button class="profile-photo-remove" type="button" data-remove-profile-image>Remove image</button></div>
+          <div class="inventory-form-field profile-photo-field"><label for="profile-photo-input"><span>Profile image <small>Optional · any photo, up to 12 MB</small></span></label><input id="profile-photo-input" name="photo" type="file" accept="image/*"><button class="profile-photo-remove" type="button" data-remove-profile-image>Remove image</button></div>
           <label class="inventory-form-field"><span>Full name</span><input name="name" type="text" maxlength="80" value="${escapeHTML(profile.name)}" required></label>
           <label class="inventory-form-field"><span>Preferred name</span><input name="username" type="text" autocomplete="nickname" maxlength="40" value="${escapeHTML(username)}" required><small>Shown in greetings</small></label>
           <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" maxlength="120" value="${escapeHTML(profile.email || "")}" required></label>
@@ -2380,7 +2388,7 @@ function renderSettingsPage() {
             <div><span>Phone</span><strong>${escapeHTML(profile.phone || "Add phone number")}</strong></div>
           </div>
           <form class="account-form settings-profile-form" data-account-form="profile">
-            <div class="inventory-form-field profile-photo-field settings-profile-photo-field"><label for="profile-photo-input"><span>Profile photo <small>Optional · PNG, JPEG, or WebP up to 5 MB</small></span></label><input id="profile-photo-input" name="photo" type="file" accept="image/png,image/jpeg,image/webp"><button class="inventory-submit profile-photo-choose" type="button" data-choose-profile-image>Choose photo</button></div>
+            <div class="inventory-form-field profile-photo-field settings-profile-photo-field"><label for="profile-photo-input"><span>Profile photo <small>Optional · any photo, up to 12 MB</small></span></label><input id="profile-photo-input" name="photo" type="file" accept="image/*"><button class="inventory-submit profile-photo-choose" type="button" data-choose-profile-image>Choose photo</button></div>
             <label class="inventory-form-field"><span>Full name</span><input name="name" type="text" maxlength="80" value="${escapeHTML(profile.name)}" required></label>
             <label class="inventory-form-field"><span>Preferred name</span><input name="username" type="text" autocomplete="nickname" maxlength="40" value="${escapeHTML(username)}" required><small>Shown in greetings</small></label>
             <label class="inventory-form-field"><span>Email address</span><input name="email" type="email" maxlength="120" value="${escapeHTML(profile.email || "")}" required></label>
@@ -2393,37 +2401,39 @@ function renderSettingsPage() {
       </section>
       <form class="settings-form" data-account-form="settings" data-mobile-section="${settingsMobileSection}" ${activeSettingsTab === "profile" ? "hidden" : ""}>
         <section class="settings-tab-panel" id="settings-panel-privacy" role="tabpanel" aria-labelledby="settings-tab-privacy" data-settings-panel="privacy" tabindex="0" ${activeSettingsTab === "privacy" ? "" : "hidden"}>
-        <section class="panel settings-panel" data-settings-section="security" id="autolock-settings" tabindex="-1"><div class="panel-heading"><div><div class="section-kicker">PRIVACY &amp; SECURITY</div><h2>Session protection</h2></div></div>
-          <p class="settings-disclosure">The inactivity PIN is a device-side convenience and does not encrypt stored data.</p>
-          <label class="settings-field"><span><strong>Privacy Shield</strong><small>Mask currency amounts from the net worth card or with the shortcut.</small></span><input name="privacyShield" type="checkbox" ${privacyEnabled ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Privacy Shield shortcut</strong><small>Keyboard shortcut to toggle amount masking.</small></span><select name="privacyShortcut"><option value="Shift+S" ${settings.privacyShortcut === "Shift+S" ? "selected" : ""}>Shift + S</option><option value="Alt+Shift+S" ${settings.privacyShortcut === "Alt+Shift+S" ? "selected" : ""}>Alt + Shift + S</option><option value="Off" ${settings.privacyShortcut === "Off" ? "selected" : ""}>Off</option></select></label>
-          <label class="settings-field"><span><strong>Auto-lock after inactivity</strong><small>Requires a four-digit PIN. This device’s saved PIN also works offline.</small></span><select id="lock-timeout-minutes" name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Never</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>15 minutes</option></select></label>
-          <div class="autolock-options" data-autolock-options ${settings.lockTimeoutMinutes ? "" : "hidden"}>
-            ${(settings.localPinHash || settings.accountPinEnabled) ? '<label class="inventory-form-field"><span>Current four-digit PIN <small>Required here to change or remove your PIN</small></span><input name="currentPin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4"></label>' : ""}
-            <label class="inventory-form-field" data-pin-removal-password-field hidden><span>Account password <small>Required to remove the current PIN</small></span><input name="pinRemovalPassword" type="password" autocomplete="current-password"></label>
-            <div class="settings-pin-fields"><label class="inventory-form-field"><span>New four-digit PIN <small>Leave blank to keep the current PIN</small></span><input name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label><label class="inventory-form-field"><span>Confirm PIN</span><input name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4"></label></div>
-            ${(settings.localPinHash || settings.accountPinEnabled) ? '<button class="secondary-button pin-recovery-button" type="button" data-pin-recovery>Forgot PIN? Reset with account password</button>' : ""}
-            <label class="settings-field"><span><strong>Remove current PIN</strong><small>Turns off the local screen lock.</small></span><input name="clearPin" type="checkbox"></label>
+        <section class="panel settings-panel settings-privacy-panel" data-settings-section="security" id="autolock-settings" tabindex="-1"><div class="panel-heading"><div><h2>Keep it private</h2></div></div>
+          <p class="settings-disclosure">Your PIN keeps nosy people out of the app on this device. It doesn’t encrypt your data.</p>
+          <label class="settings-field"><span><strong>Hide my numbers</strong><small>Blurs amounts when someone’s peeking.</small></span><input name="privacyShield" type="checkbox" ${privacyEnabled ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Quick-hide key</strong></span><select name="privacyShortcut"><option value="Shift+S" ${settings.privacyShortcut === "Shift+S" ? "selected" : ""}>Shift + S</option><option value="Alt+Shift+S" ${settings.privacyShortcut === "Alt+Shift+S" ? "selected" : ""}>Alt + Shift + S</option><option value="Off" ${settings.privacyShortcut === "Off" ? "selected" : ""}>Off</option></select></label>
+          <label class="settings-field"><span><strong>Lock when I’m away</strong><small>Needs a 4-digit PIN.</small></span><select id="lock-timeout-minutes" name="lockTimeoutMinutes"><option value="0" ${settings.lockTimeoutMinutes === 0 ? "selected" : ""}>Never</option><option value="1" ${settings.lockTimeoutMinutes === 1 ? "selected" : ""}>After 1 minute</option><option value="5" ${settings.lockTimeoutMinutes === 5 ? "selected" : ""}>After 5 minutes</option><option value="15" ${settings.lockTimeoutMinutes === 15 ? "selected" : ""}>After 15 minutes</option></select></label>
+          <div class="autolock-options settings-pin-card" data-autolock-options data-has-pin="${Boolean((settings.localPinHash || settings.accountPinEnabled))}" ${(settings.lockTimeoutMinutes || (settings.localPinHash || settings.accountPinEnabled)) ? "" : "hidden"}>
+            <div class="settings-pin-head"><strong>Your PIN</strong><span class="settings-pin-state">${(settings.localPinHash || settings.accountPinEnabled) ? "All set" : "Not set yet"}</span></div>
+            ${(settings.localPinHash || settings.accountPinEnabled) ? '<label class="settings-pin-row"><span>Current PIN</span><input class="pin-small" name="currentPin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4" placeholder="••••" aria-label="Current four-digit PIN"></label>' : ""}
+            <label class="settings-pin-row"><span>${(settings.localPinHash || settings.accountPinEnabled) ? "New PIN" : "Pick a PIN"}</span><input class="pin-small" name="newPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4" placeholder="••••" aria-label="New four-digit PIN"></label>
+            <label class="settings-pin-row"><span>Say it again</span><input class="pin-small" name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4" placeholder="••••" aria-label="Confirm four-digit PIN"></label>
+            ${(settings.localPinHash || settings.accountPinEnabled) ? '<button class="settings-link-button pin-recovery-button" type="button" data-pin-recovery>Forgot your PIN?</button>' : ""}
+            ${(settings.localPinHash || settings.accountPinEnabled) ? '<label class="settings-field settings-pin-remove"><span><strong>Remove my PIN</strong><small>We’ll ask for your account password first.</small></span><input name="clearPin" type="checkbox"></label>' : ""}
+            <label class="settings-pin-row" data-pin-removal-password-field hidden><span>Account password</span><input name="pinRemovalPassword" type="password" autocomplete="current-password" placeholder="Your password"></label>
           </div>
           <div class="settings-passkeys" data-passkey-settings>
-            <div class="settings-passkeys-heading"><strong>Fingerprint and passkeys</strong><small>Use Windows Hello, a fingerprint reader, or another device passkey to sign in.</small></div>
-            <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="register-passkey">Add a passkey</button><button class="secondary-button" type="button" data-settings-action="refresh-passkeys">Refresh list</button></div>
+            <div class="settings-passkeys-heading"><strong>Fingerprint &amp; passkeys</strong><small>Sign in with a touch, no typing.</small></div>
+            <div class="settings-inline-actions"><button class="secondary-button settings-small-button" type="button" data-settings-action="register-passkey">Add a passkey</button><button class="settings-link-button" type="button" data-settings-action="refresh-passkeys">Refresh</button></div>
             <p class="passkey-status" data-passkey-status role="status" aria-live="polite"></p>
             <ul class="passkey-list" data-passkey-list></ul>
           </div>
-          <div class="settings-audit"><div class="settings-audit-heading"><strong>Recent local security activity</strong><div class="settings-audit-export"><label for="security-audit-period">Download range</label><select id="security-audit-period" data-security-audit-period><option value="24h">Last 24 hours</option><option value="7d">Last 7 days</option><option value="1m">Last 1 month</option><option value="6m">Last 6 months</option><option value="12m">Last 12 months</option></select><button type="button" class="secondary-button" data-security-audit-download>Download list</button></div></div>${recentAudit.length ? `<ul>${recentAudit.map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.timestamp).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>No activity recorded yet.</p>`}</div>
+          <details class="settings-audit"><summary>Recent activity</summary><div class="settings-audit-body">${recentAudit.length ? `<ul>${recentAudit.map(item => `<li><span>${escapeHTML(item.action)}</span><time>${escapeHTML(new Date(item.timestamp).toLocaleString())}</time></li>`).join("")}</ul>` : `<p>Nothing yet. All quiet.</p>`}<div class="settings-audit-export"><select id="security-audit-period" data-security-audit-period aria-label="Download range"><option value="24h">Last 24 hours</option><option value="7d">Last 7 days</option><option value="1m">Last month</option><option value="6m">Last 6 months</option><option value="12m">Last 12 months</option></select><button type="button" class="secondary-button settings-small-button" data-security-audit-download>Download</button></div></div></details>
         </section>
-        <section class="panel settings-panel" data-settings-section="reminders"><div class="panel-heading"><div><div class="section-kicker">REMINDERS</div><h2>What to keep an eye on</h2></div></div>
-          <label class="settings-field"><span><strong>Quest milestones</strong><small>In-app notices for quest progress milestones and completions.</small></span><input name="goalNotifications" type="checkbox" ${settings.goalNotifications ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Income plan updates</strong><small>In-app 55/10/15/15/5 budget suggestions after monthly income changes.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Debt payoff</strong><small>In-app notices when a liability is marked as paid off.</small></span><input name="debtNotifications" type="checkbox" ${settings.debtNotifications ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Spending shortfall</strong><small>In-app notices if recorded spending moves above planned income.</small></span><input name="budgetNotifications" type="checkbox" ${settings.budgetNotifications ? "checked" : ""}></label>
+        <section class="panel settings-panel" data-settings-section="reminders"><div class="panel-heading"><div><h2>Nudges</h2></div></div>
+          <label class="settings-field"><span><strong>Quest cheers</strong><small>A shout-out when you hit a milestone.</small></span><input name="goalNotifications" type="checkbox" ${settings.goalNotifications ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Budget ideas</strong><small>Fresh split suggestions when your income changes.</small></span><input name="monthlyReminders" type="checkbox" ${settings.monthlyReminders ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Debt-free dance</strong><small>A heads-up when a liability is paid off.</small></span><input name="debtNotifications" type="checkbox" ${settings.debtNotifications ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Overspend alert</strong><small>A tap on the shoulder if spending outruns income.</small></span><input name="budgetNotifications" type="checkbox" ${settings.budgetNotifications ? "checked" : ""}></label>
           <section class="settings-push-registration" data-push-settings aria-labelledby="push-settings-title">
-            <div><strong id="push-settings-title">Browser push notifications</strong><p class="settings-disclosure">Push preferences control browser notifications only. NetraOS consent and browser permission are separate; notification delivery is not active until the delivery service is configured.</p></div>
-            <div class="settings-inline-actions"><button class="secondary-button" type="button" data-push-register ${pushConfigured && pushRegistrationState !== "indeterminate" ? "" : "disabled"}>Enable or resume on this device</button><button class="secondary-button" type="button" data-push-recover>Recover a previous device</button><button class="secondary-button" type="button" data-push-revoke>Unsubscribe this device</button></div>
+            <div><strong id="push-settings-title">Phone &amp; browser pings</strong><p class="settings-disclosure">Totally optional. We only ask your browser for permission when you tap Enable.</p></div>
+            <div class="settings-inline-actions"><button class="secondary-button" type="button" data-push-register ${pushConfigured && pushRegistrationState !== "indeterminate" ? "" : "disabled"}>Enable on this device</button><button class="secondary-button" type="button" data-push-recover>Recover an old device</button><button class="secondary-button" type="button" data-push-revoke>Pause this device</button></div>
             <p class="passkey-status" data-push-status role="status" aria-live="polite">${escapeHTML(pushStatus)}</p>
             <section class="settings-push-preferences" aria-labelledby="push-preferences-title">
-              <div class="settings-push-preferences-heading"><h3 id="push-preferences-title">Browser push preferences</h3><p>Choose which optional updates NetraOS may send to your registered browsers.</p></div>
+              <div class="settings-push-preferences-heading"><h3 id="push-preferences-title">Pick your pings</h3><p>Choose what we’re allowed to send.</p></div>
               <div class="settings-push-preference-list" data-push-preferences aria-busy="true">
                 <p class="settings-push-preference-status" data-push-preference-status role="status" aria-live="polite">Sign in to load push preferences.</p>
                 <label class="settings-field settings-push-preference is-essential"><span><strong>Account and security</strong><small>Essential notices about sign-in, account protection, and security changes. Always enabled.</small></span><input type="checkbox" checked disabled aria-label="Account and security notifications are always enabled"></label>
@@ -2436,8 +2446,8 @@ function renderSettingsPage() {
             <div class="settings-push-devices" aria-label="Registered push devices"><h3>Registered devices</h3><div data-push-devices aria-live="polite"><p class="settings-push-device-empty">Sign in to view devices registered to this account.</p></div></div>
           </section>
         </section>
-        <section class="panel settings-panel settings-danger-zone" data-settings-section="danger"><div class="panel-heading"><div><div class="section-kicker">ACCOUNT CONTROL</div><h2>Reset or delete account data</h2></div></div>
-          <p class="settings-disclosure">These actions can permanently remove information from your NetraOS account. Review the confirmation before continuing.</p>
+        <section class="panel settings-panel settings-danger-zone" data-settings-section="danger"><div class="panel-heading"><div><h2>Danger zone</h2></div></div>
+          <p class="settings-disclosure">These can’t be undone, so we’ll ask you to confirm first.</p>
           <div class="settings-inline-actions"><button class="danger-button" type="button" data-settings-action="clear-data">Factory reset · Clear all NetraOS data</button><button class="danger-button" type="button" data-settings-action="delete-account">Delete account permanently</button></div>
         </section>
         </section>
@@ -2456,19 +2466,36 @@ function renderSettingsPage() {
         </section>
         </section>
         <section class="settings-tab-panel" id="settings-panel-currency" role="tabpanel" aria-labelledby="settings-tab-currency" data-settings-panel="currency" tabindex="0" ${activeSettingsTab === "currency" ? "" : "hidden"}>
-        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">CURRENCY &amp; LOCALIZATION</div><h2>Regional preferences</h2></div></div>
-          <label class="settings-field"><span><strong>Default display currency</strong><small>Set a manual KSh exchange rate before selecting another currency.</small></span>${settingsDropdown("displayCurrency", currencyState.active, `${displayCurrencies[currencyState.active].symbol} · ${displayCurrencies[currencyState.active].name}`, "Choose display currency")}</label>
-          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="manage-rates">Manage manual exchange rates</button></div>
-          <label class="settings-field"><span><strong>Financial year starts</strong><small>Used to calculate Year to date reports.</small></span>${settingsDropdown("financialYearStartMonth", String(settings.financialYearStartMonth), fiscalMonths[settings.financialYearStartMonth - 1] || fiscalMonths[0], "Choose financial year start month")}</label>
-          <label class="settings-field payday-anchor-field"><span><strong>Payday / cycle anchor</strong><small>Type any day from 1 to 31, or pick a suggestion. Shorter months use their last day. Cycle totals, the default spending month, and recurring salary forecasts use this date.</small></span><span class="payday-input"><input name="paydayAnchorDay" type="number" min="1" max="31" step="1" inputmode="numeric" list="payday-day-presets" required value="${settings.paydayAnchorDay}" aria-label="Payday, day of the month (1 to 31)"><datalist id="payday-day-presets">${[1, 5, 10, 15, 20, 25, 28].map(day => `<option value="${day}">${ordinalDay(day)} of each month</option>`).join("")}</datalist><em>of each month</em></span></label>
+        <section class="panel settings-panel settings-payday-panel" data-settings-section="payday" id="payday-settings" tabindex="-1"><div class="panel-heading"><div><h2>Payday</h2></div></div>
+          <div class="settings-payday">
+            <p class="settings-payday-lead">Pick the day the money lands. Your calendar and budget cycle follow it.</p>
+            <div class="payday-stepper" role="group" aria-label="Payday, day of the month">
+              <button type="button" data-payday-step="-1" aria-label="One day earlier">−</button>
+              <label class="payday-value"><input name="paydayAnchorDay" type="number" min="1" max="31" step="1" inputmode="numeric" required value="${settings.paydayAnchorDay}" aria-label="Payday, day of the month (1 to 31)"><span>of every month</span></label>
+              <button type="button" data-payday-step="1" aria-label="One day later">+</button>
+            </div>
+            <div class="payday-chips" role="group" aria-label="Quick picks">${[1, 5, 10, 15, 20, 25, 28, 30].map(day => `<button type="button" data-payday-pick="${day}" class="payday-chip${Number(settings.paydayAnchorDay) === day ? " is-selected" : ""}">${ordinalDay(day)}</button>`).join("")}</div>
+            <p class="settings-payday-next" data-payday-preview>${(() => { try { return `Next payday: ${new Date(`${nextPaydayDate()}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}`; } catch { return ""; } })()}</p>
+            <small class="settings-payday-hint">Short months use their last day.</small>
+          </div>
         </section>
-        <section class="panel settings-panel"><div class="panel-heading"><div><div class="section-kicker">LOCAL TAX &amp; DEDUCTIONS</div><h2>Kenya statutory estimates</h2></div></div>
-          <p class="settings-disclosure">These switches change the local calculator estimate only. Relief amounts are subtracted directly from estimated PAYE, up to the tax before relief. Verify current statutory requirements before relying on a result.</p>
-          <label class="settings-field"><span><strong>PAYE income tax</strong><small>Apply the progressive PAYE estimate.</small></span><input name="taxPaye" type="checkbox" ${settings.taxPaye ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>NSSF Tier I &amp; II</strong><small>Apply the current in-app NSSF estimate.</small></span><input name="taxNssf" type="checkbox" ${settings.taxNssf ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>SHIF</strong><small>Apply the current in-app SHIF estimate.</small></span><input name="taxShif" type="checkbox" ${settings.taxShif ? "checked" : ""}></label>
-          <label class="settings-field"><span><strong>Affordable Housing Levy</strong><small>Apply the in-app 1.5% estimate.</small></span><input name="taxAhl" type="checkbox" ${settings.taxAhl ? "checked" : ""}></label>
-          <div class="settings-pin-fields"><label class="inventory-form-field"><span>Personal relief per month (KSh)</span><input name="personalRelief" type="number" min="0" step="100" placeholder="0" value="${settings.personalRelief || ""}"></label><label class="inventory-form-field"><span>Insurance relief per month (KSh)</span><input name="insuranceRelief" type="number" min="0" step="100" placeholder="0" value="${settings.insuranceRelief || ""}"></label><label class="inventory-form-field"><span>Other tax relief per month (KSh)</span><input name="customRelief" type="number" min="0" step="100" placeholder="0" value="${settings.customRelief || ""}"></label></div>
+        <section class="panel settings-panel"><div class="panel-heading"><div><h2>Currency</h2></div></div>
+          <label class="settings-field"><span><strong>Show money in</strong></span>${settingsDropdown("displayCurrency", currencyState.active, `${displayCurrencies[currencyState.active].symbol} · ${displayCurrencies[currencyState.active].name}`, "Choose display currency")}</label>
+          <div class="settings-inline-actions"><button class="secondary-button" type="button" data-settings-action="manage-rates">Set exchange rates</button></div>
+          <label class="settings-field"><span><strong>My year starts in</strong></span>${settingsDropdown("financialYearStartMonth", String(settings.financialYearStartMonth), fiscalMonths[settings.financialYearStartMonth - 1] || fiscalMonths[0], "Choose the month your year starts")}</label>
+        </section>
+        <section class="panel settings-panel"><div class="panel-heading"><div><h2>Take-home tax</h2></div></div>
+          <p class="settings-disclosure">Just a rough guide. Check the latest Kenya rules before you rely on it.</p>
+          <label class="settings-field"><span><strong>Income tax</strong><small>PAYE</small></span><input name="taxPaye" type="checkbox" ${settings.taxPaye ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Pension</strong><small>NSSF</small></span><input name="taxNssf" type="checkbox" ${settings.taxNssf ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Health cover</strong><small>SHIF</small></span><input name="taxShif" type="checkbox" ${settings.taxShif ? "checked" : ""}></label>
+          <label class="settings-field"><span><strong>Housing levy</strong><small>1.5% of pay</small></span><input name="taxAhl" type="checkbox" ${settings.taxAhl ? "checked" : ""}></label>
+          <div class="settings-relief-card">
+            <div class="settings-pin-head"><strong>Tax breaks I get each month</strong></div>
+            <label class="settings-pin-row"><span>Personal</span><span class="money-input"><em>KSh</em><input name="personalRelief" type="number" min="0" step="100" inputmode="numeric" placeholder="0" value="${settings.personalRelief || ""}"></span></label>
+            <label class="settings-pin-row"><span>Insurance</span><span class="money-input"><em>KSh</em><input name="insuranceRelief" type="number" min="0" step="100" inputmode="numeric" placeholder="0" value="${settings.insuranceRelief || ""}"></span></label>
+            <label class="settings-pin-row"><span>Other</span><span class="money-input"><em>KSh</em><input name="customRelief" type="number" min="0" step="100" inputmode="numeric" placeholder="0" value="${settings.customRelief || ""}"></span></label>
+          </div>
         </section>
         </section>
         <section class="settings-tab-panel" id="settings-panel-backups" role="tabpanel" aria-labelledby="settings-tab-backups" data-settings-panel="backups" tabindex="0" ${activeSettingsTab === "backups" ? "" : "hidden"}>
@@ -3647,15 +3674,17 @@ function updateDateSwitcher(date = new Date()) {
 // Custom dropdown for Settings: a button that opens the shared popover menu, plus a hidden input so the
 // form submit handler keeps reading the value by name.
 function settingsDropdown(name, value, label, ariaLabel) {
-  return `<span class="settings-dropdown"><input type="hidden" name="${name}" value="${escapeHTML(String(value))}"><button class="settings-dropdown-button" type="button" data-settings-dropdown="${name}" aria-haspopup="menu" aria-expanded="false" aria-label="${escapeHTML(ariaLabel)}"><span data-settings-dropdown-label>${escapeHTML(label)}</span><svg class="dropdown-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3" /></svg></button></span>`;
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const state = getCurrencyState();
+  const options = name === "financialYearStartMonth"
+    ? months.map((month, index) => ({ value: String(index + 1), text: month }))
+    : Object.entries(displayCurrencies).map(([code, currency]) => ({ value: code, text: `${currency.symbol} · ${currency.name}${state.rates[code] ? "" : " · needs a rate"}` }));
+  return `<select name="${name}" aria-label="${escapeHTML(ariaLabel)}">${options.map(option => `<option value="${escapeHTML(option.value)}" ${String(value) === option.value ? "selected" : ""}>${escapeHTML(option.text)}</option>`).join("")}</select>`;
 }
 
-function setSettingsDropdown(name, value, label) {
-  const input = document.querySelector(`input[name="${name}"]`);
-  if (!input) return;
-  input.value = String(value);
-  const text = input.parentElement?.querySelector("[data-settings-dropdown-label]");
-  if (text) text.textContent = label;
+function setSettingsDropdown(name, value) {
+  const field = document.querySelector(`[name="${name}"]`);
+  if (field) field.value = String(value);
 }
 
 function settingsDropdownChoices(name) {
@@ -4640,7 +4669,7 @@ function openInventoryDialog(action, editId = null) {
         </label>
         <label class="inventory-form-field">
           <span>Category</span>
-          <span class="income-category-select-wrap inventory-category-select-wrap"><span class="income-category-select-icon inventory-category-select-icon" aria-hidden="true"></span><select name="category" id="inventory-entry-category" required></select></span>
+          <span class="income-category-select-wrap inventory-category-select-wrap"><span class="income-category-select-icon inventory-category-select-icon" aria-hidden="true"></span><select name="category" id="inventory-entry-category" data-dd-icons="inventory" required></select></span>
         </label>
         <div class="inventory-form-fields mobile-money-fields" hidden>
           <label class="inventory-form-field"><span>Mobile account type</span><select name="mobileType"><option>Mobile wallet</option><option>Till</option><option>Paybill</option></select></label>
@@ -5048,13 +5077,13 @@ function openPowerUpDialog(kind, editId = null, preset = {}) {
         </label>
         ${isIncome ? `<label class="inventory-form-field">
           <span>Income category</span>
-          <span class="income-category-select-wrap"><span class="income-category-select-icon" aria-hidden="true">${incomeCategories[0].icon}</span><select name="category" required>${incomeCategories.map(category => `<option value="${category.label}">${category.label}</option>`).join("")}</select></span>
+          <span class="income-category-select-wrap"><span class="income-category-select-icon" aria-hidden="true">${incomeCategories[0].icon}</span><select name="category" data-dd-icons="income" required>${incomeCategories.map(category => `<option value="${category.label}">${category.label}</option>`).join("")}</select></span>
         </label>` : isSpending ? `<label class="inventory-form-field">
           <span>Category</span>
-          <span class="income-category-select-wrap budget-category-select-wrap"><span class="income-category-select-icon budget-category-select-icon" aria-hidden="true">${budgetCategoryIcons[budgetCategories[0]]}</span><select name="category" required>${budgetCategories.map(category => `<option value="${category}">${category}</option>`).join("")}</select></span>
+          <span class="income-category-select-wrap budget-category-select-wrap"><span class="income-category-select-icon budget-category-select-icon" aria-hidden="true">${budgetCategoryIcons[budgetCategories[0]]}</span><select name="category" data-dd-icons="budget" required>${budgetCategories.map(category => `<option value="${category}">${category}</option>`).join("")}</select></span>
         </label>` : `<label class="inventory-form-field">
           <span>Category</span>
-          <span class="income-category-select-wrap budget-category-select-wrap"><span class="income-category-select-icon budget-category-select-icon" aria-hidden="true">${budgetCategoryIcons[budgetCategories[0]]}</span><select name="category" required>${budgetCategories.map(category => `<option value="${category}">${category}</option>`).join("")}</select></span>
+          <span class="income-category-select-wrap budget-category-select-wrap"><span class="income-category-select-icon budget-category-select-icon" aria-hidden="true">${budgetCategoryIcons[budgetCategories[0]]}</span><select name="category" data-dd-icons="budget" required>${budgetCategories.map(category => `<option value="${category}">${category}</option>`).join("")}</select></span>
         </label>`}
         ${isSpending ? `<label class="inventory-form-field">
           <span>Expense date</span>
@@ -5387,7 +5416,7 @@ function openQuestDialog(questId = "") {
       <div class="inventory-form-fields">
         <label class="inventory-form-field"><span>Quest name</span><input name="name" type="text" maxlength="60" placeholder="e.g. Emergency fund" value="${escapeHTML(quest?.name || "")}" required></label>
         <div class="liability-rate-row">
-          <label class="inventory-form-field"><span>Category</span><span class="income-category-select-wrap quest-category-select-wrap"><span class="income-category-select-icon quest-category-select-icon" aria-hidden="true">${questCategoryIcon(quest?.category || questCategories[0])}</span><select name="category">${questCategories.map(item => `<option value="${escapeHTML(item)}" ${quest?.category === item ? "selected" : ""}>${escapeHTML(item)}</option>`).join("")}</select></span></label>
+          <label class="inventory-form-field"><span>Category</span><span class="income-category-select-wrap quest-category-select-wrap"><span class="income-category-select-icon quest-category-select-icon" aria-hidden="true">${questCategoryIcon(quest?.category || questCategories[0])}</span><select name="category" data-dd-icons="quest">${questCategories.map(item => `<option value="${escapeHTML(item)}" ${quest?.category === item ? "selected" : ""}>${escapeHTML(item)}</option>`).join("")}</select></span></label>
           <div class="quest-priority-preview" aria-live="polite"><span>Suggested priority</span><strong data-quest-tier-preview></strong><small>Picked automatically from the goal category</small></div>
         </div>
         <label class="inventory-form-field"><span data-quest-current-label>${linkedInventoryItem?.type === "liability" && quest?.category === "Debt Eradication" ? "Amount repaid (KSh)" : linkedInventoryItem ? `Linked ${linkedInventoryItem.type} balance (KSh)` : "Current amount (KSh)"}</span><input name="current" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0" value="${Number(linkedInventoryItem ? linkedInventoryQuestCurrent(linkedInventoryItem, quest) : quest?.current ?? 0) || ""}" ${linkedInventoryItem ? "readonly" : ""} required></label>
@@ -6097,10 +6126,24 @@ function showPage(page) {
   `;
 }
 
+const settingsActionRoutes = {
+  payday: ["currency", "", "Payday"],
+  backups: ["backups", "", "Backups & downloads"],
+  security: ["privacy", "security", "Session & passkeys"],
+  reminders: ["privacy", "reminders", "Nudges"]
+};
+
 function navigateToAction(page, action = "") {
   if (page === "Power-Up") activePowerTab = action === "budget" || action === "spending" || action === "add-budget" ? "budget" : "income";
   if (page === "Quests" && action && action !== "add") activeQuestFilter = "all";
-  if (page === "Settings" && action === "payday") activeSettingsTab = "currency";
+  if (page === "Settings" && settingsActionRoutes[action]) {
+    // Open the exact settings page, including on phones where Settings starts as a menu.
+    const [tab, section, title] = settingsActionRoutes[action];
+    activeSettingsTab = tab;
+    settingsMobileSection = section;
+    settingsMobileView = "detail";
+    settingsMobileTitle = title;
+  }
   showPage(page);
   window.requestAnimationFrame(() => {
     if (page === "Power-Up") {
@@ -6130,9 +6173,12 @@ function navigateToAction(page, action = "") {
       return;
     }
     if (page === "Settings" && action === "payday") {
-      const field = content.querySelector('[name="paydayAnchorDay"]');
-      field?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const card = content.querySelector("#payday-settings");
+      const field = card?.querySelector('[name="paydayAnchorDay"]');
+      card?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
       field?.focus({ preventScroll: true });
+      card?.classList.add("is-highlighted");
+      window.setTimeout(() => card?.classList.remove("is-highlighted"), 2400);
     }
   });
 }
@@ -9251,8 +9297,8 @@ document.addEventListener("submit", async event => {
     const existingProfile = getStoredProfile() || {};
     const photoInput = form.querySelector('input[name="photo"]');
     const photoFile = photoInput?.files?.[0];
-    if (photoFile && (!/^image\/(png|jpeg|webp)$/.test(photoFile.type) || photoFile.size > 5 * 1024 * 1024)) {
-      showToast("Choose a PNG, JPEG, or WebP image smaller than 5 MB.");
+    if (photoFile && !isProfileImageFile(photoFile)) {
+      showToast("Pick a photo under 12 MB.");
       return;
     }
     let image = form.dataset.removeImage === "true" ? "" : getProfilePhotoSource(existingProfile);
@@ -9923,6 +9969,192 @@ document.addEventListener("click", event => {
   }
 });
 
+// Shared dropdown: every <select> becomes a button that opens its choices right underneath (no pop-up).
+// The real <select> stays in the page, hidden, so forms and existing code keep working.
+const ddChevron = '<svg class="dd-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg>';
+const ddCheck = '<svg class="dd-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5.5 12.5 4.2 4.2 8.8-9.4"/></svg>';
+
+function ddOptionIcon(select, value) {
+  try {
+    const kind = select.dataset.ddIcons;
+    if (kind === "inventory") return inventoryCategoryIcon({ type: select.form?.querySelector("#inventory-entry-type")?.value || "asset", category: value });
+    if (kind === "income") return (incomeCategoryByLabel[value] || incomeCategories[0]).icon;
+    if (kind === "budget") return budgetCategoryIcons[value] || "";
+    if (kind === "quest") return questCategoryIcon(value);
+  } catch { /* A missing icon just means the row shows text only. */ }
+  return "";
+}
+
+function enhanceSelect(select) {
+  if (!(select instanceof HTMLSelectElement) || select.dataset.ddReady || select.multiple || select.size > 1 || select.closest("[data-native-select]")) return;
+  select.dataset.ddReady = "1";
+  const wrap = document.createElement("span");
+  wrap.className = "dd";
+  select.before(wrap);
+  wrap.append(select);
+  select.classList.add("dd-native");
+  select.tabIndex = -1;
+  select.setAttribute("aria-hidden", "true");
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "dd-button";
+  button.setAttribute("aria-haspopup", "listbox");
+  button.setAttribute("aria-expanded", "false");
+  const ariaLabel = select.getAttribute("aria-label");
+  if (ariaLabel) button.setAttribute("aria-label", ariaLabel);
+  button.innerHTML = `<span class="dd-icon" aria-hidden="true" hidden></span><span class="dd-label"></span>${ddChevron}`;
+  const list = document.createElement("div");
+  list.className = "dd-list";
+  list.setAttribute("role", "listbox");
+  list.hidden = true;
+  wrap.append(button, list);
+
+  const sync = () => {
+    const chosen = select.selectedOptions[0];
+    const text = chosen ? chosen.textContent.trim() : "";
+    button.querySelector(".dd-label").textContent = text || "Choose";
+    button.classList.toggle("is-placeholder", !text || chosen?.value === "");
+    const icon = chosen ? ddOptionIcon(select, chosen.value) : "";
+    const iconBox = button.querySelector(".dd-icon");
+    iconBox.innerHTML = icon;
+    iconBox.hidden = !icon;
+    button.disabled = select.disabled;
+    wrap.classList.toggle("is-disabled", select.disabled);
+  };
+  const close = () => {
+    list.hidden = true;
+    wrap.classList.remove("is-open");
+    button.setAttribute("aria-expanded", "false");
+  };
+  const buildList = () => {
+    list.replaceChildren();
+    const addOption = (option, parent) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "dd-option";
+      item.setAttribute("role", "option");
+      item.dataset.value = option.value;
+      item.disabled = option.disabled;
+      const selected = option.value === select.value;
+      item.setAttribute("aria-selected", String(selected));
+      const icon = ddOptionIcon(select, option.value);
+      item.innerHTML = `${icon ? `<span class="dd-icon" aria-hidden="true">${icon}</span>` : ""}<span class="dd-text">${escapeHTML(option.textContent.trim())}</span>${ddCheck}`;
+      parent.append(item);
+    };
+    [...select.children].forEach(child => {
+      if (child instanceof HTMLOptGroupElement) {
+        const title = document.createElement("div");
+        title.className = "dd-group";
+        title.textContent = child.label;
+        list.append(title);
+        [...child.children].forEach(option => addOption(option, list));
+      } else if (child instanceof HTMLOptionElement) {
+        addOption(child, list);
+      }
+    });
+  };
+  const open = () => {
+    document.querySelectorAll(".dd.is-open").forEach(other => { if (other !== wrap) other.dispatchEvent(new Event("dd-close")); });
+    buildList();
+    list.hidden = false;
+    wrap.classList.add("is-open");
+    button.setAttribute("aria-expanded", "true");
+    const selected = list.querySelector('[aria-selected="true"]');
+    window.requestAnimationFrame(() => {
+      if (selected) list.scrollTop = Math.max(0, selected.offsetTop - list.clientHeight / 2 + selected.clientHeight / 2);
+      wrap.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  };
+  wrap.addEventListener("dd-close", close);
+  button.addEventListener("click", event => {
+    event.preventDefault();
+    if (select.disabled) return;
+    if (list.hidden) open(); else close();
+  });
+  list.addEventListener("click", event => {
+    event.preventDefault();
+    const item = event.target instanceof Element ? event.target.closest(".dd-option") : null;
+    if (!item || item.disabled) return;
+    const changed = select.value !== item.dataset.value;
+    select.value = item.dataset.value;
+    close();
+    if (changed) {
+      select.dispatchEvent(new Event("input", { bubbles: true }));
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    button.focus({ preventScroll: true });
+  });
+  // Code that sets the value directly (select.value = ...) still updates the button.
+  const valueDescriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+  Object.defineProperty(select, "value", { configurable: true, get() { return valueDescriptor.get.call(this); }, set(next) { valueDescriptor.set.call(this, next); sync(); } });
+  const indexDescriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "selectedIndex");
+  Object.defineProperty(select, "selectedIndex", { configurable: true, get() { return indexDescriptor.get.call(this); }, set(next) { indexDescriptor.set.call(this, next); sync(); } });
+  new MutationObserver(() => { sync(); if (!list.hidden) buildList(); }).observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ["disabled"] });
+  select.addEventListener("change", sync);
+  select.form?.addEventListener("reset", () => window.setTimeout(sync));
+  sync();
+}
+
+function enhanceSelects(root = document) {
+  if (root instanceof HTMLSelectElement) { enhanceSelect(root); return; }
+  root.querySelectorAll?.("select").forEach(enhanceSelect);
+}
+
+enhanceSelects(document);
+new MutationObserver(records => {
+  records.forEach(record => record.addedNodes.forEach(node => { if (node instanceof Element) enhanceSelects(node); }));
+}).observe(document.body, { childList: true, subtree: true });
+
+document.addEventListener("click", event => {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) return;
+  // Tapping the words next to a dropdown opens it, like tapping the button.
+  const label = target.closest("label");
+  const hostedDropdown = label?.querySelector(".dd");
+  if (label && hostedDropdown && !target.closest(".dd, button, input, textarea, a")) {
+    event.preventDefault();
+    hostedDropdown.querySelector(".dd-button")?.click();
+    return;
+  }
+  document.querySelectorAll(".dd.is-open").forEach(open => { if (!open.contains(target)) open.dispatchEvent(new Event("dd-close")); });
+}, true);
+
+document.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return;
+  const openDropdown = document.querySelector(".dd.is-open");
+  if (!openDropdown) return;
+  openDropdown.dispatchEvent(new Event("dd-close"));
+  event.stopPropagation();
+}, true);
+
+function syncPaydayControls(input) {
+  const wrap = input.closest(".settings-payday");
+  if (!wrap) return;
+  const day = Number(input.value);
+  wrap.querySelectorAll("[data-payday-pick]").forEach(chip => chip.classList.toggle("is-selected", Number(chip.dataset.paydayPick) === day));
+  const preview = wrap.querySelector("[data-payday-preview]");
+  if (preview && Number.isInteger(day) && day >= 1 && day <= 31) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let next = paydayDate(today.getFullYear(), today.getMonth(), day);
+    if (next < today) next = paydayDate(today.getFullYear(), today.getMonth() + 1, day);
+    preview.textContent = `Next payday: ${next.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}`;
+  }
+}
+
+document.addEventListener("click", event => {
+  const control = event.target instanceof Element ? event.target.closest("[data-payday-pick], [data-payday-step]") : null;
+  const input = control?.closest(".settings-payday")?.querySelector('input[name="paydayAnchorDay"]');
+  if (!control || !input) return;
+  const next = control.dataset.paydayPick ? Number(control.dataset.paydayPick) : Math.min(31, Math.max(1, (Number(input.value) || 1) + Number(control.dataset.paydayStep)));
+  input.value = String(next);
+  syncPaydayControls(input);
+});
+
+document.addEventListener("input", event => {
+  if (event.target instanceof HTMLInputElement && event.target.name === "paydayAnchorDay") syncPaydayControls(event.target);
+});
+
 // Validate profile image uploads and show a local preview before saving the profile.
 document.addEventListener("change", event => {
   const input = event.target;
@@ -9938,11 +10170,21 @@ document.addEventListener("change", event => {
     }
     return;
   }
+  if (input instanceof HTMLSelectElement && input.name === "displayCurrency") {
+    // A currency needs an exchange rate first; otherwise ask for it and keep the old choice.
+    if (!getCurrencyState().rates[input.value]) {
+      const wanted = input.value;
+      input.value = getCurrencyState().active;
+      openCurrencyRatesDialog(wanted);
+    }
+    return;
+  }
   if (input instanceof HTMLSelectElement && input.name === "lockTimeoutMinutes") {
     const autoLockOptions = input.form?.querySelector("[data-autolock-options]");
     const isNever = Number(input.value) === 0;
-    if (autoLockOptions) autoLockOptions.hidden = isNever;
-    if (isNever && autoLockOptions) {
+    const keepsPin = autoLockOptions?.dataset.hasPin === "true";
+    if (autoLockOptions) autoLockOptions.hidden = isNever && !keepsPin;
+    if (isNever && autoLockOptions && !keepsPin) {
       const removePin = autoLockOptions.querySelector('input[name="clearPin"]');
       if (removePin) removePin.checked = false;
       autoLockOptions.querySelectorAll('input[name="newPin"], input[name="confirmPin"]').forEach(field => { field.value = ""; });
@@ -9959,17 +10201,19 @@ document.addEventListener("change", event => {
   if (input.name !== "photo") return;
   const file = input.files?.[0];
   if (!file) return;
-  if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 5 * 1024 * 1024) {
+  if (!isProfileImageFile(file)) {
     input.value = "";
-    showToast("Choose a PNG, JPEG, or WebP image smaller than 5 MB.");
+    showToast("Pick a photo under 12 MB.");
     return;
   }
   const preview = document.querySelector(".profile-photo-preview");
   if (!preview) return;
   if (profilePreviewUrl) URL.revokeObjectURL(profilePreviewUrl);
-  profilePreviewUrl = URL.createObjectURL(file);
-  preview.innerHTML = `<img src="${profilePreviewUrl}" alt="Selected profile photo preview">`;
+  profilePreviewUrl = "";
   input.closest("form")?.removeAttribute("data-remove-image");
+  compressProfileImage(file)
+    .then(dataUrl => { preview.innerHTML = `<img src="${dataUrl}" alt="Selected profile photo preview">`; })
+    .catch(() => { input.value = ""; showToast("That photo couldn’t be opened. Try a different one."); });
 });
 
 // Accept a dropped JSON backup only over the Settings restore target.

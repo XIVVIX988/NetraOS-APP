@@ -16446,3 +16446,176 @@ html body .app-shell.app-shell .settings-page .settings-mobile-bar strong { colo
 html body .app-shell.app-shell .settings-page .settings-tabs .settings-tab { color: var(--fx-muted); }
 html body .app-shell.app-shell .settings-page .settings-tabs .settings-tab.is-active { color: var(--green); border-color: var(--green); }
 html body .app-shell.app-shell .settings-page :is(select, input[type="text"], input[type="number"], input[type="email"], input[type="tel"], input[type="password"], input[type="date"]) { border: 1px solid var(--fx-line); border-radius: 12px; background: color-mix(in srgb, var(--fx-ink) 4%, var(--fx-card)); color: var(--fx-ink); }
+
+/* ===== Settings: privacy, PIN, passkeys, nudges and payday, tidied (Nov 2026) ===== */
+html body .app-shell.app-shell .settings-page .settings-pin-card { display: grid; gap: 0; margin: 4px 14px 8px; padding: 6px 0; border: 1px solid var(--fx-line); border-radius: 18px; background: color-mix(in srgb, var(--fx-ink) 3%, var(--fx-card)); }
+html body .app-shell.app-shell .settings-page .settings-pin-card[hidden] { display: none; }
+html body .app-shell.app-shell .settings-page .settings-pin-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 6px; }
+html body .app-shell.app-shell .settings-page .settings-pin-head strong { color: var(--fx-ink); font: 700 15px/1.2 var(--display, Inter, sans-serif); }
+html body .app-shell.app-shell .settings-page .settings-pin-state { padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); font: 700 11px/1 var(--sans, Inter, sans-serif); letter-spacing: .03em; }
+html body .app-shell.app-shell .settings-page .settings-pin-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 6px 16px; border-top: 1px solid var(--fx-line); color: var(--fx-ink); font: 600 14px/1.2 var(--sans, Inter, sans-serif); }
+html body .app-shell.app-shell .settings-page .settings-pin-row[hidden] { display: none !important; }
+html body .app-shell.app-shell .settings-page .settings-pin-row input { margin: 0; text-align: right; }
+html body .app-shell.app-shell .settings-page .settings-pin-row input.pin-small { width: 96px; height: 42px; padding: 0 10px; text-align: center; font: 700 18px/1 var(--display, Inter, sans-serif); letter-spacing: .4em; text-indent: .4em; }
+html body .app-shell.app-shell .settings-page .settings-pin-row input[name="pinRemovalPassword"] { width: min(220px, 60%); height: 42px; padding: 0 12px; }
+html body .app-shell.app-shell .settings-page .settings-pin-card .settings-field { padding: 10px 16px !important; }
+html body .app-shell.app-shell .settings-page .settings-link-button { align-self: flex-start; margin: 4px 16px 8px; padding: 6px 0; border: 0; background: none; box-shadow: none; color: var(--green); font: 700 13px/1.2 var(--sans, Inter, sans-serif); cursor: pointer; }
+html body .app-shell.app-shell .settings-page .settings-pin-card .settings-link-button { display: block; border-top: 0; }
+html body .app-shell.app-shell .settings-page .settings-inline-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0; padding: 8px 18px; }
+html body .app-shell.app-shell .settings-page .settings-inline-actions .settings-link-button { margin: 0; }
+html body .app-shell.app-shell .settings-page .secondary-button { min-height: 38px; padding: 0 14px; border: 1px solid var(--fx-line); border-radius: 12px; background: color-mix(in srgb, var(--fx-ink) 5%, var(--fx-card)); box-shadow: none; color: var(--fx-ink); font: 600 13px/1 var(--sans, Inter, sans-serif); }
+html body .app-shell.app-shell .settings-page .secondary-button:hover { border-color: color-mix(in srgb, var(--green) 45%, var(--fx-line)); }
+html body .app-shell.app-shell .settings-page .settings-small-button { min-height: 36px; }
+html body .app-shell.app-shell .settings-page .danger-button { min-height: 40px; padding: 0 14px; border: 1px solid color-mix(in srgb, #d4343b 35%, var(--fx-line)); border-radius: 12px; background: color-mix(in srgb, #d4343b 9%, var(--fx-card)); box-shadow: none; color: #d4343b; font: 700 13px/1 var(--sans, Inter, sans-serif); }
+html body .app-shell.app-shell.theme-dark .settings-page .danger-button { color: #ff8a80; }
+
+/* Passkeys */
+html body .app-shell.app-shell .settings-page .settings-passkeys { display: grid; gap: 4px; padding: 14px 0 6px; border-top: 1px solid var(--fx-line); }
+html body .app-shell.app-shell .settings-page .settings-passkeys-heading { display: grid; gap: 2px; padding: 0 18px; }
+html body .app-shell.app-shell .settings-page .settings-passkeys-heading strong { color: var(--fx-ink); font: 600 15px/1.3 var(--sans, Inter, sans-serif); }
+html body .app-shell.app-shell .settings-page .settings-passkeys-heading small, html body .app-shell.app-shell .settings-page .passkey-status { color: var(--fx-muted); font: 500 12px/1.4 var(--sans, Inter, sans-serif); }
+html body .app-shell.app-shell .settings-page .passkey-status { margin: 0; padding: 0 18px; }
+html body .app-shell.app-shell .settings-page .passkey-status:empty { display: none; }
+html body .app-shell.app-shell .settings-page .passkey-list { margin: 0; padding: 0 18px; }
+
+/* Recent activity folds away until you want it */
+html body .app-shell.app-shell .settings-page .settings-audit { margin: 0; padding: 0; border-top: 1px solid var(--fx-line); }
+html body .app-shell.app-shell .settings-page .settings-audit > summary { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 18px; color: var(--fx-ink); font: 600 15px/1.2 var(--sans, Inter, sans-serif); cursor: pointer; list-style: none; }
+html body .app-shell.app-shell .settings-page .settings-audit > summary::-webkit-details-marker { display: none; }
+html body .app-shell.app-shell .settings-page .settings-audit > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--fx-muted); border-bottom: 2px solid var(--fx-muted); transform: rotate(45deg); transition: transform .2s ease; }
+html body .app-shell.app-shell .settings-page .settings-audit[open] > summary::after { transform: rotate(-135deg); }
+html body .app-shell.app-shell .settings-page .settings-audit-body { display: grid; gap: 10px; padding: 0 18px 14px; color: var(--fx-muted); font: 500 12.5px/1.4 var(--sans, Inter, sans-serif); }
+html body .app-shell.app-shell .settings-page .settings-audit-body ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+html body .app-shell.app-shell .settings-page .settings-audit-body li { display: flex; justify-content: space-between; gap: 10px; }
+html body .app-shell.app-shell .settings-page .settings-audit-body p { margin: 0; }
+html body .app-shell.app-shell .settings-page .settings-audit-export { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+html body .app-shell.app-shell .settings-page .settings-audit-export select { width: auto; min-height: 36px; }
+
+/* Phone and browser pings */
+html body .app-shell.app-shell .settings-page .settings-push-registration { display: grid; gap: 4px; padding: 14px 0 8px; border-top: 1px solid var(--fx-line); }
+html body .app-shell.app-shell .settings-page .settings-push-registration > div > strong { display: block; padding: 0 18px; color: var(--fx-ink); font: 700 15px/1.3 var(--display, Inter, sans-serif); }
+html body .app-shell.app-shell .settings-page .settings-push-registration .passkey-status { padding: 0 18px; }
+html body .app-shell.app-shell .settings-page .settings-push-preferences { padding: 6px 0 0; }
+html body .app-shell.app-shell .settings-page .settings-push-preferences-heading { padding: 6px 18px 2px; }
+html body .app-shell.app-shell .settings-page .settings-push-preferences-heading h3 { margin: 0; color: var(--fx-ink); font: 700 14px/1.3 var(--display, Inter, sans-serif); }
+html body .app-shell.app-shell .settings-page .settings-push-preferences-heading p { margin: 2px 0 0; color: var(--fx-muted); font: 500 12px/1.4 var(--sans, Inter, sans-serif); }
+
+/* Payday card */
+html body .app-shell.app-shell .settings-page .settings-payday { display: grid; gap: 14px; justify-items: center; padding: 6px 18px 18px; text-align: center; }
+html body .app-shell.app-shell .settings-page .settings-payday-lead { margin: 0; color: var(--fx-muted); font: 500 13.5px/1.45 var(--sans, Inter, sans-serif); }
+html body .app-shell.app-shell .settings-page .payday-stepper { display: flex; align-items: center; justify-content: center; gap: 18px; }
+html body .app-shell.app-shell .settings-page .payday-stepper button { display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border: 1px solid color-mix(in srgb, var(--green) 30%, var(--fx-line)); border-radius: 50%; background: color-mix(in srgb, var(--green) 10%, var(--fx-card)); box-shadow: none; color: var(--green); font: 600 24px/1 var(--sans, Inter, sans-serif); cursor: pointer; }
+html body .app-shell.app-shell .settings-page .payday-value { display: grid; justify-items: center; gap: 2px; min-width: 120px; }
+html body .app-shell.app-shell .settings-page .payday-value input { width: 90px; height: 56px; padding: 0; border: 0; background: transparent; color: var(--fx-ink); font: 800 40px/1 var(--display, Inter, sans-serif); letter-spacing: -.03em; text-align: center; -moz-appearance: textfield; appearance: textfield; }
+html body .app-shell.app-shell .settings-page .payday-value input::-webkit-outer-spin-button, html body .app-shell.app-shell .settings-page .payday-value input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+html body .app-shell.app-shell .settings-page .payday-value input:focus { outline: 0; }
+html body .app-shell.app-shell .settings-page .payday-value span { color: var(--fx-muted); font: 600 12px/1 var(--sans, Inter, sans-serif); }
+html body .app-shell.app-shell .settings-page .payday-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+html body .app-shell.app-shell .settings-page .payday-chip { min-height: 34px; padding: 0 14px; border: 1px solid var(--fx-line); border-radius: 999px; background: transparent; box-shadow: none; color: var(--fx-ink); font: 600 13px/1 var(--sans, Inter, sans-serif); cursor: pointer; }
+html body .app-shell.app-shell .settings-page .payday-chip.is-selected { border-color: var(--green); background: var(--green); color: #ffffff; }
+html body .app-shell.app-shell.theme-dark .settings-page .payday-chip.is-selected { color: #0f1412; }
+html body .app-shell.app-shell .settings-page .settings-payday-next { margin: 0; color: var(--green); font: 700 14px/1.3 var(--sans, Inter, sans-serif); }
+html body .app-shell.app-shell .settings-page .settings-payday-hint { color: var(--fx-muted); font: 500 12px/1.3 var(--sans, Inter, sans-serif); }
+@keyframes paydayPulse { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--green) 35%, transparent); } }
+html body .app-shell.app-shell .settings-page .settings-payday-panel.is-highlighted { border-color: var(--green) !important; animation: paydayPulse 1.2s ease 2; }
+.app-shell.reduce-motion .settings-payday-panel.is-highlighted { animation: none; }
+
+/* ===== Corrections: switch alignment, phone dark background, photo fit, shared dropdown, tax layout (Nov 2026) ===== */
+
+/* Switch: older checkbox rules used !important, so the track and thumb are pinned down explicitly here */
+html body .app-shell.app-shell .settings-page input[type="checkbox"] {
+  -webkit-appearance: none !important; appearance: none !important;
+  box-sizing: border-box !important;
+  display: inline-block !important;
+  position: relative !important;
+  flex: 0 0 50px !important;
+  width: 50px !important; min-width: 50px !important; max-width: 50px !important;
+  height: 30px !important; min-height: 30px !important; max-height: 30px !important;
+  margin: 0 !important; padding: 0 !important;
+  border: 0 !important; border-radius: 999px !important;
+  background: color-mix(in srgb, var(--fx-ink, #171b3a) 22%, transparent) !important;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: background .2s ease;
+}
+html body .app-shell.app-shell .settings-page input[type="checkbox"]::before {
+  content: "" !important;
+  position: absolute !important; top: 3px !important; left: 3px !important;
+  box-sizing: border-box !important;
+  width: 24px !important; height: 24px !important;
+  margin: 0 !important; padding: 0 !important;
+  border: 0 !important; border-radius: 50% !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .28) !important;
+  transform: none !important;
+  transition: left .2s ease !important;
+}
+html body .app-shell.app-shell .settings-page input[type="checkbox"]:checked { background: var(--green) !important; border: 0 !important; }
+html body .app-shell.app-shell .settings-page input[type="checkbox"]:checked::before { left: 23px !important; transform: none !important; }
+
+/* Phone dark mode: every page uses the same near-black background as Inventory */
+@media (max-width: 760px) {
+  html body .app-shell.theme-dark { background: #111916 !important; }
+  html body .app-shell.theme-dark::before, html body .app-shell.theme-dark::after { display: none !important; }
+  html body .app-shell.theme-dark :is(.main-panel, .content, #page-content) { background: transparent !important; }
+  html body .app-shell.theme-dark:has(.settings-page) { --fx-bg: #111916; --fx-card: #1a231f; background: #111916 !important; }
+}
+
+/* Profile photo always fills the round frame */
+.profile-photo-preview, .profile-button .avatar { position: relative; overflow: hidden; }
+.profile-photo-preview img, .profile-button .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+
+/* ===== Shared dropdown: opens its choices right underneath ===== */
+.dd { --dd-accent: var(--app-popup-accent, var(--green, #13875f)); --dd-ink: var(--fx-ink, #1b2430); --dd-muted: var(--fx-muted, #6b7685); --dd-card: var(--fx-card, #ffffff); --dd-line: var(--fx-line, rgba(22, 26, 44, .12)); position: relative; display: block; width: 100%; min-width: 0; }
+.app-shell.theme-dark .dd, body.theme-dark dialog .dd { --dd-ink: #f2f6f3; --dd-muted: #98a39c; --dd-card: #1a231f; --dd-line: rgba(255, 255, 255, .12); }
+.dd-native { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; opacity: 0 !important; pointer-events: none !important; }
+.dd-button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 0 14px; border: 1px solid var(--dd-line); border-radius: 14px; background: var(--dd-card); box-shadow: none; color: var(--dd-ink); font: 600 15px/1.2 var(--sans, Inter, sans-serif); text-align: left; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
+.dd-button:hover { border-color: color-mix(in srgb, var(--dd-accent) 45%, var(--dd-line)); }
+.dd.is-open .dd-button { border-color: var(--dd-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dd-accent) 18%, transparent); }
+.dd-button:focus-visible { outline: 0; border-color: var(--dd-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dd-accent) 25%, transparent); }
+.dd-button.is-placeholder .dd-label { color: var(--dd-muted); font-weight: 500; }
+.dd.is-disabled .dd-button { opacity: .55; cursor: default; }
+.dd-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-chevron { flex: 0 0 auto; width: 12px; height: 12px; fill: none; stroke: var(--dd-muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s ease; }
+.dd.is-open .dd-chevron { transform: rotate(180deg); }
+.dd-icon { display: grid; flex: 0 0 auto; place-items: center; width: 22px; height: 22px; color: var(--dd-accent); }
+.dd-icon[hidden] { display: none; }
+.dd-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.dd-list { display: grid; gap: 2px; max-height: 280px; margin-top: 8px; padding: 6px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--dd-line); border-radius: 16px; background: var(--dd-card); box-shadow: 0 10px 28px rgba(20, 26, 40, .1); animation: ddOpen .16s ease; }
+.dd-list[hidden] { display: none; }
+@keyframes ddOpen { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.dd-group { padding: 10px 10px 4px; color: var(--dd-muted); font: 700 11px/1.2 var(--sans, Inter, sans-serif); letter-spacing: .06em; text-transform: uppercase; }
+.dd-option { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 10px; border: 0; border-radius: 11px; background: transparent; box-shadow: none; color: var(--dd-ink); font: 500 14.5px/1.25 var(--sans, Inter, sans-serif); text-align: left; cursor: pointer; }
+.dd-option:hover { background: color-mix(in srgb, var(--dd-accent) 8%, transparent); }
+.dd-option[aria-selected="true"] { background: color-mix(in srgb, var(--dd-accent) 12%, transparent); color: var(--dd-accent); font-weight: 700; }
+.dd-option:disabled { opacity: .45; cursor: default; }
+.dd-text { flex: 1 1 auto; min-width: 0; }
+.dd-check { display: none; flex: 0 0 auto; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.dd-option[aria-selected="true"] .dd-check { display: block; }
+.income-category-select-wrap:has(.dd) { display: block; }
+.income-category-select-wrap:has(.dd) > .income-category-select-icon { display: none; }
+@media (prefers-reduced-motion: reduce) { .dd-list { animation: none; } .dd-chevron { transition: none; } }
+
+/* ===== Settings rows: dropdowns sit below their words on phones; tax breaks in a tidy card ===== */
+html body .app-shell.app-shell .settings-page .settings-field > .dd { flex: 0 1 220px; width: auto; min-width: 150px; }
+html body .app-shell.app-shell .settings-page .settings-field > .dd .dd-button { min-height: 42px; font-size: 14px; }
+html body .app-shell.app-shell .settings-page .settings-relief-card { display: grid; margin: 4px 14px 12px; padding: 6px 0; border: 1px solid var(--fx-line); border-radius: 18px; background: color-mix(in srgb, var(--fx-ink) 3%, var(--fx-card)); }
+html body .app-shell.app-shell .settings-page .settings-relief-card .settings-pin-head { padding: 10px 16px 6px; }
+html body .app-shell.app-shell .settings-page .money-input { display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 12px; border: 1px solid var(--fx-line); border-radius: 12px; background: var(--fx-card); }
+html body .app-shell.app-shell .settings-page .money-input em { color: var(--fx-muted); font: 600 12px/1 var(--sans, Inter, sans-serif); font-style: normal; }
+html body .app-shell.app-shell .settings-page .money-input input { width: 84px; min-height: 0; height: 40px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--fx-ink); font: 700 15px/1 var(--display, Inter, sans-serif); text-align: right; }
+html body .app-shell.app-shell .settings-page .money-input input:focus { outline: 0; }
+html body .app-shell.app-shell .settings-page .money-input:focus-within { border-color: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 18%, transparent); }
+@media (max-width: 760px) {
+  html body .app-shell.app-shell .settings-page .settings-panel > .panel-heading { padding: 12px 14px 4px !important; }
+  html body .app-shell.app-shell .settings-page .settings-panel .settings-field { min-height: 50px; padding: 10px 14px !important; gap: 10px; }
+  html body .app-shell.app-shell .settings-page .settings-panel .settings-field strong { font-size: 14.5px; }
+  html body .app-shell.app-shell .settings-page .settings-panel .settings-field small { font-size: 11.5px; }
+  html body .app-shell.app-shell .settings-page .settings-disclosure { padding: 6px 14px 10px; font-size: 12px; }
+  html body .app-shell.app-shell .settings-page .settings-inline-actions { padding: 6px 14px 10px; }
+  html body .app-shell.app-shell .settings-page .settings-field:has(> .dd) { flex-direction: column; align-items: stretch; }
+  html body .app-shell.app-shell .settings-page .settings-field > .dd { flex: 0 0 auto; width: 100%; max-width: none !important; }
+  html body .app-shell.app-shell .settings-page .settings-pin-card, html body .app-shell.app-shell .settings-page .settings-relief-card { margin-inline: 10px; }
+  html body .app-shell.app-shell .settings-page .settings-pin-row { padding: 6px 12px; min-height: 48px; }
+  html body .app-shell.app-shell .settings-page .settings-payday { padding: 4px 14px 14px; }
+}
