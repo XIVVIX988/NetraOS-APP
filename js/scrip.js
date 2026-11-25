@@ -2895,7 +2895,32 @@ function getPowerUpData() {
 
 function incomeFrequency(item) {
   if (item.recurring === false) return "once";
-  return ["monthly", "quarterly", "yearly"].includes(item.frequency) ? item.frequency : "monthly";
+  return ["monthly", "quarterly", "semiannual", "yearly", "custom"].includes(item.frequency) ? item.frequency : "monthly";
+}
+
+// How many months pass between payments for each cadence.
+function incomeIntervalMonths(item) {
+  const frequency = incomeFrequency(item);
+  if (frequency === "custom") return Math.min(60, Math.max(1, Math.round(Number(item.intervalMonths) || 1)));
+  return { monthly: 1, quarterly: 3, semiannual: 6, yearly: 12 }[frequency] || 1;
+}
+
+function incomeCadenceLabel(item) {
+  const frequency = incomeFrequency(item);
+  if (frequency === "custom") {
+    const months = incomeIntervalMonths(item);
+    return months === 1 ? "Monthly" : `Every ${months} months`;
+  }
+  return { monthly: "Monthly", quarterly: "Quarterly", semiannual: "Semi-annually", yearly: "Annually" }[frequency] || "Monthly";
+}
+
+function incomeCadenceUnit(item) {
+  const frequency = incomeFrequency(item);
+  if (frequency === "custom") {
+    const months = incomeIntervalMonths(item);
+    return months === 1 ? "month" : `${months} months`;
+  }
+  return { monthly: "month", quarterly: "quarter", semiannual: "6 months", yearly: "year" }[frequency] || "month";
 }
 
 function incomeAnchorDate(item) {
@@ -2914,7 +2939,7 @@ function incomeExpectedInMonth(item, month) {
   const target = new Date(year, monthNumber - 1, 1, 12);
   const monthDelta = (target.getFullYear() - anchorDate.getFullYear()) * 12 + target.getMonth() - anchorDate.getMonth();
   if (monthDelta < 0) return false;
-  const cadence = frequency === "quarterly" ? 3 : frequency === "yearly" ? 12 : 1;
+  const cadence = incomeIntervalMonths(item);
   return monthDelta % cadence === 0 && !(Array.isArray(item.receivedMonths) && item.receivedMonths.includes(month));
 }
 
@@ -3389,6 +3414,28 @@ function renderQuestRows(quests, dashboard = false) {
   }).join("");
 }
 
+// Quest cards stay small; tapping one opens or closes its details. Open cards stay open after an update.
+const openQuestCards = new Set();
+
+function toggleQuestCard(card) {
+  const open = !card.classList.contains("is-open");
+  card.classList.toggle("is-open", open);
+  card.querySelector("[data-quest-toggle]")?.setAttribute("aria-expanded", String(open));
+  if (open) openQuestCards.add(card.dataset.questId); else openQuestCards.delete(card.dataset.questId);
+}
+
+document.addEventListener("click", event => {
+  const header = event.target instanceof Element ? event.target.closest("[data-quest-toggle]") : null;
+  if (header) toggleQuestCard(header.closest(".quest-card"));
+});
+
+document.addEventListener("keydown", event => {
+  if ((event.key === "Enter" || event.key === " ") && event.target instanceof Element && event.target.matches("[data-quest-toggle]")) {
+    event.preventDefault();
+    toggleQuestCard(event.target.closest(".quest-card"));
+  }
+});
+
 function renderQuestCard(quest) {
   const progress = questProgress(quest);
   const linkedInventoryItem = linkedInventoryItemForQuest(quest.id);
@@ -3401,32 +3448,33 @@ function renderQuestCard(quest) {
   const monthly = complete ? (debtPayoffQuest ? "Paid off" : "Fully funded") : pace.required === null ? "Set a deadline" : `${formatKsh(Math.ceil(pace.required))}/mo needed`;
   const status = complete ? "Completed" : pace.status === "on-track" ? "On track" : pace.status === "behind" || pace.status === "overdue" ? "Needs attention" : "In progress";
   const statusClass = complete ? "is-complete" : status === "In progress" ? "is-progress" : status === "Needs attention" ? "is-attention" : status === "On track" ? "is-on-track" : "";
+  const open = openQuestCards.has(quest.id);
   return `
-    <article class="quest-card ${complete ? "is-complete" : ""}" style="--quest-accent:${questCategoryAccent(quest.category)}" data-quest-id="${escapeHTML(quest.id)}">
-      <header class="quest-card-header">
-      <span class="quest-card-icon ${complete ? "is-complete" : ""}" aria-hidden="true"><span class="quest-icon-default">${complete ? "✦" : questNavigationIcon}</span>${complete ? "" : `<span class="quest-icon-category">${questCategoryIcon(quest.category)}</span>`}</span>
+    <article class="quest-card ${complete ? "is-complete" : ""}${open ? " is-open" : ""}" style="--quest-accent:${questCategoryAccent(quest.category)}" data-quest-id="${escapeHTML(quest.id)}">
+      <header class="quest-card-header" data-quest-toggle role="button" tabindex="0" aria-expanded="${open}" aria-label="Show or hide details for ${escapeHTML(quest.name)}">
+        <span class="quest-card-icon ${complete ? "is-complete" : ""}" aria-hidden="true"><span class="quest-icon-default">${complete ? "✦" : questNavigationIcon}</span>${complete ? "" : `<span class="quest-icon-category">${questCategoryIcon(quest.category)}</span>`}</span>
         <div class="quest-card-title-group">
           <div class="quest-card-title-line"><h3>${escapeHTML(quest.name)}</h3><span class="quest-status ${statusClass}">${status}</span></div>
         </div>
         <strong class="quest-card-percent" aria-label="${progress} percent complete">${progress}%</strong>
+        <span class="quest-card-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
+      </header>
+      <div class="quest-card-progress">
+        <div class="quest-track" role="progressbar" aria-label="${escapeHTML(quest.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><i style="width:${progress}%"></i></div>
+      </div>
+      <div class="quest-card-body">
+        <div class="quest-card-amounts ${debtPayoffQuest ? "is-debt-payoff" : ""}" aria-label="${debtPayoffQuest ? `Repaid ${formatKsh(quest.current)}; still owed ${formatKsh(linkedInventoryItem.amount)}` : `Saved ${formatKsh(quest.current)} of target ${formatKsh(quest.target)}`}" >${debtPayoffQuest ? `<span>Repaid <strong>${formatKsh(quest.current)}</strong></span><span>Owed <strong>${formatKsh(linkedInventoryItem.amount)}</strong></span>` : `<span>Saved <strong>${formatKsh(quest.current)}</strong></span><span>Target <strong>${formatKsh(quest.target)}</strong></span>`}</div>
+        <div class="quest-card-details-grid">
+          <span class="quest-card-detail"><small>DEADLINE</small><b>${escapeHTML(deadline)}</b></span>
+          <span class="quest-card-detail"><small>MONTHLY PACE</small><b>${escapeHTML(monthly)}</b></span>
+          <span class="quest-card-detail"><small>PRIORITY</small><b>${escapeHTML(questTierLabel(quest))}</b></span>
+          ${linkedInventoryItem ? `<span class="quest-card-detail"><small>LINKED ${linkedInventoryItem.type.toUpperCase()}</small><b>${escapeHTML(linkedInventoryItem.name)}</b></span>` : ""}
+        </div>
         <div class="quest-card-actions">
           <button class="quest-update" type="button" data-edit-quest="${escapeHTML(quest.id)}" aria-label="${complete ? "Edit" : "Update"} ${escapeHTML(quest.name)}"><span class="quest-update-label-full">${complete ? "Edit quest" : "Update progress"}</span><span class="quest-update-label-short">${complete ? "Edit" : "Update"}</span></button>
           <button class="quest-more" type="button" data-quest-actions="${escapeHTML(quest.id)}" aria-label="More actions for ${escapeHTML(quest.name)}" aria-haspopup="menu" aria-expanded="false">•••</button>
         </div>
-      </header>
-      <div class="quest-card-progress">
-        <div class="quest-card-amounts ${debtPayoffQuest ? "is-debt-payoff" : ""}" aria-label="${debtPayoffQuest ? `Repaid ${formatKsh(quest.current)}; still owed ${formatKsh(linkedInventoryItem.amount)}` : `Saved ${formatKsh(quest.current)} of target ${formatKsh(quest.target)}`}" >${debtPayoffQuest ? `<span>Repaid <strong>${formatKsh(quest.current)}</strong></span><span>Owed <strong>${formatKsh(linkedInventoryItem.amount)}</strong></span>` : `<span>Saved <strong>${formatKsh(quest.current)}</strong></span><span>Target <strong>${formatKsh(quest.target)}</strong></span>`}</div>
-        <div class="quest-track" role="progressbar" aria-label="${escapeHTML(quest.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><i style="width:${progress}%"></i></div>
       </div>
-      <details class="quest-card-details">
-        <summary>Details <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
-        <div class="quest-card-details-grid">
-          <span class="quest-card-detail"><small>CATEGORY / PRIORITY</small><b><span class="quest-card-category-icon" aria-hidden="true">${questCategoryIcon(quest.category)}</span>${escapeHTML(quest.category || "Personal goal")} · ${escapeHTML(questTierLabel(quest))}</b></span>
-          <span class="quest-card-detail"><small>DEADLINE</small><b>${escapeHTML(deadline)}</b></span>
-          <span class="quest-card-detail"><small>MONTHLY PACE</small><b>${escapeHTML(monthly)}</b></span>
-          ${linkedInventoryItem ? `<span class="quest-card-detail"><small>LINKED ${linkedInventoryItem.type.toUpperCase()}</small><b>${escapeHTML(linkedInventoryItem.name)}</b></span>` : ""}
-        </div>
-      </details>
     </article>`;
 }
 
@@ -3481,6 +3529,7 @@ function updateDashboardQuests() {
 }
 
 function updateDashboardOnboarding() {
+  try { notifyIncomingIncomeSources(); } catch { /* The alert is a nice-to-have. */ }
   const card = document.querySelector("[data-onboarding]");
   if (!card) return;
   const inventory = getInventoryEntries();
@@ -5111,10 +5160,14 @@ function openPowerUpDialog(kind, editId = null, preset = {}) {
         </label>
         ${!isSpending && !isReceivedIncome ? `<label class="inventory-form-field budget-repeat-field">
           <span>Repeat this ${isIncome ? "income" : "budget"}</span>
-          <span class="budget-repeat-control"><input name="recurring" type="checkbox" checked><span><strong>${isIncome ? "Repeat this income" : "Repeat monthly"}</strong><small>${isIncome ? "Choose a monthly, quarterly, or yearly cadence below." : "Keep this budget in future months automatically."}</small></span></span>
+          <span class="budget-repeat-control"><input name="recurring" type="checkbox" checked><span><strong>${isIncome ? "Repeat this income" : "Repeat monthly"}</strong><small>${isIncome ? "Pick how often it arrives below." : "Keep this budget in future months automatically."}</small></span></span>
         </label>${isIncome ? `<label class="inventory-form-field" data-income-frequency-field>
           <span>Payment cadence</span>
-          <select name="frequency"><option value="monthly">Every month</option><option value="quarterly">Every 3 months</option><option value="yearly">Every year</option></select>
+          <select name="frequency"><option value="monthly">Monthly</option><option value="quarterly">Quarterly (every 3 months)</option><option value="semiannual">Semi-annually (every 6 months)</option><option value="yearly">Annually (every year)</option><option value="custom">Custom</option></select>
+        </label>
+        <label class="inventory-form-field" data-income-custom-field hidden>
+          <span>Repeat every (months)</span>
+          <input name="intervalMonths" type="number" min="1" max="60" step="1" inputmode="numeric" value="2">
         </label>` : ""}` : ""}
         <label class="inventory-form-field">
           <span>Notes <small>Optional</small></span>
@@ -5148,6 +5201,7 @@ function openPowerUpDialog(kind, editId = null, preset = {}) {
     form.elements.notes.value = editing.notes || "";
     if (form.elements.recurring) form.elements.recurring.checked = isSpending ? editing.recurring === true : editing.recurring !== false;
     if (form.elements.frequency) form.elements.frequency.value = incomeFrequency(editing);
+    if (form.elements.intervalMonths) form.elements.intervalMonths.value = String(incomeIntervalMonths(editing) > 1 || incomeFrequency(editing) === "custom" ? incomeIntervalMonths(editing) : 2);
   }
   const syncIncomeAmountLabel = () => {
     const label = form.querySelector("[data-income-amount-label]");
@@ -5184,6 +5238,12 @@ function openPowerUpDialog(kind, editId = null, preset = {}) {
       if (cadence) cadence.hidden = !incomeRecurrenceToggle.checked;
     });
     if (!incomeRecurrenceToggle.checked) form.querySelector("[data-income-frequency-field]").hidden = true;
+    // "Custom" asks how many months apart the payments are.
+    const customField = form.querySelector("[data-income-custom-field]");
+    const syncCustomCadence = () => { if (customField) customField.hidden = !(incomeRecurrenceToggle.checked && form.elements.frequency?.value === "custom"); };
+    form.elements.frequency?.addEventListener("change", syncCustomCadence);
+    incomeRecurrenceToggle.addEventListener("change", syncCustomCadence);
+    syncCustomCadence();
   }
   if (incomeCategorySelect) {
     syncIncomeCategoryIcon();
@@ -5266,7 +5326,7 @@ function openPowerUpDialog(kind, editId = null, preset = {}) {
     const netAmount = payroll ? payroll.net : isSaccoReturn ? Math.round(amount * 0.9) : amount;
     const savedEntry = isIncome ? isReceivedIncome
       ? { ...entry, amount, category, status: "received", date: paymentDate, sourceId: String(formData.get("sourceId") || ""), accountId: String(formData.get("accountId") || ""), recurring: false }
-      : { ...entry, amount: netAmount, ...((isSalary || isSaccoReturn) ? { grossAmount: amount } : {}), category, status: "expected", expectedDate: paymentDate, frequency: formData.has("recurring") ? String(formData.get("frequency") || "monthly") : "once", recurring: formData.has("recurring"), startMonth: paymentDate.slice(0, 7) }
+      : { ...entry, amount: netAmount, ...((isSalary || isSaccoReturn) ? { grossAmount: amount } : {}), category, status: "expected", expectedDate: paymentDate, frequency: formData.has("recurring") ? String(formData.get("frequency") || "monthly") : "once", ...(formData.has("recurring") && formData.get("frequency") === "custom" ? { intervalMonths: Math.min(60, Math.max(1, Math.round(Number(formData.get("intervalMonths")) || 1))) } : {}), recurring: formData.has("recurring"), startMonth: paymentDate.slice(0, 7) }
       : isSpending ? { ...entry, date: expenseDate, month: expenseDate.slice(0, 7), category, accountId: String(formData.get("accountId") || ""), recurring: formData.has("recurring") } : { ...entry, category, recurring: formData.has("recurring"), startMonth: editing?.startMonth || getReportMonth() };
     if (isReceivedIncome && editing?.sourceId && (editing.sourceId !== savedEntry.sourceId || editing.date?.slice(0, 7) !== paymentDate.slice(0, 7))) {
       const oldSourceIndex = data.incomes.findIndex(item => item.id === editing.sourceId);
@@ -5302,6 +5362,7 @@ function openPowerUpDialog(kind, editId = null, preset = {}) {
     }
 
     const totalsAfterUpdate = getPowerUpTotals();
+    if (isIncome && !isReceivedIncome) notifyIncomingIncomeSources();
     const salaryAdded = isIncome && !isReceivedIncome && savedEntry.category === "Salary" && Number(amount) > 0 && !editing;
     if (salaryAdded) {
       const payday = Number(getStoredSettings().paydayAnchorDay) || 1;
@@ -5374,7 +5435,7 @@ function renderQuestsPage() {
           <div class="quest-track" role="progressbar" aria-label="Overall quest savings progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${engine.rate}"><i style="width:${engine.rate}%"></i></div>
         </article>
       </section>
-      ${quests.length ? renderQuestInsightCard() : ""}
+      
       <section class="panel quest-page-panel">
         <div class="quest-list-heading">
           <div><h2>Your quests</h2></div>
@@ -6213,12 +6274,13 @@ function renderPowerUpPage() {
   const data = getPowerUpData();
   const reportSpending = spendingForReport(data.spending);
   const totals = getPowerUpReportTotals();
-  const incomeRows = data.incomes.length
-    ? data.incomes.map(item => {
+  const receivedIncomes = data.incomes.filter(item => item.status === "received");
+  const incomeRows = receivedIncomes.length
+    ? receivedIncomes.map(item => {
       const category = incomeCategoryByLabel[item.category];
       const received = item.status === "received";
       const frequency = incomeFrequency(item);
-      const cadenceLabel = received ? `Received ${item.date || ""}` : frequency === "once" ? `Expected ${item.expectedDate || item.startMonth || ""}` : item.category === "Salary" ? `${frequency[0].toUpperCase()}${frequency.slice(1)} · Payday ${ordinalDay(getStoredSettings().paydayAnchorDay)}` : `${frequency[0].toUpperCase()}${frequency.slice(1)} · next ${item.expectedDate || "date to set"}`;
+      const cadenceLabel = received ? `Received ${item.date || ""}` : frequency === "once" ? `Expected ${item.expectedDate || item.startMonth || ""}` : item.category === "Salary" ? `${incomeCadenceLabel(item)} · Payday ${ordinalDay(getStoredSettings().paydayAnchorDay)}` : `${incomeCadenceLabel(item)} · next ${item.expectedDate || "date to set"}`;
       return `
         <div class="power-row">
           <span class="power-row-icon income-icon" aria-hidden="true">${category?.icon || '<svg viewBox="0 0 24 24"><path d="M4 18h16M6 15l4-4 3 3 5-6M15 8h3v3"/></svg>'}</span>
@@ -6226,12 +6288,12 @@ function renderPowerUpPage() {
             <strong>${escapeHTML(item.name)}</strong>
             <small>${["", category?.label && category.label !== item.name ? category.label : "", cadenceLabel, item.notes].filter(Boolean).map(escapeHTML).join(" · ")}</small>
           </span>
-          <strong class="power-row-amount">${formatKsh(item.amount)}<small>${received ? "received" : frequency === "once" ? "one-time" : `/ ${({ monthly: "month", quarterly: "quarter", yearly: "year" })[frequency] || frequency}`}</small></strong>
+          <strong class="power-row-amount">${formatKsh(item.amount)}<small>${received ? "received" : frequency === "once" ? "one-time" : `/ ${incomeCadenceUnit(item)}`}</small></strong>
           <button class="inventory-row-edit" type="button" data-edit-power-item="${received ? "received-income" : "income"}" data-item-id="${escapeHTML(item.id)}" aria-label="Edit ${escapeHTML(item.name)}" title="Edit income">Edit</button>
           <button class="inventory-delete" type="button" data-delete-power-item="income" data-item-id="${escapeHTML(item.id)}" aria-label="Delete ${escapeHTML(item.name)}" title="Delete income">×</button>
         </div>`;
     }).join("")
-    : `<div class="power-empty"><span class="power-empty-icon" aria-hidden="true">${powerIcons.income}</span><span class="power-empty-title">No income yet</span><span class="power-empty-detail">Plan expected payments or record income when it arrives.</span></div>`;
+    : `<div class="power-empty"><span class="power-empty-icon" aria-hidden="true">${powerIcons.income}</span><span class="power-empty-title">No income received yet</span><span class="power-empty-detail">Record income when it lands.</span></div>`;
   const visibleBudgets = budgetListExpanded ? data.budgets : data.budgets.slice(0, 5);
   const budgetRows = data.budgets.length
     ? visibleBudgets.map(item => `
@@ -6311,7 +6373,7 @@ function renderPowerUpPage() {
         </div>
         <section class="power-tab-panel" id="power-panel-income" role="tabpanel" aria-labelledby="power-tab-income" data-power-panel="income" ${activePowerTab !== "income" ? "hidden" : ""}>
           <div class="power-desktop-income-layout">
-            ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Income this month", totals.income)}
+            ${renderPowerListPanel("income", "Income received", "MONEY IN", incomeRows, "Received this month", actualIncomeForMonth(data.incomes, getReportMonth()))}
             ${renderTaxWidget(true, "-desktop-income", true)}
           </div>
         </section>
@@ -6326,7 +6388,7 @@ function renderPowerUpPage() {
       <section class="power-mobile-workspace" aria-label="Income and monthly budget">
         ${renderTaxWidget()}
         <section class="inventory-columns power-columns" aria-label="Income and monthly budget">
-            ${renderPowerListPanel("income", "Income sources", "MONEY COMING IN", incomeRows, "Income this month", totals.income, true)}
+            ${renderPowerListPanel("income", "Income received", "MONEY IN", incomeRows, "Received this month", actualIncomeForMonth(data.incomes, getReportMonth()), true)}
           ${renderPowerListPanel("budget", "Monthly budget", "MONEY WITH A JOB", budgetRows, "Total planned budget", totals.budget, true, budgetListControl)}
           ${renderPowerListPanel("spending", "Monthly spending", "MONEY SPENT", spendingRows, "Total monthly spending", totals.spending, true, spendingListControl)}
         </section>
@@ -6957,6 +7019,22 @@ function createInAppNotification({ title, body, page = "Power-Up", actionLabel =
   });
   saveInAppNotifications(items);
   if (document.querySelector(".notification-center")) renderNotificationCenter();
+}
+
+function notifyIncomingIncomeSources() {
+  const month = monthKey();
+  const incoming = getPowerUpData().incomes.filter(item => incomeExpectedInMonth(item, month));
+  if (incoming.length < 2) return;
+  const names = incoming.slice(0, 3).map(item => item.name).join(", ") + (incoming.length > 3 ? ` and ${incoming.length - 3} more` : "");
+  createInAppNotification({
+    title: `${incoming.length} payments on the way`,
+    body: `${names} are all expected this month. Record each one when it lands.`,
+    page: "Power-Up",
+    actionLabel: "Open income calendar",
+    actionTarget: "Power-Up:income",
+    dedupeKey: `incoming-sources:${month}:${incoming.map(item => item.id).sort().join("|")}`,
+    preference: "monthlyReminders"
+  });
 }
 
 function buildBudgetRuleSuggestion(netMonthlyIncome) {
@@ -10165,98 +10243,6 @@ document.addEventListener("keydown", event => {
   event.stopPropagation();
 }, true);
 
-// ---- Quest insights: a short motivation line plus something useful drawn from your own numbers ----
-const questMotivation = [
-  "A little step a day makes it grow.",
-  "Small savings, big dreams.",
-  "Progress beats perfect.",
-  "Start small. Keep going.",
-  "Future you says thanks.",
-  "Every shilling set aside is a vote for your goal."
-];
-let questInsightIndex = 0;
-
-function getQuestInsights() {
-  const quests = getQuests();
-  const active = activeQuests(quests);
-  const engine = getMilestonesEngine(quests);
-  const top = engine.top || active[0] || null;
-  const list = [];
-  let line = 0;
-  const add = (text, questId = "") => list.push({ quote: questMotivation[line++ % questMotivation.length], text, questId });
-  if (!quests.length) {
-    add("Pick one goal you care about and give it a date. Even a small monthly amount is a start.");
-    return list;
-  }
-  if (!active.length) {
-    add("All your goals are done. What’s the next dream?");
-    return list;
-  }
-  const power = getPowerUpData();
-  const month = monthKey();
-  // Where could a small cut-back go? Look at the flexible spending categories.
-  const flexible = ["Food & groceries", "Subscriptions", "Airtime & bundles", "Mobile money fees", "Other"];
-  const spent = flexible
-    .map(category => ({ category, amount: actualSpendingForMonth(power.spending.filter(item => item.category === category), month) }))
-    .filter(item => item.amount >= 500)
-    .sort((a, b) => b.amount - a.amount)[0];
-  if (spent && top) {
-    const cut = Math.max(100, Math.round(spent.amount * 0.1 / 100) * 100);
-    const pace = questPace(top);
-    const velocity = Number(pace.velocity) || Number(pace.required) || 0;
-    const remaining = Math.max(0, Number(top.target) - Number(top.current || 0));
-    const sooner = velocity > 0 ? Math.round(remaining / velocity - remaining / (velocity + cut)) : 0;
-    const label = spent.category.toLowerCase();
-    add(sooner >= 1
-      ? `You spent ${formatKsh(spent.amount)} on ${label} this month. Cutting back by ${formatKsh(cut)} and adding it to <strong>${escapeHTML(top.name)}</strong> could finish it about ${sooner} month${sooner === 1 ? "" : "s"} sooner.`
-      : `You spent ${formatKsh(spent.amount)} on ${label} this month. Cutting back by ${formatKsh(cut)} and adding it to <strong>${escapeHTML(top.name)}</strong> is ${formatKsh(cut * 12)} more in a year.`, top.id);
-  }
-  const income = incomeOutlookForMonth(power.incomes, month);
-  const left = income - actualSpendingForMonth(power.spending, month);
-  if (left > 1000 && top) {
-    add(`You have ${formatKsh(left)} left this month. Put ${formatKsh(Math.round(left / 2 / 100) * 100)} toward <strong>${escapeHTML(top.name)}</strong>?`, top.id);
-  }
-  if (engine.behind[0]) {
-    const behind = engine.behind[0];
-    const need = behind.pace.required ? ` It needs about ${formatKsh(Math.ceil(behind.pace.required))} a month to catch up.` : "";
-    add(`<strong>${escapeHTML(behind.quest.name)}</strong> is a little behind.${need}`, behind.quest.id);
-  }
-  const close = active.map(quest => ({ quest, progress: questProgress(quest) })).filter(item => item.progress >= 75 && item.progress < 100)[0];
-  if (close) add(`<strong>${escapeHTML(close.quest.name)}</strong> is ${close.progress}% done. The finish line is close.`, close.quest.id);
-  const fresh = active.find(quest => questProgress(quest) === 0);
-  if (fresh) add(`Add your first shilling to <strong>${escapeHTML(fresh.name)}</strong> and watch the bar move.`, fresh.id);
-  if (engine.monthly > 0) add(`Setting aside about ${formatKsh(Math.ceil(engine.monthly))} a month keeps all your goals on pace.`);
-  add("Saving a little often beats saving a lot once.");
-  return list;
-}
-
-function questInsightInner(index) {
-  const insights = getQuestInsights();
-  const insight = insights[((index % insights.length) + insights.length) % insights.length];
-  return `<span class="quest-insight-icon" aria-hidden="true">${questNavigationIcon}</span>
-    <div class="quest-insight-body"><p class="quest-insight-quote">“${escapeHTML(insight.quote)}”</p><p class="quest-insight-text">${insight.text}</p></div>
-    ${insight.questId ? `<button class="quest-insight-go" type="button" data-quest-insight-go="${escapeHTML(insight.questId)}" aria-label="Open this quest"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>` : ""}`;
-}
-
-function renderQuestInsightCard() {
-  return `<aside class="quest-insight-card" data-quest-insight aria-live="polite">${questInsightInner(questInsightIndex)}</aside>`;
-}
-
-// The card moves to the next insight every 30 seconds while Quests is open.
-window.setInterval(() => {
-  const card = document.querySelector("[data-quest-insight]");
-  if (!card || appShell.hidden || crumb.textContent !== "Quests" || document.visibilityState !== "visible") return;
-  questInsightIndex += 1;
-  card.innerHTML = questInsightInner(questInsightIndex);
-  card.classList.remove("is-changing");
-  void card.offsetWidth;
-  card.classList.add("is-changing");
-}, 30000);
-
-document.addEventListener("click", event => {
-  const go = event.target instanceof Element ? event.target.closest("[data-quest-insight-go]") : null;
-  if (go) openQuestDialog(go.dataset.questInsightGo);
-});
 
 function syncPaydayControls(input) {
   const wrap = input.closest(".settings-payday");
