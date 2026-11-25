@@ -2999,7 +2999,7 @@ function renderIncomeForecast(incomes) {
     ? `<span class="forecast-received-note" tabindex="0" title="${escapeHTML(`On ${longOrdinalDate(String(receivedThisMonth[0].date).slice(0, 10))} the income was received.`)}">✓ Income received</span>`
     : `<button type="button" class="forecast-received-action" data-power-action="received-income">Record received</button>`;
   return `<section class="cashflow-forecast" aria-label="12-month income calendar">
-    <header class="cashflow-forecast-heading"><h2 class="forecast-title">12-month income calendar</h2><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button></div></header>
+    <header class="cashflow-forecast-heading"><h2 class="forecast-title">Income calendar</h2><div class="cashflow-forecast-actions"><button type="button" class="inventory-action" data-power-action="income">＋ Plan income</button></div></header>
     <div class="forecast-month-grid forecast-calendar-view">${calendar}</div>
     <div class="forecast-foot">${received.length ? `<p class="forecast-footnote">Planned amounts are estimates. Mark them received when the money arrives.</p>` : `<p class="forecast-footnote">These amounts are estimates. Mark income as received when the money arrives.</p>`}${receivedNote}</div>
   </section>`;
@@ -5358,11 +5358,11 @@ function renderQuestsPage() {
       <header class="inventory-heading">
         <div>
           <div class="eyebrow"><span class="eyebrow-line"></span> GOALS WITH MOMENTUM</div>
-          <h1><span class="quests-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2c.7 5 2.4 7.6 5.1 8.6C20 11.5 21.4 12 22 12c-.6 0-2 .5-4.9 1.4-2.7 1-4.4 3.6-5.1 8.6-.7-5-2.4-7.6-5.1-8.6C4 12.5 2.600 12 2 12c.6 0 2-.5 4.900-1.400C9.600 9.600 11.300 7 12 2Z"/></svg></span><span class="quests-title-desktop">Financial quests</span><span class="quests-title-mobile">Quests</span></h1>
-          <p class="welcome-sub">Set a goal. Track progress, celebrate each win.</p>
+          <h1><span class="quests-title-desktop">Financial quests</span><span class="quests-title-mobile">Quests</span></h1>
+          <p class="welcome-sub">Set a goal. Track progress. Celebrate each win.</p>
         </div>
         <button class="inventory-action quest-heading-add" type="button" data-quest-action="add" aria-label="Create a quest" ${canAddQuest ? "" : "disabled"} title="${canAddQuest ? "Create a quest" : "Complete or remove an active quest to make room"}">
-          <span class="inventory-add-plus quest-heading-add-plus" aria-hidden="true">+</span><span class="quest-heading-add-label">New quest</span>
+          <span class="inventory-add-plus quest-heading-add-plus" aria-hidden="true">+</span><span class="quest-heading-add-label">Add quest</span>
         </button>
       </header>
       <section class="quest-overview" aria-label="Quest overview">
@@ -5374,7 +5374,7 @@ function renderQuestsPage() {
           <div class="quest-track" role="progressbar" aria-label="Overall quest savings progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${engine.rate}"><i style="width:${engine.rate}%"></i></div>
         </article>
       </section>
-      ${active.length ? `<aside class="quest-plan-insight" data-quest-focus-top role="button" tabindex="0"><span class="quest-insight-icon" aria-hidden="true">${questNavigationIcon}</span><span class="quest-insight-text">${engine.monthly > 0 ? `Plan for about <strong>${formatKsh(Math.ceil(engine.monthly))} per month</strong> to stay on pace${engine.top ? ` with <strong>${escapeHTML(engine.top.name)}</strong> as your top priority` : ""}.` : `Add target dates to your active quests to see the monthly pace needed${engine.top ? ` for your top priority, <strong>${escapeHTML(engine.top.name)}</strong>` : ""}.`}</span><span class="quest-insight-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></span></aside>` : ""}
+      ${quests.length ? renderQuestInsightCard() : ""}
       <section class="panel quest-page-panel">
         <div class="quest-list-heading">
           <div><h2>Your quests</h2></div>
@@ -7549,7 +7549,7 @@ function showPreferredNamePrompt(profile) {
   dialog.setAttribute("aria-labelledby", "onboarding-title");
   dialog.innerHTML = `
     <form class="inventory-form" novalidate>
-      <header class="inventory-dialog-heading"><div><span class="section-kicker" data-onboarding-kicker>WELCOME TO NETRAOS</span><h2 id="onboarding-title" data-onboarding-title></h2></div></header>
+      <header class="inventory-dialog-heading"><div><h2 id="onboarding-title" data-onboarding-title></h2></div></header>
       <div class="onboarding-progress-wrap"><span data-onboarding-step-count></span><div class="onboarding-progress-track"><i data-onboarding-progress></i></div></div>
       <p class="onboarding-copy" data-onboarding-copy></p>
       <div class="inventory-form-fields onboarding-fields" data-onboarding-fields></div>
@@ -7567,6 +7567,30 @@ function showPreferredNamePrompt(profile) {
   const backButton = dialog.querySelector("[data-onboarding-back]");
   const skipButton = dialog.querySelector("[data-onboarding-skip]");
   const nextButton = dialog.querySelector("[data-onboarding-next]");
+
+  fields.addEventListener("click", event => {
+    const target = event.target instanceof Element ? event.target : null;
+    const themeButton = target?.closest("[data-theme-mode]");
+    const accentButton = target?.closest("[data-ob-accent]");
+    if (themeButton) {
+      const mode = themeButton.dataset.themeMode;
+      form.elements.themeMode.value = mode;
+      fields.querySelectorAll("[data-theme-mode]").forEach(button => {
+        const selected = button === themeButton;
+        button.classList.toggle("is-selected", selected);
+        button.setAttribute("aria-checked", String(selected));
+      });
+      saveSettingsPatch({ themeMode: mode, darkMode: mode === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : mode === "dark" });
+    } else if (accentButton) {
+      form.elements.accentProfile.value = accentButton.dataset.obAccent;
+      fields.querySelectorAll("[data-ob-accent]").forEach(button => {
+        const selected = button === accentButton;
+        button.classList.toggle("is-selected", selected);
+        button.setAttribute("aria-checked", String(selected));
+      });
+      saveSettingsPatch({ accentProfile: accentButton.dataset.obAccent });
+    }
+  });
 
   const captureStep = ({ skip = false } = {}) => {
     const kind = questionSteps[step];
@@ -7621,42 +7645,56 @@ function showPreferredNamePrompt(profile) {
     backButton.hidden = step === 0;
     error.textContent = "";
     nextButton.textContent = step === totalSteps - 1 ? "Start" : "Next";
-    dialog.querySelector("[data-onboarding-kicker]").textContent = "WELCOME TO NETRAOS · SETUP";
     if (kind === "profile") {
-      title.textContent = "A little about you";
-      copy.textContent = "Choose how we address you. The other details are optional and can be skipped.";
+      title.textContent = "What should we call you?";
+      copy.textContent = "A first name or nickname is perfect.";
       fields.innerHTML = `
-        <label class="inventory-form-field"><span>Preferred name</span><input name="preferredName" type="text" autocomplete="nickname" maxlength="40" value="${escapeHTML(state.preferredName)}" placeholder="The name you go by"></label>
+        <label class="inventory-form-field ob-name-field"><span>Your name</span><input name="preferredName" type="text" autocomplete="nickname" maxlength="40" value="${escapeHTML(state.preferredName)}" placeholder="e.g. Amani"></label>
         <label class="inventory-form-field"><span>Sex <small>Optional</small></span><select name="sex"><option value="">Prefer not to say</option>${[["female", "Female"], ["male", "Male"], ["intersex", "Intersex"], ["other", "Other"]].map(([value, label]) => `<option value="${value}" ${state.sex === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
         <label class="inventory-form-field profile-dob-field"><span>Date of birth <small>Optional</small></span><input name="dateOfBirth" type="date" max="${localDateValue()}" value="${escapeHTML(state.dateOfBirth)}"></label>`;
     } else if (kind === "preferences") {
-      title.textContent = "Set your preferences";
-      copy.textContent = "Pick the look and calendar settings that fit you. You can change them later in Settings.";
+      title.textContent = "Make it yours";
+      copy.textContent = "Pick a look. You can change any of this later.";
       const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       fields.innerHTML = `
-        <label class="inventory-form-field"><span>Preferred theme</span><select name="themeMode"><option value="light" ${state.themeMode === "light" ? "selected" : ""}>Light</option><option value="dark" ${state.themeMode === "dark" ? "selected" : ""}>Dark</option><option value="system" ${state.themeMode === "system" ? "selected" : ""}>Use device setting</option></select></label>
-        <label class="inventory-form-field"><span>Accent color</span><select name="accentProfile">${ACCENT_PRESETS.map(({ id, name }) => `<option value="${id}" ${state.accentProfile === id ? "selected" : ""}>${name}</option>`).join("")}</select></label>
-        <label class="inventory-form-field"><span>Financial year starts</span><select name="financialYearStartMonth">${months.map((month, index) => `<option value="${index + 1}" ${state.financialYearStartMonth === index + 1 ? "selected" : ""}>${month}</option>`).join("")}</select></label>
-        <label class="inventory-form-field"><span>Payday / cycle start day</span><input name="paydayAnchorDay" type="number" min="1" max="31" step="1" inputmode="numeric" value="${state.paydayAnchorDay}"><small>Your monthly cycle starts on this day; shorter months use their last day.</small></label>`;
+        <div class="ob-block"><span class="ob-label">Look</span>
+          <input type="hidden" name="themeMode" value="${state.themeMode}">
+          <div class="settings-theme-choice" role="radiogroup" aria-label="Theme">${[["system", "System"], ["light", "Light"], ["dark", "Dark"]].map(([value, label]) => `<button type="button" role="radio" data-theme-mode="${value}" class="theme-tile theme-tile-${value}${state.themeMode === value ? " is-selected" : ""}" aria-checked="${state.themeMode === value}"><span class="theme-tile-art" aria-hidden="true"><i class="tt-notch"></i><i class="tt-bar"></i><i class="tt-line"></i><i class="tt-card"></i></span><span class="theme-tile-check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m6.5 12.5 3.6 3.6 7.4-8"/></svg></span><span class="theme-tile-name">${label}</span></button>`).join("")}</div>
+        </div>
+        <div class="ob-block"><span class="ob-label">Colour</span>
+          <input type="hidden" name="accentProfile" value="${state.accentProfile}">
+          <div class="ob-swatches" role="radiogroup" aria-label="Accent colour">${ACCENT_PRESETS.map(preset => `<button type="button" class="ob-swatch${state.accentProfile === preset.id ? " is-selected" : ""}" role="radio" aria-checked="${state.accentProfile === preset.id}" data-ob-accent="${preset.id}" style="--sw:${preset.primary}"><i aria-hidden="true"></i><span>${preset.name}</span></button>`).join("")}</div>
+        </div>
+        <label class="inventory-form-field ob-field"><span>My year starts in</span><select name="financialYearStartMonth">${months.map((month, index) => `<option value="${index + 1}" ${state.financialYearStartMonth === index + 1 ? "selected" : ""}>${month}</option>`).join("")}</select></label>
+        <div class="ob-block settings-payday"><span class="ob-label">Payday</span>
+          <div class="payday-stepper" role="group" aria-label="Payday, day of the month">
+            <button type="button" data-payday-step="-1" aria-label="One day earlier">−</button>
+            <label class="payday-value"><input name="paydayAnchorDay" type="number" min="1" max="31" step="1" inputmode="numeric" value="${state.paydayAnchorDay}" aria-label="Payday, day of the month (1 to 31)"><span>of every month</span></label>
+            <button type="button" data-payday-step="1" aria-label="One day later">+</button>
+          </div>
+          <div class="payday-chips" role="group" aria-label="Quick picks">${[1, 5, 10, 15, 20, 25, 28, 30].map(day => `<button type="button" data-payday-pick="${day}" class="payday-chip${Number(state.paydayAnchorDay) === day ? " is-selected" : ""}">${ordinalDay(day)}</button>`).join("")}</div>
+          <p class="settings-payday-next" data-payday-preview></p>
+        </div>`;
+      syncPaydayControls(fields.querySelector('[name="paydayAnchorDay"]'));
     } else if (kind === "goal") {
-      title.textContent = "What would you like to work toward first?";
-      copy.textContent = "Choose a focus and name your first goal. You can skip this question and create a quest later.";
+      title.textContent = "What are you saving for?";
+      copy.textContent = "Pick an area and name your first goal. Not ready? Skip it.";
       fields.innerHTML = `
         <label class="inventory-form-field"><span>Goal area</span><select name="goalCategory">${questCategories.map(category => `<option value="${escapeHTML(category)}" ${state.goalCategory === category ? "selected" : ""}>${escapeHTML(category)}</option>`).join("")}</select></label>
-        <label class="inventory-form-field"><span>Goal name <small>Optional</small></span><input name="goalName" type="text" maxlength="60" value="${escapeHTML(state.goalName)}" placeholder="e.g. Emergency fund, clear my car loan"></label>`;
+        <label class="inventory-form-field"><span>Goal name <small>Optional</small></span><input name="goalName" type="text" maxlength="60" value="${escapeHTML(state.goalName)}" placeholder="e.g. Emergency fund"></label>`;
     } else if (kind === "target") {
-      title.textContent = "Set a target and timeframe";
-      copy.textContent = "A target and deadline let NetraOS work out the monthly pace. Skip any detail you’re not ready to set.";
+      title.textContent = "How much, and by when?";
+      copy.textContent = "We’ll work out the monthly amount for you.";
       fields.innerHTML = `
         <label class="inventory-form-field"><span>Target amount (KSh)</span><input name="goalTarget" type="number" min="1" step="0.01" inputmode="decimal" value="${escapeHTML(state.goalTarget)}" placeholder="e.g. 100000"></label>
-        <label class="inventory-form-field"><span>Already saved or repaid (KSh) <small>Optional</small></span><input name="goalCurrent" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHTML(state.goalCurrent)}"></label>
+        <label class="inventory-form-field"><span>Already saved (KSh) <small>Optional</small></span><input name="goalCurrent" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHTML(state.goalCurrent)}"></label>
         <label class="inventory-form-field"><span>Target date <small>Optional</small></span><input name="goalDeadline" type="date" min="${localDateValue()}" value="${escapeHTML(state.goalDeadline)}"></label>`;
     } else {
-      title.textContent = "How do you plan to make progress?";
-      copy.textContent = "Choose a style that feels realistic. With a target date, the quest will also show the monthly pace needed.";
+      title.textContent = "How will you get there?";
+      copy.textContent = "Choose what feels realistic.";
       fields.innerHTML = `
         <label class="inventory-form-field"><span>My approach</span><select name="fundingApproach"><option value="monthly" ${state.fundingApproach === "monthly" ? "selected" : ""}>Set aside a regular amount each month</option><option value="flexible" ${state.fundingApproach === "flexible" ? "selected" : ""}>Contribute when I can</option><option value="unsure" ${state.fundingApproach === "unsure" ? "selected" : ""}>I’m still figuring it out</option></select></label>
-        <label class="inventory-form-field"><span>Amount I could contribute each month (KSh) <small>Optional</small></span><input name="monthlyContribution" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHTML(state.monthlyContribution)}" placeholder="Leave blank if you’re not sure yet"></label>`;
+        <label class="inventory-form-field"><span>Monthly amount (KSh) <small>Optional</small></span><input name="monthlyContribution" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHTML(state.monthlyContribution)}" placeholder="Not sure yet? Leave blank"></label>`;
     }
   };
 
@@ -10127,24 +10165,97 @@ document.addEventListener("keydown", event => {
   event.stopPropagation();
 }, true);
 
-// The plan card at the bottom of Quests jumps to the top-priority quest and opens its details.
-function focusTopQuest() {
-  const card = document.querySelector(".quests-page .quest-card");
-  if (!card) return;
-  const details = card.querySelector("details");
-  if (details) details.open = true;
-  card.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+// ---- Quest insights: a short motivation line plus something useful drawn from your own numbers ----
+const questMotivation = [
+  "A little step a day makes it grow.",
+  "Small savings, big dreams.",
+  "Progress beats perfect.",
+  "Start small. Keep going.",
+  "Future you says thanks.",
+  "Every shilling set aside is a vote for your goal."
+];
+let questInsightIndex = 0;
+
+function getQuestInsights() {
+  const quests = getQuests();
+  const active = activeQuests(quests);
+  const engine = getMilestonesEngine(quests);
+  const top = engine.top || active[0] || null;
+  const list = [];
+  let line = 0;
+  const add = (text, questId = "") => list.push({ quote: questMotivation[line++ % questMotivation.length], text, questId });
+  if (!quests.length) {
+    add("Pick one goal you care about and give it a date. Even a small monthly amount is a start.");
+    return list;
+  }
+  if (!active.length) {
+    add("All your goals are done. What’s the next dream?");
+    return list;
+  }
+  const power = getPowerUpData();
+  const month = monthKey();
+  // Where could a small cut-back go? Look at the flexible spending categories.
+  const flexible = ["Food & groceries", "Subscriptions", "Airtime & bundles", "Mobile money fees", "Other"];
+  const spent = flexible
+    .map(category => ({ category, amount: actualSpendingForMonth(power.spending.filter(item => item.category === category), month) }))
+    .filter(item => item.amount >= 500)
+    .sort((a, b) => b.amount - a.amount)[0];
+  if (spent && top) {
+    const cut = Math.max(100, Math.round(spent.amount * 0.1 / 100) * 100);
+    const pace = questPace(top);
+    const velocity = Number(pace.velocity) || Number(pace.required) || 0;
+    const remaining = Math.max(0, Number(top.target) - Number(top.current || 0));
+    const sooner = velocity > 0 ? Math.round(remaining / velocity - remaining / (velocity + cut)) : 0;
+    const label = spent.category.toLowerCase();
+    add(sooner >= 1
+      ? `You spent ${formatKsh(spent.amount)} on ${label} this month. Cutting back by ${formatKsh(cut)} and adding it to <strong>${escapeHTML(top.name)}</strong> could finish it about ${sooner} month${sooner === 1 ? "" : "s"} sooner.`
+      : `You spent ${formatKsh(spent.amount)} on ${label} this month. Cutting back by ${formatKsh(cut)} and adding it to <strong>${escapeHTML(top.name)}</strong> is ${formatKsh(cut * 12)} more in a year.`, top.id);
+  }
+  const income = incomeOutlookForMonth(power.incomes, month);
+  const left = income - actualSpendingForMonth(power.spending, month);
+  if (left > 1000 && top) {
+    add(`You have ${formatKsh(left)} left this month. Put ${formatKsh(Math.round(left / 2 / 100) * 100)} toward <strong>${escapeHTML(top.name)}</strong>?`, top.id);
+  }
+  if (engine.behind[0]) {
+    const behind = engine.behind[0];
+    const need = behind.pace.required ? ` It needs about ${formatKsh(Math.ceil(behind.pace.required))} a month to catch up.` : "";
+    add(`<strong>${escapeHTML(behind.quest.name)}</strong> is a little behind.${need}`, behind.quest.id);
+  }
+  const close = active.map(quest => ({ quest, progress: questProgress(quest) })).filter(item => item.progress >= 75 && item.progress < 100)[0];
+  if (close) add(`<strong>${escapeHTML(close.quest.name)}</strong> is ${close.progress}% done. The finish line is close.`, close.quest.id);
+  const fresh = active.find(quest => questProgress(quest) === 0);
+  if (fresh) add(`Add your first shilling to <strong>${escapeHTML(fresh.name)}</strong> and watch the bar move.`, fresh.id);
+  if (engine.monthly > 0) add(`Setting aside about ${formatKsh(Math.ceil(engine.monthly))} a month keeps all your goals on pace.`);
+  add("Saving a little often beats saving a lot once.");
+  return list;
 }
 
-document.addEventListener("click", event => {
-  if (event.target instanceof Element && event.target.closest("[data-quest-focus-top]")) focusTopQuest();
-});
+function questInsightInner(index) {
+  const insights = getQuestInsights();
+  const insight = insights[((index % insights.length) + insights.length) % insights.length];
+  return `<span class="quest-insight-icon" aria-hidden="true">${questNavigationIcon}</span>
+    <div class="quest-insight-body"><p class="quest-insight-quote">“${escapeHTML(insight.quote)}”</p><p class="quest-insight-text">${insight.text}</p></div>
+    ${insight.questId ? `<button class="quest-insight-go" type="button" data-quest-insight-go="${escapeHTML(insight.questId)}" aria-label="Open this quest"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>` : ""}`;
+}
 
-document.addEventListener("keydown", event => {
-  if ((event.key === "Enter" || event.key === " ") && event.target instanceof Element && event.target.matches("[data-quest-focus-top]")) {
-    event.preventDefault();
-    focusTopQuest();
-  }
+function renderQuestInsightCard() {
+  return `<aside class="quest-insight-card" data-quest-insight aria-live="polite">${questInsightInner(questInsightIndex)}</aside>`;
+}
+
+// The card moves to the next insight every 30 seconds while Quests is open.
+window.setInterval(() => {
+  const card = document.querySelector("[data-quest-insight]");
+  if (!card || appShell.hidden || crumb.textContent !== "Quests" || document.visibilityState !== "visible") return;
+  questInsightIndex += 1;
+  card.innerHTML = questInsightInner(questInsightIndex);
+  card.classList.remove("is-changing");
+  void card.offsetWidth;
+  card.classList.add("is-changing");
+}, 30000);
+
+document.addEventListener("click", event => {
+  const go = event.target instanceof Element ? event.target.closest("[data-quest-insight-go]") : null;
+  if (go) openQuestDialog(go.dataset.questInsightGo);
 });
 
 function syncPaydayControls(input) {

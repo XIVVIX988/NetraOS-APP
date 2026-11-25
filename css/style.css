@@ -16705,3 +16705,110 @@ html body .app-shell.app-shell.theme-dark #page-content .quests-page { --qon: #1
 @container questlist (min-width: 400px) {
   html body .app-shell.app-shell #page-content .quests-page .quest-card { grid-template-columns: 48px minmax(0, 1fr) auto auto; grid-template-areas: "icon title pct acts" "icon prog prog prog" "icon dets dets dets"; }
 }
+
+/* ===== Setup (onboarding): calmer, clearer pages (Nov 2026) ===== */
+.onboarding-dialog { --ob-card: #fffdf7; --ob-ink: #171b3a; --ob-mute: #6b7088; --ob-line: rgba(22, 26, 44, .1); --ob-a: var(--app-popup-accent, var(--green, #13875f)); --ob-on: #ffffff; }
+body.theme-dark .onboarding-dialog { --ob-card: #1a231f; --ob-ink: #f2f6f3; --ob-mute: #98a39c; --ob-line: rgba(255, 255, 255, .12); --ob-on: #10141a; }
+body.theme-dark dialog.inventory-dialog.onboarding-dialog { background: #111916 !important; }
+html body dialog.inventory-dialog.onboarding-dialog { background: #f7f6f1; }
+html body.theme-dark dialog.inventory-dialog.onboarding-dialog { background: #111916; }
+html body .onboarding-dialog .inventory-form { padding: 28px 20px 24px; color: var(--ob-ink); }
+html body .onboarding-dialog .inventory-dialog-heading { margin-bottom: 8px; padding: 0; border: 0; }
+html body .onboarding-dialog .inventory-dialog-heading h2 { max-width: none; margin: 0; color: var(--ob-ink); font: 800 clamp(28px, 8vw, 34px)/1.1 var(--display, Inter, sans-serif); letter-spacing: -.03em; }
+html body .onboarding-dialog .onboarding-progress-wrap { display: flex; align-items: center; gap: 12px; margin: 0 0 22px; }
+html body .onboarding-dialog .onboarding-progress-wrap [data-onboarding-step-count] { order: 2; flex: 0 0 auto; color: var(--ob-mute); font: 700 11px/1 var(--sans, Inter, sans-serif); letter-spacing: .06em; }
+html body .onboarding-dialog .onboarding-progress-track { flex: 1 1 auto; height: 6px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--ob-a) 14%, var(--ob-card)); }
+html body .onboarding-dialog .onboarding-progress-track i { display: block; height: 100%; border-radius: 999px; background: var(--ob-a); transition: width .3s ease; }
+html body .onboarding-dialog .onboarding-copy { margin: 0 0 20px; color: var(--ob-mute); font: 500 15px/1.45 var(--sans, Inter, sans-serif); }
+html body .onboarding-dialog .onboarding-fields { display: grid; gap: 14px; }
+html body .onboarding-dialog .onboarding-fields .inventory-form-field { gap: 8px; padding: 14px 16px; border: 1px solid var(--ob-line); border-radius: 18px; background: var(--ob-card); box-shadow: none; }
+html body .onboarding-dialog .onboarding-fields .inventory-form-field > span { color: var(--ob-mute); font: 700 11px/1.2 var(--sans, Inter, sans-serif); letter-spacing: .06em; text-transform: uppercase; }
+html body .onboarding-dialog .onboarding-fields .inventory-form-field > span small { margin-left: 6px; color: var(--ob-mute); font-weight: 500; letter-spacing: 0; text-transform: none; }
+html body .onboarding-dialog .onboarding-fields :is(input[type="text"], input[type="number"], input[type="date"]) { min-height: 46px; border: 1px solid var(--ob-line); border-radius: 12px; background: color-mix(in srgb, var(--ob-ink) 3%, var(--ob-card)); color: var(--ob-ink); font: 600 16px/1.2 var(--sans, Inter, sans-serif); }
+html body .onboarding-dialog .ob-name-field input { min-height: 54px; font-size: 20px; font-weight: 700; }
+html body .onboarding-dialog .ob-block { display: grid; gap: 12px; padding: 14px 16px; border: 1px solid var(--ob-line); border-radius: 18px; background: var(--ob-card); }
+html body .onboarding-dialog .ob-label { color: var(--ob-mute); font: 700 11px/1.2 var(--sans, Inter, sans-serif); letter-spacing: .06em; text-transform: uppercase; }
+html body .onboarding-dialog .settings-theme-choice { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+html body .onboarding-dialog .settings-theme-choice button.theme-tile { display: grid; justify-items: center; gap: 8px; position: relative; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; color: var(--ob-ink); font: 600 13px/1.2 var(--sans, Inter, sans-serif); cursor: pointer; }
+html body .onboarding-dialog .theme-tile.is-selected .theme-tile-art { border-color: var(--ob-a); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ob-a) 25%, transparent); }
+html body .onboarding-dialog .theme-tile-check { background: var(--ob-a); color: var(--ob-on); }
+.ob-swatches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ob-swatch { display: grid; justify-items: center; gap: 6px; padding: 10px 4px; border: 1.5px solid var(--ob-line); border-radius: 14px; background: transparent; box-shadow: none; color: var(--ob-ink); font: 600 12px/1.2 var(--sans, Inter, sans-serif); cursor: pointer; }
+.ob-swatch i { width: 28px; height: 28px; border-radius: 50%; background: var(--sw); }
+.ob-swatch.is-selected { border-color: var(--sw); background: color-mix(in srgb, var(--sw) 10%, transparent); }
+html body .onboarding-dialog .settings-payday { justify-items: center; text-align: center; }
+html body .onboarding-dialog .settings-payday .ob-label { justify-self: start; }
+html body .onboarding-dialog .payday-stepper { display: flex; align-items: center; justify-content: center; gap: 18px; }
+html body .onboarding-dialog .payday-stepper button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid color-mix(in srgb, var(--ob-a) 30%, var(--ob-line)); border-radius: 50%; background: color-mix(in srgb, var(--ob-a) 10%, var(--ob-card)); box-shadow: none; color: var(--ob-a); font: 600 24px/1 var(--sans, Inter, sans-serif); cursor: pointer; }
+html body .onboarding-dialog .payday-value { display: grid; justify-items: center; gap: 2px; min-width: 120px; }
+html body .onboarding-dialog .payday-value input { width: 90px; min-height: 0; height: 54px; padding: 0; border: 0; background: transparent; box-shadow: none; color: var(--ob-ink); font: 800 38px/1 var(--display, Inter, sans-serif); letter-spacing: -.03em; text-align: center; -moz-appearance: textfield; appearance: textfield; }
+html body .onboarding-dialog .payday-value input::-webkit-outer-spin-button, html body .onboarding-dialog .payday-value input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+html body .onboarding-dialog .payday-value span { color: var(--ob-mute); font: 600 12px/1 var(--sans, Inter, sans-serif); }
+html body .onboarding-dialog .payday-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+html body .onboarding-dialog .payday-chip { min-height: 34px; padding: 0 14px; border: 1px solid var(--ob-line); border-radius: 999px; background: transparent; box-shadow: none; color: var(--ob-ink); font: 600 13px/1 var(--sans, Inter, sans-serif); cursor: pointer; }
+html body .onboarding-dialog .payday-chip.is-selected { border-color: var(--ob-a); background: var(--ob-a); color: var(--ob-on); }
+html body .onboarding-dialog .settings-payday-next { margin: 0; color: var(--ob-a); font: 700 13.5px/1.3 var(--sans, Inter, sans-serif); }
+html body .onboarding-dialog .onboarding-actions { display: flex; gap: 10px; margin-top: auto; padding-top: 24px; }
+html body .onboarding-dialog .onboarding-actions button { min-height: 50px; border-radius: 16px; font: 700 15px/1 var(--sans, Inter, sans-serif); }
+html body .onboarding-dialog .onboarding-actions [data-onboarding-back], html body .onboarding-dialog .onboarding-actions [data-onboarding-skip] { border: 1px solid var(--ob-line); background: var(--ob-card); color: var(--ob-ink); }
+html body .onboarding-dialog .onboarding-actions [data-onboarding-next] { flex: 1 1 auto; border: 0; background: var(--ob-a) !important; color: var(--ob-on) !important; box-shadow: none; }
+
+/* ===== Phone: every card uses the same soft off-white as Power-Up ===== */
+@media (max-width: 760px) {
+  html body .app-shell:not(.theme-dark) {
+    --card-soft: var(--fx-card, #fffdf7);
+  }
+  html body .app-shell:not(.theme-dark) .isc-row .isc-shape { background: var(--fx-card, #fffdf7); box-shadow: inset 0 0 0 1px var(--fx-line, rgba(22, 26, 44, .08)); }
+  html body .app-shell:not(.theme-dark) :is(.panel, .dashboard-shortcut, .dashboard-next-action, .dashboard-recent-list, .settings-menu-card, .inventory-account-row, .quest-card, .quest-insight-card, .tax-panel, .power-list-panel, .cashflow-forecast, .inventory-summary-card):not(.metric-card) { background-color: var(--fx-card, #fffdf7); }
+}
+
+/* ===== Add buttons and filters follow the accent in every theme ===== */
+html body .app-shell.app-shell .isc-row .isc-add {
+  background: var(--green);
+  color: #ffffff;
+  box-shadow: 0 0 0 calc(8 * var(--u)) color-mix(in srgb, var(--green) 22%, var(--fx-card, #ffffff)), 0 0 0 calc(15 * var(--u)) color-mix(in srgb, var(--green) 38%, transparent);
+}
+html body .app-shell.app-shell.theme-dark .isc-row .isc-add { background: var(--green); color: #10141a; box-shadow: 0 0 0 calc(8 * var(--u)) color-mix(in srgb, var(--green) 28%, #111916), 0 0 0 calc(15 * var(--u)) color-mix(in srgb, var(--green) 45%, transparent); }
+html body .app-shell.app-shell .isc-row .isc-add:focus-visible { outline-color: var(--green); }
+html body .app-shell.app-shell :is(.inventory-add-small, .inventory-action) { background: var(--green) !important; border-color: var(--green) !important; color: #ffffff !important; }
+html body .app-shell.app-shell.theme-dark :is(.inventory-add-small, .inventory-action) { color: #10141a !important; }
+html body .app-shell.app-shell.theme-dark .inventory-filter.active, html body .app-shell.app-shell.theme-dark .quest-filter.active { border-color: color-mix(in srgb, var(--green) 50%, transparent) !important; background: color-mix(in srgb, var(--green) 16%, #111916) !important; color: var(--green) !important; }
+html body .app-shell.app-shell.theme-dark .inventory-filter.active span, html body .app-shell.app-shell.theme-dark .quest-filter.active span { color: var(--green) !important; }
+html body .app-shell.app-shell.theme-dark .inventory-filter:hover, html body .app-shell.app-shell.theme-dark .quest-filter:hover { background: color-mix(in srgb, var(--green) 10%, transparent); color: var(--green); }
+
+/* ===== Quests on phones, round two: no page title, "Add quest" pill, lighter cards, insight card ===== */
+@media (max-width: 760px) {
+html body .app-shell.app-shell #page-content .quests-page {
+  & .inventory-heading { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+  & .inventory-heading h1, & .inventory-heading .eyebrow { display: none !important; }
+  & .inventory-heading .welcome-sub { margin: 0; font-size: 14px; line-height: 1.4; }
+  & .quest-heading-add { display: inline-flex !important; align-items: center; gap: 6px; width: auto; height: 40px; min-height: 40px; padding: 0 16px !important; border-radius: 999px !important; font: 700 14px/1 var(--sans, Inter, sans-serif) !important; white-space: nowrap; }
+  & .quest-heading-add-label { display: inline !important; }
+  & .quest-heading-add-plus { font-size: 20px !important; font-weight: 600 !important; }
+  & .quest-card { padding: 12px 14px !important; border-radius: 20px !important; }
+  & .quest-card h3 { font-size: 14.5px; }
+  & .quest-card-percent { font-size: 17px; }
+  & .quest-update { min-height: 36px; padding: 0 16px !important; font-size: 13px !important; }
+  & .quest-more { width: 36px; height: 36px; }
+  & .quest-insight-card { order: 2; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--qline); border-radius: 20px; background: var(--qcard); box-shadow: var(--fx-shadow, none); color: var(--qink); }
+  & .quest-insight-card.is-changing .quest-insight-body { animation: netraInsightIn .45s ease both; }
+  & .quest-insight-card .quest-insight-icon { display: grid; flex: 0 0 auto; place-items: center; width: 34px; height: 34px; padding-right: 14px; border-right: 1px solid var(--qline); color: var(--qa); box-sizing: content-box; }
+  & .quest-insight-card .quest-insight-icon svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  & .quest-insight-body { flex: 1 1 auto; min-width: 0; display: grid; gap: 4px; }
+  & .quest-insight-quote { margin: 0; color: var(--qa); font: 600 12.5px/1.35 var(--sans, Inter, sans-serif); font-style: italic; }
+  & .quest-insight-text { margin: 0; color: var(--qink); font: 500 14px/1.45 var(--sans, Inter, sans-serif); }
+  & .quest-insight-text strong { color: var(--qa); font-weight: 700; }
+  & .quest-insight-go { display: grid; flex: 0 0 auto; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--qa) 12%, transparent); color: var(--qa); cursor: pointer; }
+  & .quest-insight-go svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+}
+}
+@media (min-width: 761px) {
+  .quest-insight-card { display: flex; align-items: center; gap: 14px; margin: 14px 0; padding: 16px 18px; border: 1px solid var(--fx-line, #e6e8f0); border-radius: 20px; background: var(--fx-card, #fffdf7); }
+  .quest-insight-card .quest-insight-icon { display: grid; width: 34px; height: 34px; color: var(--green); }
+  .quest-insight-card .quest-insight-icon svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .quest-insight-body { flex: 1 1 auto; display: grid; gap: 4px; }
+  .quest-insight-quote { margin: 0; color: var(--green); font-size: 12.5px; font-style: italic; font-weight: 600; }
+  .quest-insight-text { margin: 0; font-size: 14px; line-height: 1.45; }
+  .quest-insight-go { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--green) 12%, transparent); color: var(--green); cursor: pointer; }
+  .quest-insight-go svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+}
