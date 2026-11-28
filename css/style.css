@@ -17037,3 +17037,10 @@ html body .app-shell.app-shell.theme-dark #page-content .stats-page { --son: #10
 @keyframes powerFabIn { from { opacity: 0; transform: translateY(-8px) scale(.9); } to { opacity: 1; transform: none; } }
 .app-shell.reduce-motion .power-fab-row button { animation: none; }
 @media (prefers-reduced-motion: reduce) { .power-fab-row button { animation: none; } }
+
+/* Stats on phones: no page title; the subtitle and range pill stay */
+@media (max-width: 760px) {
+  html body .app-shell.app-shell #page-content .stats-page .inventory-heading h1 { display: none !important; }
+  html body .app-shell.app-shell #page-content .stats-page .inventory-heading .welcome-sub { margin-top: 0; align-self: center; }
+  html body .app-shell.app-shell #page-content .stats-page .inventory-heading { align-items: center; }
+}
