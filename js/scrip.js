@@ -3039,8 +3039,9 @@ function adjustAccountBalanceForRecordChange(previous, next, kind) {
   const sign = kind === "income" ? 1 : -1;
   const deltas = new Map();
   const requiredAccounts = new Set();
-  if (isPosted(previous) && previous.accountId) deltas.set(String(previous.accountId), (deltas.get(String(previous.accountId)) || 0) - sign * Number(previous.amount || 0));
-  if (isPosted(next) && next.accountId) {
+  const isRealAccount = id => Boolean(id) && String(id) !== "income";
+  if (isPosted(previous) && isRealAccount(previous.accountId)) deltas.set(String(previous.accountId), (deltas.get(String(previous.accountId)) || 0) - sign * Number(previous.amount || 0));
+  if (isPosted(next) && isRealAccount(next.accountId)) {
     const accountId = String(next.accountId);
     deltas.set(accountId, (deltas.get(accountId) || 0) + sign * Number(next.amount || 0));
     requiredAccounts.add(accountId);
@@ -5151,8 +5152,8 @@ function openPowerUpDialog(kind, editId = null, preset = {}) {
         </label>` : ""}
         ${isReceivedIncome || isSpending ? `<label class="inventory-form-field">
           <span>${isReceivedIncome ? "Deposit into account" : "Paid from account"} <small>Optional</small></span>
-          <select name="accountId"><option value="">None</option>${transactionAccounts.map(item => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name)} · ${formatKsh(item.amount)}</option>`).join("")}</select>
-          <small>${transactionAccounts.length ? "Choose an account to update its recorded balance when you save this entry." : "Add a bank, mobile money, or cash account in Inventory to connect this entry to a balance."}</small>
+          <select name="accountId"><option value="">None</option>${isSpending && !isReceivedIncome ? `<option value="income">Income</option>` : ""}${transactionAccounts.map(item => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name)} · ${formatKsh(item.amount)}</option>`).join("")}</select>
+          <small>${isSpending && !isReceivedIncome ? "Pick an account to lower its balance, or Income if you paid from money you received." : transactionAccounts.length ? "Choose an account to update its recorded balance when you save this entry." : "Add a bank, mobile money, or cash account in Inventory to connect this entry to a balance."}</small>
         </label>` : ""}
         <label class="inventory-form-field">
           <span data-income-amount-label>${isIncome ? "Amount per month (KSh)" : "Amount (KSh)"}</span>
