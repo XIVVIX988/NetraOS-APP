@@ -1234,7 +1234,7 @@ function clearButtonLoading(button) {
 document.addEventListener("click", event => {
   if (!(event.target instanceof Element)) return;
   const button = event.target.closest("button");
-  if (!button || button.disabled || button.matches(".auth-submit") || button.closest(".dd") || (button.closest(".settings-page") && !button.matches('[type="submit"]')) || button.matches(".mobile-tab, [data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
+  if (!button || button.disabled || button.matches(".auth-submit") || button.closest(".dd") || button.closest("[data-power-fab-row]") || button.matches("[data-power-add-menu]") || (button.closest(".settings-page") && !button.matches('[type="submit"]')) || button.matches(".mobile-tab, [data-password-toggle], [data-theme-toggle], [data-privacy-toggle], [aria-pressed], [aria-expanded]") || buttonLoadingStates.has(button)) return;
   const state = { spinner: null, observer: null, timer: 0, minUntil: performance.now() + 300 };
   buttonLoadingStates.set(button, state);
   button.classList.add("is-loading");
@@ -3449,22 +3449,23 @@ function renderQuestCard(quest) {
   const status = complete ? "Completed" : pace.status === "on-track" ? "On track" : pace.status === "behind" || pace.status === "overdue" ? "Needs attention" : "In progress";
   const statusClass = complete ? "is-complete" : status === "In progress" ? "is-progress" : status === "Needs attention" ? "is-attention" : status === "On track" ? "is-on-track" : "";
   const open = openQuestCards.has(quest.id);
+  const subLine = debtPayoffQuest ? `Repaid ${formatKsh(quest.current)} · Owed ${formatKsh(linkedInventoryItem.amount)}` : `${formatKsh(quest.current)} of ${formatKsh(quest.target)}`;
   return `
-    <article class="quest-card ${complete ? "is-complete" : ""}${open ? " is-open" : ""}" style="--quest-accent:${questCategoryAccent(quest.category)}" data-quest-id="${escapeHTML(quest.id)}">
+    <article class="quest-card ${complete ? "is-complete" : ""}${open ? " is-open" : ""}" data-status="${statusClass}" style="--quest-accent:${questCategoryAccent(quest.category)}" data-quest-id="${escapeHTML(quest.id)}">
       <header class="quest-card-header" data-quest-toggle role="button" tabindex="0" aria-expanded="${open}" aria-label="Show or hide details for ${escapeHTML(quest.name)}">
         <span class="quest-card-icon ${complete ? "is-complete" : ""}" aria-hidden="true"><span class="quest-icon-default">${complete ? "✦" : questNavigationIcon}</span>${complete ? "" : `<span class="quest-icon-category">${questCategoryIcon(quest.category)}</span>`}</span>
         <div class="quest-card-title-group">
-          <div class="quest-card-title-line"><h3>${escapeHTML(quest.name)}</h3><span class="quest-status ${statusClass}">${status}</span></div>
+          <h3>${escapeHTML(quest.name)}</h3>
+          <span class="quest-card-sub">${escapeHTML(quest.category || "Personal goal")}</span>
+          <span class="quest-card-sub">${escapeHTML(subLine)}</span>
         </div>
         <strong class="quest-card-percent" aria-label="${progress} percent complete">${progress}%</strong>
         <span class="quest-card-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
       </header>
-      <div class="quest-card-progress">
-        <div class="quest-track" role="progressbar" aria-label="${escapeHTML(quest.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><i style="width:${progress}%"></i></div>
-      </div>
       <div class="quest-card-body">
-        <div class="quest-card-amounts ${debtPayoffQuest ? "is-debt-payoff" : ""}" aria-label="${debtPayoffQuest ? `Repaid ${formatKsh(quest.current)}; still owed ${formatKsh(linkedInventoryItem.amount)}` : `Saved ${formatKsh(quest.current)} of target ${formatKsh(quest.target)}`}" >${debtPayoffQuest ? `<span>Repaid <strong>${formatKsh(quest.current)}</strong></span><span>Owed <strong>${formatKsh(linkedInventoryItem.amount)}</strong></span>` : `<span>Saved <strong>${formatKsh(quest.current)}</strong></span><span>Target <strong>${formatKsh(quest.target)}</strong></span>`}</div>
+        <div class="quest-card-progress"><div class="quest-track" role="progressbar" aria-label="${escapeHTML(quest.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><i style="width:${progress}%"></i></div></div>
         <div class="quest-card-details-grid">
+          <span class="quest-card-detail"><small>STATUS</small><b>${status}</b></span>
           <span class="quest-card-detail"><small>DEADLINE</small><b>${escapeHTML(deadline)}</b></span>
           <span class="quest-card-detail"><small>MONTHLY PACE</small><b>${escapeHTML(monthly)}</b></span>
           <span class="quest-card-detail"><small>PRIORITY</small><b>${escapeHTML(questTierLabel(quest))}</b></span>
@@ -5720,6 +5721,20 @@ function getStatsNetWorthSnapshots(currentNetWorth) {
   return snapshots;
 }
 
+const statsIcons = {
+  bars: '<svg class="is-solid" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="12" width="4" height="8" rx="1.2"/><rect x="10" y="4" width="4" height="16" rx="1.2"/><rect x="16" y="9" width="4" height="11" rx="1.2"/></svg>',
+  pie: '<svg class="is-solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3.2A9 9 0 1 0 20.800 13H11V3.200Z"/><path d="M13.500 2.800A9 9 0 0 1 21.200 10.500H13.500V2.800Z"/></svg>',
+  target: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12h.01"/></svg>',
+  coin: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.600 9h3.400a1.900 1.900 0 0 1 0 3.800H9.600m0 0h3.800a1.900 1.900 0 0 1 0 3.800H9.600"/></svg>',
+  trend: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 5-5 4 3 7-8"/><path d="M15 7h5v5"/></svg>',
+  bulb: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.500 10.900c.6.500 1 1.200 1 2V16h5v-.100c0-.800.400-1.500 1-2A6 6 0 0 0 12 3Z"/></svg>',
+  chevron: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>'
+};
+
+function statsInsightCard(view, monthlySeries, netWorth) {
+  return `<aside class="stats-key-insight stats-key-insight-inline"><span class="stats-key-insight-icon" aria-hidden="true">${statsIcons.bulb}</span><div><strong>Key Insight</strong><p>${escapeHTML(getStatsMobileInsight(view, monthlySeries, netWorth))}</p></div></aside>`;
+}
+
 function renderStatsTrend(view, months, currentNetWorth) {
   if (view === "savings") {
     const current = months.at(-1) || { income: 0, saved: 0 };
@@ -5846,9 +5861,9 @@ function renderStatsPage() {
   const categoryRows = categories.length
     ? categories.map(item => `
         <div class="stats-category-row">
-          <div class="stats-category-heading"><strong>${escapeHTML(item.category)}</strong><span>${formatKsh(item.spent)} <small>spent · ${totalCategorySpending ? Math.round((item.spent / totalCategorySpending) * 100) : 0}% of total</small></span></div>
-          <div class="stats-pair-bars"><i class="planned-bar" style="width:${Math.round((item.planned / maxCategory) * 100)}%"></i><i class="spent-bar" style="width:${Math.round((item.spent / maxCategory) * 100)}%"></i></div>
-          <small class="stats-planned-label">${formatKsh(item.planned)} planned</small>
+          <strong class="stats-cat-name">${escapeHTML(item.category)}</strong>
+          <div class="stats-pair-bars" role="img" aria-label="${escapeHTML(item.category)}: ${formatKsh(item.spent)} spent of ${formatKsh(item.planned)} planned" title="${formatKsh(item.planned)} planned"><i class="planned-bar" style="width:${Math.round((item.planned / maxCategory) * 100)}%"></i><i class="spent-bar" style="width:${Math.round((item.spent / maxCategory) * 100)}%"></i></div>
+          <span class="stats-cat-amount">${formatKsh(item.spent)} <small>spent · ${totalCategorySpending ? Math.round((item.spent / totalCategorySpending) * 100) : 0}% of total</small></span>
         </div>`).join("")
     : `<div class="stats-empty">Add budget lines and spending records in Power-Up to see a category comparison.</div>`;
   const assetRows = assetMix.length ? assetMix.map(item => `
@@ -5885,37 +5900,40 @@ function renderStatsPage() {
         </div>
         <div class="stats-trend-grid">
           <article id="stats-panel-cash-flow" role="tabpanel" class="panel stats-primary-panel stats-cashflow-panel ${statsMobileView === "cash-flow" ? "is-mobile-active" : ""}">
-            <div class="stats-chart-heading"><div><h2>Monthly Cash Flow</h2></div>${cashFlowLegend}</div>
+            <div class="stats-chart-heading"><div class="stats-chart-title"><span class="stats-chart-icon" aria-hidden="true">${statsIcons.bars}</span><h2>Monthly Cash Flow</h2></div>${cashFlowLegend}</div>
             ${renderStatsTrend("cash-flow", monthlySeries, balance.netWorth)}
+            ${statsInsightCard("cash-flow", monthlySeries, balance.netWorth)}
           </article>
           <article id="stats-panel-savings" role="tabpanel" class="panel stats-primary-panel stats-secondary-chart stats-savings-panel ${statsMobileView === "savings" ? "is-mobile-active" : ""}">
-            <div class="stats-chart-heading"><h2>Savings Rate</h2></div>
+            <div class="stats-chart-heading"><div class="stats-chart-title"><span class="stats-chart-icon" aria-hidden="true">${statsIcons.coin}</span><h2>Savings Rate</h2></div></div>
             ${renderStatsTrend("savings", monthlySeries, balance.netWorth)}
+            ${statsInsightCard("savings", monthlySeries, balance.netWorth)}
           </article>
           <article id="stats-panel-net-worth" role="tabpanel" class="panel stats-primary-panel stats-secondary-chart stats-net-worth-panel ${statsMobileView === "net-worth" ? "is-mobile-active" : ""}">
-            <div class="stats-chart-heading"><h2>Net Worth Trend</h2></div>
+            <div class="stats-chart-heading"><div class="stats-chart-title"><span class="stats-chart-icon" aria-hidden="true">${statsIcons.trend}</span><h2>Net Worth Trend</h2></div></div>
             ${renderStatsTrend("net-worth", monthlySeries, balance.netWorth)}
+            ${statsInsightCard("net-worth", monthlySeries, balance.netWorth)}
           </article>
         </div>
       </section>
-      <aside class="stats-key-insight"><span class="stats-key-insight-icon" aria-hidden="true">✦</span><div><strong>Key Insight</strong><p>${escapeHTML(getStatsMobileInsight(statsMobileView, monthlySeries, balance.netWorth))}</p></div></aside>
+      <aside class="stats-key-insight stats-key-insight-standalone"><span class="stats-key-insight-icon" aria-hidden="true">✦</span><div><strong>Key Insight</strong><p>${escapeHTML(getStatsMobileInsight(statsMobileView, monthlySeries, balance.netWorth))}</p></div></aside>
       <details class="stats-more-insights" ${statsMoreInsightsOpen ? "open" : ""}>
-        <summary class="stats-more-heading"><div><h2>More insights</h2><p>Supporting details for your budget, assets, and goals.</p></div><span class="stats-more-chevron" aria-hidden="true"></span></summary>
+        <summary class="stats-more-heading"><span class="stats-more-icon" aria-hidden="true">${statsIcons.bars}</span><div><h2>More insights</h2><p>Supporting details for your budget, assets, and goals.</p></div><span class="stats-more-chevron" aria-hidden="true"></span></summary>
         <section class="stats-panels">
-        <article class="panel stats-panel">
-          <div class="panel-heading"><div><div class="section-kicker">SPENDING BREAKDOWN</div><h2>Budget vs. actual</h2></div><span class="inventory-account-count">${categories.length} categories</span></div>
+        <details class="panel stats-panel stats-fold" open>
+          <summary class="stats-fold-head"><span class="stats-fold-icon" aria-hidden="true">${statsIcons.bars}</span><h2>Budget vs. actual</h2><span class="stats-fold-chip">${categories.length} categories<span class="stats-fold-chevron" aria-hidden="true">${statsIcons.chevron}</span></span></summary>
           <div class="stats-category-list">${categoryRows}</div>
           <div class="stats-legend"><span><i class="planned-bar"></i>Planned</span><span><i class="spent-bar"></i>Spent</span></div>
-        </article>
-        <article class="panel stats-panel">
-          <div class="panel-heading"><div><div class="section-kicker">WHAT YOU OWN</div><h2>Asset mix</h2></div><span class="inventory-account-count">${inventory.filter(item => item.type === "asset").length} assets</span></div>
+        </details>
+        <details class="panel stats-panel stats-fold" open>
+          <summary class="stats-fold-head"><span class="stats-fold-icon" aria-hidden="true">${statsIcons.pie}</span><h2>Asset mix</h2><span class="stats-fold-chip">${inventory.filter(item => item.type === "asset").length} assets<span class="stats-fold-chevron" aria-hidden="true">${statsIcons.chevron}</span></span></summary>
           <div class="stats-asset-list">${assetRows}</div>
           <div class="inventory-panel-total"><span>Total assets</span><strong>${formatKsh(balance.assets)}</strong></div>
-        </article>
-        <article class="panel stats-panel">
-          <div class="panel-heading"><div><div class="section-kicker">GOALS WITH MOMENTUM</div><h2>Quest progress</h2></div><span class="inventory-account-count">${active.length} active</span></div>
+        </details>
+        <details class="panel stats-panel stats-fold" open>
+          <summary class="stats-fold-head"><span class="stats-fold-icon" aria-hidden="true">${statsIcons.target}</span><h2>Quest progress</h2><span class="stats-fold-chip">${active.length} active<span class="stats-fold-chevron" aria-hidden="true">${statsIcons.chevron}</span></span></summary>
           <div class="stats-quest-list">${active.length ? active.map(quest => `<div class="stats-quest-row"><span>${escapeHTML(quest.name)}</span><strong>${questProgress(quest)}%</strong><div class="quest-track"><i style="width:${questProgress(quest)}%"></i></div></div>`).join("") : `<div class="stats-empty">No active quests. Create a goal on the Quests page to track progress here.</div>`}</div>
-        </article>
+        </details>
         </section>
       </details>
     </section>
@@ -6253,6 +6271,33 @@ const powerIcons = {
   bars: '<svg viewBox="0 0 24 24"><rect x="4" y="11" width="4" height="9" rx="1.2"/><rect x="10" y="4" width="4" height="16" rx="1.2"/><rect x="16" y="14" width="4" height="6" rx="1.2"/></svg>'
 };
 
+// Mini buttons that fan out from the Power-Up add button on phones.
+const powerFabActions = [
+  { kind: "income", label: "Add income", icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.8" y="6" width="18.4" height="12" rx="2.6"/><circle cx="12" cy="12" r="2.6"/><path d="M6.2 9.4h.01M17.8 14.6h.01"/></svg>' },
+  { kind: "budget", label: "Add budget", icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H17a2 2 0 0 1 2 2v1"/><rect x="3" y="7.5" width="18" height="12.5" rx="3"/><path d="M16 13h5v3.2h-5a1.6 1.6 0 0 1 0-3.2Z"/></svg>' },
+  { kind: "spending", label: "Record spending", icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h12v17l-2.2-1.6-2.2 1.6L12 19.2l-1.6 1.3-2.2-1.6L6 20.5v-17Z"/><path d="M9 8.5h6M9 12h6"/></svg>' },
+  { kind: "transfer", label: "Move money", icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h14m-3.5-3.5L18 8l-3.500 3.500"/><path d="M20 16H6m3.500-3.500L6 16l3.500 3.500"/></svg>' }
+];
+
+function setPowerFab(open) {
+  const row = document.querySelector("[data-power-fab-row]");
+  const add = document.querySelector(".power-isc-row .isc-add");
+  if (!row || !add) return;
+  row.hidden = !open;
+  add.classList.toggle("is-open", open);
+  add.setAttribute("aria-expanded", String(open));
+}
+
+document.addEventListener("click", event => {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target || document.querySelector("[data-power-fab-row]")?.hidden !== false) return;
+  if (!target.closest("[data-power-fab-row], .power-isc-row .isc-add")) setPowerFab(false);
+});
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && document.querySelector("[data-power-fab-row]")?.hidden === false) setPowerFab(false);
+});
+
 function renderPowerListPanel(key, heading, kicker, rows, totalLabel, total, phone = false, listControl = "") {
   return `
     <article class="panel power-list-panel power-list-${key}">
@@ -6350,6 +6395,7 @@ function renderPowerUpPage() {
           <span class="isc-text"><span class="isc-name">Budget</span><strong class="isc-amount">${formatCompactKpiCurrency(totals.reportBudget)}</strong></span>
         </article>
       </section>
+      <div class="power-fab-row" data-power-fab-row role="group" aria-label="Add to Power-Up" hidden>${powerFabActions.map(action => `<button type="button" data-power-fab="${action.kind}" aria-label="${action.label}" title="${action.label}">${action.icon}</button>`).join("")}</div>
 
       <section class="inventory-summary power-summary" aria-label="Monthly plan summary">
         <article class="inventory-summary-card power-sum-spending">
@@ -9998,6 +10044,15 @@ document.addEventListener("click", event => {
       dashboardChartView = requestedView;
       updateDashboardCashflowChart();
     }
+    return;
+  }
+  if (button.matches("[data-power-fab]")) {
+    setPowerFab(false);
+    handleMenuChoice(`power-add:${button.dataset.powerFab}`);
+    return;
+  }
+  if (button.matches("[data-power-add-menu]") && window.matchMedia("(max-width: 760px)").matches) {
+    setPowerFab(document.querySelector("[data-power-fab-row]")?.hidden !== false);
     return;
   }
   if (button.matches("[data-power-add-menu]")) {
